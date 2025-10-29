@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SRM VEC English — Quest & Video Calendar</title>
+<link rel="manifest" href="manifest.json">
+<link rel="stylesheet" href="style.css">
+<meta name="theme-color" content="#7A0019">
+</head>
+<body>
+
+<!-- The user's original calendar page, slightly adapted to be self-contained and PWA-ready -->
+<div id="nameInputContainer">
+  <h2>Enter Your Name</h2>
+  <input type="text" id="name" placeholder="Your Name">
+  <button onclick="showCalendar()">Show Calendar</button>
+  <!-- New button with link -->
+  <a href="https://sites.google.com/view/srm-vec-english/daily-vocabulary" target="_blank">
+    <button style="background:#4CAF50; color:white;">Give me my Daily Vocabulary!</button>
+<br>
+  <a href="https://sites.google.com/view/cys-english/preliminary-event-registration" target="_blank">
+    <button style="background:#FF5722; color:black;">Register for Mystic Summit!</button>
+<br>
+  <a href="https://sites.google.com/view/cys-english/wordle" target="_blank">
+    <button style="background:#FFC0CB; color:black;">👽WORDLE!</button>
+<br>
+  <a href="https://sites.google.com/view/srm-vec-english/department-quest-leaderboard" target="_blank">
+    <button style="background:#A020F0; color:black;">😎 Leaderboard!</button>
+<br>
+  <a href="https://sites.google.com/view/cys-english/elll-virtual-record" target="_blank">
+    <button style="background:#000000; color:white;">📝 ELLL Virtual Record✨</button>
+  </a>
+</div>
+
+<div id="loadingQuote"></div>
+<div id="userName"></div>
+<div id="totalCorrect"></div>
+<div id="missedDays"></div>
+<div id="amazingMsg">🌟 Amazing! You haven’t missed a single day!</div>
+<div id="typeButtons" style="display:none; margin-top: 10px; text-align:center;">
+ <button class="type-button" onclick="switchType('quest')" style="background:#2196F3; color:#fff; margin:5px;">Quest</button>
+<button class="type-button" onclick="switchType('video')" style="background:#FF9800; color:#fff; margin:5px;">Video</button>
+<button class="type-button" onclick="switchType('ipa')" style="background:#9C27B0; color:#fff; margin:5px;">ELLL</button>
+</div>
+
+<div class="calendar" id="calendarContainer" style="display:none;">
+  <div class="calendar-header">
+    <button onclick="changeMonth(-1)">&#8592;</button>
+    <div id="monthYear"></div>
+    <button onclick="changeMonth(1)">&#8594;</button>
+  </div>
+  <div class="days-of-week">
+    <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div>
+    <div>Thu</div><div>Fri</div><div>Sat</div>
+  </div>
+  <div class="dates" id="datesGrid"></div>
+</div>
+
+<script>
+const quote = "Heuristics are mental shortcuts that allow people to solve problems and make judgments quickly and efficiently. ✨🏆🥇🥈🥉✨🔥🎉✅⚡🚀🌟👑🏆🌟💯";
+
+let currentMonth = new Date().getMonth();
+let currentYear = new Date().getFullYear();
+let user = null;
+let currentType = 'quest'; // 'quest', 'video', or 'ipa'
+
+const startDate = new Date(2025, 7, 25); // Aug 25, 2025
+let totalMissed = 0;
+
+const questLinks = {
+  1: "https://sites.google.com/view/srm-vec-english/quest/wh-questions-2",
+  2: "https://sites.google.com/view/srm-vec-english/quest/wh-questions-1",
+  3: "https://sites.google.com/view/cys-english/self-introduction-1",
+  4: "https://sites.google.com/view/srm-vec-english/quest/one-word-substitution-1",
+  5: "https://sites.google.com/view/cys-english/self-introduction-3",
+  6: "https://sites.google.com/view/srm-vec-english/quest/film-review",
+  7: "https://sites.google.com/view/srm-vec-english/quest/pronouns-1",
+  8: "https://sites.google.com/view/srm-vec-english/quest/pronouns-2",
+  9: "https://sites.google.com/view/srm-vec-english/quest/parts-of-speech-1",
+  10: "https://sites.google.com/view/srm-vec-english/quest/question-tags-1",
+  11: "https://sites.google.com/view/srm-vec-english/quest/question-tags-2",
+  12: "https://sites.google.com/view/srm-vec-english/quest/subject-verb-agreement",
+  13: "https://sites.google.com/view/srm-vec-english/quest/comparative-1",
+  14: "https://sites.google.com/view/srm-vec-english/quest/comparative-2",
+  15: "https://sites.google.com/view/srm-vec-english/quest/discourse-markers",
+  16: "https://sites.google.com/view/srm-vec-english/quest/past-1",
+  17: "https://sites.google.com/view/cys-english/questyesno1",
+  18: "https://sites.google.com/view/srm-vec-english/quest/yesno-2",
+  19: "https://sites.google.com/view/srm-vec-english/quest/one-word-substitution-2",
+  20: "https://sites.google.com/view/cys-english/match1",
+  21: "https://sites.google.com/view/cys-english/match2",
+  22: "https://sites.google.com/view/cys-english/past",
+  23: "https://sites.google.com/view/cys-english/homophone1",
+  24: "https://sites.google.com/view/cys-english/homophone2",
+  25: "https://sites.google.com/view/cys-english/comparisons1",
+  26: "https://sites.google.com/view/cys-english/comparisons2",
+  27: "https://sites.google.com/view/cys-english/discoursemarkers",
+  28: "https://sites.google.com/view/cys-english/article",
+  29: "https://sites.google.com/view/cys-english/synonym1",
+  30: "https://sites.google.com/view/cys-english/synonym2",
+  31: "https://sites.google.com/view/cys-english/antonym1",
+  32: "https://sites.google.com/view/cys-english/antonym2",
+  33: "https://sites.google.com/view/cys-english/prep1",
+  34: "https://sites.google.com/view/cys-english/prep2",
+  35: "https://sites.google.com/view/cys-english/past2",
+  36: "https://sites.google.com/view/cys-english/prep3",
+  37: "https://sites.google.com/view/cys-english/match3",
+  38: "https://sites.google.com/view/cys-english/article2",
+  39: "https://sites.google.com/view/cys-english/article3",
+  40: "https://sites.google.com/view/cys-english/quest40",
+  41: "https://sites.google.com/view/cys-english/quest41",
+  42: "https://sites.google.com/view/cys-english/quest42",
+  43: "https://sites.google.com/view/cys-english/quest43",
+  44: "https://sites.google.com/view/cys-english/quest44",
+  45: "https://sites.google.com/view/cys-english/quest45",
+  46: "https://sites.google.com/view/cys-english/quest46",
+  47: "https://sites.google.com/view/cys-english/quest47",
+  48: "https://sites.google.com/view/cys-english/quest48",
+  49: "https://sites.google.com/view/cys-english/quest49",
+  50: "https://sites.google.com/view/cys-english/quest50",
+  51: "https://sites.google.com/view/cys-english/quest51",
+  52: "https://sites.google.com/view/cys-english/quest62",
+  63: "https://sites.google.com/view/cys-english/full-streak-wh-questions",
+  64: "https://sites.google.com/view/cys-english/full-streak-single-word",
+  65: "https://sites.google.com/view/cys-english/full-streak-3",
+  66: "https://sites.google.com/view/cys-vec-english/full-streak-4",
+  67: "https://sites.google.com/view/cys-vec-english/full-streak-5",
+  68: "https://sites.google.com/view/cys-vec-english/full-streak-6",
+  69: "https://sites.google.com/view/cys-vec-english/full-streak-7"
+};
+
+const videoLink = "https://sites.google.com/view/cys-english/video-quests";
+const ipaLink = "https://sites.google.com/view/cys-english/elll-virtual-record";
+
+
+function typeWriter(text, element, callback=null) {
+  let i = 0;
+  element.textContent = "";
+  const interval = setInterval(() => {
+    element.textContent += text.charAt(i);
+    i++;
+    if(i >= text.length){
+      clearInterval(interval);
+      if(callback) callback();
+    }
+  }, 30);
+}
+
+async function showCalendar() {
+  const nameInput = document.getElementById('name');
+  const name = nameInput.value.trim();
+  if(!name) return alert('Please enter your name!');
+
+  document.getElementById('nameInputContainer').style.display = 'none';
+  const quoteEl = document.getElementById('loadingQuote');
+  typeWriter(quote, quoteEl);
+
+  try {
+    const res = await fetch("https://script.google.com/macros/s/AKfycbzPmoVR2sfZFgrh7YGxag018JF3HtIkDq3AG65Tt_psWgWLGvbERINZw7lP9wuupbVd/exec");
+    const data = await res.json();
+
+    user = data.find(u => u.Name.toUpperCase() === name.toUpperCase()) || {
+      Name: name.toUpperCase(),
+      Quests: 0,
+      TotalCorrect: 0,
+      Challenges: [] // safe for new users
+    };
+
+    quoteEl.textContent = "";
+    document.getElementById('userName').textContent = user.Name.toUpperCase();
+    document.getElementById('totalCorrect').textContent = 
+    `🔥 TOTAL CORRECT: ${user.TotalCorrect || 0}`;
+
+    document.getElementById('calendarContainer').style.display = 'grid';
+   document.getElementById('typeButtons').style.display = 'block';
+
+
+    totalMissed = 0;
+    renderCalendar(currentMonth, currentYear, currentType);
+  } catch(err){
+    quoteEl.textContent = "Error loading data!";
+    console.error(err);
+  }
+}
+
+function switchType(type) {
+  currentType = type;
+
+  const count = user.Quests; // For simplicity, same count field
+  const total = user.TotalCorrect;
+  document.getElementById('totalCorrect').textContent = 
+    `🔥 TOTAL CORRECT: ${user.TotalCorrect || 0}`;
+
+  // Glow effect for active button
+  document.querySelectorAll('.type-button').forEach(btn => btn.classList.remove('active'));
+  document.querySelector(`.type-button[onclick="switchType('${type}')"]`).classList.add('active');
+
+  totalMissed = 0;
+  renderCalendar(currentMonth, currentYear, currentType);
+}
+
+function changeMonth(direction) {
+  currentMonth += direction;
+  if (currentMonth < 0) {
+    currentMonth = 11;
+    currentYear--;
+  } else if (currentMonth > 11) {
+    currentMonth = 0;
+    currentYear++;
+  }
+  renderCalendar(currentMonth, currentYear, currentType);
+}
+
+function renderCalendar(month, year, type) {
+  const datesGrid = document.getElementById('datesGrid');
+  const monthYear = document.getElementById('monthYear');
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  monthYear.innerText = new Date(year, month).toLocaleString('default', { month: 'long' }) + ' ' + year;
+  datesGrid.innerHTML = '';
+
+  const firstDayOfMonth = new Date(year, month, 1).getDay();
+  for(let i = 0; i < firstDayOfMonth; i++){
+    const emptyDiv = document.createElement('div');
+    emptyDiv.className = 'disabled';
+    datesGrid.appendChild(emptyDiv);
+  }
+
+  const today = new Date();
+
+const challengesString = Array.isArray(user.Challenges) ? user.Challenges.join(",") : (user.Challenges || "");
+const challenges = challengesString
+                   .split(",")
+                   .map(c => c.trim())
+                   .filter(c => {
+                      if(type === 'quest') return c.startsWith('Quest');
+                      if(type === 'video') return c.startsWith('Video');
+                      if(type === 'ipa') return c.startsWith('IPA');
+                   });
+
+  for(let d = 1; d <= daysInMonth; d++){
+    const currentDate = new Date(year, month, d);
+    const diffDays = Math.floor((currentDate - startDate) / (1000 * 60 * 60 * 24));
+    const questNumber = diffDays >= 0 ? diffDays + 1 : null;
+ // Inside renderCalendar(), replace questName definition with:
+const questName = questNumber 
+    ? `${type === 'quest' ? 'Quest' : type === 'video' ? 'Video' : 'IPA'} ${questNumber}` 
+    : null;
+    const dayDiv = document.createElement('div');
+
+ if(questName && challenges.includes(questName)){
+    dayDiv.className = 'done';
+    // Show fire emoji for all types
+    dayDiv.innerText = `${d} 🔥`;
+} else if (questName) {
+    if(currentDate < today){
+        dayDiv.className = 'missed';
+        totalMissed++;
+    }
+    dayDiv.innerText = d;
+} else {
+    dayDiv.className = 'disabled';
+    dayDiv.innerText = d;
+}
+
+   dayDiv.onclick = () => {
+  let link;
+  if(type === 'quest') link = questLinks[questNumber];
+  else if(type === 'video') link = videoLink; 
+  else if(type === 'ipa') link = ipaLink; // single link for all IPA dates
+
+  if(link) window.open(link, '_blank');
+};
+
+    datesGrid.appendChild(dayDiv);
+  }
+
+  const missedEl = document.getElementById('missedDays');
+  missedEl.textContent = totalMissed > 0 ? `❌ MISSED: ${totalMissed} days` : '';
+  document.getElementById('amazingMsg').style.display = totalMissed === 0 ? 'block' : 'none';
+}
+</script>
+
+<script>
+// register service worker for PWA offline capability
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('/service-worker.js').then(function(reg) {
+      console.log('ServiceWorker registration successful with scope: ', reg.scope);
+    }, function(err) {
+      console.log('ServiceWorker registration failed: ', err);
+    });
+  });
+}
+</script>
+
+</body>
+</html>

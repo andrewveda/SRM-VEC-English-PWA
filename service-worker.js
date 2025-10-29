@@ -2,12 +2,12 @@ const CACHE_NAME = 'srm-vec-english-v3';
 
 // Core assets + homepage
 const CORE_ASSETS = [
-  '/SRM-VEC-English-PWA/',
-  '/SRM-VEC-English-PWA/index.html',
-  '/SRM-VEC-English-PWA/style.css',
-  '/SRM-VEC-English-PWA/manifest.json',
-  '/SRM-VEC-English-PWA/icons/icon-192.png',
-  '/SRM-VEC-English-PWA/icons/icon-512.png'
+  './',
+  './index.html',
+  './style.css',
+  './manifest.json',
+  './icons/icon-192.png',
+  './icons/icon-512.png'
 ];
 
 self.addEventListener('install', event => {
@@ -30,7 +30,6 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
   const { request } = event;
 
-  // This check is fine because request.url is the full URL
   if (request.url.includes('/quests/')) {
     event.respondWith(
       caches.match(request).then(response => {
@@ -43,14 +42,13 @@ self.addEventListener('fetch', event => {
             }
             return networkResponse;
           })
-          .catch(() => response); // Fallback to cache on network error
-        return response || fetchPromise; // Serve from cache first
+          .catch(() => response);
+        return response || fetchPromise;
       })
     );
     return;
   }
 
-  // Default for other requests
   event.respondWith(
     caches.match(request).then(response => {
       const fetchPromise = fetch(request)
@@ -62,8 +60,8 @@ self.addEventListener('fetch', event => {
           }
           return networkResponse;
         })
-        .catch(() => response); // Fallback to cache on network error
-      return response || fetchPromise; // Serve from cache first
+        .catch(() => response);
+      return response || fetchPromise;
     })
   );
 });

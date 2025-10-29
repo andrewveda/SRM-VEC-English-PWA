@@ -16,19 +16,19 @@
   <input type="text" id="name" placeholder="Your Name">
   <button onclick="showCalendar()">Show Calendar</button>
   <!-- New button with link -->
-  <a href="https://sites.google.com/view/srm-vec-english/daily-vocabulary" target="_blank">
+  <a href="https://sites.google.com/view/srm-vec-english/daily-vocabulary">
     <button style="background:#4CAF50; color:white;">Give me my Daily Vocabulary!</button>
 <br>
-  <a href="https://sites.google.com/view/cys-english/preliminary-event-registration" target="_blank">
+  <a href="https://sites.google.com/view/cys-english/preliminary-event-registration">
     <button style="background:#FF5722; color:black;">Register for Mystic Summit!</button>
 <br>
-  <a href="https://sites.google.com/view/cys-english/wordle" target="_blank">
+  <a href="https://sites.google.com/view/cys-english/wordle">
     <button style="background:#FFC0CB; color:black;">👽WORDLE!</button>
 <br>
-  <a href="https://sites.google.com/view/srm-vec-english/department-quest-leaderboard" target="_blank">
+  <a href="https://sites.google.com/view/srm-vec-english/department-quest-leaderboard">
     <button style="background:#A020F0; color:black;">😎 Leaderboard!</button>
 <br>
-  <a href="https://sites.google.com/view/cys-english/elll-virtual-record" target="_blank">
+  <a href="https://sites.google.com/view/cys-english/elll-virtual-record" >
     <button style="background:#000000; color:white;">📝 ELLL Virtual Record✨</button>
   </a>
 </div>
@@ -69,7 +69,7 @@ const startDate = new Date(2025, 7, 25); // Aug 25, 2025
 let totalMissed = 0;
 
 const questLinks = {
-  1: "quests/quest1.html",
+  1: "https://sites.google.com/view/srm-vec-english/quest/wh-questions-2",
   2: "https://sites.google.com/view/srm-vec-english/quest/wh-questions-1",
   3: "https://sites.google.com/view/cys-english/self-introduction-1",
   4: "https://sites.google.com/view/srm-vec-english/quest/one-word-substitution-1",
@@ -269,7 +269,21 @@ const questName = questNumber
   else if(type === 'video') link = videoLink; 
   else if(type === 'ipa') link = ipaLink; // single link for all IPA dates
 
-if(link) openQuest(link);
+ if (link) {
+  const internalDomains = [
+    "andrewveda.github.io",
+    "sites.google.com/view/cys-english/",
+    "sites.google.com/view/srm-vec-english/"
+  ];
+  const isInternal = internalDomains.some(domain => link.includes(domain));
+
+  if (isInternal) {
+    window.location.href = link; // Opens inside app (native)
+  } else {
+    window.open(link, '_blank'); // External link only
+  }
+}
+
 };
 
     datesGrid.appendChild(dayDiv);
@@ -281,105 +295,8 @@ if(link) openQuest(link);
 }
 </script>
 
-<!-- 🌟 Native-style App Container -->
-<header id="appHeader" style="
-  background:#7A0019; color:white;
-  display:flex; align-items:center; justify-content:center;
-  height:50px; position:fixed; top:0; left:0; right:0;
-  z-index:10; box-shadow:0 2px 6px rgba(0,0,0,0.2);
-">
-  <button id="backButton" onclick="goBackToCalendar()"
-
-    style="position:absolute; left:10px; background:none; border:none; color:white; font-size:20px; display:none;">⬅</button>
-  <span id="headerTitle">Calendar</span>
-</header>
-
-<!-- Main dynamic area -->
-<div id="mainContainer" style="
-  margin-top:60px;
-  height:calc(100vh - 60px);
-  overflow-y:auto;
-  transition:opacity 0.4s ease;
-">
-  <!-- Default calendar view (initially hidden) -->
-  <div id="calendarWrapper">
-    <div id="typeButtons" style="display:none; margin-top:10px; text-align:center;">
-      <button class="type-button" onclick="switchType('quest')" style="background:#2196F3; color:#fff; margin:5px;">Quest</button>
-      <button class="type-button" onclick="switchType('video')" style="background:#FF9800; color:#fff; margin:5px;">Video</button>
-      <button class="type-button" onclick="switchType('ipa')" style="background:#9C27B0; color:#fff; margin:5px;">ELLL</button>
-    </div>
-    <div class="calendar" id="calendarContainer" style="display:none;">
-      <div class="calendar-header">
-        <button onclick="changeMonth(-1)">&#8592;</button>
-        <div id="monthYear"></div>
-        <button onclick="changeMonth(1)">&#8594;</button>
-      </div>
-      <div class="days-of-week">
-        <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div>
-        <div>Thu</div><div>Fri</div><div>Sat</div>
-      </div>
-      <div class="dates" id="datesGrid"></div>
-    </div>
-  </div>
-
-  <!-- Quest Content -->
-  <div id="questContainer" style="display:none; padding:20px; background:white; min-height:90vh;">
-    <div id="questContent">Loading...</div>
-  </div>
-</div>
-
 <script>
-async function openQuest(link) {
-  const back = document.getElementById('backButton');
-  const headerTitle = document.getElementById('headerTitle');
-  const mainContainer = document.getElementById('mainContainer');
-  const questContainer = document.getElementById('questContainer');
-  const questContent = document.getElementById('questContent');
-  const calendarContainer = document.getElementById('calendarContainer');
-  const typeButtons = document.getElementById('typeButtons');
-
-  // Transition
-  mainContainer.style.opacity = 0;
-  setTimeout(async () => {
-    calendarContainer.style.display = 'none';
-    typeButtons.style.display = 'none';
-    questContainer.style.display = 'block';
-    back.style.display = 'inline-block';
-    headerTitle.textContent = 'Quest';
-    questContent.innerHTML = '<p>Loading quest...</p>';
-    mainContainer.style.opacity = 1;
-
-    try {
-      const res = await fetch(link);
-      const html = await res.text();
-      questContent.innerHTML = html;
-    } catch (err) {
-      questContent.innerHTML = '<p>⚠️ Failed to load quest.</p>';
-    }
-    window.scrollTo(0, 0);
-  }, 300);
-}
-
-function goBackToCalendar() {
-  const back = document.getElementById('backButton');
-  const headerTitle = document.getElementById('headerTitle');
-  const questContainer = document.getElementById('questContainer');
-  const calendarContainer = document.getElementById('calendarContainer');
-  const typeButtons = document.getElementById('typeButtons');
-  const mainContainer = document.getElementById('mainContainer');
-
-  mainContainer.style.opacity = 0;
-  setTimeout(() => {
-    questContainer.style.display = 'none';
-    back.style.display = 'none';
-    calendarContainer.style.display = 'grid';
-    typeButtons.style.display = 'block';
-    headerTitle.textContent = 'Calendar';
-    mainContainer.style.opacity = 1;
-  }, 300);
-}
-
-// ✅ Service Worker
+// register service worker for PWA offline capability
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function() {
     navigator.serviceWorker.register('/service-worker.js').then(function(reg) {
@@ -390,3 +307,32 @@ if ('serviceWorker' in navigator) {
   });
 }
 </script>
+<script>
+document.addEventListener("click", function (e) {
+  const target = e.target.closest("a");
+  if (!target) return;
+
+  const url = target.href;
+
+  // ✅ Domains to open internally (no X, feels native)
+  const internalDomains = [
+    "andrewveda.github.io",
+    "sites.google.com/view/cys-english/",
+    "sites.google.com/view/srm-vec-english/"
+  ];
+
+  const isInternal = internalDomains.some(domain => url.includes(domain));
+
+  if (isInternal) {
+    // Open in same PWA context (native feel)
+    e.preventDefault();
+    window.location.href = url;
+  } else {
+    // Open external links normally
+    target.setAttribute("target", "_blank");
+  }
+});
+</script>
+
+</body>
+</html>

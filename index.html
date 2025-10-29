@@ -299,49 +299,86 @@ if(link) openQuest(link);
   height:calc(100vh - 60px);
   overflow-y:auto;
   transition:opacity 0.4s ease;
-"></div>
+">
+  <!-- Default calendar view (initially hidden) -->
+  <div id="calendarWrapper">
+    <div id="typeButtons" style="display:none; margin-top:10px; text-align:center;">
+      <button class="type-button" onclick="switchType('quest')" style="background:#2196F3; color:#fff; margin:5px;">Quest</button>
+      <button class="type-button" onclick="switchType('video')" style="background:#FF9800; color:#fff; margin:5px;">Video</button>
+      <button class="type-button" onclick="switchType('ipa')" style="background:#9C27B0; color:#fff; margin:5px;">ELLL</button>
+    </div>
+    <div class="calendar" id="calendarContainer" style="display:none;">
+      <div class="calendar-header">
+        <button onclick="changeMonth(-1)">&#8592;</button>
+        <div id="monthYear"></div>
+        <button onclick="changeMonth(1)">&#8594;</button>
+      </div>
+      <div class="days-of-week">
+        <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div>
+        <div>Thu</div><div>Fri</div><div>Sat</div>
+      </div>
+      <div class="dates" id="datesGrid"></div>
+    </div>
+  </div>
 
-<script>
-<!-- ✅ Quest Container (fullscreen dynamic replacement) -->
-<div id="questContainer" style="display:none; padding:20px; background:white; min-height:90vh;">
-  <div id="questContent">Loading...</div>
+  <!-- Quest Content -->
+  <div id="questContainer" style="display:none; padding:20px; background:white; min-height:90vh;">
+    <div id="questContent">Loading...</div>
+  </div>
 </div>
-
-<button id="backButton" onclick="closeQuest()" 
-  style="display:none; background:#7A0019; color:white; margin:10px; padding:10px; border:none; border-radius:8px;">
-  ⬅ Back to Calendar
-</button>
 
 <script>
 async function openQuest(link) {
   const back = document.getElementById('backButton');
-  const container = document.getElementById('questContainer');
-  const content = document.getElementById('questContent');
+  const headerTitle = document.getElementById('headerTitle');
+  const mainContainer = document.getElementById('mainContainer');
+  const questContainer = document.getElementById('questContainer');
+  const questContent = document.getElementById('questContent');
+  const calendarContainer = document.getElementById('calendarContainer');
+  const typeButtons = document.getElementById('typeButtons');
 
-  document.getElementById('calendarContainer').style.display = 'none';
-  document.getElementById('typeButtons').style.display = 'none';
-  container.style.display = 'block';
-  back.style.display = 'inline-block';
-  content.innerHTML = '<p>Loading quest...</p>';
+  // Transition
+  mainContainer.style.opacity = 0;
+  setTimeout(async () => {
+    calendarContainer.style.display = 'none';
+    typeButtons.style.display = 'none';
+    questContainer.style.display = 'block';
+    back.style.display = 'inline-block';
+    headerTitle.textContent = 'Quest';
+    questContent.innerHTML = '<p>Loading quest...</p>';
+    mainContainer.style.opacity = 1;
 
-  try {
-    const res = await fetch(link);
-    const html = await res.text();
-    content.innerHTML = html;
-  } catch (err) {
-    content.innerHTML = '<p>⚠️ Failed to load quest.</p>';
-  }
-  window.scrollTo(0, 0);
+    try {
+      const res = await fetch(link);
+      const html = await res.text();
+      questContent.innerHTML = html;
+    } catch (err) {
+      questContent.innerHTML = '<p>⚠️ Failed to load quest.</p>';
+    }
+    window.scrollTo(0, 0);
+  }, 300);
 }
 
-function closeQuest() {
-  document.getElementById('questContainer').style.display = 'none';
-  document.getElementById('backButton').style.display = 'none';
-  document.getElementById('calendarContainer').style.display = 'grid';
-  document.getElementById('typeButtons').style.display = 'block';
-}
-</script>
+function showCalendar() {
+  const back = document.getElementById('backButton');
+  const headerTitle = document.getElementById('headerTitle');
+  const questContainer = document.getElementById('questContainer');
+  const calendarContainer = document.getElementById('calendarContainer');
+  const typeButtons = document.getElementById('typeButtons');
+  const mainContainer = document.getElementById('mainContainer');
 
+  mainContainer.style.opacity = 0;
+  setTimeout(() => {
+    questContainer.style.display = 'none';
+    back.style.display = 'none';
+    calendarContainer.style.display = 'grid';
+    typeButtons.style.display = 'block';
+    headerTitle.textContent = 'Calendar';
+    mainContainer.style.opacity = 1;
+  }, 300);
+}
+
+// ✅ Service Worker
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function() {
     navigator.serviceWorker.register('/service-worker.js').then(function(reg) {
@@ -352,6 +389,3 @@ if ('serviceWorker' in navigator) {
   });
 }
 </script>
-
-</body>
-</html>

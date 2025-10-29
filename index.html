@@ -279,45 +279,78 @@ if(link) openQuest(link);
   missedEl.textContent = totalMissed > 0 ? `❌ MISSED: ${totalMissed} days` : '';
   document.getElementById('amazingMsg').style.display = totalMissed === 0 ? 'block' : 'none';
 }
-</script> <!-- ✅ close the main script here properly before adding iframe -->
-
-<!-- Quest iframe and back button -->
-<iframe id="questFrame" style="
-  display:none;
-  width:100%;
-  height:90vh;
-  border:none;
-"></iframe>
-
-<button id="backButton" onclick="closeQuest()" 
-  style="display:none; background:#7A0019; color:white; margin:10px; padding:10px; border:none; border-radius:8px;">
-  ⬅ Back to Calendar
-</button>
-
-<!-- Script for opening/closing quests -->
-<script>
-function openQuest(link) {
-  const frame = document.getElementById('questFrame');
-  const back = document.getElementById('backButton');
-  frame.src = link;
-  frame.style.display = 'block';
-  back.style.display = 'inline-block';
-  document.getElementById('calendarContainer').style.display = 'none';
-  document.getElementById('typeButtons').style.display = 'none';
-  window.scrollTo(0,0);
-}
-
-function closeQuest() {
-  const frame = document.getElementById('questFrame');
-  const back = document.getElementById('backButton');
-  frame.style.display = 'none';
-  back.style.display = 'none';
-  document.getElementById('calendarContainer').style.display = 'grid';
-  document.getElementById('typeButtons').style.display = 'block';
-}
 </script>
 
-<!-- Service Worker Registration -->
+<!-- 🌟 Native-style App Container -->
+<header id="appHeader" style="
+  background:#7A0019; color:white;
+  display:flex; align-items:center; justify-content:center;
+  height:50px; position:fixed; top:0; left:0; right:0;
+  z-index:10; box-shadow:0 2px 6px rgba(0,0,0,0.2);
+">
+  <button id="backButton" onclick="showCalendar()" 
+    style="position:absolute; left:10px; background:none; border:none; color:white; font-size:20px; display:none;">⬅</button>
+  <span id="headerTitle">Calendar</span>
+</header>
+
+<!-- Main dynamic area -->
+<div id="mainContainer" style="
+  margin-top:60px;
+  height:calc(100vh - 60px);
+  overflow-y:auto;
+  transition:opacity 0.4s ease;
+"></div>
+
+<script>
+const mainContainer = document.getElementById('mainContainer');
+const headerTitle = document.getElementById('headerTitle');
+const backButton = document.getElementById('backButton');
+const calendarHTML = document.getElementById('calendarContainer').outerHTML; // keep original calendar
+
+// initialise main view
+mainContainer.innerHTML = calendarHTML;
+
+// re-bind events after reloading calendar view
+function showCalendar() {
+  mainContainer.style.opacity = 0;
+  setTimeout(() => {
+    mainContainer.innerHTML = calendarHTML;
+    document.getElementById('calendarContainer').style.display = 'grid';
+    document.getElementById('typeButtons').style.display = 'block';
+    headerTitle.textContent = 'Calendar';
+    backButton.style.display = 'none';
+    attachDayHandlers();
+    mainContainer.style.opacity = 1;
+  }, 300);
+}
+
+async function openQuest(file, title='Quest') {
+  try {
+    mainContainer.style.opacity = 0;
+    const res = await fetch(file);
+    const html = await res.text();
+    setTimeout(() => {
+      mainContainer.innerHTML = html;
+      headerTitle.textContent = title;
+      backButton.style.display = 'block';
+      mainContainer.style.opacity = 1;
+      window.scrollTo(0,0);
+    }, 300);
+  } catch (err) {
+    console.error('Failed to load quest:', err);
+    alert('Quest could not be loaded.');
+  }
+}
+
+// attach click handlers to your calendar day buttons dynamically
+function attachDayHandlers() {
+  document.querySelectorAll('[data-quest]').forEach(btn=>{
+    btn.onclick = ()=> openQuest(btn.dataset.quest, btn.dataset.title || 'Quest');
+  });
+}
+attachDayHandlers();
+</script>
+
 <script>
 // register service worker for PWA offline capability
 if ('serviceWorker' in navigator) {

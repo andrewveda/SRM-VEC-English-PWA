@@ -302,57 +302,46 @@ if(link) openQuest(link);
 "></div>
 
 <script>
-const mainContainer = document.getElementById('mainContainer');
-const headerTitle = document.getElementById('headerTitle');
-const backButton = document.getElementById('backButton');
-const calendarHTML = document.getElementById('calendarContainer').outerHTML; // keep original calendar
+<!-- ✅ Quest Container (fullscreen dynamic replacement) -->
+<div id="questContainer" style="display:none; padding:20px; background:white; min-height:90vh;">
+  <div id="questContent">Loading...</div>
+</div>
 
-// initialise main view
-mainContainer.innerHTML = calendarHTML;
-
-// re-bind events after reloading calendar view
-function showCalendar() {
-  mainContainer.style.opacity = 0;
-  setTimeout(() => {
-    mainContainer.innerHTML = calendarHTML;
-    document.getElementById('calendarContainer').style.display = 'grid';
-    document.getElementById('typeButtons').style.display = 'block';
-    headerTitle.textContent = 'Calendar';
-    backButton.style.display = 'none';
-    attachDayHandlers();
-    mainContainer.style.opacity = 1;
-  }, 300);
-}
-
-async function openQuest(file, title='Quest') {
-  try {
-    mainContainer.style.opacity = 0;
-    const res = await fetch(file);
-    const html = await res.text();
-    setTimeout(() => {
-      mainContainer.innerHTML = html;
-      headerTitle.textContent = title;
-      backButton.style.display = 'block';
-      mainContainer.style.opacity = 1;
-      window.scrollTo(0,0);
-    }, 300);
-  } catch (err) {
-    console.error('Failed to load quest:', err);
-    alert('Quest could not be loaded.');
-  }
-}
-
-// attach click handlers to your calendar day buttons dynamically
-function attachDayHandlers() {
-  document.querySelectorAll('[data-quest]').forEach(btn=>{
-    btn.onclick = ()=> openQuest(btn.dataset.quest, btn.dataset.title || 'Quest');
-  });
-}
-attachDayHandlers();
-</script>
+<button id="backButton" onclick="closeQuest()" 
+  style="display:none; background:#7A0019; color:white; margin:10px; padding:10px; border:none; border-radius:8px;">
+  ⬅ Back to Calendar
+</button>
 
 <script>
-// register service worker for PWA offline capability
+async function openQuest(link) {
+  const back = document.getElementById('backButton');
+  const container = document.getElementById('questContainer');
+  const content = document.getElementById('questContent');
+
+  document.getElementById('calendarContainer').style.display = 'none';
+  document.getElementById('typeButtons').style.display = 'none';
+  container.style.display = 'block';
+  back.style.display = 'inline-block';
+  content.innerHTML = '<p>Loading quest...</p>';
+
+  try {
+    const res = await fetch(link);
+    const html = await res.text();
+    content.innerHTML = html;
+  } catch (err) {
+    content.innerHTML = '<p>⚠️ Failed to load quest.</p>';
+  }
+  window.scrollTo(0, 0);
+}
+
+function closeQuest() {
+  document.getElementById('questContainer').style.display = 'none';
+  document.getElementById('backButton').style.display = 'none';
+  document.getElementById('calendarContainer').style.display = 'grid';
+  document.getElementById('typeButtons').style.display = 'block';
+}
+</script>
+
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function() {
     navigator.serviceWorker.register('/service-worker.js').then(function(reg) {

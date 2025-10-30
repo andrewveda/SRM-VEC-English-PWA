@@ -265,27 +265,39 @@ const questName = questNumber
     dayDiv.innerText = d;
 }
 
-   dayDiv.onclick = () => {
+  dayDiv.onclick = () => {
   let link;
   if(type === 'quest') link = questLinks[questNumber];
   else if(type === 'video') link = videoLink; 
-  else if(type === 'ipa') link = ipaLink; // single link for all IPA dates
+  else if(type === 'ipa') link = ipaLink;
 
- if (link) {
-  const internalDomains = [
-    "andrewveda.github.io",
-    "sites.google.com/view/cys-english/",
-    "sites.google.com/view/srm-vec-english/"
-  ];
-  const isInternal = internalDomains.some(domain => link.includes(domain));
+  if (link) {
+    // Check if running as PWA
+    const isPWA = window.matchMedia('(display-mode: standalone)').matches ||
+                  window.matchMedia('(display-mode: fullscreen)').matches ||
+                  window.navigator.standalone === true;
 
-  if (isInternal) {
-    window.location.href = link; // Opens inside app (native)
-  } else {
-    window.open(link, '_blank'); // External link only
+    const internalDomains = [
+      "andrewveda.github.io",
+      "sites.google.com/view/cys-english",
+      "sites.google.com/view/srm-vec-english"
+    ];
+    const isInternal = internalDomains.some(domain => link.includes(domain));
+
+    if (isInternal && isPWA) {
+      // Use relative path for same-origin links
+      if (link.includes("andrewveda.github.io/SRM-VEC-English-PWA")) {
+        const relativePath = link.split("/SRM-VEC-English-PWA")[1];
+        window.location.href = relativePath;
+      } else {
+        window.location.href = link;
+      }
+    } else if (isInternal && !isPWA) {
+      window.location.href = link; // Normal navigation in browser
+    } else {
+      window.open(link, '_blank'); // External links
+    }
   }
-}
-
 };
 
     datesGrid.appendChild(dayDiv);

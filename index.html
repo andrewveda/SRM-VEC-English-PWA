@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SRM VEC English — Quest & Video Calendar</title>
-  <!-- PWA Essentials -->
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#7A0019">
 
@@ -78,11 +77,11 @@ body {
   margin: 50px auto;
   box-shadow: 0 20px 60px rgba(0,0,0,0.3);
   text-align: center;
-  display: none; /* Initially hidden */
+  display: none;
 }
 
 .name-input-container.show {
-  display: block; /* Shown by JS */
+  display: block;
 }
 
 .name-input-container h1 {
@@ -172,7 +171,7 @@ body {
   height: 50px;
   background: white;
   border-radius: 50%;
-  display: none; /* Initially hidden */
+  display: none;
   align-items: center;
   justify-content: center;
   font-size: 1.5rem;
@@ -183,7 +182,7 @@ body {
 }
 
 .profile-icon.show {
-  display: flex; /* Shown by JS */
+  display: flex;
 }
 
 .profile-icon:hover {
@@ -296,15 +295,14 @@ body {
   max-width: 800px;
   margin: 0 auto;
   box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-  display: none; /* Initially hidden */
+  display: none;
   max-height: calc(100vh - 40px);
   overflow: hidden;
-  display: flex;
   flex-direction: column;
 }
 
 .calendar-container.show {
-  display: flex; /* Shown by JS */
+  display: flex;
 }
 
 .user-info {
@@ -478,7 +476,6 @@ body {
   margin-top: 20px;
 }
 
-/* Custom Modal Styles */
 .custom-modal-overlay {
   position: fixed;
   top: 0;
@@ -548,7 +545,6 @@ body {
   background: #c7c7c7;
   transform: translateY(-2px);
 }
-
 
 @media (max-width: 768px) {
   body {
@@ -722,13 +718,11 @@ body {
     <div class="dates" id="datesGrid"></div>
   </div>
 
-  <!-- ADDED CREDITS TEXT BELOW -->
   <p style="text-align: center; font-size: 0.8rem; color: #888; margin-top: 15px; padding-bottom: 5px; flex-shrink: 0;">
     Created with ♥️ grit, nurtured with love and charged with passion by Andrew Veda, AP<br>SRM Valliammai Engineering College
   </p>
 </div>
 
-<!-- Custom Modal -->
 <div id="customModal" class="custom-modal-overlay">
   <div class="custom-modal">
     <p id="modalMessage">Are you sure?</p>
@@ -740,15 +734,14 @@ body {
 </div>
 
 <script>
-// Analytics and tracking
 let sessionStartTime = Date.now();
 let totalTimeSpent = 0;
 let userData = null;
-let userProfileData = null; // Separate variable for profile data
+let userProfileData = null;
 let currentMonth = new Date().getMonth();
 let currentYear = new Date().getFullYear();
 let currentType = 'quest';
-const startDate = new Date(2025, 7, 25); // Note: Month is 0-indexed, so 7 = August
+const startDate = new Date(2025, 7, 25);
 
 const questLinks = {
   1: "quests/quest1.html", 2: "https://sites.google.com/view/srm-vec-english/quest/wh-questions-1",
@@ -786,13 +779,10 @@ const questLinks = {
 const videoLink = "https://andrewveda.github.io/videoquest/";
 const ipaLink = "https://andrewveda.github.io/elll-directory";
 
-// Initialize app
 async function init() {
-  // Check if user has logged in before
   const savedName = localStorage.getItem('userName');
   
   if (savedName) {
-    // User exists - show calendar immediately with cached data
     const cached = localStorage.getItem('cachedUserData');
     if (cached) {
       userData = JSON.parse(cached);
@@ -801,17 +791,14 @@ async function init() {
         userProfileData = JSON.parse(cachedProfile);
       }
       showCalendar();
-      updateProfileDrawer(); // Update drawer with cached data
-      // Fetch fresh data in background
+      updateProfileDrawer();
       await loadUserDataInBackground(savedName);
     } else {
-      // No cache, show loading then fetch
       document.getElementById('loadingScreen').classList.add('show');
       await loadUserData(savedName);
       await fetchProfileData(savedName);
     }
   } else {
-    // New user - show name input form
     document.getElementById('nameInputContainer').classList.add('show');
   }
   
@@ -837,37 +824,31 @@ function setupEventListeners() {
     }
   });
   
-  // Start time tracking
   setInterval(() => {
     totalTimeSpent = Math.floor((Date.now() - sessionStartTime) / 1000 / 60);
     localStorage.setItem('totalTimeSpent', totalTimeSpent);
   }, 30000);
 
-  // Modal listeners
-  let confirmCallback = null;
   document.getElementById('modalConfirm').addEventListener('click', () => {
-    if (confirmCallback) {
-      confirmCallback();
+    if (window.confirmCallback) {
+      window.confirmCallback();
     }
     document.getElementById('customModal').classList.remove('show');
-    confirmCallback = null;
+    window.confirmCallback = null;
   });
 
   document.getElementById('modalCancel').addEventListener('click', () => {
     document.getElementById('customModal').classList.remove('show');
-    confirmCallback = null;
+    window.confirmCallback = null;
   });
 }
 
-// Custom Modal Function
-let confirmCallback = null;
 function showModal(message, onConfirm) {
   const modal = document.getElementById('customModal');
   document.getElementById('modalMessage').textContent = message;
   modal.classList.add('show');
-  confirmCallback = onConfirm;
+  window.confirmCallback = onConfirm;
 }
-
 
 function toggleDrawer() {
   const drawer = document.getElementById('profileDrawer');
@@ -879,30 +860,25 @@ function toggleDrawer() {
 async function saveAndLogin() {
   const name = document.getElementById('nameInput').value.trim();
   if (!name) {
-      showModal('Please enter your name!', () => {}); // Simple alert modal
-      return;
+    showModal('Please enter your name!', () => {});
+    return;
   }
   
-  // Save name to localStorage
   localStorage.setItem('userName', name.toUpperCase());
   
-  // Create minimal user data with correct field names
   userData = {
     Name: name.toUpperCase(),
     Challenges: []
   };
   
-  // Hide name input, show calendar immediately
   document.getElementById('nameInputContainer').classList.remove('show');
   showCalendar();
   
-  // Fetch actual data in background (both calendar and profile)
   await loadUserDataInBackground(name);
 }
 
 async function loadUserDataInBackground(name) {
   try {
-    // Fetch calendar data
     const res = await fetch("https://script.google.com/macros/s/AKfycbzPmoVR2sfZFgrh7YGxag018JF3HtIkDq3AG65Tt_psWgWLGvbERINZw7lP9wuupbVd/exec");
     const data = await res.json();
     
@@ -911,18 +887,14 @@ async function loadUserDataInBackground(name) {
       userData = fetchedUser;
     }
     
-    // Cache user data for offline use
     localStorage.setItem('cachedUserData', JSON.stringify(userData));
     
-    // Fetch profile data from different endpoint
     await fetchProfileData(name);
     
-    // Refresh calendar with actual data
     renderCalendar(currentMonth, currentYear, currentType);
   } catch (err) {
     console.error('Error loading data:', err);
     
-    // Try to load cached data
     const cached = localStorage.getItem('cachedUserData');
     if (cached) {
       userData = JSON.parse(cached);
@@ -942,12 +914,17 @@ async function fetchProfileData(name) {
     const res = await fetch("https://script.google.com/macros/s/AKfycbwB2ax4j0XVtl9pGp5b-JOQE4_fT5JRW9z2_4ziZjAhLjuKLpywUHHavv6I163njiYk/exec");
     const profileData = await res.json();
     
-    userProfileData = profileData.find(u => u.Name && u.Name.toUpperCase() === name.toUpperCase());
+    // Partial match - check if the stored name starts with the entered name
+    userProfileData = profileData.find(u => {
+      if (!u.Name) return false;
+      const fullName = u.Name.toUpperCase();
+      const searchName = name.toUpperCase();
+      // Check if full name starts with search name OR contains it before the dash
+      return fullName.startsWith(searchName) || fullName.split(' - ')[0].trim().startsWith(searchName);
+    });
     
     if (userProfileData) {
-      // Cache profile data
       localStorage.setItem('cachedProfileData', JSON.stringify(userProfileData));
-      // Update profile drawer with fresh data
       updateProfileDrawer();
     }
   } catch (err) {
@@ -967,18 +944,15 @@ async function loadUserData(name) {
       Challenges: []
     };
     
-    // Load saved time
     const savedTime = localStorage.getItem('totalTimeSpent');
     if (savedTime) totalTimeSpent = parseInt(savedTime);
     
-    // Cache user data for offline use
     localStorage.setItem('cachedUserData', JSON.stringify(userData));
     
     showCalendar();
   } catch (err) {
     console.error('Error loading data:', err);
     
-    // Try to load cached data
     const cached = localStorage.getItem('cachedUserData');
     if (cached) {
       userData = JSON.parse(cached);
@@ -1002,20 +976,32 @@ function showCalendar() {
   renderCalendar(currentMonth, currentYear, currentType);
 }
 
-// ** ADDED THIS FUNCTION **
 function updateProfileDrawer() {
   if (userProfileData) {
+    console.log('Profile Data:', userProfileData);
+    
     document.getElementById('drawerUserName').textContent = userProfileData.Name || 'User Profile';
     document.getElementById('drawerRank').textContent = userProfileData.Rank || '-';
-    document.getElementById('drawerScore').textContent = userProfileData.Score || 0;
+    
+    // Try multiple possible field names for Score
+    document.getElementById('drawerScore').textContent = 
+      userProfileData['Score (Correct–Wrong)'] || userProfileData.Score || 0;
+    
     document.getElementById('drawerTotalCorrect').textContent = userProfileData.TotalCorrect || 0;
     document.getElementById('drawerTotalWrong').textContent = userProfileData.TotalWrong || 0;
-    document.getElementById('drawerTotalTime').textContent = userProfileData.TotalTime || '0m';
+    
+    // Handle time - convert seconds to minutes if needed
+    let timeValue = userProfileData['Total Time (s)'] || userProfileData.TotalTime || 0;
+    if (typeof timeValue === 'number') {
+      timeValue = Math.round(timeValue / 60) + 'm';
+    }
+    document.getElementById('drawerTotalTime').textContent = timeValue;
+    
     document.getElementById('drawerQuests').textContent = userProfileData.Quests || 0;
-    document.getElementById('drawerMainQuests').textContent = userProfileData.MainQuests || 0;
+    document.getElementById('drawerMainQuests').textContent = userProfileData['Main Quests'] || userProfileData.MainQuests || 0;
   } else if (userData) {
-    // Fallback to basic data if profile data failed to load
     document.getElementById('drawerUserName').textContent = userData.Name || 'User Profile';
+    console.log('Profile data not loaded yet');
   }
 }
 
@@ -1054,7 +1040,7 @@ function renderCalendar(month, year, type) {
   }
   
   const today = new Date();
-  today.setHours(0, 0, 0, 0); // Normalize today's date
+  today.setHours(0, 0, 0, 0);
   const challengesString = Array.isArray(userData.Challenges) ? userData.Challenges.join(",") : (userData.Challenges || "");
   const challenges = challengesString.split(",").map(c => c.trim()).filter(c => {
     if (type === 'quest') return c.startsWith('Quest');
@@ -1062,8 +1048,6 @@ function renderCalendar(month, year, type) {
     if (type === 'ipa') return c.startsWith('IPA');
     return false;
   });
-  
-  let missedCount = 0;
   
   for (let d = 1; d <= daysInMonth; d++) {
     const currentDate = new Date(year, month, d);
@@ -1077,12 +1061,11 @@ function renderCalendar(month, year, type) {
       dayDiv.className = 'done';
       dayDiv.textContent = `${d} 🔥`;
     } else if (currentDate > today || questNumber === null) {
-        dayDiv.className = 'disabled';
-        dayDiv.textContent = d;
+      dayDiv.className = 'disabled';
+      dayDiv.textContent = d;
     } else if (questName) {
       if (currentDate < today) {
         dayDiv.className = 'missed';
-        missedCount++;
       }
       dayDiv.textContent = d;
     } else {
@@ -1112,17 +1095,9 @@ function renderCalendar(month, year, type) {
   }
 }
 
-function trackTimeSpent() {
-  setInterval(() => {
-    totalTimeSpent = Math.floor((Date.now() - sessionStartTime) / 1000 / 60);
-    localStorage.setItem('totalTimeSpent', totalTimeSpent);
-  }, 30000); // Update every 30 seconds
-}
-
 function syncData() {
   if (!userData) return;
   
-  // Calculate current session duration in seconds
   const sessionDuration = Math.floor((Date.now() - sessionStartTime) / 1000);
   
   const analyticsData = {
@@ -1135,11 +1110,9 @@ function syncData() {
   };
   
   if (navigator.onLine) {
-  const formData = new FormData();
-  Object.entries(analyticsData).forEach(([k, v]) => formData.append(k, v));
-  // Use sendBeacon for reliable background sync on page close
-  navigator.sendBeacon('https://script.google.com/macros/s/AKfycbzDFdFik3hbSLnz3VEaUD_s-1WlEQW32aXWNziH4-J0prKxGmjOImlHzDLsoIXkbQc5/exec', formData);
-
+    const formData = new FormData();
+    Object.entries(analyticsData).forEach(([k, v]) => formData.append(k, v));
+    navigator.sendBeacon('https://script.google.com/macros/s/AKfycbzDFdFik3hbSLnz3VEaUD_s-1WlEQW32aXWNziH4-J0prKxGmjOImlHzDLsoIXkbQc5/exec', formData);
   } else {
     const pending = JSON.parse(localStorage.getItem('pendingSync') || '[]');
     pending.push(analyticsData);
@@ -1150,19 +1123,19 @@ function syncData() {
 function handleOnline() {
   document.getElementById('offlineBanner').classList.remove('show');
   
-const pending = JSON.parse(localStorage.getItem('pendingSync') || '[]');
-if (pending.length > 0) {
-  pending.forEach(data => {
-    const formData = new FormData();
-    Object.entries(data).forEach(([k, v]) => formData.append(k, v));
+  const pending = JSON.parse(localStorage.getItem('pendingSync') || '[]');
+  if (pending.length > 0) {
+    pending.forEach(data => {
+      const formData = new FormData();
+      Object.entries(data).forEach(([k, v]) => formData.append(k, v));
 
-    fetch('https://script.google.com/macros/s/AKfycbzDFdFik3hbSLnz3VEaUD_s-1WlEQW32aXWNziH4-J0prKxGmjOImlHzDLsoIXkbQc5/exec', {
-      method: 'POST',
-      body: formData
-    }).catch(err => console.error('Sync error:', err));
-  });
-  localStorage.removeItem('pendingSync');
-}
+      fetch('https://script.google.com/macros/s/AKfycbzDFdFik3hbSLnz3VEaUD_s-1WlEQW32aXWNziH4-J0prKxGmjOImlHzDLsoIXkbQc5/exec', {
+        method: 'POST',
+        body: formData
+      }).catch(err => console.error('Sync error:', err));
+    });
+    localStorage.removeItem('pendingSync');
+  }
   
   const savedName = localStorage.getItem('userName');
   if (savedName) loadUserDataInBackground(savedName);
@@ -1177,6 +1150,7 @@ function checkOnlineStatus() {
     document.getElementById('offlineBanner').classList.add('show');
   }
 }
+
 function trackInstall() {
   window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
@@ -1216,22 +1190,19 @@ window.addEventListener('appinstalled', () => {
 });
 
 function logout() {
-  // ** UPDATED TO USE CUSTOM MODAL **
   showModal('Are you sure you want to logout?', () => {
     syncData();
     localStorage.removeItem('userName');
     localStorage.removeItem('cachedUserData');
-    localStorage.removeItem('cachedProfileData'); // Also remove profile cache
+    localStorage.removeItem('cachedProfileData');
     localStorage.removeItem('totalTimeSpent');
     window.location.reload();
   });
 }
 
-// ** ADDED THIS LINE TO START THE APP **
 window.onload = init;
+</script>
 
-  </script>
-<!-- Register Service Worker -->
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
@@ -1241,21 +1212,18 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-// Manual install button
 let deferredPrompt;
 window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
   deferredPrompt = e;
   console.log('📲 Install prompt captured');
 
-  // Check if button already exists
   if (document.getElementById('installPwaBtn')) return;
 
   const installBtn = document.createElement('button');
   installBtn.id = 'installPwaBtn';
   installBtn.textContent = 'Install App';
   
-  // ** UPDATED STYLES **
   Object.assign(installBtn.style, {
     position: 'fixed',
     bottom: '20px',
@@ -1272,7 +1240,6 @@ window.addEventListener('beforeinstallprompt', (e) => {
     transition: 'transform 0.2s ease'
   });
 
-  // Add hover/active states
   installBtn.onmouseover = () => installBtn.style.transform = 'translateY(-2px)';
   installBtn.onmouseout = () => installBtn.style.transform = 'translateY(0)';
 
@@ -1288,7 +1255,5 @@ window.addEventListener('beforeinstallprompt', (e) => {
 });
 </script>
 
-
 </body>
 </html>
-

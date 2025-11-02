@@ -611,16 +611,24 @@ async function init() {
   const savedName = localStorage.getItem('userName');
   
   if (savedName) {
-    // User exists - show loading and fetch data
-    document.getElementById('loadingScreen').classList.add('show');
-    await loadUserData(savedName);
+    // User exists - show calendar immediately with cached data
+    const cached = localStorage.getItem('cachedUserData');
+    if (cached) {
+      userData = JSON.parse(cached);
+      showCalendar();
+      // Fetch fresh data in background
+      await loadUserDataInBackground(savedName);
+    } else {
+      // No cache, show loading then fetch
+      document.getElementById('loadingScreen').classList.add('show');
+      await loadUserData(savedName);
+    }
   } else {
     // New user - show name input form
     document.getElementById('nameInputContainer').classList.add('show');
   }
   
   setupEventListeners();
-  trackTimeSpent();
   checkOnlineStatus();
   trackInstall();
 }
@@ -657,12 +665,48 @@ async function saveAndLogin() {
   // Save name to localStorage
   localStorage.setItem('userName', name.toUpperCase());
   
-  // Hide name input, show loading
-  document.getElementById('nameInputContainer').classList.remove('show');
-  document.getElementById('loadingScreen').classList.add('show');
+  // Create minimal user data
+  userData = {
+    Name: name.toUpperCase(),
+    Quests: 0,
+    TotalCorrect: 0,
+    Challenges: []
+  };
   
-  // Now fetch data
-  await loadUserData(name);
+  // Hide name input, show calendar immediately
+  document.getElementById('nameInputContainer').classList.remove('show');
+  showCalendar();
+  
+  // Fetch actual data in background
+  await loadUserDataInBackground(name);
+}
+
+async function loadUserDataInBackground(name) {
+  try {
+    const res = await fetch("https://script.google.com/macros/s/AKfycbzPmoVR2sfZFgrh7YGxag018JF3HtIkDq3AG65Tt_psWgWLGvbERINZw7lP9wuupbVd/exec");
+    const data = await res.json();
+    
+    const fetchedUser = data.find(u => u.Name.toUpperCase() === name.toUpperCase());
+    if (fetchedUser) {
+      userData = fetchedUser;
+    }
+    
+    // Cache user data for offline use
+    localStorage.setItem('cachedUserData', JSON.stringify(userData));
+    
+    // Refresh calendar with actual data
+    renderCalendar(currentMonth, currentYear, currentType);
+  } catch (err) {
+    console.error('Error loading data:', err);
+    
+    // Try to load cached data
+    const cached = localStorage.getItem('cachedUserData');
+    if (cached) {
+      userData = JSON.parse(cached);
+      renderCalendar(currentMonth, currentYear, currentType);
+      document.getElementById('offlineBanner').classList.add('show');
+    }
+  }
 }
 
 async function loadUserData(name) {

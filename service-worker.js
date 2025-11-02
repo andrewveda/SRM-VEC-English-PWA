@@ -1,80 +1,53 @@
-const CACHE_NAME = 'srm-vec-english-v1';
-const urlsToCache = [
+const CACHE_NAME = 'srm-vec-english-clean-v1';
+const ASSETS = [
   './',
   './index.html',
   './style.css',
-  './manifest.json'
+  './manifest.json',
 ];
 
-// Install event - cache static assets
+// 1️⃣ Install: cache core files fresh
 self.addEventListener('install', event => {
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => {
-        console.log('Opened cache');
-        return cache.addAll(urlsToCache);
-      })
+    caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS))
   );
-  self.skipWaiting();
+  self.skipWaiting(); // activate immediately
 });
 
-// Activate event - clean up old caches
+// 2️⃣ Activate: clear *everything* except current cache
 self.addEventListener('activate', event => {
   event.waitUntil(
-    caches.keys().then(cacheNames => {
-      return Promise.all(
-        cacheNames.map(cacheName => {
-          if (cacheName !== CACHE_NAME) {
-            console.log('Deleting old cache:', cacheName);
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    })
+    (async () => {
+      const names = await caches.keys();
+      await Promise.all(names.map(name => {
+        if (name !== CACHE_NAME) return caches.delete(name);
+      }));
+      await clients.claim(); // take control instantly
+    })()
   );
-  self.clients.claim();
 });
 
-// Fetch event - serve from cache, fallback to network
+// 3️⃣ Fetch: network-first with cache fallback
 self.addEventListener('fetch', event => {
   event.respondWith(
-    caches.match(event.request)
+    fetch(event.request)
       .then(response => {
-        // Cache hit - return response
-        if (response) {
-          return response;
+        // cache clone if OK and not an Apps Script call
+        if (
+          response &&
+          response.status === 200 &&
+          !event.request.url.includes('script.google.com')
+        ) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
         }
-
-        // Clone the request
-        const fetchRequest = event.request.clone();
-
-        return fetch(fetchRequest).then(response => {
-          // Check if valid response
-          if (!response || response.status !== 200 || response.type !== 'basic') {
-            return response;
-          }
-
-          // Clone the response
-          const responseToCache = response.clone();
-
-          // Cache dynamic content (except API calls)
-          if (!event.request.url.includes('script.google.com')) {
-            caches.open(CACHE_NAME)
-              .then(cache => {
-                cache.put(event.request, responseToCache);
-              });
-          }
-
-          return response;
-        }).catch(() => {
-          // If both cache and network fail, show offline page
-          return caches.match('./index.html');
-        });
+        return response;
       })
+      .catch(() => caches.match(event.request).then(r => r || caches.match('./index.html')))
   );
 });
 
-// Background sync for offline data
+// 4️⃣ Background sync for analytics (optional)
 self.addEventListener('sync', event => {
   if (event.tag === 'sync-analytics') {
     event.waitUntil(syncAnalytics());
@@ -83,36 +56,20 @@ self.addEventListener('sync', event => {
 
 async function syncAnalytics() {
   try {
-    const pending = await getStoredData('pendingSync');
-    if (pending && pending.length > 0) {
-      for (const data of pending) {
-        await fetch('https://script.google.com/macros/s/AKfycbxA0lRkERWFt2cYfmm04IQioaG4-21k5VFF5CFKP30zyVaJXM5_27PL3v8JIZEweK3u/exec', {
-          method: 'POST',
-          body: JSON.stringify(data)
-        });
-      }
-      // Clear pending sync after successful upload
-      await clearStoredData('pendingSync');
+    const pending = JSON.parse(localStorage.getItem('pendingSync') || '[]');
+    for (const data of pending) {
+      await fetch('https://script.google.com/macros/s/AKfycbxA0lRkERWFt2cYfmm04IQioaG4-21k5VFF5CFKP30zyVaJXM5_27PL3v8JIZEweK3u/exec', {
+        method: 'POST',
+        body: JSON.stringify(data)
+      });
     }
-  } catch (error) {
-    console.error('Background sync failed:', error);
+    localStorage.removeItem('pendingSync');
+  } catch (err) {
+    console.error('Background sync failed:', err);
   }
 }
 
-// Helper functions for IndexedDB (future enhancement)
-async function getStoredData(key) {
-  // For now, using localStorage through message passing
-  return null;
-}
-
-async function clearStoredData(key) {
-  // For now, using localStorage through message passing
-  return null;
-}
-
-// Listen for messages from main thread
-self.addEventListener('message', event => {
-  if (event.data && event.data.type === 'SKIP_WAITING') {
-    self.skipWaiting();
-  }
+// 5️⃣ Message handler — allow manual skip waiting
+self.addEventListener('message', e => {
+  if (e.data && e.data.type === 'SKIP_WAITING') self.skipWaiting();
 });

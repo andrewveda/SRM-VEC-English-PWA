@@ -259,11 +259,13 @@ body {
 .calendar-container {
   background: white;
   border-radius: 20px;
-  padding: 30px;
+  padding: 20px;
   max-width: 800px;
   margin: 0 auto;
   box-shadow: 0 20px 60px rgba(0,0,0,0.3);
   display: none;
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
 }
 
 .calendar-container.show {
@@ -277,8 +279,8 @@ body {
 
 .user-info h2 {
   color: #7A0019;
-  font-size: 1.8rem;
-  margin-bottom: 10px;
+  font-size: 1.5rem;
+  margin-bottom: 15px;
 }
 
 .stats {
@@ -300,19 +302,20 @@ body {
 .type-buttons {
   display: flex;
   justify-content: center;
-  gap: 10px;
-  margin-bottom: 20px;
+  gap: 8px;
+  margin-bottom: 15px;
   flex-wrap: wrap;
 }
 
 .type-button {
-  padding: 12px 24px;
+  padding: 10px 20px;
   border: none;
   border-radius: 10px;
   cursor: pointer;
   font-weight: 600;
   transition: all 0.3s;
   color: white;
+  font-size: 0.9rem;
 }
 
 .type-button:hover {
@@ -332,21 +335,21 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 15px;
 }
 
 .calendar-header button {
   background: #7A0019;
   color: white;
   border: none;
-  padding: 10px 20px;
+  padding: 8px 16px;
   border-radius: 8px;
   cursor: pointer;
-  font-size: 1.2rem;
+  font-size: 1rem;
 }
 
 .calendar-header div {
-  font-size: 1.3rem;
+  font-size: 1.1rem;
   font-weight: 600;
   color: #333;
 }
@@ -354,17 +357,18 @@ body {
 .days-of-week {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 5px;
-  margin-bottom: 10px;
+  gap: 4px;
+  margin-bottom: 8px;
   font-weight: 600;
   text-align: center;
   color: #666;
+  font-size: 0.85rem;
 }
 
 .dates {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 5px;
+  gap: 4px;
 }
 
 .dates div {
@@ -376,6 +380,7 @@ body {
   cursor: pointer;
   font-weight: 500;
   transition: all 0.3s;
+  font-size: 0.9rem;
 }
 
 .dates div:hover:not(.disabled) {
@@ -426,17 +431,50 @@ body {
 }
 
 @media (max-width: 768px) {
+  body {
+    padding: 10px;
+  }
+  
   .calendar-container {
-    padding: 20px;
+    padding: 15px;
+    border-radius: 15px;
+    max-height: calc(100vh - 20px);
+  }
+  
+  .user-info h2 {
+    font-size: 1.2rem;
+  }
+  
+  .type-button {
+    padding: 8px 16px;
+    font-size: 0.85rem;
+  }
+  
+  .calendar-header button {
+    padding: 6px 12px;
+    font-size: 0.9rem;
+  }
+  
+  .calendar-header div {
+    font-size: 1rem;
+  }
+  
+  .days-of-week {
+    font-size: 0.75rem;
+    gap: 3px;
+  }
+  
+  .dates {
+    gap: 3px;
+  }
+  
+  .dates div {
+    font-size: 0.8rem;
   }
   
   .profile-drawer {
     width: 100%;
     right: -100%;
-  }
-  
-  body {
-    padding: 10px;
   }
 }
 </style>
@@ -499,11 +537,6 @@ body {
   
   <div class="user-info">
     <h2 id="userName"></h2>
-    <div class="stats">
-      <div class="stat-box">🔥 Total: <span id="totalCorrect">0</span></div>
-      <div class="stat-box">❌ Missed: <span id="missedDays">0</span></div>
-      <div class="stat-box">⏱️ Time: <span id="totalTime">0m</span></div>
-    </div>
   </div>
 
   <div class="type-buttons">
@@ -624,12 +657,48 @@ async function saveAndLogin() {
   // Save name to localStorage
   localStorage.setItem('userName', name.toUpperCase());
   
-  // Hide name input, show loading
-  document.getElementById('nameInputContainer').classList.remove('show');
-  document.getElementById('loadingScreen').classList.add('show');
+  // Create minimal user data
+  userData = {
+    Name: name.toUpperCase(),
+    Quests: 0,
+    TotalCorrect: 0,
+    Challenges: []
+  };
   
-  // Now fetch data
-  await loadUserData(name);
+  // Hide name input, show calendar immediately
+  document.getElementById('nameInputContainer').classList.remove('show');
+  showCalendar();
+  
+  // Fetch actual data in background
+  await loadUserDataInBackground(name);
+}
+
+async function loadUserDataInBackground(name) {
+  try {
+    const res = await fetch("https://script.google.com/macros/s/AKfycbzPmoVR2sfZFgrh7YGxag018JF3HtIkDq3AG65Tt_psWgWLGvbERINZw7lP9wuupbVd/exec");
+    const data = await res.json();
+    
+    const fetchedUser = data.find(u => u.Name.toUpperCase() === name.toUpperCase());
+    if (fetchedUser) {
+      userData = fetchedUser;
+    }
+    
+    // Cache user data for offline use
+    localStorage.setItem('cachedUserData', JSON.stringify(userData));
+    
+    // Refresh calendar with actual data
+    renderCalendar(currentMonth, currentYear, currentType);
+  } catch (err) {
+    console.error('Error loading data:', err);
+    
+    // Try to load cached data
+    const cached = localStorage.getItem('cachedUserData');
+    if (cached) {
+      userData = JSON.parse(cached);
+      renderCalendar(currentMonth, currentYear, currentType);
+      document.getElementById('offlineBanner').classList.add('show');
+    }
+  }
 }
 
 async function loadUserData(name) {
@@ -674,10 +743,8 @@ function showCalendar() {
   document.getElementById('calendarContainer').classList.add('show');
   document.getElementById('profileIcon').classList.add('show');
   document.getElementById('userName').textContent = userData.Name;
-  document.getElementById('totalCorrect').textContent = userData.TotalCorrect || 0;
   
   renderCalendar(currentMonth, currentYear, currentType);
-  updateTimeDisplay();
 }
 
 function switchType(type) {
@@ -766,29 +833,25 @@ function renderCalendar(month, year, type) {
     
     datesGrid.appendChild(dayDiv);
   }
-  
-  document.getElementById('missedDays').textContent = missedCount;
 }
 
 function trackTimeSpent() {
   setInterval(() => {
     totalTimeSpent = Math.floor((Date.now() - sessionStartTime) / 1000 / 60);
     localStorage.setItem('totalTimeSpent', totalTimeSpent);
-    updateTimeDisplay();
   }, 30000); // Update every 30 seconds
-}
-
-function updateTimeDisplay() {
-  document.getElementById('totalTime').textContent = totalTimeSpent + 'm';
 }
 
 function syncData() {
   if (!userData) return;
   
+  // Calculate current session duration in seconds
+  const sessionDuration = Math.floor((Date.now() - sessionStartTime) / 1000);
+  
   const analyticsData = {
     name: userData.Name,
     totalCorrect: userData.TotalCorrect,
-    timeSpent: totalTimeSpent,
+    sessionDuration: sessionDuration,
     lastActive: new Date().toISOString(),
     sessionStart: new Date(sessionStartTime).toISOString(),
     device: navigator.userAgent,

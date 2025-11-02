@@ -983,7 +983,6 @@ function syncData() {
   
   const analyticsData = {
     name: userData.Name,
-    totalCorrect: userData.TotalCorrect,
     sessionDuration: sessionDuration,
     lastActive: new Date().toISOString(),
     sessionStart: new Date(sessionStartTime).toISOString(),
@@ -992,10 +991,10 @@ function syncData() {
   };
   
   if (navigator.onLine) {
-    navigator.sendBeacon(
-      'https://script.google.com/macros/s/AKfycbx3XG8DTRgLmz6mDO3HhaDGpIAnJi-OOxqa0PvXE-UZlkk665LJ-Ag8gHMrbdyju4G0/exec',
-      JSON.stringify(analyticsData)
-    );
+  const formData = new FormData();
+Object.entries(analyticsData).forEach(([k, v]) => formData.append(k, v));
+navigator.sendBeacon('https://script.google.com/macros/s/AKfycbx3XG8DTRgLmz6mDO3HhaDGpIAnJi-OOxqa0PvXE-UZlkk665LJ-Ag8gHMrbdyju4G0/exec', formData);
+
   } else {
     const pending = JSON.parse(localStorage.getItem('pendingSync') || '[]');
     pending.push(analyticsData);
@@ -1006,16 +1005,19 @@ function syncData() {
 function handleOnline() {
   document.getElementById('offlineBanner').classList.remove('show');
   
-  const pending = JSON.parse(localStorage.getItem('pendingSync') || '[]');
-  if (pending.length > 0) {
-    pending.forEach(data => {
-      fetch('https://script.google.com/macros/s/AKfycbx3XG8DTRgLmz6mDO3HhaDGpIAnJi-OOxqa0PvXE-UZlkk665LJ-Ag8gHMrbdyju4G0/exec', {
-        method: 'POST',
-        body: JSON.stringify(data)
-      }).catch(err => console.error('Sync error:', err));
-    });
-    localStorage.removeItem('pendingSync');
-  }
+const pending = JSON.parse(localStorage.getItem('pendingSync') || '[]');
+if (pending.length > 0) {
+  pending.forEach(data => {
+    const formData = new FormData();
+    Object.entries(data).forEach(([k, v]) => formData.append(k, v));
+
+    fetch('https://script.google.com/macros/s/AKfycbx3XG8DTRgLmz6mDO3HhaDGpIAnJi-OOxqa0PvXE-UZlkk665LJ-Ag8gHMrbdyju4G0/exec', {
+      method: 'POST',
+      body: formData
+    }).catch(err => console.error('Sync error:', err));
+  });
+  localStorage.removeItem('pendingSync');
+}
   
   const savedName = localStorage.getItem('userName');
   if (savedName) loadUserDataInBackground(savedName);
@@ -1030,37 +1032,43 @@ function checkOnlineStatus() {
     document.getElementById('offlineBanner').classList.add('show');
   }
 }
-
 function trackInstall() {
   window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
+
     const installData = {
       name: localStorage.getItem('userName') || 'Unknown',
       event: 'install_prompt_shown',
       timestamp: new Date().toISOString(),
       device: navigator.userAgent
     };
-    
+
+    const formData = new FormData();
+    Object.entries(installData).forEach(([k, v]) => formData.append(k, v));
+
     fetch('https://script.google.com/macros/s/AKfycbx3XG8DTRgLmz6mDO3HhaDGpIAnJi-OOxqa0PvXE-UZlkk665LJ-Ag8gHMrbdyju4G0/exec', {
       method: 'POST',
-      body: JSON.stringify(installData)
-    }).catch(err => console.error('Install tracking error:', err));
-  });
-  
-  window.addEventListener('appinstalled', () => {
-    const installData = {
-      name: localStorage.getItem('userName') || 'Unknown',
-      event: 'app_installed',
-      timestamp: new Date().toISOString(),
-      device: navigator.userAgent
-    };
-    
-    fetch('https://script.google.com/macros/s/AKfycbx3XG8DTRgLmz6mDO3HhaDGpIAnJi-OOxqa0PvXE-UZlkk665LJ-Ag8gHMrbdyju4G0/exec', {
-      method: 'POST',
-      body: JSON.stringify(installData)
+      body: formData
     }).catch(err => console.error('Install tracking error:', err));
   });
 }
+
+window.addEventListener('appinstalled', () => {
+  const installData = {
+    name: localStorage.getItem('userName') || 'Unknown',
+    event: 'app_installed',
+    timestamp: new Date().toISOString(),
+    device: navigator.userAgent
+  };
+
+  const formData = new FormData();
+  Object.entries(installData).forEach(([k, v]) => formData.append(k, v));
+
+  fetch('https://script.google.com/macros/s/AKfycbx3XG8DTRgLmz6mDO3HhaDGpIAnJi-OOxqa0PvXE-UZlkk665LJ-Ag8gHMrbdyju4G0/exec', {
+    method: 'POST',
+    body: formData
+  }).catch(err => console.error('Install tracking error:', err));
+});
 
 function logout() {
   if (confirm('Are you sure you want to logout?')) {

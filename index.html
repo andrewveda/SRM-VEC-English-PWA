@@ -4,6 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SRM VEC English — Quest & Video Calendar</title>
+  <!-- PWA Essentials -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#7A0019">
+
 <style>
 * {
   margin: 0;
@@ -1079,41 +1083,49 @@ function logout() {
     window.location.reload();
   }
 }
-
-// Service Worker Registration
+<!-- Register Service Worker -->
+<script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./service-worker.js')
-      .then(reg => console.log('ServiceWorker registered:', reg.scope))
-      .catch(err => console.log('ServiceWorker registration failed:', err));
+    navigator.serviceWorker.register('service-worker.js')
+      .then(reg => console.log('✅ Service worker registered:', reg.scope))
+      .catch(err => console.error('❌ Service worker registration failed:', err));
   });
 }
 
-// Internal link handler for PWA
-document.addEventListener("click", function (e) {
-  const target = e.target.closest("a");
-  if (!target) return;
-  
-  const url = target.href;
-  const internalDomains = [
-    "andrewveda.github.io",
-    "sites.google.com/view/cys-english",
-    "sites.google.com/view/srm-vec-english"
-  ];
-  
-  const isInternal = internalDomains.some(domain => url.includes(domain));
-  
-  if (isInternal) {
-    e.preventDefault();
-    window.location.href = url;
-  } else {
-    target.setAttribute("target", "_blank");
-  }
-});
+// Manual install button (modern browsers no longer auto-show the prompt)
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  console.log('📲 Install prompt captured');
 
-// Initialize app on load
-init();
+  const installBtn = document.createElement('button');
+  installBtn.textContent = 'Install SRM VEC English';
+  Object.assign(installBtn.style, {
+    position: 'fixed',
+    bottom: '20px',
+    right: '20px',
+    padding: '12px 20px',
+    background: '#7A0019',
+    color: 'white',
+    border: 'none',
+    borderRadius: '10px',
+    cursor: 'pointer',
+    zIndex: '9999'
+  });
+  document.body.appendChild(installBtn);
+
+  installBtn.addEventListener('click', async () => {
+    installBtn.remove();
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    console.log(`User response: ${outcome}`);
+    deferredPrompt = null;
+  });
+});
 </script>
+
 
 </body>
 </html>

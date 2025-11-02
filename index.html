@@ -78,11 +78,11 @@ body {
   margin: 50px auto;
   box-shadow: 0 20px 60px rgba(0,0,0,0.3);
   text-align: center;
-  display: none;
+  display: none; /* Initially hidden */
 }
 
 .name-input-container.show {
-  display: block;
+  display: block; /* Shown by JS */
 }
 
 .name-input-container h1 {
@@ -172,7 +172,7 @@ body {
   height: 50px;
   background: white;
   border-radius: 50%;
-  display: none;
+  display: none; /* Initially hidden */
   align-items: center;
   justify-content: center;
   font-size: 1.5rem;
@@ -183,7 +183,7 @@ body {
 }
 
 .profile-icon.show {
-  display: flex;
+  display: flex; /* Shown by JS */
 }
 
 .profile-icon:hover {
@@ -296,7 +296,7 @@ body {
   max-width: 800px;
   margin: 0 auto;
   box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-  display: none;
+  display: none; /* Initially hidden */
   max-height: calc(100vh - 40px);
   overflow: hidden;
   display: flex;
@@ -304,7 +304,7 @@ body {
 }
 
 .calendar-container.show {
-  display: flex;
+  display: flex; /* Shown by JS */
 }
 
 .user-info {
@@ -477,6 +477,78 @@ body {
   font-weight: 600;
   margin-top: 20px;
 }
+
+/* Custom Modal Styles */
+.custom-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+}
+.custom-modal-overlay.show {
+  display: flex;
+  opacity: 1;
+}
+.custom-modal {
+  background: white;
+  padding: 30px;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  width: 90%;
+  max-width: 400px;
+  text-align: center;
+  transform: scale(0.9);
+  transition: transform 0.2s ease-in-out;
+}
+.custom-modal-overlay.show .custom-modal {
+  transform: scale(1);
+}
+.custom-modal p {
+  font-size: 1.1rem;
+  color: #333;
+  margin-bottom: 25px;
+  line-height: 1.5;
+}
+.modal-buttons {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+}
+.modal-btn {
+  border: none;
+  border-radius: 10px;
+  padding: 12px 20px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex: 1;
+}
+.modal-btn-confirm {
+  background: #c62828;
+  color: white;
+}
+.modal-btn-confirm:hover {
+  background: #a02020;
+  transform: translateY(-2px);
+}
+.modal-btn-cancel {
+  background: #e0e0e0;
+  color: #333;
+}
+.modal-btn-cancel:hover {
+  background: #c7c7c7;
+  transform: translateY(-2px);
+}
+
 
 @media (max-width: 768px) {
   body {
@@ -651,6 +723,17 @@ body {
   </div>
 </div>
 
+<!-- Custom Modal -->
+<div id="customModal" class="custom-modal-overlay">
+  <div class="custom-modal">
+    <p id="modalMessage">Are you sure?</p>
+    <div class="modal-buttons">
+      <button id="modalCancel" class="modal-btn modal-btn-cancel">Cancel</button>
+      <button id="modalConfirm" class="modal-btn modal-btn-confirm">OK</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // Analytics and tracking
 let sessionStartTime = Date.now();
@@ -660,7 +743,7 @@ let userProfileData = null; // Separate variable for profile data
 let currentMonth = new Date().getMonth();
 let currentYear = new Date().getFullYear();
 let currentType = 'quest';
-const startDate = new Date(2025, 7, 25);
+const startDate = new Date(2025, 7, 25); // Note: Month is 0-indexed, so 7 = August
 
 const questLinks = {
   1: "quests/quest1.html", 2: "https://sites.google.com/view/srm-vec-english/quest/wh-questions-1",
@@ -713,6 +796,7 @@ async function init() {
         userProfileData = JSON.parse(cachedProfile);
       }
       showCalendar();
+      updateProfileDrawer(); // Update drawer with cached data
       // Fetch fresh data in background
       await loadUserDataInBackground(savedName);
     } else {
@@ -753,7 +837,32 @@ function setupEventListeners() {
     totalTimeSpent = Math.floor((Date.now() - sessionStartTime) / 1000 / 60);
     localStorage.setItem('totalTimeSpent', totalTimeSpent);
   }, 30000);
+
+  // Modal listeners
+  let confirmCallback = null;
+  document.getElementById('modalConfirm').addEventListener('click', () => {
+    if (confirmCallback) {
+      confirmCallback();
+    }
+    document.getElementById('customModal').classList.remove('show');
+    confirmCallback = null;
+  });
+
+  document.getElementById('modalCancel').addEventListener('click', () => {
+    document.getElementById('customModal').classList.remove('show');
+    confirmCallback = null;
+  });
 }
+
+// Custom Modal Function
+let confirmCallback = null;
+function showModal(message, onConfirm) {
+  const modal = document.getElementById('customModal');
+  document.getElementById('modalMessage').textContent = message;
+  modal.classList.add('show');
+  confirmCallback = onConfirm;
+}
+
 
 function toggleDrawer() {
   const drawer = document.getElementById('profileDrawer');
@@ -764,7 +873,10 @@ function toggleDrawer() {
 
 async function saveAndLogin() {
   const name = document.getElementById('nameInput').value.trim();
-  if (!name) return alert('Please enter your name!');
+  if (!name) {
+      showModal('Please enter your name!', () => {}); // Simple alert modal
+      return;
+  }
   
   // Save name to localStorage
   localStorage.setItem('userName', name.toUpperCase());
@@ -868,9 +980,10 @@ async function loadUserData(name) {
       showCalendar();
       document.getElementById('offlineBanner').classList.add('show');
     } else {
-      alert('Error loading data. Please check your connection and try again.');
-      document.getElementById('loadingScreen').classList.remove('show');
-      document.getElementById('nameInputContainer').classList.add('show');
+      showModal('Error loading data. Please check your connection and try again.', () => {
+        document.getElementById('loadingScreen').classList.remove('show');
+        document.getElementById('nameInputContainer').classList.add('show');
+      });
     }
   }
 }
@@ -882,6 +995,23 @@ function showCalendar() {
   document.getElementById('userName').textContent = userData.Name;
   
   renderCalendar(currentMonth, currentYear, currentType);
+}
+
+// ** ADDED THIS FUNCTION **
+function updateProfileDrawer() {
+  if (userProfileData) {
+    document.getElementById('drawerUserName').textContent = userProfileData.Name || 'User Profile';
+    document.getElementById('drawerRank').textContent = userProfileData.Rank || '-';
+    document.getElementById('drawerScore').textContent = userProfileData.Score || 0;
+    document.getElementById('drawerTotalCorrect').textContent = userProfileData.TotalCorrect || 0;
+    document.getElementById('drawerTotalWrong').textContent = userProfileData.TotalWrong || 0;
+    document.getElementById('drawerTotalTime').textContent = userProfileData.TotalTime || '0m';
+    document.getElementById('drawerQuests').textContent = userProfileData.Quests || 0;
+    document.getElementById('drawerMainQuests').textContent = userProfileData.MainQuests || 0;
+  } else if (userData) {
+    // Fallback to basic data if profile data failed to load
+    document.getElementById('drawerUserName').textContent = userData.Name || 'User Profile';
+  }
 }
 
 function switchType(type) {
@@ -919,11 +1049,13 @@ function renderCalendar(month, year, type) {
   }
   
   const today = new Date();
+  today.setHours(0, 0, 0, 0); // Normalize today's date
   const challengesString = Array.isArray(userData.Challenges) ? userData.Challenges.join(",") : (userData.Challenges || "");
   const challenges = challengesString.split(",").map(c => c.trim()).filter(c => {
     if (type === 'quest') return c.startsWith('Quest');
     if (type === 'video') return c.startsWith('Video');
     if (type === 'ipa') return c.startsWith('IPA');
+    return false;
   });
   
   let missedCount = 0;
@@ -939,6 +1071,9 @@ function renderCalendar(month, year, type) {
     if (questName && challenges.includes(questName)) {
       dayDiv.className = 'done';
       dayDiv.textContent = `${d} 🔥`;
+    } else if (currentDate > today || questNumber === null) {
+        dayDiv.className = 'disabled';
+        dayDiv.textContent = d;
     } else if (questName) {
       if (currentDate < today) {
         dayDiv.className = 'missed';
@@ -996,8 +1131,9 @@ function syncData() {
   
   if (navigator.onLine) {
   const formData = new FormData();
-Object.entries(analyticsData).forEach(([k, v]) => formData.append(k, v));
-navigator.sendBeacon('https://script.google.com/macros/s/AKfycbzDFdFik3hbSLnz3VEaUD_s-1WlEQW32aXWNziH4-J0prKxGmjOImlHzDLsoIXkbQc5/exec', formData);
+  Object.entries(analyticsData).forEach(([k, v]) => formData.append(k, v));
+  // Use sendBeacon for reliable background sync on page close
+  navigator.sendBeacon('https://script.google.com/macros/s/AKfycbzDFdFik3hbSLnz3VEaUD_s-1WlEQW32aXWNziH4-J0prKxGmjOImlHzDLsoIXkbQc5/exec', formData);
 
   } else {
     const pending = JSON.parse(localStorage.getItem('pendingSync') || '[]');
@@ -1075,14 +1211,20 @@ window.addEventListener('appinstalled', () => {
 });
 
 function logout() {
-  if (confirm('Are you sure you want to logout?')) {
+  // ** UPDATED TO USE CUSTOM MODAL **
+  showModal('Are you sure you want to logout?', () => {
     syncData();
     localStorage.removeItem('userName');
     localStorage.removeItem('cachedUserData');
+    localStorage.removeItem('cachedProfileData'); // Also remove profile cache
     localStorage.removeItem('totalTimeSpent');
     window.location.reload();
-  }
+  });
 }
+
+// ** ADDED THIS LINE TO START THE APP **
+window.onload = init;
+
   </script>
 <!-- Register Service Worker -->
 <script>
@@ -1094,15 +1236,21 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-// Manual install button (modern browsers no longer auto-show the prompt)
+// Manual install button
 let deferredPrompt;
 window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
   deferredPrompt = e;
   console.log('📲 Install prompt captured');
 
+  // Check if button already exists
+  if (document.getElementById('installPwaBtn')) return;
+
   const installBtn = document.createElement('button');
-  installBtn.textContent = 'Install SRM VEC English';
+  installBtn.id = 'installPwaBtn';
+  installBtn.textContent = 'Install App';
+  
+  // ** UPDATED STYLES **
   Object.assign(installBtn.style, {
     position: 'fixed',
     bottom: '20px',
@@ -1113,8 +1261,16 @@ window.addEventListener('beforeinstallprompt', (e) => {
     border: 'none',
     borderRadius: '10px',
     cursor: 'pointer',
-    zIndex: '9999'
+    zIndex: '9999',
+    boxShadow: '0 5px 15px rgba(0,0,0,0.3)',
+    fontWeight: '600',
+    transition: 'transform 0.2s ease'
   });
+
+  // Add hover/active states
+  installBtn.onmouseover = () => installBtn.style.transform = 'translateY(-2px)';
+  installBtn.onmouseout = () => installBtn.style.transform = 'translateY(0)';
+
   document.body.appendChild(installBtn);
 
   installBtn.addEventListener('click', async () => {

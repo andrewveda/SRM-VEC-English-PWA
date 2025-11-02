@@ -11,7 +11,7 @@ const STATIC_ASSETS = [
 // These are dynamic data endpoints to cache optionally
 const DYNAMIC_ENDPOINTS = [
   "https://script.google.com/macros/s/AKfycbzPmoVR2sfZFgrh7YGxag018JF3HtIkDq3AG65Tt_psWgWLGvbERINZw7lP9wuupbVd/exec", // USER_DATA_URL
-  "https://script.google.com/macros/s/AKfycbxA0lRkERWFt2cYfmm04IQioaG4-21k5VFF5CFKP30zyVaJXM5_27PL3v8JIZEweK3u/exec", // ANALYTICS_URL
+  "https://script.google.com/macros/s/AKfycbwB2ax4j0XVtl9pGp5b-JOQE4_fT5JRW9z2_4ziZjAhLjuKLpywUHHavv6I163njiYk/exec", // ANALYTICS_URL
 ];
 
 /* ===== INSTALL ===== */

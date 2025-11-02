@@ -4,203 +4,686 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SRM VEC English — Quest & Video Calendar</title>
-<link rel="manifest" href="manifest.json">
-<link rel="stylesheet" href="style.css">
-<meta name="theme-color" content="#7A0019">
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+  padding: 20px;
+}
+
+.loading-screen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  color: white;
+}
+
+.loading-screen.show {
+  display: flex;
+}
+
+.loading-screen h1 {
+  font-size: 1.5rem;
+  margin-bottom: 20px;
+  text-align: center;
+  padding: 0 20px;
+}
+
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid rgba(255,255,255,0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.credits {
+  position: absolute;
+  bottom: 30px;
+  font-size: 0.9rem;
+  opacity: 0.9;
+  text-align: center;
+  padding: 0 20px;
+}
+
+.name-input-container {
+  background: white;
+  border-radius: 20px;
+  padding: 40px 30px;
+  max-width: 500px;
+  margin: 50px auto;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  text-align: center;
+  display: none;
+}
+
+.name-input-container.show {
+  display: block;
+}
+
+.name-input-container h1 {
+  color: #7A0019;
+  font-size: 1.5rem;
+  margin-bottom: 10px;
+}
+
+.name-input-container h2 {
+  color: #333;
+  font-size: 1.1rem;
+  margin-bottom: 30px;
+}
+
+.name-input-container input {
+  width: 100%;
+  padding: 15px;
+  font-size: 1rem;
+  border: 2px solid #ddd;
+  border-radius: 10px;
+  margin-bottom: 15px;
+  transition: border 0.3s;
+}
+
+.name-input-container input:focus {
+  outline: none;
+  border-color: #7A0019;
+}
+
+.name-input-container button, .name-input-container a button {
+  width: 100%;
+  padding: 15px;
+  font-size: 1rem;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  margin-bottom: 10px;
+  transition: transform 0.2s, box-shadow 0.2s;
+  font-weight: 600;
+}
+
+.name-input-container a {
+  text-decoration: none;
+  display: block;
+}
+
+.name-input-container button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+.btn-primary {
+  background: #7A0019;
+  color: white;
+}
+
+.btn-vocab {
+  background: #4CAF50;
+  color: white;
+}
+
+.btn-mystic {
+  background: #FF5722;
+  color: white;
+}
+
+.btn-wordle {
+  background: #FFC0CB;
+  color: black;
+}
+
+.btn-leaderboard {
+  background: #A020F0;
+  color: white;
+}
+
+.btn-elll {
+  background: #000000;
+  color: white;
+}
+
+.profile-icon {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  width: 50px;
+  height: 50px;
+  background: white;
+  border-radius: 50%;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+  z-index: 1000;
+  transition: transform 0.3s;
+}
+
+.profile-icon.show {
+  display: flex;
+}
+
+.profile-icon:hover {
+  transform: scale(1.1);
+}
+
+.profile-drawer {
+  position: fixed;
+  top: 0;
+  right: -350px;
+  width: 350px;
+  height: 100%;
+  background: white;
+  box-shadow: -5px 0 25px rgba(0,0,0,0.3);
+  z-index: 999;
+  transition: right 0.3s ease;
+  overflow-y: auto;
+  padding: 80px 20px 20px;
+}
+
+.profile-drawer.open {
+  right: 0;
+}
+
+.profile-drawer h3 {
+  color: #7A0019;
+  margin-bottom: 20px;
+  font-size: 1.3rem;
+}
+
+.drawer-item {
+  padding: 15px;
+  margin-bottom: 10px;
+  background: #f5f5f5;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.drawer-item:hover {
+  background: #e0e0e0;
+}
+
+.drawer-item a {
+  text-decoration: none;
+  color: #333;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 500;
+}
+
+.close-drawer {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  font-size: 2rem;
+  cursor: pointer;
+  color: #666;
+}
+
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.5);
+  z-index: 998;
+  display: none;
+}
+
+.overlay.active {
+  display: block;
+}
+
+.calendar-container {
+  background: white;
+  border-radius: 20px;
+  padding: 30px;
+  max-width: 800px;
+  margin: 0 auto;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  display: none;
+}
+
+.calendar-container.show {
+  display: block;
+}
+
+.user-info {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.user-info h2 {
+  color: #7A0019;
+  font-size: 1.8rem;
+  margin-bottom: 10px;
+}
+
+.stats {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.stat-box {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 15px 25px;
+  border-radius: 10px;
+  font-weight: 600;
+}
+
+.type-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.type-button {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s;
+  color: white;
+}
+
+.type-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+
+.type-button.active {
+  box-shadow: 0 0 20px currentColor;
+}
+
+.calendar {
+  display: grid;
+}
+
+.calendar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.calendar-header button {
+  background: #7A0019;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1.2rem;
+}
+
+.calendar-header div {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.days-of-week {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 5px;
+  margin-bottom: 10px;
+  font-weight: 600;
+  text-align: center;
+  color: #666;
+}
+
+.dates {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 5px;
+}
+
+.dates div {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.3s;
+}
+
+.dates div:hover:not(.disabled) {
+  transform: scale(1.05);
+}
+
+.dates .done {
+  background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+  color: white;
+}
+
+.dates .missed {
+  background: #ffebee;
+  color: #c62828;
+}
+
+.dates .disabled {
+  background: #f5f5f5;
+  color: #ccc;
+  cursor: default;
+}
+
+.offline-banner {
+  background: #ff9800;
+  color: white;
+  padding: 15px;
+  text-align: center;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  font-weight: 600;
+  display: none;
+}
+
+.offline-banner.show {
+  display: block;
+}
+
+.logout-btn {
+  width: 100%;
+  padding: 15px;
+  background: #c62828;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 600;
+  margin-top: 20px;
+}
+
+@media (max-width: 768px) {
+  .calendar-container {
+    padding: 20px;
+  }
+  
+  .profile-drawer {
+    width: 100%;
+    right: -100%;
+  }
+  
+  body {
+    padding: 10px;
+  }
+}
+</style>
 </head>
 <body>
 
-<!-- The user's original calendar page, slightly adapted to be self-contained and PWA-ready -->
-<div id="nameInputContainer">
-    <h1 style="text-align:center; color:#7A0019; margin-bottom:5px;">SRM Valliammai Engineering College (Autonomous)</h1> <br>
-  <h2 style="text-align:center; color:#333; margin-top:0;">Department of English</h2>
+<div class="loading-screen" id="loadingScreen">
+  <h1>Loading your Quest Calendar...</h1>
+  <div class="spinner"></div>
+  <p class="credits">Created with ♥️ by Andrew Veda, AP<br>SRM Valliammai Engineering College</p>
+</div>
 
-  <input type="text" id="name" placeholder="Your Name">
-  <button onclick="showCalendar()">Show Calendar</button>
-  <!-- New button with link -->
+<div class="name-input-container" id="nameInputContainer">
+  <h1>SRM Valliammai Engineering College (Autonomous)</h1>
+  <h2>Department of English</h2>
+  <input type="text" id="nameInput" placeholder="Enter Your Name">
+  <button class="btn-primary" onclick="saveAndLogin()">Get Started</button>
   <a href="https://sites.google.com/view/srm-vec-english/daily-vocabulary">
-    <button style="background:#4CAF50; color:white;">Give me my Daily Vocabulary!</button>
-<br>
+    <button class="btn-vocab">📚 Daily Vocabulary</button>
+  </a>
   <a href="https://sites.google.com/view/cys-english/preliminary-event-registration">
-    <button style="background:#FF5722; color:black;">Register for Mystic Summit!</button>
-<br>
+    <button class="btn-mystic">🎯 Register for Mystic Summit</button>
+  </a>
   <a href="https://sites.google.com/view/cys-english/wordle">
-    <button style="background:#FFC0CB; color:black;">👽WORDLE!</button>
-<br>
+    <button class="btn-wordle">👽 WORDLE!</button>
+  </a>
   <a href="https://sites.google.com/view/srm-vec-english/department-quest-leaderboard">
-    <button style="background:#A020F0; color:black;">😎 Leaderboard!</button>
-<br>
-  <a href="https://sites.google.com/view/cys-english/elll-virtual-record" >
-    <button style="background:#000000; color:white;">📝 ELLL Virtual Record✨</button>
+    <button class="btn-leaderboard">😎 Leaderboard</button>
+  </a>
+  <a href="https://sites.google.com/view/cys-english/elll-virtual-record">
+    <button class="btn-elll">📝 ELLL Virtual Record✨</button>
   </a>
 </div>
 
-<div id="loadingQuote"></div>
-<div id="userName"></div>
-<div id="totalCorrect"></div>
-<div id="missedDays"></div>
-<div id="amazingMsg">🌟 Amazing! You haven’t missed a single day!</div>
-<div id="typeButtons" style="display:none; margin-top: 10px; text-align:center;">
- <button class="type-button" onclick="switchType('quest')" style="background:#2196F3; color:#fff; margin:5px;">Quest</button>
-<button class="type-button" onclick="switchType('video')" style="background:#FF9800; color:#fff; margin:5px;">Video</button>
-<button class="type-button" onclick="switchType('ipa')" style="background:#9C27B0; color:#fff; margin:5px;">ELLL</button>
+<div class="profile-icon" id="profileIcon">👤</div>
+<div class="overlay" id="overlay"></div>
+<div class="profile-drawer" id="profileDrawer">
+  <span class="close-drawer" id="closeDrawer">&times;</span>
+  <h3>Menu</h3>
+  <div class="drawer-item">
+    <a href="https://sites.google.com/view/srm-vec-english/daily-vocabulary">📚 Daily Vocabulary</a>
+  </div>
+  <div class="drawer-item">
+    <a href="https://sites.google.com/view/cys-english/preliminary-event-registration">🎯 Mystic Summit</a>
+  </div>
+  <div class="drawer-item">
+    <a href="https://sites.google.com/view/cys-english/wordle">👽 WORDLE!</a>
+  </div>
+  <div class="drawer-item">
+    <a href="https://sites.google.com/view/srm-vec-english/department-quest-leaderboard">😎 Leaderboard</a>
+  </div>
+  <div class="drawer-item">
+    <a href="https://sites.google.com/view/cys-english/elll-virtual-record">📝 ELLL Virtual Record</a>
+  </div>
+  <button class="logout-btn" onclick="logout()">🚪 Logout</button>
 </div>
 
-<div class="calendar" id="calendarContainer" style="display:none;">
-  <div class="calendar-header">
-    <button onclick="changeMonth(-1)">&#8592;</button>
-    <div id="monthYear"></div>
-    <button onclick="changeMonth(1)">&#8594;</button>
+<div class="calendar-container" id="calendarContainer">
+  <div class="offline-banner" id="offlineBanner">📡 Offline mode — progress will sync when online.</div>
+  
+  <div class="user-info">
+    <h2 id="userName"></h2>
+    <div class="stats">
+      <div class="stat-box">🔥 Total: <span id="totalCorrect">0</span></div>
+      <div class="stat-box">❌ Missed: <span id="missedDays">0</span></div>
+      <div class="stat-box">⏱️ Time: <span id="totalTime">0m</span></div>
+    </div>
   </div>
-  <div class="days-of-week">
-    <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div>
-    <div>Thu</div><div>Fri</div><div>Sat</div>
+
+  <div class="type-buttons">
+    <button class="type-button active" style="background:#2196F3;" onclick="switchType('quest')">📝 Quest</button>
+    <button class="type-button" style="background:#FF9800;" onclick="switchType('video')">🎥 Video</button>
+    <button class="type-button" style="background:#9C27B0;" onclick="switchType('ipa')">🗣️ ELLL</button>
   </div>
-  <div class="dates" id="datesGrid"></div>
+
+  <div class="calendar">
+    <div class="calendar-header">
+      <button onclick="changeMonth(-1)">◀</button>
+      <div id="monthYear"></div>
+      <button onclick="changeMonth(1)">▶</button>
+    </div>
+    <div class="days-of-week">
+      <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div>
+      <div>Thu</div><div>Fri</div><div>Sat</div>
+    </div>
+    <div class="dates" id="datesGrid"></div>
+  </div>
 </div>
 
 <script>
-const quote = "Heuristics are mental shortcuts that allow people to solve problems and make judgments quickly and efficiently. ✨🏆🥇🥈🥉✨🔥🎉✅⚡🚀🌟👑🏆🌟💯";
-
+// Analytics and tracking
+let sessionStartTime = Date.now();
+let totalTimeSpent = 0;
+let userData = null;
 let currentMonth = new Date().getMonth();
 let currentYear = new Date().getFullYear();
-let user = null;
-let currentType = 'quest'; // 'quest', 'video', or 'ipa'
-
-const startDate = new Date(2025, 7, 25); // Aug 25, 2025
-let totalMissed = 0;
+let currentType = 'quest';
+const startDate = new Date(2025, 7, 25);
 
 const questLinks = {
-  1: "quests/quest1.html",
-  2: "https://sites.google.com/view/srm-vec-english/quest/wh-questions-1",
-  3: "https://sites.google.com/view/cys-english/self-introduction-1",
-  4: "https://sites.google.com/view/srm-vec-english/quest/one-word-substitution-1",
-  5: "https://sites.google.com/view/cys-english/self-introduction-3",
-  6: "https://sites.google.com/view/srm-vec-english/quest/film-review",
-  7: "https://sites.google.com/view/srm-vec-english/quest/pronouns-1",
-  8: "https://sites.google.com/view/srm-vec-english/quest/pronouns-2",
-  9: "https://sites.google.com/view/srm-vec-english/quest/parts-of-speech-1",
-  10: "https://sites.google.com/view/srm-vec-english/quest/question-tags-1",
-  11: "https://sites.google.com/view/srm-vec-english/quest/question-tags-2",
-  12: "https://sites.google.com/view/srm-vec-english/quest/subject-verb-agreement",
-  13: "https://sites.google.com/view/srm-vec-english/quest/comparative-1",
-  14: "https://sites.google.com/view/srm-vec-english/quest/comparative-2",
-  15: "https://sites.google.com/view/srm-vec-english/quest/discourse-markers",
-  16: "https://sites.google.com/view/srm-vec-english/quest/past-1",
-  17: "https://sites.google.com/view/cys-english/questyesno1",
-  18: "https://sites.google.com/view/srm-vec-english/quest/yesno-2",
-  19: "https://sites.google.com/view/srm-vec-english/quest/one-word-substitution-2",
-  20: "https://sites.google.com/view/cys-english/match1",
-  21: "https://sites.google.com/view/cys-english/match2",
-  22: "https://sites.google.com/view/cys-english/past",
-  23: "https://sites.google.com/view/cys-english/homophone1",
-  24: "https://sites.google.com/view/cys-english/homophone2",
-  25: "https://sites.google.com/view/cys-english/comparisons1",
-  26: "https://sites.google.com/view/cys-english/comparisons2",
-  27: "https://sites.google.com/view/cys-english/discoursemarkers",
-  28: "https://sites.google.com/view/cys-english/article",
-  29: "https://sites.google.com/view/cys-english/synonym1",
-  30: "https://sites.google.com/view/cys-english/synonym2",
-  31: "https://sites.google.com/view/cys-english/antonym1",
-  32: "https://sites.google.com/view/cys-english/antonym2",
-  33: "https://sites.google.com/view/cys-english/prep1",
-  34: "https://sites.google.com/view/cys-english/prep2",
-  35: "https://sites.google.com/view/cys-english/past2",
-  36: "https://sites.google.com/view/cys-english/prep3",
-  37: "https://sites.google.com/view/cys-english/match3",
-  38: "https://sites.google.com/view/cys-english/article2",
-  39: "https://sites.google.com/view/cys-english/article3",
-  40: "https://sites.google.com/view/cys-english/quest40",
-  41: "https://sites.google.com/view/cys-english/quest41",
-  42: "https://sites.google.com/view/cys-english/quest42",
-  43: "https://sites.google.com/view/cys-english/quest43",
-  44: "https://sites.google.com/view/cys-english/quest44",
-  45: "https://sites.google.com/view/cys-english/quest45",
-  46: "https://sites.google.com/view/cys-english/quest46",
-  47: "https://sites.google.com/view/cys-english/quest47",
-  48: "https://sites.google.com/view/cys-english/quest48",
-  49: "https://sites.google.com/view/cys-english/quest49",
-  50: "https://sites.google.com/view/cys-english/quest50",
-  51: "https://sites.google.com/view/cys-english/quest51",
-  52: "https://sites.google.com/view/cys-english/quest62",
-  63: "https://sites.google.com/view/cys-english/full-streak-wh-questions",
-  64: "https://sites.google.com/view/cys-english/full-streak-single-word",
-  65: "https://sites.google.com/view/cys-english/full-streak-3",
-  66: "https://sites.google.com/view/cys-english/full-streak-4",
-  67: "https://sites.google.com/view/cys-english/full-streak-5",
-  68: "https://sites.google.com/view/cys-english/full-streak-6",
-  69: "https://sites.google.com/view/cys-english/full-streak-7",
-    70: "https://sites.google.com/view/cys-english/book-review-1"
-
+  1: "quests/quest1.html", 2: "https://sites.google.com/view/srm-vec-english/quest/wh-questions-1",
+  3: "https://sites.google.com/view/cys-english/self-introduction-1", 4: "https://sites.google.com/view/srm-vec-english/quest/one-word-substitution-1",
+  5: "https://sites.google.com/view/cys-english/self-introduction-3", 6: "https://sites.google.com/view/srm-vec-english/quest/film-review",
+  7: "https://sites.google.com/view/srm-vec-english/quest/pronouns-1", 8: "https://sites.google.com/view/srm-vec-english/quest/pronouns-2",
+  9: "https://sites.google.com/view/srm-vec-english/quest/parts-of-speech-1", 10: "https://sites.google.com/view/srm-vec-english/quest/question-tags-1",
+  11: "https://sites.google.com/view/srm-vec-english/quest/question-tags-2", 12: "https://sites.google.com/view/srm-vec-english/quest/subject-verb-agreement",
+  13: "https://sites.google.com/view/srm-vec-english/quest/comparative-1", 14: "https://sites.google.com/view/srm-vec-english/quest/comparative-2",
+  15: "https://sites.google.com/view/srm-vec-english/quest/discourse-markers", 16: "https://sites.google.com/view/srm-vec-english/quest/past-1",
+  17: "https://sites.google.com/view/cys-english/questyesno1", 18: "https://sites.google.com/view/srm-vec-english/quest/yesno-2",
+  19: "https://sites.google.com/view/srm-vec-english/quest/one-word-substitution-2", 20: "https://sites.google.com/view/cys-english/match1",
+  21: "https://sites.google.com/view/cys-english/match2", 22: "https://sites.google.com/view/cys-english/past",
+  23: "https://sites.google.com/view/cys-english/homophone1", 24: "https://sites.google.com/view/cys-english/homophone2",
+  25: "https://sites.google.com/view/cys-english/comparisons1", 26: "https://sites.google.com/view/cys-english/comparisons2",
+  27: "https://sites.google.com/view/cys-english/discoursemarkers", 28: "https://sites.google.com/view/cys-english/article",
+  29: "https://sites.google.com/view/cys-english/synonym1", 30: "https://sites.google.com/view/cys-english/synonym2",
+  31: "https://sites.google.com/view/cys-english/antonym1", 32: "https://sites.google.com/view/cys-english/antonym2",
+  33: "https://sites.google.com/view/cys-english/prep1", 34: "https://sites.google.com/view/cys-english/prep2",
+  35: "https://sites.google.com/view/cys-english/past2", 36: "https://sites.google.com/view/cys-english/prep3",
+  37: "https://sites.google.com/view/cys-english/match3", 38: "https://sites.google.com/view/cys-english/article2",
+  39: "https://sites.google.com/view/cys-english/article3", 40: "https://sites.google.com/view/cys-english/quest40",
+  41: "https://sites.google.com/view/cys-english/quest41", 42: "https://sites.google.com/view/cys-english/quest42",
+  43: "https://sites.google.com/view/cys-english/quest43", 44: "https://sites.google.com/view/cys-english/quest44",
+  45: "https://sites.google.com/view/cys-english/quest45", 46: "https://sites.google.com/view/cys-english/quest46",
+  47: "https://sites.google.com/view/cys-english/quest47", 48: "https://sites.google.com/view/cys-english/quest48",
+  49: "https://sites.google.com/view/cys-english/quest49", 50: "https://sites.google.com/view/cys-english/quest50",
+  51: "https://sites.google.com/view/cys-english/quest51", 52: "https://sites.google.com/view/cys-english/quest62",
+  63: "https://sites.google.com/view/cys-english/full-streak-wh-questions", 64: "https://sites.google.com/view/cys-english/full-streak-single-word",
+  65: "https://sites.google.com/view/cys-english/full-streak-3", 66: "https://sites.google.com/view/cys-english/full-streak-4",
+  67: "https://sites.google.com/view/cys-english/full-streak-5", 68: "https://sites.google.com/view/cys-english/full-streak-6",
+  69: "https://sites.google.com/view/cys-english/full-streak-7", 70: "https://sites.google.com/view/cys-english/book-review-1"
 };
 
 const videoLink = "https://sites.google.com/view/cys-english/video-quests";
 const ipaLink = "https://sites.google.com/view/cys-english/elll-virtual-record";
 
-
-function typeWriter(text, element, callback=null) {
-  let i = 0;
-  element.textContent = "";
-  const interval = setInterval(() => {
-    element.textContent += text.charAt(i);
-    i++;
-    if(i >= text.length){
-      clearInterval(interval);
-      if(callback) callback();
-    }
-  }, 30);
+// Initialize app
+async function init() {
+  // Check if user has logged in before
+  const savedName = localStorage.getItem('userName');
+  
+  if (savedName) {
+    // User exists - show loading and fetch data
+    document.getElementById('loadingScreen').classList.add('show');
+    await loadUserData(savedName);
+  } else {
+    // New user - show name input form
+    document.getElementById('nameInputContainer').classList.add('show');
+  }
+  
+  setupEventListeners();
+  trackTimeSpent();
+  checkOnlineStatus();
+  trackInstall();
 }
 
-async function showCalendar() {
-  const nameInput = document.getElementById('name');
-  const name = nameInput.value.trim();
-  if(!name) return alert('Please enter your name!');
+function setupEventListeners() {
+  document.getElementById('profileIcon').addEventListener('click', toggleDrawer);
+  document.getElementById('closeDrawer').addEventListener('click', toggleDrawer);
+  document.getElementById('overlay').addEventListener('click', toggleDrawer);
+  
+  window.addEventListener('beforeunload', syncData);
+  window.addEventListener('online', handleOnline);
+  window.addEventListener('offline', handleOffline);
+  
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      syncData();
+    } else {
+      sessionStartTime = Date.now();
+    }
+  });
+}
 
-  document.getElementById('nameInputContainer').style.display = 'none';
-  const quoteEl = document.getElementById('loadingQuote');
-  typeWriter(quote, quoteEl);
+function toggleDrawer() {
+  const drawer = document.getElementById('profileDrawer');
+  const overlay = document.getElementById('overlay');
+  drawer.classList.toggle('open');
+  overlay.classList.toggle('active');
+}
 
+async function saveAndLogin() {
+  const name = document.getElementById('nameInput').value.trim();
+  if (!name) return alert('Please enter your name!');
+  
+  // Save name to localStorage
+  localStorage.setItem('userName', name.toUpperCase());
+  
+  // Hide name input, show loading
+  document.getElementById('nameInputContainer').classList.remove('show');
+  document.getElementById('loadingScreen').classList.add('show');
+  
+  // Now fetch data
+  await loadUserData(name);
+}
+
+async function loadUserData(name) {
   try {
     const res = await fetch("https://script.google.com/macros/s/AKfycbzPmoVR2sfZFgrh7YGxag018JF3HtIkDq3AG65Tt_psWgWLGvbERINZw7lP9wuupbVd/exec");
     const data = await res.json();
-
-    user = data.find(u => u.Name.toUpperCase() === name.toUpperCase()) || {
+    
+    userData = data.find(u => u.Name.toUpperCase() === name.toUpperCase()) || {
       Name: name.toUpperCase(),
       Quests: 0,
       TotalCorrect: 0,
-      Challenges: [] // safe for new users
+      Challenges: []
     };
-
-    quoteEl.textContent = "";
-    document.getElementById('userName').textContent = user.Name.toUpperCase();
-    document.getElementById('totalCorrect').textContent = 
-    `🔥 TOTAL CORRECT: ${user.TotalCorrect || 0}`;
-
-    document.getElementById('calendarContainer').style.display = 'grid';
-   document.getElementById('typeButtons').style.display = 'block';
-
-
-    totalMissed = 0;
-    renderCalendar(currentMonth, currentYear, currentType);
-  } catch(err){
-    quoteEl.textContent = "Error loading data!";
-    console.error(err);
+    
+    // Load saved time
+    const savedTime = localStorage.getItem('totalTimeSpent');
+    if (savedTime) totalTimeSpent = parseInt(savedTime);
+    
+    // Cache user data for offline use
+    localStorage.setItem('cachedUserData', JSON.stringify(userData));
+    
+    showCalendar();
+  } catch (err) {
+    console.error('Error loading data:', err);
+    
+    // Try to load cached data
+    const cached = localStorage.getItem('cachedUserData');
+    if (cached) {
+      userData = JSON.parse(cached);
+      showCalendar();
+      document.getElementById('offlineBanner').classList.add('show');
+    } else {
+      alert('Error loading data. Please check your connection and try again.');
+      document.getElementById('loadingScreen').classList.remove('show');
+      document.getElementById('nameInputContainer').classList.add('show');
+    }
   }
+}
+
+function showCalendar() {
+  document.getElementById('loadingScreen').classList.remove('show');
+  document.getElementById('calendarContainer').classList.add('show');
+  document.getElementById('profileIcon').classList.add('show');
+  document.getElementById('userName').textContent = userData.Name;
+  document.getElementById('totalCorrect').textContent = userData.TotalCorrect || 0;
+  
+  renderCalendar(currentMonth, currentYear, currentType);
+  updateTimeDisplay();
 }
 
 function switchType(type) {
   currentType = type;
-
-  const count = user.Quests; // For simplicity, same count field
-  const total = user.TotalCorrect;
-  document.getElementById('totalCorrect').textContent = 
-    `🔥 TOTAL CORRECT: ${user.TotalCorrect || 0}`;
-
-  // Glow effect for active button
   document.querySelectorAll('.type-button').forEach(btn => btn.classList.remove('active'));
-  document.querySelector(`.type-button[onclick="switchType('${type}')"]`).classList.add('active');
-
-  totalMissed = 0;
+  event.target.classList.add('active');
   renderCalendar(currentMonth, currentYear, currentType);
 }
 
@@ -220,134 +703,212 @@ function renderCalendar(month, year, type) {
   const datesGrid = document.getElementById('datesGrid');
   const monthYear = document.getElementById('monthYear');
   const daysInMonth = new Date(year, month + 1, 0).getDate();
-  monthYear.innerText = new Date(year, month).toLocaleString('default', { month: 'long' }) + ' ' + year;
+  
+  monthYear.textContent = new Date(year, month).toLocaleString('default', { month: 'long' }) + ' ' + year;
   datesGrid.innerHTML = '';
-
+  
   const firstDayOfMonth = new Date(year, month, 1).getDay();
-  for(let i = 0; i < firstDayOfMonth; i++){
+  for (let i = 0; i < firstDayOfMonth; i++) {
     const emptyDiv = document.createElement('div');
     emptyDiv.className = 'disabled';
     datesGrid.appendChild(emptyDiv);
   }
-
+  
   const today = new Date();
-
-const challengesString = Array.isArray(user.Challenges) ? user.Challenges.join(",") : (user.Challenges || "");
-const challenges = challengesString
-                   .split(",")
-                   .map(c => c.trim())
-                   .filter(c => {
-                      if(type === 'quest') return c.startsWith('Quest');
-                      if(type === 'video') return c.startsWith('Video');
-                      if(type === 'ipa') return c.startsWith('IPA');
-                   });
-
-  for(let d = 1; d <= daysInMonth; d++){
+  const challengesString = Array.isArray(userData.Challenges) ? userData.Challenges.join(",") : (userData.Challenges || "");
+  const challenges = challengesString.split(",").map(c => c.trim()).filter(c => {
+    if (type === 'quest') return c.startsWith('Quest');
+    if (type === 'video') return c.startsWith('Video');
+    if (type === 'ipa') return c.startsWith('IPA');
+  });
+  
+  let missedCount = 0;
+  
+  for (let d = 1; d <= daysInMonth; d++) {
     const currentDate = new Date(year, month, d);
     const diffDays = Math.floor((currentDate - startDate) / (1000 * 60 * 60 * 24));
     const questNumber = diffDays >= 0 ? diffDays + 1 : null;
- // Inside renderCalendar(), replace questName definition with:
-const questName = questNumber 
-    ? `${type === 'quest' ? 'Quest' : type === 'video' ? 'Video' : 'IPA'} ${questNumber}` 
-    : null;
+    const questName = questNumber ? `${type === 'quest' ? 'Quest' : type === 'video' ? 'Video' : 'IPA'} ${questNumber}` : null;
+    
     const dayDiv = document.createElement('div');
-
- if(questName && challenges.includes(questName)){
-    dayDiv.className = 'done';
-    // Show fire emoji for all types
-    dayDiv.innerText = `${d} 🔥`;
-} else if (questName) {
-    if(currentDate < today){
+    
+    if (questName && challenges.includes(questName)) {
+      dayDiv.className = 'done';
+      dayDiv.textContent = `${d} 🔥`;
+    } else if (questName) {
+      if (currentDate < today) {
         dayDiv.className = 'missed';
-        totalMissed++;
-    }
-    dayDiv.innerText = d;
-} else {
-    dayDiv.className = 'disabled';
-    dayDiv.innerText = d;
-}
-
-  dayDiv.onclick = () => {
-  let link;
-  if(type === 'quest') link = questLinks[questNumber];
-  else if(type === 'video') link = videoLink; 
-  else if(type === 'ipa') link = ipaLink;
-
-  if (link) {
-    // Check if running as PWA
-    const isPWA = window.matchMedia('(display-mode: standalone)').matches ||
-                  window.matchMedia('(display-mode: fullscreen)').matches ||
-                  window.navigator.standalone === true;
-
-    const internalDomains = [
-      "andrewveda.github.io",
-      "sites.google.com/view/cys-english",
-      "sites.google.com/view/srm-vec-english"
-    ];
-    const isInternal = internalDomains.some(domain => link.includes(domain));
-
-    if (isInternal && isPWA) {
-      // Use relative path for same-origin links
-      if (link.includes("andrewveda.github.io/SRM-VEC-English-PWA")) {
-        const relativePath = link.split("/SRM-VEC-English-PWA")[1];
-        window.location.href = relativePath;
-      } else {
-        window.location.href = link;
+        missedCount++;
       }
-    } else if (isInternal && !isPWA) {
-      window.location.href = link; // Normal navigation in browser
+      dayDiv.textContent = d;
     } else {
-      window.open(link, '_blank'); // External links
+      dayDiv.className = 'disabled';
+      dayDiv.textContent = d;
     }
-  }
-};
-
+    
+    dayDiv.onclick = () => {
+      let link;
+      if (type === 'quest') link = questLinks[questNumber];
+      else if (type === 'video') link = videoLink;
+      else if (type === 'ipa') link = ipaLink;
+      
+      if (link) {
+        const internalDomains = ["andrewveda.github.io", "sites.google.com"];
+        const isInternal = internalDomains.some(domain => link.includes(domain));
+        
+        if (isInternal) {
+          window.location.href = link;
+        } else {
+          window.open(link, '_blank');
+        }
+      }
+    };
+    
     datesGrid.appendChild(dayDiv);
   }
-
-  const missedEl = document.getElementById('missedDays');
-  missedEl.textContent = totalMissed > 0 ? `❌ MISSED: ${totalMissed} days` : '';
-  document.getElementById('amazingMsg').style.display = totalMissed === 0 ? 'block' : 'none';
+  
+  document.getElementById('missedDays').textContent = missedCount;
 }
-</script>
 
-<script>
-// register service worker for PWA offline capability
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', function() {
-   navigator.serviceWorker.register('./service-worker.js').then(function(reg) {
-      console.log('ServiceWorker registration successful with scope: ', reg.scope);
-    }, function(err) {
-      console.log('ServiceWorker registration failed: ', err);
+function trackTimeSpent() {
+  setInterval(() => {
+    totalTimeSpent = Math.floor((Date.now() - sessionStartTime) / 1000 / 60);
+    localStorage.setItem('totalTimeSpent', totalTimeSpent);
+    updateTimeDisplay();
+  }, 30000); // Update every 30 seconds
+}
+
+function updateTimeDisplay() {
+  document.getElementById('totalTime').textContent = totalTimeSpent + 'm';
+}
+
+function syncData() {
+  if (!userData) return;
+  
+  const analyticsData = {
+    name: userData.Name,
+    totalCorrect: userData.TotalCorrect,
+    timeSpent: totalTimeSpent,
+    lastActive: new Date().toISOString(),
+    sessionStart: new Date(sessionStartTime).toISOString(),
+    device: navigator.userAgent,
+    isOnline: navigator.onLine
+  };
+  
+  if (navigator.onLine) {
+    navigator.sendBeacon(
+      'https://script.google.com/macros/s/AKfycbxA0lRkERWFt2cYfmm04IQioaG4-21k5VFF5CFKP30zyVaJXM5_27PL3v8JIZEweK3u/exec',
+      JSON.stringify(analyticsData)
+    );
+  } else {
+    const pending = JSON.parse(localStorage.getItem('pendingSync') || '[]');
+    pending.push(analyticsData);
+    localStorage.setItem('pendingSync', JSON.stringify(pending));
+  }
+}
+
+function handleOnline() {
+  document.getElementById('offlineBanner').classList.remove('show');
+  
+  const pending = JSON.parse(localStorage.getItem('pendingSync') || '[]');
+  if (pending.length > 0) {
+    pending.forEach(data => {
+      fetch('https://script.google.com/macros/s/AKfycbxA0lRkERWFt2cYfmm04IQioaG4-21k5VFF5CFKP30zyVaJXM5_27PL3v8JIZEweK3u/exec', {
+        method: 'POST',
+        body: JSON.stringify(data)
+      }).catch(err => console.error('Sync error:', err));
     });
+    localStorage.removeItem('pendingSync');
+  }
+  
+  const savedName = localStorage.getItem('userName');
+  if (savedName) loadUserData(savedName);
+}
+
+function handleOffline() {
+  document.getElementById('offlineBanner').classList.add('show');
+}
+
+function checkOnlineStatus() {
+  if (!navigator.onLine) {
+    document.getElementById('offlineBanner').classList.add('show');
+  }
+}
+
+function trackInstall() {
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    const installData = {
+      name: localStorage.getItem('userName') || 'Unknown',
+      event: 'install_prompt_shown',
+      timestamp: new Date().toISOString(),
+      device: navigator.userAgent
+    };
+    
+    fetch('https://script.google.com/macros/s/AKfycbxA0lRkERWFt2cYfmm04IQioaG4-21k5VFF5CFKP30zyVaJXM5_27PL3v8JIZEweK3u/exec', {
+      method: 'POST',
+      body: JSON.stringify(installData)
+    }).catch(err => console.error('Install tracking error:', err));
+  });
+  
+  window.addEventListener('appinstalled', () => {
+    const installData = {
+      name: localStorage.getItem('userName') || 'Unknown',
+      event: 'app_installed',
+      timestamp: new Date().toISOString(),
+      device: navigator.userAgent
+    };
+    
+    fetch('https://script.google.com/macros/s/AKfycbxA0lRkERWFt2cYfmm04IQioaG4-21k5VFF5CFKP30zyVaJXM5_27PL3v8JIZEweK3u/exec', {
+      method: 'POST',
+      body: JSON.stringify(installData)
+    }).catch(err => console.error('Install tracking error:', err));
   });
 }
-</script>
-<script>
+
+function logout() {
+  if (confirm('Are you sure you want to logout?')) {
+    syncData();
+    localStorage.removeItem('userName');
+    localStorage.removeItem('cachedUserData');
+    localStorage.removeItem('totalTimeSpent');
+    window.location.reload();
+  }
+}
+
+// Service Worker Registration
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./service-worker.js')
+      .then(reg => console.log('ServiceWorker registered:', reg.scope))
+      .catch(err => console.log('ServiceWorker registration failed:', err));
+  });
+}
+
+// Internal link handler for PWA
 document.addEventListener("click", function (e) {
   const target = e.target.closest("a");
   if (!target) return;
-
+  
   const url = target.href;
-
-  // ✅ Domains to open internally (no X, feels native)
   const internalDomains = [
     "andrewveda.github.io",
-    "sites.google.com/view/cys-english/",
-    "sites.google.com/view/srm-vec-english/"
+    "sites.google.com/view/cys-english",
+    "sites.google.com/view/srm-vec-english"
   ];
-
+  
   const isInternal = internalDomains.some(domain => url.includes(domain));
-
+  
   if (isInternal) {
-    // Open in same PWA context (native feel)
     e.preventDefault();
     window.location.href = url;
   } else {
-    // Open external links normally
     target.setAttribute("target", "_blank");
   }
 });
+
+// Initialize app on load
+init();
 </script>
 
 </body>

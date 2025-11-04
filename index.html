@@ -612,6 +612,98 @@ margin: 50px auto;
   transition: opacity 5s ease;
   min-height: 24px;
 }
+.level-dashboard {
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  border-radius: 20px;
+  padding: 20px;
+  color: white;
+  text-align: center;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+  margin: 0 auto 20px auto;
+  max-width: 800px;
+  animation: fadeIn 1s ease-out;
+}
+
+.level-dashboard h2 {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+  letter-spacing: 1px;
+  color: #ffe082;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.6);
+}
+
+.xp-bar {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 10px;
+  height: 12px;
+  width: 100%;
+  margin: 6px 0;
+  overflow: hidden;
+}
+
+.xp-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #ffcc33, #ff9100);
+  border-radius: 10px;
+  transition: width 1s ease-in-out;
+}
+
+.xp-text {
+  font-size: 0.8rem;
+  color: #eee;
+  margin-bottom: 15px;
+}
+
+.power-bar-deck {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-around;
+  gap: 6px;
+}
+
+.power-item {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  width: 60px;
+  font-size: 0.8rem;
+  color: #fff;
+}
+
+.power-bar {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 5px;
+  margin: 3px 0;
+  overflow: hidden;
+}
+
+.power-bar .fill {
+  height: 100%;
+  border-radius: 5px;
+  transition: width 1s ease;
+}
+
+.power-item:nth-child(1) .fill { background: linear-gradient(90deg, gold, orange); }
+.power-item:nth-child(2) .fill { background: linear-gradient(90deg, #2196F3, #21CBF3); }
+.power-item:nth-child(3) .fill { background: linear-gradient(90deg, #4CAF50, #8BC34A); }
+.power-item:nth-child(4) .fill { background: linear-gradient(90deg, #FF5722, #FFC107); }
+.power-item:nth-child(5) .fill { background: linear-gradient(90deg, #9C27B0, #E040FB); }
+
+.power-value {
+  margin-top: 2px;
+  font-weight: bold;
+  font-size: 0.8rem;
+  text-shadow: 0 0 5px rgba(0,0,0,0.3);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 
 </style>
 </head>
@@ -694,6 +786,40 @@ margin: 50px auto;
   </div>
   <button class="logout-btn" onclick="logout()">🚪 Logout</button>
 </div>
+
+
+
+<div class="level-dashboard" id="levelDashboard">
+  <h2 id="levelTitle">LEVEL : Loading.. ☆☆☆☆</h2>
+  <div class="xp-bar">
+    <div class="xp-fill" style="width: 0%;"></div>
+  </div>
+  <p class="xp-text">0% to next level</p>
+
+  <div class="power-bar-deck">
+    <div class="power-item" data-label="Rank">
+      🏆 <div class="power-bar"><div class="fill" style="width:60%;"></div></div>
+      <span class="power-value">8</span>
+    </div>
+    <div class="power-item" data-label="Score">
+      📊 <div class="power-bar"><div class="fill" style="width:70%;"></div></div>
+      <span class="power-value">2140</span>
+    </div>
+    <div class="power-item" data-label="Quests">
+      📝 <div class="power-bar"><div class="fill" style="width:80%;"></div></div>
+      <span class="power-value">16</span>
+    </div>
+    <div class="power-item" data-label="Videos">
+      🎥 <div class="power-bar"><div class="fill" style="width:40%;"></div></div>
+      <span class="power-value">4</span>
+    </div>
+    <div class="power-item" data-label="Time">
+      ⏱️ <div class="power-bar"><div class="fill" style="width:52%;"></div></div>
+      <span class="power-value">52m</span>
+    </div>
+  </div>
+</div>
+
 
 <div class="calendar-container" id="calendarContainer">
   <div class="offline-banner" id="offlineBanner">📡 Offline mode — progress will sync when online.</div>
@@ -1005,6 +1131,32 @@ function updateProfileDrawer() {
     
     document.getElementById('drawerQuests').textContent = userProfileData.Quests || 0;
     document.getElementById('drawerMainQuests').textContent = userProfileData['Main Quests'] || userProfileData.MainQuests || 0;
+    // 🌟 Update top Level Dashboard dynamically
+const score = parseInt(userProfileData['Score (Correct–Wrong)'] || userProfileData.Score || 0);
+const quests = parseInt(userProfileData.Quests || 0);
+const videos = parseInt(userProfileData['Main Quests'] || userProfileData.MainQuests || 0);
+const time = parseInt(userProfileData['Total Time (s)'] || userProfileData.TotalTime || 0);
+const rank = userProfileData.Rank || '-';
+
+// Compute simple level logic
+const level = Math.floor(score / 500) + 1;
+const xpPercent = Math.min((score % 500) / 5, 100);
+const titles = ["Novice", "Apprentice", "Scholar", "Wordsmith", "Virtuoso", "Maestro"];
+const title = titles[Math.min(level - 1, titles.length - 1)];
+
+// Update display
+const dash = document.getElementById("levelDashboard");
+if (dash) {
+  dash.querySelector("#levelTitle").textContent = `LEVEL ${level}: ${title}`;
+  dash.querySelector(".xp-fill").style.width = xpPercent + "%";
+  dash.querySelector(".xp-text").textContent = `${Math.round(xpPercent)}% to next level`;
+  dash.querySelectorAll(".power-item")[0].querySelector(".power-value").textContent = rank;
+  dash.querySelectorAll(".power-item")[1].querySelector(".power-value").textContent = score;
+  dash.querySelectorAll(".power-item")[2].querySelector(".power-value").textContent = quests;
+  dash.querySelectorAll(".power-item")[3].querySelector(".power-value").textContent = videos;
+  dash.querySelectorAll(".power-item")[4].querySelector(".power-value").textContent = Math.round(time / 60) + "m";
+}
+
   } else if (userData) {
     document.getElementById('drawerUserName').textContent = userData.Name || 'User Profile';
     console.log('Profile data not loaded yet');

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title> Book Review Part 3 - When 🌌</title>
+<title>Tap-to-Match Cloze Quiz 🌌</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
 
@@ -232,35 +232,63 @@
     color: #3b2f1e;
   }
 
-  .quiz-header {
-    position: absolute;
-    top: 10px;
-    left: 0;
-    right: 0;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0 1.5rem; /* Increased padding */
-    font-size: 1rem;
-    color: #5b442a;
-    z-index: 10;
-  }
+ /* --- UNIFIED TOP STRIP (Header + Answers) --- */
+.top-strip {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
 
-  .quiz-header #timer {
-    text-align: left;
-    flex: 1;
-  }
+  background: rgba(255, 255, 240, 0.96);
+  border-bottom: 1px solid #d2b48c;
 
-  .quiz-header #gemsCounter {
-    text-align: center;
-    flex: 1;
-  }
+  padding: 0.5rem 0.8rem;  /* Unified padding */
+  z-index: 30;
+  backdrop-filter: blur(4px);
+}
 
-  .quiz-header #progressTracker {
-    text-align: right;
-    flex: 1;
-    font-size: 0.9rem; /* Adjusted font size for new text */
-  }
+/* First row: Timer – Gems – Progress */
+.top-strip-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  font-size: 0.95rem;
+  color: #5b442a;
+  margin-bottom: 0.4rem; /* Slight spacing before answers */
+}
+
+/* Second row: Answers grid */
+.top-strip-answers {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+  gap: 0.35rem;
+}
+
+.drag-item {
+  text-align: center;
+  padding: 0.3rem 0.5rem;
+  font-size: 0.9rem;
+  background: #f7e7c4;
+  border: 1px solid #d2b48c;
+  border-radius: 6px;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s ease-in-out;
+  color: #3b2f1e;
+  white-space: nowrap;
+}
+
+.drag-item:hover { background: #f5deb3; }
+.drag-item.selected { border: 2px solid #8b7355; background: #f0dba5; }
+
+/* Tune the passage area margin to sit below the unified strip */
+.drop-container {
+  margin-top: 9rem; /* adjust if needed depending on answer grid height */
+  padding: 0.8rem 1.5rem;
+  max-height: calc(100vh - 11rem);
+}
+
 
   #nextPageBtn {
     margin-top: 1.5rem;
@@ -283,13 +311,9 @@
 </head>
 <body>
 <div class="container" id="quizContainer">
-<div id="nameForm">
-  <h1 id="storyTitle" style="font-size:2rem; margin-bottom:0.3rem; color:#4a3b2a;"> Good night, papa! </h1>
-  <h2 id="storyAuthor" style="font-size:1.1rem; margin-bottom:1.5rem; color:#6b4f33; font-weight:normal;">
-   A famous horror story
-  </h2>
-
-  <input type="text" id="nameInput" placeholder="Enter your name" />  
+  <div id="nameForm">
+    <input type="text" id="nameInput" placeholder="Enter your name" />
+  
     <!-- Department Selector --><select id="departmentSelect">
       <option value="">-- Select Department --</option>
       <option value="Cyber Security">Cyber Security</option>
@@ -316,14 +340,15 @@
 
 
   <div id="quizContent" style="display:none;">
-    <div class="quiz-header">
-      <div id="timer">⏳ 0s</div>
-      <div id="gemsCounter">💎 0</div>
-      <div id="progressTracker">📍 1 of 1</div>
-    </div>
-    <!-- Question title removed, as the passage is the question
-    <div class="question" id="question"></div> 
-    --><div class="drag-options" id="dragOptions"></div>
+ <div class="top-strip">
+  <div class="top-strip-header">
+    <div id="timer">⏳ 0s</div>
+    <div id="gemsCounter">💎 0</div>
+    <div id="progressTracker">📍 1 of 1</div>
+  </div>
+
+  <div class="top-strip-answers" id="dragOptions"></div>
+</div>
     <div class="drop-container" id="dropContainer"></div>
     <div id="scoreCard"></div>
     <button id="nextPageBtn" style="display: none;">Next &rarr;</button> 
@@ -410,10 +435,6 @@ function beginQuiz() {
     deptSelectEl.style.borderColor = "red";
     return; 
   }
-    // Hide title and author when quiz begins
-  document.getElementById("storyTitle").style.display = "none";
-  document.getElementById("storyAuthor").style.display = "none";
-
   // Reset border colors if validation passes
   nameInputEl.style.borderColor = "#c2a677";
   deptSelectEl.style.borderColor = "#c2a677";
@@ -695,7 +716,7 @@ function showScore() {
       wrong: totalWrongGuesses,
       time: totalTime,
       department: playerDept,
-      questId: "Story 71" 
+      questId: "Quest 20 (Cloze)" // Updated Quest ID
     })
   });
 }

@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title> Book Review Part 3 - When 🌌</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+
+<style>
+  body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: radial-gradient(ellipse at center, #f4ecd8 0%, #e8d9b5 100%);
+    color: #3b2f1e;
+    text-align: center;
+    /* Full screen properties */
+    width: 100vw;
+    height: 100vh;
+    overflow-x: hidden; /* Prevent horizontal scroll */
+  }
+
+  .container {
+    position: relative;
+    /* max-width: 900px; */ /* REMOVED */
+    /* margin: 2rem auto; */ /* REMOVED */
+    background: rgba(255, 255, 240, 0.85);
+    padding: 2rem;
+    padding-top: 5rem; /* Adjusted padding-top for header */
+    /* border-radius: 15px; */ /* REMOVED */
+    /* border: 1px solid #d2b48c; */ /* REMOVED */
+    /* box-shadow: 0 0 20px rgba(0, 0, 0, 0.1); */ /* REMOVED */
+
+    /* --- ADDED FOR FULL SCREEN --- */
+    width: 100vw;
+    min-height: 100vh;
+    margin: 0;
+    border-radius: 0;
+    box-shadow: none;
+    border: none;
+    box-sizing: border-box; /* Important: includes padding in 100% width/height */
+    /* --- END FULL SCREEN --- */
+  }
+
+  .question {
+    font-size: 1.6rem;
+    margin-bottom: 1rem;
+    color: #4a3b2a;
+  }
+
+  /* UPDATED STYLES FOR DRAG OPTIONS */
+  .drag-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem; /* Reduced gap for compactness */
+    margin-bottom: 2.5rem;
+    justify-content: center; /* Center-justifies the items */
+    padding: 0.8rem; /* Slightly reduced padding */
+    border-bottom: 2px dashed #d2b48c;
+  }
+
+  .drag-item {
+    padding: 0.4rem 0.9rem; /* Reduced padding for compactness */
+    background: #f7e7c4;
+    border: 1px solid #d2b48c;
+    border-radius: 8px; /* Slightly smaller border-radius */
+    cursor: pointer;
+    user-select: none;
+    color: #3b2f1e;
+    transition: all 0.2s ease-in-out;
+    font-size: 0.95rem; /* Slightly smaller font size */
+  }
+
+  .drag-item:hover {
+    background: #f5deb3;
+    transform: scale(1.05);
+  }
+
+  .drag-item.selected {
+    border: 2px solid #8b7355;
+    background: #f0dba5;
+    transform: scale(1.02);
+  }
+  /* END UPDATED STYLES */
+
+  .drop-container {
+    text-align: left;
+    line-height: 2.5; /* Increased line-height for readability */
+    font-size: 1.3rem; /* Set base font size for the passage */
+    color: #3b2f1e;
+  }
+
+  .drop-zone {
+    display: inline-block;
+    border: 1px dashed #a1886f;
+    padding: 0.2rem 0.8rem;
+    margin: 0 0.2rem;
+    cursor: pointer;
+    background: #fffdf6;
+    color: #5b442a;
+    font-size: 1.2rem;
+    font-family: 'Courier New', Courier, monospace;
+    border-radius: 5px;
+    min-width: 60px; /* Give it a minimum size */
+    text-align: center;
+    transition: all 0.2s ease;
+    vertical-align: middle; /* Align with text */
+  }
+
+  .drop-zone:hover {
+    background: #f7e7c4;
+  }
+
+  .drop-zone.filled {
+    border: 1px solid transparent;
+    background: none;
+    color: #228b22; /* correct color */
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Revert font */
+    font-weight: bold;
+    padding: 0.2rem 0.2rem; /* Reduce padding once filled */
+    min-width: unset;
+    cursor: default;
+  }
+
+  .correct {
+    color: #228b22 !important; /* soft natural green */
+  }
+
+  .wrong {
+    border-color: #b22222 !important; /* muted brick red */
+    /* Add a little shake animation */
+    animation: shake 0.5s ease-in-out;
+  }
+
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+  }
+
+  @keyframes sparkle {
+    0% {
+      transform: translate(0, 0) scale(1);
+      opacity: 1;
+    }
+    100% {
+      transform: translate(var(--random-x, 0), -100px) scale(1.5);
+      opacity: 0;
+    }
+  }
+
+  @keyframes gemPulse {
+    0%, 100% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.3);
+    }
+  }
+
+  .gem-spark {
+    position: absolute;
+    pointer-events: none;
+    font-size: 1.5rem;
+    animation: sparkle 1s ease-out forwards;
+    z-index: 20; /* Ensure sparks are on top */
+  }
+
+  .gem-counter-pulse {
+    animation: gemPulse 0.4s ease-in-out;
+  }
+
+  #scoreCard {
+    margin-top: 2rem;
+    font-size: 1.2rem;
+    color: #4b3b2a;
+  }
+
+  #timer, #gemsCounter, #progressTracker {
+    font-size: 1.1rem; /* Slightly larger */
+    margin-bottom: 1rem;
+    color: #6b4f33;
+    font-weight: 500;
+  }
+
+  #restartBtn {
+    margin-top: 2rem;
+    padding: 0.7rem 2rem;
+    font-size: 1.1rem;
+    background-color: #d2b48c;
+    border: 1px solid #a1886f;
+    border-radius: 10px;
+    cursor: pointer;
+    color: #3b2f1e;
+    transition: background-color 0.2s ease;
+  }
+
+  #restartBtn:hover {
+    background-color: #c9a96b;
+  }
+  
+  #startQuizBtn {
+    padding: 0.7rem 2rem;
+    font-size: 1.1rem;
+    background-color: #8b7355;
+    border: 1px solid #5b442a;
+    border-radius: 10px;
+    cursor: pointer;
+    color: #ffffff;
+    transition: background-color 0.2s ease;
+  }
+  #startQuizBtn:hover {
+    background-color: #6b5a43;
+  }
+
+
+  #nameForm {
+    margin-bottom: 1.5rem;
+  }
+
+  #nameInput, #departmentSelect {
+    display: block;
+    width: 90%;
+    max-width: 300px;
+    margin: 1rem auto;
+    padding: 0.7rem;
+    font-size: 1rem;
+    border-radius: 5px;
+    border: 1px solid #c2a677;
+    background: #fffdf6;
+    color: #3b2f1e;
+  }
+
+  .quiz-header {
+    position: absolute;
+    top: 10px;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 1.5rem; /* Increased padding */
+    font-size: 1rem;
+    color: #5b442a;
+    z-index: 10;
+  }
+
+  .quiz-header #timer {
+    text-align: left;
+    flex: 1;
+  }
+
+  .quiz-header #gemsCounter {
+    text-align: center;
+    flex: 1;
+  }
+
+  .quiz-header #progressTracker {
+    text-align: right;
+    flex: 1;
+    font-size: 0.9rem; /* Adjusted font size for new text */
+  }
+
+  #nextPageBtn {
+    margin-top: 1.5rem;
+    padding: 0.7rem 2rem;
+    font-size: 1.1rem;
+    background-color: #4CAF50; /* Green */
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    color: white;
+    transition: background-color 0.2s ease;
+    font-weight: bold;
+  }
+  #nextPageBtn:hover {
+    background-color: #45a049;
+  }
+
+</style>
+
+</head>
+<body>
+<div class="container" id="quizContainer">
+<div id="nameForm">
+  <h1 id="storyTitle" style="font-size:2rem; margin-bottom:0.3rem; color:#4a3b2a;"> My Favourite Gadget </h1>
+  <h2 id="storyAuthor" style="font-size:1.1rem; margin-bottom:1.5rem; color:#6b4f33; font-weight:normal;">
+    Name of the Blog: Tech Wizards
+    Name of the Blog Post: Screen Saver - How My Phone Saves My Day
+Author: Sicilian Jaqen
+  </h2>
+
+  <input type="text" id="nameInput" placeholder="Enter your name" />  
+    <!-- Department Selector --><select id="departmentSelect">
+      <option value="">-- Select Department --</option>
+      <option value="Cyber Security">Cyber Security</option>
+      <option value="CSE-1">CSE-1</option>
+      <option value="CSE-2">CSE-2</option>
+      <option value="CSE-3">CSE-3</option>
+      <option value="Mechanical Engineering">Mechanical Engineering</option>
+      <option value="ECE-1">ECE-1</option>
+      <option value="ECE-2">ECE-2</option>
+      <option value="ECE-3">ECE-3</option>
+      <option value="AI DS-1">AI DS-1</option>
+      <option value="AI DS-2">AI DS-2</option>
+      <option value="Civil">Civil</option>
+      <option value="Agri">Agri</option>
+      <option value="EEE">EEE</option>
+      <option value="EIE">EIE</option>
+      <option value="Medical Electronics">Medical Electronics</option>
+      <option value="IT-1">IT-1</option>
+      <option value="IT-2">IT-2</option>
+    </select>
+
+    <button id="startQuizBtn" onclick="beginQuiz()">Start Quiz</button>
+  </div>
+
+
+  <div id="quizContent" style="display:none;">
+    <div class="quiz-header">
+      <div id="timer">⏳ 0s</div>
+      <div id="gemsCounter">💎 0</div>
+      <div id="progressTracker">📍 1 of 1</div>
+    </div>
+    <!-- Question title removed, as the passage is the question
+    <div class="question" id="question"></div> 
+    --><div class="drag-options" id="dragOptions"></div>
+    <div class="drop-container" id="dropContainer"></div>
+    <div id="scoreCard"></div>
+    <button id="nextPageBtn" style="display: none;">Next &rarr;</button> 
+    <button id="restartBtn" style="display: none;">Restart</button>
+  </div>
+</div>
+
+<script>
+// --- NEW QUIZ DATA STRUCTURE ---
+const quizDataStore = [
+
+{
+  "passage": "In the ever-evolving world of technology, gadgets have ____ an indispensable part of our daily lives, shaping ____ we communicate, work, and relax. Among the myriad ____ options available today, my favorite gadget is undeniably ____ smartphone. It is much more than a piece ____ technology - it is a tool that enables ____ creativity, and convenience, all at the touch ____ a screen. From staying in touch with loved ____ to organizing my day or exploring new ____ the smartphone is central to how I navigate ____ As Gandalf once said, \"All we have ____ decide is what to do with the ____ that is given us.\" For me, the ____ represents this choice. It is a device ____ allows me to spend my time more ____ and meaningfully. Whether I'm using it to ____ something new, share an important moment, or ____ directions in an unfamiliar place, it helps ____ make the most of every moment.",
+  
+  "answers": [
+    "become",
+    "how",
+    "of",
+    "the",
+    "of",
+    "connection,",
+    "of",
+    "ones",
+    "interests,",
+    "life.",
+    "to",
+    "time",
+    "smartphone",
+    "that",
+    "efficiently",
+    "learn",
+    "find",
+    "me"
+  ]
+},
+{
+  "passage": "In a fast-paced world, the smartphone empowers me ____ focus on what truly matters, making it a ____ I can't imagine living without. As Tyrion Lannister observed, \"A mind needs books as a sword needs a ____ my smartphone feeds my curiosity with endless access ____ knowledge. Why is my Smartphone essential? My smartphone is essential because it keeps me ____ in a world where constant communication is vital. It allows me to instantly share moments with family, friends, and ____ through messages, calls, and social media. It's also indis­pensable for my productivity. Whether it's keeping track of work tasks, setting reminders, or ____ notes, the smartphone makes my daily routine ____ With all these capabilities in one device, it ____ the need for multiple gadgets and ensures I ____ organized and on top of things. As Hermione Granger wisely said, \"When in ____ go to the library.\" In the case of my smartphone, this \"library\" is ____ with me - providing endless resources, tools, and information to ____ almost any problem. Whether I'm researching a ____ topic or simply finding answers to ____ the smartphone is the go-to source for ____ everything I need.",
+  
+  "answers": [
+    "to",
+    "gadget",
+    "whetstone\",",
+    "to",
+    "connected",
+    "colleagues",
+    "taking",
+    "smoother.",
+    "eliminates",
+    "stay",
+    "doubt,",
+    "always",
+    "solve",
+    "new",
+    "questions,",
+    "almost"
+  ]
+},
+{
+  "passage": "A Companion for Exploration One feature I ____ adore is its versatility. With just a ____ taps, I can switch from reading an ____ eBook to navigating an unfamiliar city with ____. My smartphone also serves as my personal ____ assistant, helping me track fitness goals and ____ for mental well-being. With GPS and other ____ my smartphone transforms into a trusted companion ____ adventures. Whether traveling or trying a new ____ in my city, I never feel lost. ____ Gandalf said, \"Not all those who wander ____ lost.\" This device ensures that my explorations are ____ and enjoyable. When Do I Use My Smartphone? I use my ____ throughout the day, from the moment I ____ up to the time I go to ____. In the morning, I check my calendar (WhatsApp) ____ to-do list, ensuring that my day is ____ I use it to stay connected with ____ and friends, sending messages and making calls ____ the day. At work, it helps me ____ productive - whether it's reading emails, taking ____ or managing tasks. In the evening, I ____ it to wind down by reading, watching ____ or listening to music. The smartphone is ____ with me every step of the way. Everyone benefits from smartphones, regardless of age, ____ or background. For students, it's a valuable ____ for learning and organizing academic life. For ____ it's a key instrument for staying productive ____ communicating with colleagues. For families, it's a ____ to stay connected across distances. In short, ____ is not just a device; it's a ____ that empowers me (and all humans) to ____ more effectively and make the most of ____ day.",
+  
+  "answers": [
+    "particularly",
+    "few",
+    "engrossing",
+    "GPS.",
+    "health",
+    "meditate",
+    "tools,",
+    "on",
+    "route",
+    "As",
+    "are",
+    "safe",
+    "smartphone",
+    "wake",
+    "sleep.",
+    "and",
+    "organized.",
+    "family",
+    "during",
+    "stay",
+    "notes,",
+    "use",
+    "videos",
+    "there",
+    "occupation,",
+    "tool",
+    "professionals,",
+    "and",
+    "way",
+    "it",
+    "tool",
+    "live",
+    "each"
+  ]
+}
+];
+
+let quizData = []; // This will hold the active quiz questions
+let current = 0;
+let wrongQuestions = [];
+let correctCount = 0;
+let totalWrongGuesses = 0;
+let gemsCount = 0;
+let startTime;
+let timerInterval;
+let playerName = "";
+let playerDept = "";
+let selectedOption = null;
+let totalQuestionsInQuiz = 0; // Tracks total questions including retries
+
+// --- New Pagination State ---
+const blanksPerPage = 10;
+// let currentBlankPage = 0; // No longer needed as a global variable
+// --------------------------
+
+// Element cache
+// const questionEl = document.getElementById("question"); // No longer needed
+const dragOptionsEl = document.getElementById("dragOptions");
+const dropContainerEl = document.getElementById("dropContainer");
+const timerEl = document.getElementById("timer");
+const gemsCounterEl = document.getElementById("gemsCounter");
+const progressTracker = document.getElementById("progressTracker");
+const scoreCard = document.getElementById("scoreCard");
+const restartBtn = document.getElementById("restartBtn");
+const nextPageBtn = document.getElementById("nextPageBtn"); 
+const quizContentEl = document.getElementById("quizContent");
+const nameFormEl = document.getElementById("nameForm");
+const nameInputEl = document.getElementById("nameInput");
+const deptSelectEl = document.getElementById("departmentSelect");
+
+
+function beginQuiz() {
+  if (!nameInputEl.value.trim()) { 
+    // Use a custom modal or simple visual feedback instead of alert
+    nameInputEl.style.borderColor = "red";
+    return; 
+  }
+  if (!deptSelectEl.value) { 
+    deptSelectEl.style.borderColor = "red";
+    return; 
+  }
+    // Hide title and author when quiz begins
+  document.getElementById("storyTitle").style.display = "none";
+  document.getElementById("storyAuthor").style.display = "none";
+
+  // Reset border colors if validation passes
+  nameInputEl.style.borderColor = "#c2a677";
+  deptSelectEl.style.borderColor = "#c2a677";
+
+  playerName = nameInputEl.value.trim();
+  playerDept = deptSelectEl.value;
+
+  nameFormEl.style.display = "none";
+  quizContentEl.style.display = "block";
+  startQuiz();
+}
+
+function startQuiz() {
+  // Reset all quiz state variables
+  quizData = []; // Clear quiz data
+  wrongQuestions = [];
+  
+  // --- Pre-process quizDataStore into a flat list of PAGES ---
+  quizDataStore.forEach((passageObject, passageIdx) => {
+    const totalAnswers = passageObject.answers.length;
+    const totalBlankPages = Math.ceil(totalAnswers / blanksPerPage);
+    
+    for (let i = 0; i < totalBlankPages; i++) {
+      const pageObject = {
+        originalPassage: passageObject.passage, // Full text
+        originalAnswers: passageObject.answers, // All answers
+        pageIndex: i, // Which page this is (0-based)
+        passageIndex: passageIdx, // Which passage this belongs to
+        totalPassagesInStore: quizDataStore.length,
+        totalPassagePages: totalBlankPages,
+        // Unique ID for this specific page
+        pageId: `p${passageIdx}-pg${i}` 
+      };
+      quizData.push(pageObject);
+    }
+  });
+  // ---------------------------------------------------------
+  
+  current = 0;
+  correctCount = 0;
+  totalWrongGuesses = 0;
+  gemsCount = 0;
+  startTime = Date.now();
+  totalQuestionsInQuiz = quizData.length; // Total questions is now total PAGES
+  // currentBlankPage = 0; // No longer needed
+  
+  // Reset UI elements
+  timerEl.innerText = "⏳ 0s";
+  gemsCounterEl.innerText = `💎 0`;
+  scoreCard.innerHTML = "";
+  restartBtn.style.display = "none";
+  nextPageBtn.style.display = "none"; 
+  
+  loadQuestion();
+  startTimer();
+  // updateProgress(); // Initial progress update - This is called by loadQuestion()
+}
+
+function updateProgress() {
+  // New logic:
+  // totalQuestionsInQuiz is the total number of pages, including retries.
+  const currentQuestionNumber = current + 1; // This is the global page number
+  
+  // Add page number to progress tracker
+  if (quizData[current]) {
+    const data = quizData[current];
+    // const totalBlankPages = Math.ceil(data.originalAnswers.length / blanksPerPage); // Already have this
+    const totalBlankPages = data.totalPassagePages;
+    const currentPageNum = data.pageIndex + 1; // Page number *within* the passage
+    
+    // Example: "Page 5 of 32 (Passage Page 5 of 10)"
+    progressTracker.innerText = `📍 Page ${currentQuestionNumber} of ${totalQuestionsInQuiz} (Passage Page ${currentPageNum} of ${totalBlankPages})`;
+  } else if (current > 0) {
+    progressTracker.innerText = "Done!";
+  } else {
+    progressTracker.innerText = `📍 Page 1 of ${totalQuestionsInQuiz}`;
+  }
+}
+
+
+// --- REFACTORED loadQuestion ---
+function loadQuestion() {
+  if (current >= quizData.length) return showScore();
+  
+  selectedOption = null;
+  const data = quizData[current]; // Data is now a PAGE object
+  updateProgress(); // Call updateProgress here to get page numbers
+  
+  dragOptionsEl.innerHTML = "";
+  dropContainerEl.innerHTML = "";
+  nextPageBtn.style.display = "none"; // Ensure next button is hidden on new page load
+
+  // --- Pagination Logic ---
+  const pageIndex = data.pageIndex;
+  const startIndex = pageIndex * blanksPerPage;
+  const endIndex = startIndex + blanksPerPage;
+  
+  const answersForThisPage = data.originalAnswers.slice(startIndex, endIndex);
+  const allPassageParts = data.originalPassage.split("___");
+  // Get parts relevant to this page. +1 because split gives one more part than answers.
+  const partsForThisPage = allPassageParts.slice(startIndex, endIndex + 1);
+  // -------------------------
+
+  // 1. Shuffle and display drag options for this page
+  const shuffledAnswers = [...answersForThisPage].sort(() => Math.random() - 0.5);
+  shuffledAnswers.forEach((ans) => {
+    const div = document.createElement("div");
+    div.classList.add("drag-item");
+    div.innerText = ans;
+    div.onclick = () => selectOption(div);
+    dragOptionsEl.appendChild(div);
+  });
+
+  // 2. Process the passage string
+  // const passage = data.passage; // Old
+  // const answers = data.answers; // Old
+  // const parts = passage.split("___"); // Old
+
+  // 3. Reconstruct the passage with interactive blanks
+  
+  // Add "..." if this isn't the first page
+  if (startIndex > 0) {
+    dropContainerEl.appendChild(document.createTextNode("... "));
+  }
+
+  partsForThisPage.forEach((part, index) => {
+    // Add the text part
+    dropContainerEl.appendChild(document.createTextNode(part));
+
+    // If there's another answer for this page, add a blank
+    if (index < answersForThisPage.length) {
+      const dropZone = document.createElement("button"); // Use a button for interactivity
+      dropZone.classList.add("drop-zone");
+      dropZone.innerText = "___"; // This is the visual blank
+      dropZone.dataset.answer = answersForThisPage[index]; // Assign the correct answer
+      dropZone.onclick = () => placeOption(dropZone);
+      dropContainerEl.appendChild(dropZone);
+      dropContainerEl.appendChild(document.createTextNode(" ")); // Add a space
+    }
+  });
+
+  // Add "..." if this isn't the last page
+  if (endIndex < data.originalAnswers.length) {
+     dropContainerEl.appendChild(document.createTextNode(" ..."));
+  }
+}
+
+function selectOption(div) {
+  if (div.style.display === "none") return; // Don't select hidden options
+  if (selectedOption) selectedOption.classList.remove("selected");
+  selectedOption = div;
+  div.classList.add("selected");
+}
+
+// --- REFACTORED placeOption ---
+function placeOption(dropZone) {
+  // If no option is selected, or blank is already filled, do nothing
+  if (!selectedOption || dropZone.classList.contains("filled")) return;
+
+  const answer = selectedOption.innerText;
+  const correctAnswer = dropZone.dataset.answer;
+
+  if (correctAnswer === answer) {
+    // --- CORRECT ---
+    correctCount++;
+    gemsCount++;
+    
+    // Create sparkle effect
+    createSparkleEffect(dropZone);
+    
+    // Pulse the gem counter
+    gemsCounterEl.classList.add('gem-counter-pulse');
+    setTimeout(() => gemsCounterEl.classList.remove('gem-counter-pulse'), 400);
+    
+    gemsCounterEl.innerText = `💎 ${gemsCount}`;
+
+    // Replace blank with correct answer
+    dropZone.innerText = answer;
+    dropZone.classList.add("correct", "filled");
+    dropZone.disabled = true; // Disable the button
+    
+    selectedOption.style.display = "none"; // Hide the used option
+  
+  } else {
+    // --- WRONG ---
+    totalWrongGuesses++;
+    gemsCount--;
+    gemsCounterEl.innerText = `💎 ${gemsCount}`;
+    
+    // Flash the drop zone red
+    dropZone.classList.add("wrong");
+    setTimeout(() => dropZone.classList.remove("wrong"), 600);
+
+    // Add the entire current question back to wrongQuestions if not already added
+    const currentData = quizData[current]; // This is now the PAGE object
+    if (!wrongQuestions.includes(currentData)) {
+      wrongQuestions.push(currentData); // Push the PAGE, not the whole passage
+      totalQuestionsInQuiz++; // Increment the total
+      updateProgress(); // Update immediately
+    }
+  }
+
+  // Deselect the option
+  selectedOption.classList.remove("selected");
+  selectedOption = null;
+
+  // Check if all blanks for the current question are filled
+  const remaining = dropContainerEl.querySelectorAll(".drop-zone:not(.filled)").length;
+  
+  if (remaining === 0) {
+    // All blanks for this page are filled
+    // Show the next button so the user can review and advance manually
+    nextPageBtn.style.display = "inline-block";
+  }
+}
+
+function createSparkleEffect(element) {
+  const rect = element.getBoundingClientRect();
+  const containerRect = quizContainer.getBoundingClientRect(); // Use main container
+  
+  // Create multiple sparks
+  const sparkCount = 8;
+  for (let i = 0; i < sparkCount; i++) {
+    const spark = document.createElement('div');
+    spark.className = 'gem-spark';
+    spark.innerText = ['💎', '✨', '⭐'][Math.floor(Math.random() * 3)];
+    
+    // Position relative to the main container
+    spark.style.position = 'absolute';
+    spark.style.left = `${rect.left - containerRect.left + rect.width / 2}px`;
+    spark.style.top = `${rect.top - containerRect.top + rect.height / 2}px`;
+    
+    // Random horizontal spread
+    const randomX = (Math.random() - 0.5) * 100;
+    spark.style.setProperty('--random-x', `${randomX}px`);
+    
+    quizContainer.appendChild(spark); // Append to main container
+    
+    // Remove after animation
+    setTimeout(() => spark.remove(), 1000);
+  }
+}
+
+function showScore() {
+  clearInterval(timerInterval);
+  const totalTime = Math.floor((Date.now() - startTime) / 1000);
+
+  // questionEl.innerText = "🎉 Quiz Completed!"; // No longer using questionEl
+  dragOptionsEl.innerHTML = "";
+  dropContainerEl.innerHTML = `<h2 style="text-align:center;">🎉 Quiz Completed!</h2>`;
+  progressTracker.innerText = "Done!";
+  nextPageBtn.style.display = "none"; 
+  
+  // Determine success message
+  const successMessage = (totalWrongGuesses === 0) 
+    ? "<p>✅ Flawless! All questions answered correctly on the first attempt!</p>"
+    : `<p>✅ Correct Answers (total): ${correctCount}</p>
+       <p>❌ Wrong Attempts (total): ${totalWrongGuesses}</p>`;
+
+  scoreCard.innerHTML = `
+    <p>👤 Player: <strong>${playerName}</strong> (${playerDept})</p>
+    ${successMessage}
+    <p>💎 Final Gems: ${gemsCount}</p>
+    <p>⏱️ Time Taken: ${totalTime} seconds</p>
+    <button onclick="downloadPDFReport()" style="margin-top: 1rem; padding: 0.7rem 2rem; background-color: #4CAF50; border: none; border-radius: 10px; cursor: pointer; color: white; font-size: 1rem;">📥 Download PDF Report</button>
+  `;
+  restartBtn.style.display = "inline-block";
+
+
+  // --- SEND RESULTS TO GOOGLE SHEET ---
+  // This remains unchanged
+  fetch("https://script.google.com/macros/s/AKfycbxA0lRkERWFt2cYfmm04IQioaG4-21k5VFF5CFKP30zyVaJXM5_27PL3v8JIZEweK3u/exec", {
+    method: "POST",
+    mode: "no-cors",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      name: playerName,
+      correct: correctCount,
+      wrong: totalWrongGuesses,
+      time: totalTime,
+      department: playerDept,
+      questId: "Story 75" 
+    })
+  });
+}
+
+
+function startTimer() {
+  clearInterval(timerInterval); // Clear any existing timer
+  timerInterval = setInterval(() => {
+    const elapsed = Math.floor((Date.now() - startTime)/1000);
+    timerEl.innerText = `⏳ ${elapsed}s`;
+  }, 1000);
+}
+
+// --- REFACTORED downloadPDFReport ---
+function downloadPDFReport() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+
+  const totalTime = Math.floor((Date.now() - startTime) / 1000);
+  const reportDate = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+
+  // --- HEADER ---
+  doc.setFillColor(25, 25, 60);
+  doc.rect(0, 0, 210, 45, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFont('times', 'bold');
+  doc.setFontSize(18);
+  doc.text('SRM VALLIAMMAI ENGINEERING COLLEGE', 105, 16, { align: 'center' });
+  doc.setFontSize(12);
+  doc.setFont('times', 'italic');
+  doc.text('(Autonomous)', 105, 23, { align: 'center' });
+  doc.setFontSize(15);
+  doc.setFont('times', 'normal');
+  doc.text('Department of English', 105, 31, { align: 'center' });
+  doc.setFontSize(14);
+  doc.setFont('times', 'bold');
+  doc.setTextColor(212, 175, 55);
+  doc.text('Quest Performance Report', 105, 39, { align: 'center' });
+
+  // --- STUDENT INFO ---
+  doc.setTextColor(0, 0, 0);
+  doc.setFontSize(11);
+  doc.text('CANDIDATE INFORMATION', 20, 55);
+  doc.autoTable({
+    startY: 58,
+    body: [
+      ['Student Name', playerName],
+      ['Department', playerDept],
+      ['Quest ID', 'Quest 20 (Cloze)'],
+      ['Completed On', reportDate]
+    ],
+    theme: 'plain',
+    styles: { fontSize: 10, font: 'times', cellPadding: 3 },
+    columnStyles: {
+      0: { fontStyle: 'bold', cellWidth: 60, textColor: [70, 70, 70] },
+      1: { cellWidth: 120 }
+    },
+    margin: { left: 20, right: 20 }
+  });
+
+  // --- PERFORMANCE SUMMARY ---
+  let y = doc.lastAutoTable.finalY + 10;
+  doc.setFont('times', 'bold');
+  doc.text('PERFORMANCE SUMMARY', 20, y);
+  y += 4;
+  doc.autoTable({
+    startY: y + 3,
+    body: [
+      ['Total Questions', quizDataStore.length.toString()], // Use master store length
+      ['Correct Answers (Total)', correctCount.toString()],
+      ['Wrong Attempts (Total)', totalWrongGuesses.toString()],
+      ['Final Gems Earned', gemsCount.toString()],
+      ['Total Time', `${Math.floor(totalTime / 60)}m ${totalTime % 60}s`]
+    ],
+    theme: 'grid',
+    styles: { fontSize: 10, font: 'times', cellPadding: 3 },
+    margin: { left: 20, right: 20 }
+  });
+
+  // --- QUESTION BANK SECTION (SIMPLIFIED) ---
+  y = doc.lastAutoTable.finalY + 12;
+  if (y > 250) { doc.addPage(); y = 20; }
+  doc.setFont('times', 'bold');
+  doc.text('QUESTION BANK WITH CORRECT ANSWERS', 20, y);
+  y += 6;
+
+  quizDataStore.forEach((item, i) => {
+    if (y > 260) { doc.addPage(); y = 20; }
+    
+    // Reconstruct the full passage with answers
+    let fullPassage = item.passage;
+    item.answers.forEach(ans => {
+      // Use a special color/font for the answer in the PDF
+      // jspdf-autotable doesn't make this easy in a single text block.
+      // We'll just put the answer in brackets [ ].
+      fullPassage = fullPassage.replace("___", ` [${ans}] `);
+    });
+
+    doc.setFontSize(11);
+    doc.setFont('times', 'bold');
+    doc.setTextColor(25, 25, 60);
+    doc.text(`Question ${i + 1}:`, 20, y);
+    y += 6;
+    
+    doc.setTextColor(0, 0, 0);
+    doc.setFont('times', 'normal');
+    
+    // Add the reconstructed passage
+    const lines = doc.splitTextToSize(fullPassage, 160); // 160 = width
+    doc.text(lines, 25, y);
+    y += lines.length * 5; // Adjust y based on number of lines
+    
+    y += 3;
+    doc.setDrawColor(230, 230, 230);
+    doc.setLineWidth(0.3);
+    doc.line(20, y, 190, y); // Separator line
+    y += 5;
+  });
+
+  // --- FOOTER ---
+  doc.setDrawColor(184, 134, 11);
+  doc.setLineWidth(0.5);
+  doc.line(20, 280, 190, 280);
+  doc.setFontSize(8);
+  doc.setTextColor(128, 128, 128);
+  doc.setFont('times', 'italic');
+  doc.text('This is a system-generated report', 105, 287, { align: 'center' });
+
+  const cleanName = playerName.replace(/[^a-zA-Z0-9]/g, '_');
+  doc.save(`${cleanName}_Quest20_Report.pdf`);
+}
+
+restartBtn.onclick = () => {
+  quizContentEl.style.display = "none";
+  nameFormEl.style.display = "block";
+  nameInputEl.value = ""; // Clear name field
+  deptSelectEl.value = ""; // Reset department dropdown
+  nextPageBtn.style.display = "none"; 
+};
+
+// --- Handle Next Page Button Click ---
+nextPageBtn.onclick = () => {
+  current++; // Move to next page
+
+  // If we've finished the initial set, check if there are wrong questions to retry
+  if (current >= quizData.length && wrongQuestions.length > 0) {
+    quizData.push(...wrongQuestions); // Add wrong PAGES to the end
+    wrongQuestions = []; // Clear the retry queue
+  }
+  
+  loadQuestion(); // Load the next question (or show score)
+};
+
+
+</script>
+<!-- ✅ Add this PWA navigation handler below -->
+<script>
+document.addEventListener("click", function (e) {
+  const target = e.target.closest("a");
+  if (!target) return;
+
+  const url = target.href;
+  const internalDomains = [
+    window.location.origin,
+    "andrewveda.github.io",
+    "sites.google.com/view/cys-english/",
+    "sites.google.com/view/srm-vec-english/"
+  ];
+
+  const isInternal = internalDomains.some(domain => url.includes(domain));
+
+  if (isInternal) {
+    if (
+      window.matchMedia("(display-mode: standalone)").matches ||
+      window.matchMedia("(display-mode: fullscreen)").matches
+    ) {
+      e.preventDefault();
+      window.location.href = url;
+    }
+  } else {
+    target.setAttribute("target", "_blank");
+  }
+});
+</script>
+<script>
+// Add this script to EVERY quest page
+document.addEventListener("click", function (e) {
+  const target = e.target.closest("a");
+  if (!target) return;
+
+  const url = target.href;
+
+  // Domains to open internally (no browser bar)
+  const internalDomains = [
+    "andrewveda.github.io",
+    "sites.google.com/view/cys-english",
+    "sites.google.com/view/srm-vec-english"
+  ];
+
+  const isInternal = internalDomains.some(domain => url.includes(domain));
+
+  if (isInternal) {
+    // Open in same PWA context (native feel)
+    e.preventDefault();
+    window.location.href = url;
+  } else {
+    // Open external links in new tab
+    target.setAttribute("target", "_blank");
+  }
+});
+</script>
+</body>
+</html>

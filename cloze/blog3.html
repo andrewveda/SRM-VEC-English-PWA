@@ -3,11 +3,19 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title> Book Review Part 3 - When 🌌</title>
+<title>Tap-to-Match Cloze Quiz 🌌</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
 
 <style>
+  :root{
+    --page-padding-x: 1.5rem;
+    --top-strip-bg: rgba(255, 255, 240, 0.96);
+    --top-strip-border: #d2b48c;
+  }
+
+  /* Base */
+  * { box-sizing: border-box; }
   body {
     margin: 0;
     padding: 0;
@@ -15,210 +23,27 @@
     background: radial-gradient(ellipse at center, #f4ecd8 0%, #e8d9b5 100%);
     color: #3b2f1e;
     text-align: center;
-    /* Full screen properties */
     width: 100vw;
     height: 100vh;
-    overflow-x: hidden; /* Prevent horizontal scroll */
+    overflow-x: hidden;
   }
 
   .container {
     position: relative;
-    /* max-width: 900px; */ /* REMOVED */
-    /* margin: 2rem auto; */ /* REMOVED */
     background: rgba(255, 255, 240, 0.85);
-    padding: 2rem;
-    padding-top: 5rem; /* Adjusted padding-top for header */
-    /* border-radius: 15px; */ /* REMOVED */
-    /* border: 1px solid #d2b48c; */ /* REMOVED */
-    /* box-shadow: 0 0 20px rgba(0, 0, 0, 0.1); */ /* REMOVED */
-
-    /* --- ADDED FOR FULL SCREEN --- */
     width: 100vw;
     min-height: 100vh;
     margin: 0;
+    border: none;
     border-radius: 0;
     box-shadow: none;
-    border: none;
-    box-sizing: border-box; /* Important: includes padding in 100% width/height */
-    /* --- END FULL SCREEN --- */
+    padding: 0; /* no top padding; we position content below fixed strip via JS */
   }
 
-  .question {
-    font-size: 1.6rem;
-    margin-bottom: 1rem;
-    color: #4a3b2a;
-  }
-
-  /* UPDATED STYLES FOR DRAG OPTIONS */
-  .drag-options {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem; /* Reduced gap for compactness */
-    margin-bottom: 2.5rem;
-    justify-content: center; /* Center-justifies the items */
-    padding: 0.8rem; /* Slightly reduced padding */
-    border-bottom: 2px dashed #d2b48c;
-  }
-
-  .drag-item {
-    padding: 0.4rem 0.9rem; /* Reduced padding for compactness */
-    background: #f7e7c4;
-    border: 1px solid #d2b48c;
-    border-radius: 8px; /* Slightly smaller border-radius */
-    cursor: pointer;
-    user-select: none;
-    color: #3b2f1e;
-    transition: all 0.2s ease-in-out;
-    font-size: 0.95rem; /* Slightly smaller font size */
-  }
-
-  .drag-item:hover {
-    background: #f5deb3;
-    transform: scale(1.05);
-  }
-
-  .drag-item.selected {
-    border: 2px solid #8b7355;
-    background: #f0dba5;
-    transform: scale(1.02);
-  }
-  /* END UPDATED STYLES */
-
-  .drop-container {
-    text-align: left;
-    line-height: 2.5; /* Increased line-height for readability */
-    font-size: 1.3rem; /* Set base font size for the passage */
-    color: #3b2f1e;
-  }
-
-  .drop-zone {
-    display: inline-block;
-    border: 1px dashed #a1886f;
-    padding: 0.2rem 0.8rem;
-    margin: 0 0.2rem;
-    cursor: pointer;
-    background: #fffdf6;
-    color: #5b442a;
-    font-size: 1.2rem;
-    font-family: 'Courier New', Courier, monospace;
-    border-radius: 5px;
-    min-width: 60px; /* Give it a minimum size */
-    text-align: center;
-    transition: all 0.2s ease;
-    vertical-align: middle; /* Align with text */
-  }
-
-  .drop-zone:hover {
-    background: #f7e7c4;
-  }
-
-  .drop-zone.filled {
-    border: 1px solid transparent;
-    background: none;
-    color: #228b22; /* correct color */
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Revert font */
-    font-weight: bold;
-    padding: 0.2rem 0.2rem; /* Reduce padding once filled */
-    min-width: unset;
-    cursor: default;
-  }
-
-  .correct {
-    color: #228b22 !important; /* soft natural green */
-  }
-
-  .wrong {
-    border-color: #b22222 !important; /* muted brick red */
-    /* Add a little shake animation */
-    animation: shake 0.5s ease-in-out;
-  }
-
-  @keyframes shake {
-    0%, 100% { transform: translateX(0); }
-    25% { transform: translateX(-5px); }
-    75% { transform: translateX(5px); }
-  }
-
-  @keyframes sparkle {
-    0% {
-      transform: translate(0, 0) scale(1);
-      opacity: 1;
-    }
-    100% {
-      transform: translate(var(--random-x, 0), -100px) scale(1.5);
-      opacity: 0;
-    }
-  }
-
-  @keyframes gemPulse {
-    0%, 100% {
-      transform: scale(1);
-    }
-    50% {
-      transform: scale(1.3);
-    }
-  }
-
-  .gem-spark {
-    position: absolute;
-    pointer-events: none;
-    font-size: 1.5rem;
-    animation: sparkle 1s ease-out forwards;
-    z-index: 20; /* Ensure sparks are on top */
-  }
-
-  .gem-counter-pulse {
-    animation: gemPulse 0.4s ease-in-out;
-  }
-
-  #scoreCard {
-    margin-top: 2rem;
-    font-size: 1.2rem;
-    color: #4b3b2a;
-  }
-
-  #timer, #gemsCounter, #progressTracker {
-    font-size: 1.1rem; /* Slightly larger */
-    margin-bottom: 1rem;
-    color: #6b4f33;
-    font-weight: 500;
-  }
-
-  #restartBtn {
-    margin-top: 2rem;
-    padding: 0.7rem 2rem;
-    font-size: 1.1rem;
-    background-color: #d2b48c;
-    border: 1px solid #a1886f;
-    border-radius: 10px;
-    cursor: pointer;
-    color: #3b2f1e;
-    transition: background-color 0.2s ease;
-  }
-
-  #restartBtn:hover {
-    background-color: #c9a96b;
-  }
-  
-  #startQuizBtn {
-    padding: 0.7rem 2rem;
-    font-size: 1.1rem;
-    background-color: #8b7355;
-    border: 1px solid #5b442a;
-    border-radius: 10px;
-    cursor: pointer;
-    color: #ffffff;
-    transition: background-color 0.2s ease;
-  }
-  #startQuizBtn:hover {
-    background-color: #6b5a43;
-  }
-
-
+  /* Name form */
   #nameForm {
-    margin-bottom: 1.5rem;
+    padding: 5rem var(--page-padding-x) 2rem;
   }
-
   #nameInput, #departmentSelect {
     display: block;
     width: 90%;
@@ -231,42 +56,140 @@
     background: #fffdf6;
     color: #3b2f1e;
   }
+  #startQuizBtn {
+    padding: 0.7rem 2rem;
+    font-size: 1.1rem;
+    background-color: #8b7355;
+    border: 1px solid #5b442a;
+    border-radius: 10px;
+    cursor: pointer;
+    color: #ffffff;
+    transition: background-color 0.2s ease;
+  }
+  #startQuizBtn:hover { background-color: #6b5a43; }
 
-  .quiz-header {
-    position: absolute;
-    top: 10px;
+  /* --- UNIFIED TOP STRIP (Header + Answers) --- */
+  .top-strip {
+    position: fixed;
+    top: 0;
     left: 0;
     right: 0;
+
+    background: var(--top-strip-bg);
+    border-bottom: 1px solid var(--top-strip-border);
+
+    padding: 0.5rem 0.8rem;
+    z-index: 30;
+    backdrop-filter: blur(4px);
+  }
+  /* First row: Timer – Gems – Progress */
+  .top-strip-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0 1.5rem; /* Increased padding */
-    font-size: 1rem;
+    font-size: 0.95rem;
     color: #5b442a;
-    z-index: 10;
+    margin-bottom: 0.35rem;
+    padding: 0 var(--page-padding-x);
+  }
+  #timer, #gemsCounter, #progressTracker {
+    font-size: 1.05rem;
+    color: #6b4f33;
+    font-weight: 500;
+  }
+  /* Second row: Answers — compact, centered, wrapping */
+.top-strip-answers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  justify-content: center;
+  align-items: center;
+
+  padding-top: 1rem;
+  border-top: 1px solid #d2b48c; /* thin line above answers */
+}
+
+  .drag-item {
+    display: inline-block;
+    padding: 0.35rem 0.6rem;
+    font-size: 0.95rem;
+    background: #f7e7c4;
+    border: 1px solid #d2b48c;
+    border-radius: 6px;
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.2s ease-in-out;
+    color: #3b2f1e;
+    white-space: nowrap; /* keep compact */
+  }
+  .drag-item:hover { background: #f5deb3; transform: scale(1.05); }
+  .drag-item.selected { border: 2px solid #8b7355; background: #f0dba5; transform: scale(1.02); }
+
+  /* Passage area */
+  .drop-container {
+    padding: 0.8rem var(--page-padding-x) 2rem;
+    overflow-y: auto;
+    text-align: justify;       /* FULL JUSTIFICATION */
+    line-height: 1.9;
+    font-size: 1.3rem;
+    color: #3b2f1e;
   }
 
-  .quiz-header #timer {
-    text-align: left;
-    flex: 1;
-  }
-
-  .quiz-header #gemsCounter {
+  /* Blanks */
+  .drop-zone {
+    display: inline-block;
+    border: 1px dashed #a1886f;
+    padding: 0.2rem 0.8rem;
+    margin: 0 0.2rem;
+    cursor: pointer;
+    background: #fffdf6;
+    color: #5b442a;
+    font-size: 1.2rem;
+    font-family: 'Courier New', Courier, monospace;
+    border-radius: 5px;
+    min-width: 60px;
     text-align: center;
-    flex: 1;
+    transition: all 0.2s ease;
+    vertical-align: middle;
+  }
+  .drop-zone:hover { background: #f7e7c4; }
+  .drop-zone.filled {
+    border: 1px solid transparent;
+    background: none;
+    color: #228b22;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-weight: bold;
+    padding: 0.2rem 0.2rem;
+    min-width: unset;
+    cursor: default;
+  }
+  .correct { color: #228b22 !important; }
+  .wrong { border-color: #b22222 !important; animation: shake 0.5s ease-in-out; }
+
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
   }
 
-  .quiz-header #progressTracker {
-    text-align: right;
-    flex: 1;
-    font-size: 0.9rem; /* Adjusted font size for new text */
+  /* Gems FX */
+  @keyframes sparkle {
+    0% { transform: translate(0, 0) scale(1); opacity: 1; }
+    100% { transform: translate(var(--random-x, 0), -100px) scale(1.5); opacity: 0; }
   }
+  @keyframes gemPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.3); }
+  }
+  .gem-spark { position: absolute; pointer-events: none; font-size: 1.5rem; animation: sparkle 1s ease-out forwards; z-index: 20; }
+  .gem-counter-pulse { animation: gemPulse 0.4s ease-in-out; }
 
+  /* Buttons / Score */
   #nextPageBtn {
     margin-top: 1.5rem;
     padding: 0.7rem 2rem;
     font-size: 1.1rem;
-    background-color: #4CAF50; /* Green */
+    background-color: #4CAF50;
     border: none;
     border-radius: 10px;
     cursor: pointer;
@@ -274,25 +197,46 @@
     transition: background-color 0.2s ease;
     font-weight: bold;
   }
-  #nextPageBtn:hover {
-    background-color: #45a049;
+  #nextPageBtn:hover { background-color: #45a049; }
+
+  #restartBtn {
+    margin-top: 2rem;
+    padding: 0.7rem 2rem;
+    font-size: 1.1rem;
+    background-color: #d2b48c;
+    border: 1px solid #a1886f;
+    border-radius: 10px;
+    cursor: pointer;
+    color: #3b2f1e;
+    transition: background-color 0.2s ease;
   }
+  #restartBtn:hover { background-color: #c9a96b; }
 
+  #scoreCard {
+    margin-top: 2rem;
+    font-size: 1.2rem;
+    color: #4b3b2a;
+  }
 </style>
-
 </head>
+
 <body>
 <div class="container" id="quizContainer">
-<div id="nameForm">
-  <h1 id="storyTitle" style="font-size:2rem; margin-bottom:0.3rem; color:#4a3b2a;"> My Favourite Gadget </h1>
-  <h2 id="storyAuthor" style="font-size:1.1rem; margin-bottom:1.5rem; color:#6b4f33; font-weight:normal;">
-    Name of the Blog: Tech Wizards <br>
-    Name of the Blog Post: Screen Saver - How My Phone Saves My Day <br>
-Author: Sicilian Jaqen
-  </h2>
 
-  <input type="text" id="nameInput" placeholder="Enter your name" />  
-    <!-- Department Selector --><select id="departmentSelect">
+  <!-- Name Entry Page -->
+  <div id="nameForm">
+    <h1 id="quizTitle" style="font-size:2rem; margin-bottom:0.3rem; color:#4a3b2a;">
+ My Favourite Gadget
+</h1>
+
+<h3 id="quizAuthor" style="font-size:1.1rem; margin-bottom:1.5rem; color:#6b4f33; font-weight:normal;">
+   Name of the Blog: Tech Wizards <br> <br>
+    Name of the Blog Post: Screen Saver - How My Phone Saves My Day <br> <br>
+Author: Sicilian Jaqen
+</h3>
+
+    <input type="text" id="nameInput" placeholder="Enter your name" />
+    <select id="departmentSelect">
       <option value="">-- Select Department --</option>
       <option value="Cyber Security">Cyber Security</option>
       <option value="CSE-1">CSE-1</option>
@@ -312,31 +256,30 @@ Author: Sicilian Jaqen
       <option value="IT-1">IT-1</option>
       <option value="IT-2">IT-2</option>
     </select>
-
     <button id="startQuizBtn" onclick="beginQuiz()">Start Quiz</button>
   </div>
 
-
+  <!-- Quiz Content -->
   <div id="quizContent" style="display:none;">
-    <div class="quiz-header">
-      <div id="timer">⏳ 0s</div>
-      <div id="gemsCounter">💎 0</div>
-      <div id="progressTracker">📍 1 of 1</div>
+    <div class="top-strip" id="topStrip">
+      <div class="top-strip-header">
+        <div id="timer">⏳ 0s</div>
+        <div id="gemsCounter">💎 0</div>
+        <div id="progressTracker">📍 1 / 1</div>
+      </div>
+      <div class="top-strip-answers" id="dragOptions"></div>
     </div>
-    <!-- Question title removed, as the passage is the question
-    <div class="question" id="question"></div> 
-    --><div class="drag-options" id="dragOptions"></div>
+
     <div class="drop-container" id="dropContainer"></div>
     <div id="scoreCard"></div>
-    <button id="nextPageBtn" style="display: none;">Next &rarr;</button> 
+    <button id="nextPageBtn" style="display: none;">Next &rarr;</button>
     <button id="restartBtn" style="display: none;">Restart</button>
   </div>
 </div>
 
 <script>
-// --- NEW QUIZ DATA STRUCTURE ---
+/* ------------------ DATA ------------------ */
 const quizDataStore = [
-
 {
   "passage": "In the ever-evolving world of technology, gadgets have ____ an indispensable part of our daily lives, shaping ____ we communicate, work, and relax. Among the myriad ____ options available today, my favorite gadget is undeniably ____ smartphone. It is much more than a piece ____ technology - it is a tool that enables ____ creativity, and convenience, all at the touch ____ a screen. From staying in touch with loved ____ to organizing my day or exploring new ____ the smartphone is central to how I navigate ____ As Gandalf once said, \"All we have ____ decide is what to do with the ____ that is given us.\" For me, the ____ represents this choice. It is a device ____ allows me to spend my time more ____ and meaningfully. Whether I'm using it to ____ something new, share an important moment, or ____ directions in an unfamiliar place, it helps ____ make the most of every moment.",
   
@@ -422,11 +365,14 @@ const quizDataStore = [
     "each"
   ]
 }
+
+
 ];
 
-let quizData = []; // This will hold the active quiz questions
-let current = 0;
-let wrongQuestions = [];
+/* --------------- STATE & ELEMENTS --------------- */
+let quizData = [];           // flattened pages
+let current = 0;             // current page index
+let wrongQuestions = [];     // pages to retry
 let correctCount = 0;
 let totalWrongGuesses = 0;
 let gemsCount = 0;
@@ -435,49 +381,52 @@ let timerInterval;
 let playerName = "";
 let playerDept = "";
 let selectedOption = null;
-let totalQuestionsInQuiz = 0; // Tracks total questions including retries
+let totalQuestionsInQuiz = 0; // includes wrong-page retries
 
-// --- New Pagination State ---
 const blanksPerPage = 10;
-// let currentBlankPage = 0; // No longer needed as a global variable
-// --------------------------
 
-// Element cache
-// const questionEl = document.getElementById("question"); // No longer needed
-const dragOptionsEl = document.getElementById("dragOptions");
+const quizContainer   = document.getElementById("quizContainer");
+const dragOptionsEl   = document.getElementById("dragOptions");
 const dropContainerEl = document.getElementById("dropContainer");
-const timerEl = document.getElementById("timer");
-const gemsCounterEl = document.getElementById("gemsCounter");
+const timerEl         = document.getElementById("timer");
+const gemsCounterEl   = document.getElementById("gemsCounter");
 const progressTracker = document.getElementById("progressTracker");
-const scoreCard = document.getElementById("scoreCard");
-const restartBtn = document.getElementById("restartBtn");
-const nextPageBtn = document.getElementById("nextPageBtn"); 
-const quizContentEl = document.getElementById("quizContent");
-const nameFormEl = document.getElementById("nameForm");
-const nameInputEl = document.getElementById("nameInput");
-const deptSelectEl = document.getElementById("departmentSelect");
+const scoreCard       = document.getElementById("scoreCard");
+const restartBtn      = document.getElementById("restartBtn");
+const nextPageBtn     = document.getElementById("nextPageBtn");
+const quizContentEl   = document.getElementById("quizContent");
+const nameFormEl      = document.getElementById("nameForm");
+const nameInputEl     = document.getElementById("nameInput");
+const deptSelectEl    = document.getElementById("departmentSelect");
+const topStripEl      = document.getElementById("topStrip");
 
+/* --------------- TOP STRIP -> LAYOUT ADJUST --------------- */
+/* Measure the top strip height and push the passage below it */
+function adjustForTopStrip() {
+  const h = topStripEl ? topStripEl.offsetHeight : 0;
+  dropContainerEl.style.marginTop = h + "px";
+  // Leave ~1.5rem visual breathing at bottom; ensure max-height fits viewport
+  dropContainerEl.style.maxHeight = `calc(100vh - ${h}px - 2rem)`;
+}
 
+/* --------------- QUIZ FLOW --------------- */
 function beginQuiz() {
-  if (!nameInputEl.value.trim()) { 
-    // Use a custom modal or simple visual feedback instead of alert
+  if (!nameInputEl.value.trim()) {
     nameInputEl.style.borderColor = "red";
-    return; 
+    return;
   }
-  if (!deptSelectEl.value) { 
+  if (!deptSelectEl.value) {
     deptSelectEl.style.borderColor = "red";
-    return; 
+    return;
   }
-    // Hide title and author when quiz begins
-  document.getElementById("storyTitle").style.display = "none";
-  document.getElementById("storyAuthor").style.display = "none";
-
-  // Reset border colors if validation passes
   nameInputEl.style.borderColor = "#c2a677";
   deptSelectEl.style.borderColor = "#c2a677";
 
   playerName = nameInputEl.value.trim();
   playerDept = deptSelectEl.value;
+
+  document.getElementById("quizTitle").style.display = "none";
+document.getElementById("quizAuthor").style.display = "none";
 
   nameFormEl.style.display = "none";
   quizContentEl.style.display = "block";
@@ -485,99 +434,77 @@ function beginQuiz() {
 }
 
 function startQuiz() {
-  // Reset all quiz state variables
-  quizData = []; // Clear quiz data
+  quizData = [];
   wrongQuestions = [];
-  
-  // --- Pre-process quizDataStore into a flat list of PAGES ---
-  quizDataStore.forEach((passageObject, passageIdx) => {
-    const totalAnswers = passageObject.answers.length;
-    const totalBlankPages = Math.ceil(totalAnswers / blanksPerPage);
-    
-    for (let i = 0; i < totalBlankPages; i++) {
-      const pageObject = {
-        originalPassage: passageObject.passage, // Full text
-        originalAnswers: passageObject.answers, // All answers
-        pageIndex: i, // Which page this is (0-based)
-        passageIndex: passageIdx, // Which passage this belongs to
-        totalPassagesInStore: quizDataStore.length,
-        totalPassagePages: totalBlankPages,
-        // Unique ID for this specific page
-        pageId: `p${passageIdx}-pg${i}` 
-      };
-      quizData.push(pageObject);
+
+  // Flatten passages into page objects
+  quizDataStore.forEach((p, idx) => {
+    const total = p.answers.length;
+    const totalPages = Math.ceil(total / blanksPerPage);
+    for (let i = 0; i < totalPages; i++) {
+      quizData.push({
+        originalPassage: p.passage,
+        originalAnswers: p.answers,
+        pageIndex: i,
+        passageIndex: idx,
+        totalPassagePages: totalPages,
+        pageId: `p${idx}-pg${i}`
+      });
     }
   });
-  // ---------------------------------------------------------
-  
+
   current = 0;
   correctCount = 0;
   totalWrongGuesses = 0;
   gemsCount = 0;
   startTime = Date.now();
-  totalQuestionsInQuiz = quizData.length; // Total questions is now total PAGES
-  // currentBlankPage = 0; // No longer needed
-  
-  // Reset UI elements
+  totalQuestionsInQuiz = quizData.length;
+
   timerEl.innerText = "⏳ 0s";
   gemsCounterEl.innerText = `💎 0`;
   scoreCard.innerHTML = "";
   restartBtn.style.display = "none";
-  nextPageBtn.style.display = "none"; 
-  
+  nextPageBtn.style.display = "none";
+
   loadQuestion();
   startTimer();
-  // updateProgress(); // Initial progress update - This is called by loadQuestion()
 }
 
 function updateProgress() {
-  // New logic:
-  // totalQuestionsInQuiz is the total number of pages, including retries.
-  const currentQuestionNumber = current + 1; // This is the global page number
-  
-  // Add page number to progress tracker
+  const currentQuestionNumber = current + 1;
   if (quizData[current]) {
-    const data = quizData[current];
-    // const totalBlankPages = Math.ceil(data.originalAnswers.length / blanksPerPage); // Already have this
-    const totalBlankPages = data.totalPassagePages;
-    const currentPageNum = data.pageIndex + 1; // Page number *within* the passage
-    
-    // Example: "Page 5 of 32 (Passage Page 5 of 10)"
-    progressTracker.innerText = `📍 Page ${currentQuestionNumber} of ${totalQuestionsInQuiz} (Passage Page ${currentPageNum} of ${totalBlankPages})`;
+    progressTracker.innerText = `📍 ${currentQuestionNumber} / ${totalQuestionsInQuiz}`;
   } else if (current > 0) {
     progressTracker.innerText = "Done!";
   } else {
-    progressTracker.innerText = `📍 Page 1 of ${totalQuestionsInQuiz}`;
+    progressTracker.innerText = `📍 1 / ${totalQuestionsInQuiz}`;
   }
 }
 
-
-// --- REFACTORED loadQuestion ---
 function loadQuestion() {
-  if (current >= quizData.length) return showScore();
-  
+  if (current >= quizData.length) {
+    return showScore();
+  }
+
   selectedOption = null;
-  const data = quizData[current]; // Data is now a PAGE object
-  updateProgress(); // Call updateProgress here to get page numbers
-  
+  const d = quizData[current];
+
+  updateProgress();
+
   dragOptionsEl.innerHTML = "";
   dropContainerEl.innerHTML = "";
-  nextPageBtn.style.display = "none"; // Ensure next button is hidden on new page load
+  nextPageBtn.style.display = "none";
 
-  // --- Pagination Logic ---
-  const pageIndex = data.pageIndex;
-  const startIndex = pageIndex * blanksPerPage;
-  const endIndex = startIndex + blanksPerPage;
-  
-  const answersForThisPage = data.originalAnswers.slice(startIndex, endIndex);
-  const allPassageParts = data.originalPassage.split("___");
-  // Get parts relevant to this page. +1 because split gives one more part than answers.
-  const partsForThisPage = allPassageParts.slice(startIndex, endIndex + 1);
-  // -------------------------
+  // Page slice
+  const s = d.pageIndex * blanksPerPage;
+  const e = s + blanksPerPage;
 
-  // 1. Shuffle and display drag options for this page
-  const shuffledAnswers = [...answersForThisPage].sort(() => Math.random() - 0.5);
-  shuffledAnswers.forEach((ans) => {
+  const answers = d.originalAnswers.slice(s, e);
+  const parts = d.originalPassage.split("___").slice(s, e + 1);
+
+  // Render answers (shuffled), compact & centered
+  const shuffled = [...answers].sort(() => Math.random() - 0.5);
+  shuffled.forEach(ans => {
     const div = document.createElement("div");
     div.classList.add("drag-item");
     div.innerText = ans;
@@ -585,132 +512,95 @@ function loadQuestion() {
     dragOptionsEl.appendChild(div);
   });
 
-  // 2. Process the passage string
-  // const passage = data.passage; // Old
-  // const answers = data.answers; // Old
-  // const parts = passage.split("___"); // Old
-
-  // 3. Reconstruct the passage with interactive blanks
-  
-  // Add "..." if this isn't the first page
-  if (startIndex > 0) {
-    dropContainerEl.appendChild(document.createTextNode("... "));
-  }
-
-  partsForThisPage.forEach((part, index) => {
-    // Add the text part
+  // Passage parts
+  if (s > 0) dropContainerEl.appendChild(document.createTextNode("... "));
+  parts.forEach((part, i) => {
     dropContainerEl.appendChild(document.createTextNode(part));
-
-    // If there's another answer for this page, add a blank
-    if (index < answersForThisPage.length) {
-      const dropZone = document.createElement("button"); // Use a button for interactivity
-      dropZone.classList.add("drop-zone");
-      dropZone.innerText = "___"; // This is the visual blank
-      dropZone.dataset.answer = answersForThisPage[index]; // Assign the correct answer
-      dropZone.onclick = () => placeOption(dropZone);
-      dropContainerEl.appendChild(dropZone);
-      dropContainerEl.appendChild(document.createTextNode(" ")); // Add a space
+    if (i < answers.length) {
+      const b = document.createElement("button");
+      b.classList.add("drop-zone");
+      b.innerText = "___";
+      b.dataset.answer = answers[i];
+      b.onclick = () => placeOption(b);
+      dropContainerEl.appendChild(b);
+      dropContainerEl.appendChild(document.createTextNode(" "));
     }
   });
+  if (e < d.originalAnswers.length) dropContainerEl.appendChild(document.createTextNode(" ..."));
 
-  // Add "..." if this isn't the last page
-  if (endIndex < data.originalAnswers.length) {
-     dropContainerEl.appendChild(document.createTextNode(" ..."));
-  }
+  // After rendering, adjust for top strip height
+  adjustForTopStrip();
 }
 
 function selectOption(div) {
-  if (div.style.display === "none") return; // Don't select hidden options
+  if (div.style.display === "none") return;
   if (selectedOption) selectedOption.classList.remove("selected");
   selectedOption = div;
   div.classList.add("selected");
 }
 
-// --- REFACTORED placeOption ---
-function placeOption(dropZone) {
-  // If no option is selected, or blank is already filled, do nothing
-  if (!selectedOption || dropZone.classList.contains("filled")) return;
+function placeOption(dz) {
+  if (!selectedOption || dz.classList.contains("filled")) return;
 
-  const answer = selectedOption.innerText;
-  const correctAnswer = dropZone.dataset.answer;
+  const ans = selectedOption.innerText;
+  const correct = dz.dataset.answer;
 
-  if (correctAnswer === answer) {
-    // --- CORRECT ---
+  if (ans === correct) {
+    // Correct
     correctCount++;
     gemsCount++;
-    
-    // Create sparkle effect
-    createSparkleEffect(dropZone);
-    
-    // Pulse the gem counter
-    gemsCounterEl.classList.add('gem-counter-pulse');
-    setTimeout(() => gemsCounterEl.classList.remove('gem-counter-pulse'), 400);
-    
     gemsCounterEl.innerText = `💎 ${gemsCount}`;
 
-    // Replace blank with correct answer
-    dropZone.innerText = answer;
-    dropZone.classList.add("correct", "filled");
-    dropZone.disabled = true; // Disable the button
-    
-    selectedOption.style.display = "none"; // Hide the used option
-  
+    // FX
+    createSparkleEffect(dz);
+    gemsCounterEl.classList.add('gem-counter-pulse');
+    setTimeout(() => gemsCounterEl.classList.remove('gem-counter-pulse'), 400);
+
+    dz.innerText = ans;
+    dz.classList.add("correct", "filled");
+    dz.disabled = true;
+    selectedOption.style.display = "none";
   } else {
-    // --- WRONG ---
+    // Wrong
     totalWrongGuesses++;
     gemsCount--;
     gemsCounterEl.innerText = `💎 ${gemsCount}`;
-    
-    // Flash the drop zone red
-    dropZone.classList.add("wrong");
-    setTimeout(() => dropZone.classList.remove("wrong"), 600);
+    dz.classList.add("wrong");
+    setTimeout(() => dz.classList.remove("wrong"), 600);
 
-    // Add the entire current question back to wrongQuestions if not already added
-    const currentData = quizData[current]; // This is now the PAGE object
+    // Queue this page for retry if not already queued
+    const currentData = quizData[current];
     if (!wrongQuestions.includes(currentData)) {
-      wrongQuestions.push(currentData); // Push the PAGE, not the whole passage
-      totalQuestionsInQuiz++; // Increment the total
-      updateProgress(); // Update immediately
+      wrongQuestions.push(currentData);
+      totalQuestionsInQuiz++;   // keep total growing to reflect retries
+      updateProgress();         // immediate reflect in header
     }
   }
 
-  // Deselect the option
-  selectedOption.classList.remove("selected");
-  selectedOption = null;
+  if (selectedOption) {
+    selectedOption.classList.remove("selected");
+    selectedOption = null;
+  }
 
-  // Check if all blanks for the current question are filled
-  const remaining = dropContainerEl.querySelectorAll(".drop-zone:not(.filled)").length;
-  
-  if (remaining === 0) {
-    // All blanks for this page are filled
-    // Show the next button so the user can review and advance manually
+  if (!dropContainerEl.querySelector(".drop-zone:not(.filled)")) {
     nextPageBtn.style.display = "inline-block";
   }
 }
 
 function createSparkleEffect(element) {
   const rect = element.getBoundingClientRect();
-  const containerRect = quizContainer.getBoundingClientRect(); // Use main container
-  
-  // Create multiple sparks
+  const containerRect = quizContainer.getBoundingClientRect();
+
   const sparkCount = 8;
   for (let i = 0; i < sparkCount; i++) {
     const spark = document.createElement('div');
     spark.className = 'gem-spark';
     spark.innerText = ['💎', '✨', '⭐'][Math.floor(Math.random() * 3)];
-    
-    // Position relative to the main container
-    spark.style.position = 'absolute';
     spark.style.left = `${rect.left - containerRect.left + rect.width / 2}px`;
-    spark.style.top = `${rect.top - containerRect.top + rect.height / 2}px`;
-    
-    // Random horizontal spread
+    spark.style.top  = `${rect.top  - containerRect.top  + rect.height / 2}px`;
     const randomX = (Math.random() - 0.5) * 100;
     spark.style.setProperty('--random-x', `${randomX}px`);
-    
-    quizContainer.appendChild(spark); // Append to main container
-    
-    // Remove after animation
+    quizContainer.appendChild(spark);
     setTimeout(() => spark.remove(), 1000);
   }
 }
@@ -719,14 +609,12 @@ function showScore() {
   clearInterval(timerInterval);
   const totalTime = Math.floor((Date.now() - startTime) / 1000);
 
-  // questionEl.innerText = "🎉 Quiz Completed!"; // No longer using questionEl
   dragOptionsEl.innerHTML = "";
-  dropContainerEl.innerHTML = `<h2 style="text-align:center;">🎉 Quiz Completed!</h2>`;
+  dropContainerEl.innerHTML = "<h2 style='text-align:center;'>🎉 Quiz Completed!</h2>";
   progressTracker.innerText = "Done!";
-  nextPageBtn.style.display = "none"; 
-  
-  // Determine success message
-  const successMessage = (totalWrongGuesses === 0) 
+  nextPageBtn.style.display = "none";
+
+  const successMessage = (totalWrongGuesses === 0)
     ? "<p>✅ Flawless! All questions answered correctly on the first attempt!</p>"
     : `<p>✅ Correct Answers (total): ${correctCount}</p>
        <p>❌ Wrong Attempts (total): ${totalWrongGuesses}</p>`;
@@ -740,9 +628,7 @@ function showScore() {
   `;
   restartBtn.style.display = "inline-block";
 
-
-  // --- SEND RESULTS TO GOOGLE SHEET ---
-  // This remains unchanged
+  // send to Google Sheet (fire-and-forget)
   fetch("https://script.google.com/macros/s/AKfycbxA0lRkERWFt2cYfmm04IQioaG4-21k5VFF5CFKP30zyVaJXM5_27PL3v8JIZEweK3u/exec", {
     method: "POST",
     mode: "no-cors",
@@ -753,21 +639,20 @@ function showScore() {
       wrong: totalWrongGuesses,
       time: totalTime,
       department: playerDept,
-      questId: "Story 76" 
+      questId: "Quest 76"
     })
   });
 }
 
-
 function startTimer() {
-  clearInterval(timerInterval); // Clear any existing timer
+  clearInterval(timerInterval);
   timerInterval = setInterval(() => {
     const elapsed = Math.floor((Date.now() - startTime)/1000);
     timerEl.innerText = `⏳ ${elapsed}s`;
   }, 1000);
 }
 
-// --- REFACTORED downloadPDFReport ---
+/* --------------- PDF REPORT --------------- */
 function downloadPDFReport() {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
@@ -775,7 +660,7 @@ function downloadPDFReport() {
   const totalTime = Math.floor((Date.now() - startTime) / 1000);
   const reportDate = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
 
-  // --- HEADER ---
+  // HEADER
   doc.setFillColor(25, 25, 60);
   doc.rect(0, 0, 210, 45, 'F');
   doc.setTextColor(255, 255, 255);
@@ -793,7 +678,7 @@ function downloadPDFReport() {
   doc.setTextColor(212, 175, 55);
   doc.text('Quest Performance Report', 105, 39, { align: 'center' });
 
-  // --- STUDENT INFO ---
+  // STUDENT INFO
   doc.setTextColor(0, 0, 0);
   doc.setFontSize(11);
   doc.text('CANDIDATE INFORMATION', 20, 55);
@@ -814,7 +699,7 @@ function downloadPDFReport() {
     margin: { left: 20, right: 20 }
   });
 
-  // --- PERFORMANCE SUMMARY ---
+  // PERFORMANCE SUMMARY
   let y = doc.lastAutoTable.finalY + 10;
   doc.setFont('times', 'bold');
   doc.text('PERFORMANCE SUMMARY', 20, y);
@@ -822,7 +707,7 @@ function downloadPDFReport() {
   doc.autoTable({
     startY: y + 3,
     body: [
-      ['Total Questions', quizDataStore.length.toString()], // Use master store length
+      ['Total Question Pages', quizData.length.toString()],
       ['Correct Answers (Total)', correctCount.toString()],
       ['Wrong Attempts (Total)', totalWrongGuesses.toString()],
       ['Final Gems Earned', gemsCount.toString()],
@@ -833,7 +718,7 @@ function downloadPDFReport() {
     margin: { left: 20, right: 20 }
   });
 
-  // --- QUESTION BANK SECTION (SIMPLIFIED) ---
+  // QUESTION BANK (with filled answers)
   y = doc.lastAutoTable.finalY + 12;
   if (y > 250) { doc.addPage(); y = 20; }
   doc.setFont('times', 'bold');
@@ -842,13 +727,9 @@ function downloadPDFReport() {
 
   quizDataStore.forEach((item, i) => {
     if (y > 260) { doc.addPage(); y = 20; }
-    
-    // Reconstruct the full passage with answers
+
     let fullPassage = item.passage;
     item.answers.forEach(ans => {
-      // Use a special color/font for the answer in the PDF
-      // jspdf-autotable doesn't make this easy in a single text block.
-      // We'll just put the answer in brackets [ ].
       fullPassage = fullPassage.replace("___", ` [${ans}] `);
     });
 
@@ -857,23 +738,21 @@ function downloadPDFReport() {
     doc.setTextColor(25, 25, 60);
     doc.text(`Question ${i + 1}:`, 20, y);
     y += 6;
-    
+
     doc.setTextColor(0, 0, 0);
     doc.setFont('times', 'normal');
-    
-    // Add the reconstructed passage
-    const lines = doc.splitTextToSize(fullPassage, 160); // 160 = width
+
+    const lines = doc.splitTextToSize(fullPassage, 160);
     doc.text(lines, 25, y);
-    y += lines.length * 5; // Adjust y based on number of lines
-    
+    y += lines.length * 5;
+
     y += 3;
     doc.setDrawColor(230, 230, 230);
     doc.setLineWidth(0.3);
-    doc.line(20, y, 190, y); // Separator line
+    doc.line(20, y, 190, y);
     y += 5;
   });
 
-  // --- FOOTER ---
   doc.setDrawColor(184, 134, 11);
   doc.setLineWidth(0.5);
   doc.line(20, 280, 190, 280);
@@ -886,30 +765,29 @@ function downloadPDFReport() {
   doc.save(`${cleanName}_Quest20_Report.pdf`);
 }
 
+/* --------------- CONTROLS --------------- */
 restartBtn.onclick = () => {
   quizContentEl.style.display = "none";
   nameFormEl.style.display = "block";
-  nameInputEl.value = ""; // Clear name field
-  deptSelectEl.value = ""; // Reset department dropdown
-  nextPageBtn.style.display = "none"; 
+  nameInputEl.value = "";
+  deptSelectEl.value = "";
+  nextPageBtn.style.display = "none";
 };
 
-// --- Handle Next Page Button Click ---
 nextPageBtn.onclick = () => {
-  current++; // Move to next page
-
-  // If we've finished the initial set, check if there are wrong questions to retry
+  current++;
   if (current >= quizData.length && wrongQuestions.length > 0) {
-    quizData.push(...wrongQuestions); // Add wrong PAGES to the end
-    wrongQuestions = []; // Clear the retry queue
+    quizData.push(...wrongQuestions);
+    wrongQuestions = [];
   }
-  
-  loadQuestion(); // Load the next question (or show score)
+  loadQuestion();
 };
 
-
+/* Recalculate layout on resize (for top-strip height changes due to wrapping) */
+window.addEventListener('resize', adjustForTopStrip);
 </script>
-<!-- ✅ Add this PWA navigation handler below -->
+
+<!-- PWA-friendly link handling -->
 <script>
 document.addEventListener("click", function (e) {
   const target = e.target.closest("a");
@@ -938,29 +816,24 @@ document.addEventListener("click", function (e) {
   }
 });
 </script>
+
 <script>
-// Add this script to EVERY quest page
 document.addEventListener("click", function (e) {
   const target = e.target.closest("a");
   if (!target) return;
 
   const url = target.href;
-
-  // Domains to open internally (no browser bar)
   const internalDomains = [
     "andrewveda.github.io",
     "sites.google.com/view/cys-english",
     "sites.google.com/view/srm-vec-english"
   ];
-
   const isInternal = internalDomains.some(domain => url.includes(domain));
 
   if (isInternal) {
-    // Open in same PWA context (native feel)
     e.preventDefault();
     window.location.href = url;
   } else {
-    // Open external links in new tab
     target.setAttribute("target", "_blank");
   }
 });

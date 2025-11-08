@@ -76,7 +76,7 @@ async function loadLeaderboard() {
   const quotes = [
     `Appearance is a heuristic. Leaderboard loading..`,
     `Heuristics shape perception. Leaderboard loading...`,
-    `The observer’s perception becomes their reality. Leaderboard loading.`,
+    `The observer's perception becomes their reality. Leaderboard loading.`,
     `Appearance is everything! Leaderboard loading..`
   ];
 let q = 0;
@@ -102,10 +102,6 @@ setInterval(() => {
     setTimeout(() => {
       container.innerHTML = ""; // clear filler after fade
 
-      // -------------------------------------------------------------------
-      // 👇 Everything below is your original code, unchanged
-      // -------------------------------------------------------------------
-
       const columnDisplayNames = {
         "MainQuests": "Videos",
         "Wrong": "ELLL"
@@ -114,7 +110,7 @@ setInterval(() => {
       let currentSort = "Score"; 
       let ascending = false;
       let showTimeInHrs = false; 
-      let showStatsPage = false; // NEW toggle state
+      let showStatsPage = false;
 
       // Calculate class statistics
       const classStats = {
@@ -166,7 +162,8 @@ setInterval(() => {
           .stat-card:hover { transform: scale(1.03); box-shadow:0 8px 25px rgba(0,0,0,0.8); }
           #totalTimeCard { background: linear-gradient(135deg,#2a2a40,#3d3d5c); box-shadow: 0 0 12px #d4af37, 0 0 25px rgba(212,175,55,0.8); border: 1px solid #d4af37;}
           #totalTimeCard h3 { color:#ffd700; }
-          #totalTimeCard p { color:#fffacd; text-shadow:0 0 5px #ffd700; }
+          #totalTimeCard p { color:#fffacd; text-shadow:0 0 5px #ffd700; font-variant-numeric: tabular-nums; }
+          @keyframes glowPulse { 0%,100% { box-shadow: 0 0 12px #d4af37, 0 0 25px rgba(212,175,55,0.8); } 50% { box-shadow: 0 0 20px #ffd700, 0 0 40px rgba(255,215,0,1); } }
           @media (max-width: 600px) { th, td { font-size:14px; padding:8px; } .leaderboard-heading { font-size:22px; } }
         </style>
 
@@ -185,7 +182,6 @@ setInterval(() => {
         <div class="table-container" id="classStatsContainer" style="display:none;"></div>
       `;
 
-      // Sorting buttons, renderTable, renderStats, and toggle button code stay untouched
       const sortOptions = ["Score","Correct","Wrong","TotalTime","Quests","MainQuests","LastTest"];
       const sortButtons = document.getElementById("sortButtons");
       sortOptions.forEach(col => {
@@ -249,7 +245,7 @@ setInterval(() => {
         document.getElementById("classStatsContainer").innerHTML = `
           <div class="stats-grid">
             <div class="stat-card" id="totalTimeCard" style="cursor:pointer;">
-              <h3>Total Time</h3>
+              <h3>Total Time (Click to Toggle)</h3>
               <p id="totalTimeNumber">${
                 showTimeInHrs 
                   ? `${Math.floor(classStats.totalTime/3600)}h ${Math.floor((classStats.totalTime%3600)/60)}m`
@@ -262,6 +258,49 @@ setInterval(() => {
             <div class="stat-card"><h3>Total Score</h3><p>${classStats.totalScore}</p></div>
           </div>
         `;
+        
+        // Add click handler for time toggle with RACING animation only
+        document.getElementById("totalTimeCard").addEventListener("click", () => {
+          showTimeInHrs = !showTimeInHrs;
+          const timeEl = document.getElementById("totalTimeNumber");
+          const card = document.getElementById("totalTimeCard");
+          
+       
+          // Racing number animation - count up from 0
+          const targetValue = showTimeInHrs 
+            ? classStats.totalTime / 3600  // Convert to hours for racing
+            : classStats.totalTime;
+          
+          const duration = 1200; // Animation duration in ms
+          const fps = 60;
+          const totalFrames = (duration / 1000) * fps;
+          let frame = 0;
+          
+          // Easing function (ease-out exponential for deceleration effect)
+          const easeOut = (t) => 1 - Math.pow(1 - t, 4);
+          
+          const raceInterval = setInterval(() => {
+            frame++;
+            const progress = easeOut(frame / totalFrames);
+            const currentValue = targetValue * progress;
+            
+            if (showTimeInHrs) {
+              const hours = Math.floor(currentValue);
+              const minutes = Math.floor((currentValue - hours) * 60);
+              timeEl.innerHTML = `${hours}h ${minutes}m`;
+            } else {
+              timeEl.innerHTML = `${Math.floor(currentValue)}s`;
+            }
+            
+            if (frame >= totalFrames) {
+              clearInterval(raceInterval);
+              // Set final accurate value
+              timeEl.innerHTML = showTimeInHrs 
+                ? `${Math.floor(classStats.totalTime/3600)}h ${Math.floor((classStats.totalTime%3600)/60)}m`
+                : `${classStats.totalTime}s`;
+            }
+          }, 1000 / fps);
+        });
       };
 
       renderTable();
@@ -274,8 +313,8 @@ setInterval(() => {
         document.getElementById("classStatsContainer").style.display = showStatsPage ? "block" : "none";
         document.getElementById("pageToggleBtn").innerText = showStatsPage ? "Show Leaderboard" : "Show Class Stats";
       });
-    }, 1000); // closes fade timeout
-  } // closes if(carousel)
+    }, 1000);
+  }
 }
 
 loadLeaderboard();

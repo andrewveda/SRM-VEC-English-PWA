@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ELLL Directory 🎓📜</title>
+<link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+<style>
+  body {
+    font-family: 'Merriweather', serif;
+    margin: 0;
+    padding: 15px;
+    background: #1B1B2F;
+    color: #EDEDED;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  h1 { font-family: 'Playfair Display', serif; font-size: 2.2em; margin: 5px 0; color: #FFD700; text-align: center; }
+  h2 { font-family: 'Merriweather', serif; font-size: 1.1em; margin: 3px 0 10px; color: #D4AF37; font-style: italic; text-align: center; }
+  .subheading { font-size: 0.9em; color: #C9B037; margin-bottom: 15px; text-align: center; }
+  #directoryContainer {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    width: 100%;
+    max-width: 480px;
+    padding:10px;
+  }
+  .record {
+    position: relative;
+    background: #2B2B44;
+    border-radius: 12px;
+    padding: 16px 8px 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s, opacity 0.3s;
+  }
+  .record:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(212, 175, 55, 0.4); }
+  .record > * { position: relative; z-index: 1; }
+  .recordTitle { font-size: 12px; font-weight: 700; margin-top: 8px; text-align: center; word-break: break-word; }
+  .emoji { font-size: 1.4em; }
+  .percentText { font-size: 11px; margin-top: 6px; color: #FFD700; }
+  #loadingQuote { font-size: 12px; margin-bottom: 6px; font-style: italic; }
+  #userName { font-weight: bold; font-size: 16px; color: #FFD700; margin-bottom: 3px; }
+  #progress { font-size: 13px; color: #D4AF37; margin-bottom: 8px; }
+  @media(max-width: 350px) {
+    #directoryContainer { grid-template-columns: repeat(2, 1fr); }
+    .emoji { font-size: 1.2em; }
+    .recordTitle { font-size: 10px; }
+    .percentText { font-size: 9px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="subheading">English Language Learning Laboratory<br>Virtual Record</div>
+
+<div id="loadingQuote"></div>
+<div id="userName"></div>
+<div id="progress"></div>
+<div id="directoryContainer"></div>
+
+<button id="generatePdfBtn" style="margin-top:15px; padding:10px 15px; font-size:14px; cursor:pointer;">Download Report Card (PDF)</button>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<script>
+const quote = "Fetching your ELLL progress... Please wait 📜🎓";
+const sheetURL = "https://script.google.com/macros/s/AKfycbzPmoVR2sfZFgrh7YGxag018JF3HtIkDq3AG65Tt_psWgWLGvbERINZw7lP9wuupbVd/exec";
+
+const activityNames = [
+  "SWOC","Phonics","Listening","Something Close to My Heart",
+  "Song Decode","Headline Hunt","Creative Rendezvous","Letter","Self Reflection"
+];
+
+const emojisIncomplete = ["🗝️","📚","🎧","💖","🎼","📰","🎨","✉️","🪞"];
+const emojisComplete = ["🏆","📖","🎶","💎","🎹","🏅","🌟","🏵️","🔮"];
+const elllLinks = {
+  1: "https://sites.google.com/view/cys-english/copy-of-swoc",
+  2: "https://andrewveda.github.io/voicequests/",
+  3: "https://andrewveda.github.io/3/",
+  4: "https://sites.google.com/view/cys-english/sctmh",
+  5: "https://sites.google.com/view/cys-english/video-quests",
+  6: "https://andrewveda.github.io/6/",
+  7: "https://andrewveda.github.io/play/",
+  8: "https://andrewveda.github.io/letter/",
+  9: "https://andrewveda.github.io/10/"
+};
+let currentUserData = null;
+
+function typeWriter(text, element, callback=null){
+  let i=0; element.textContent="";
+  const interval=setInterval(()=>{
+    element.textContent+=text.charAt(i);
+    i++;
+    if(i>=text.length){ clearInterval(interval); if(callback) callback(); }
+  },25);
+}
+
+async function fetchDirectory(){
+  const name="Guest";
+  const quoteEl=document.getElementById('loadingQuote');
+  typeWriter(quote, quoteEl);
+
+  // Show buttons immediately
+  renderDirectory({Name:name,Challenges:[]});
+
+  try{
+    const res=await fetch(sheetURL);
+    const data=await res.json();
+    const user=data.find(u=>u.Name.toUpperCase()===name.toUpperCase());
+    if(!user){
+      quoteEl.textContent="Showing default records.";
+      document.getElementById('userName').textContent=name.toUpperCase();
+      return;
+    }
+    document.getElementById('userName').textContent=user.Name.toUpperCase();
+    renderDirectory(user);
+    currentUserData=user;
+    quoteEl.textContent="";
+  }catch(err){
+    console.error(err);
+    document.getElementById('loadingQuote').textContent="Error fetching data — showing offline view.";
+  }
+}
+
+function renderDirectory(user){
+  const container=document.getElementById('directoryContainer');
+  container.innerHTML="";
+  const completed=Array.isArray(user.Challenges)?user.Challenges:(user.Challenges?user.Challenges.split(","):[]);
+  let doneCount=0;
+  for(let i=0;i<9;i++){
+    const recordDiv=document.createElement('div');
+    const title=`ELLL ${i+1}`;
+    recordDiv.className='record';
+    recordDiv.onclick=()=>window.open(elllLinks[i+1],'_blank');
+    const challengesDone=completed.filter(c=>c.trim().toUpperCase().startsWith(title.toUpperCase())).length;
+    let requiredChallenges = 1;
+    if(i+1===2) requiredChallenges=45;
+    if(i+1===5) requiredChallenges=12;
+    const percent=Math.min(Math.round((challengesDone/requiredChallenges)*100),100);
+    const emoji=percent===100?emojisComplete[i]:emojisIncomplete[i];
+    recordDiv.style.opacity=0.5+(percent/100)*0.5;
+    recordDiv.style.background=`linear-gradient(to top, rgba(255,215,0,${0.3 + percent/200}) ${percent}%, #2B2B44 ${percent}%)`;
+    recordDiv.innerHTML=`
+      <div class="emoji">${emoji}</div>
+      <div class="recordTitle">${activityNames[i]}</div>
+      <div class="percentText">${percent}%</div>
+    `;
+    container.appendChild(recordDiv);
+    if(percent===100) doneCount++;
+  }
+  document.getElementById('progress').textContent=`Gems: ${doneCount}/9 collected ${doneCount===9?"📜":""}`;
+}
+
+window.addEventListener('DOMContentLoaded', fetchDirectory);
+</script>
+</body>
+</html>

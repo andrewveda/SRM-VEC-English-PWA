@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Live Leaderboard</title>
+  <style>
+    body {
+      background: black;
+      color: #0ff;
+      font-family: 'Segoe UI', sans-serif;
+      text-align: center;
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+    }
+
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      transition: opacity 0.8s ease;
+    }
+
+    #timestamp {
+      position: fixed;
+      bottom: 10px;
+      right: 10px;
+      color: #0ff;
+      font-size: 14px;
+      font-family: monospace;
+      opacity: 0.7;
+      background: rgba(0,0,0,0.3);
+      padding: 4px 8px;
+      border-radius: 6px;
+    }
+
+    /* ✨ Updating shimmer overlay */
+    #overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: #0ff;
+      font-size: 22px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      backdrop-filter: blur(3px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.4s ease;
+    }
+
+    /* Shimmer text animation */
+    @keyframes shimmer {
+      0% { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+    #overlay span {
+      background: linear-gradient(90deg, #00ffff, #0099ff, #00ffff);
+      background-size: 200%;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: shimmer 1.5s infinite linear;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Fast auto-refreshing wrapper -->
+  <iframe
+    id="leaderboardFrame"
+    src="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/leaderboard"
+    loading="lazy"
+  ></iframe>
+
+  <!-- Timestamp and overlay -->
+  <div id="timestamp"></div>
+  <div id="overlay"><span>Updating...</span></div>
+
+  <script>
+    const iframe = document.getElementById('leaderboardFrame');
+    const timestamp = document.getElementById('timestamp');
+    const overlay = document.getElementById('overlay');
+
+    function updateTimestamp() {
+      const now = new Date();
+      timestamp.textContent = "Last refreshed: " + now.toLocaleTimeString();
+    }
+
+    function refreshLeaderboard() {
+      overlay.style.opacity = '1';           // show shimmer
+      iframe.style.opacity = '0';
+
+      setTimeout(() => {
+        iframe.src = iframe.src;             // reload the inner page
+        iframe.onload = () => {
+          iframe.style.opacity = '1';
+          overlay.style.opacity = '0';       // hide shimmer
+        };
+      }, 500);
+
+      updateTimestamp();
+    }
+
+    updateTimestamp();
+    setInterval(refreshLeaderboard, 30000); // refresh every 30 seconds
+  </script>
+</body>
+</html>

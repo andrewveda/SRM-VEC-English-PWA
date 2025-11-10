@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title> The Icecream Story 🌌</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+
+<style>
+  :root{
+    --page-padding-x: 1.5rem;
+    --top-strip-bg: rgba(255, 255, 240, 0.96);
+    --top-strip-border: #d2b48c;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: radial-gradient(ellipse at center, #f4ecd8 0%, #e8d9b5 100%);
+    color: #3b2f1e;
+    text-align: center;
+    width: 100vw;
+    height: 100vh;
+    overflow-x: hidden;
+  }
+
+  .container {
+    position: relative;
+    background: rgba(255, 255, 240, 0.85);
+    width: 100vw;
+    min-height: 100vh;
+    margin: 0;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    padding: 0;
+  }
+
+  #nameForm { padding: 5rem var(--page-padding-x) 2rem; }
+  #nameInput, #departmentSelect {
+    display: block;
+    width: 90%;
+    max-width: 300px;
+    margin: 1rem auto;
+    padding: 0.7rem;
+    font-size: 1rem;
+    border-radius: 5px;
+    border: 1px solid #c2a677;
+    background: #fffdf6;
+    color: #3b2f1e;
+  }
+  #startQuizBtn {
+    padding: 0.7rem 2rem;
+    font-size: 1.1rem;
+    background-color: #8b7355;
+    border: 1px solid #5b442a;
+    border-radius: 10px;
+    cursor: pointer;
+    color: #ffffff;
+    transition: background-color 0.2s ease;
+  }
+  #startQuizBtn:hover { background-color: #6b5a43; }
+
+  .top-strip {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    background: var(--top-strip-bg);
+    border-bottom: 1px solid var(--top-strip-border);
+    padding: 0.5rem 0.8rem;
+    z-index: 30;
+    backdrop-filter: blur(4px);
+  }
+  .top-strip-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.95rem;
+    color: #5b442a;
+    margin-bottom: 0.35rem;
+    padding: 0 var(--page-padding-x);
+  }
+  #timer, #gemsCounter, #progressTracker {
+    font-size: 1.05rem;
+    color: #6b4f33;
+    font-weight: 500;
+  }
+
+  .top-strip-answers {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    justify-content: center;
+    align-items: center;
+    padding-top: 1rem;
+    border-top: 1px solid #d2b48c;
+  }
+
+  .drag-item {
+    display: inline-block;
+    padding: 0.35rem 0.6rem;
+    font-size: 0.95rem;
+    background: #f7e7c4;
+    border: 1px solid #d2b48c;
+    border-radius: 6px;
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.2s ease-in-out;
+    color: #3b2f1e;
+    white-space: nowrap;
+  }
+  .drag-item:hover { background: #f5deb3; transform: scale(1.05); }
+  .drag-item.selected { border: 2px solid #8b7355; background: #f0dba5; transform: scale(1.02); }
+
+  .drop-container {
+    padding: 0.8rem var(--page-padding-x) 2rem;
+    overflow-y: auto;
+    text-align: justify;
+    line-height: 1.9;
+    font-size: 1.3rem;
+    color: #3b2f1e;
+  }
+
+  .drop-zone {
+    display: inline-block;
+    border: 1px dashed #a1886f;
+    padding: 0.2rem 0.8rem;
+    margin: 0 0.2rem;
+    cursor: pointer;
+    background: #fffdf6;
+    color: #5b442a;
+    font-size: 1.2rem;
+    font-family: 'Courier New', Courier, monospace;
+    border-radius: 5px;
+    min-width: 60px;
+    text-align: center;
+    transition: all 0.2s ease;
+    vertical-align: middle;
+  }
+  .drop-zone:hover { background: #f7e7c4; }
+  .drop-zone.filled {
+    border: 1px solid transparent;
+    background: none;
+    color: #228b22;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-weight: bold;
+    padding: 0.2rem 0.2rem;
+    cursor: default;
+  }
+  .correct { color: #228b22 !important; }
+  .wrong { border-color: #b22222 !important; animation: shake 0.5s ease-in-out; }
+
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+  }
+
+  @keyframes sparkle {
+    0% { transform: translate(0, 0) scale(1); opacity: 1; }
+    100% { transform: translate(var(--random-x, 0), -100px) scale(1.5); opacity: 0; }
+  }
+  @keyframes gemPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.3); }
+  }
+  .gem-spark { position: absolute; pointer-events: none; font-size: 1.5rem; animation: sparkle 1s ease-out forwards; z-index: 20; }
+  .gem-counter-pulse { animation: gemPulse 0.4s ease-in-out; }
+
+  #nextPageBtn, #restartBtn {
+    margin-top: 1.5rem;
+    padding: 0.7rem 2rem;
+    font-size: 1.1rem;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+  }
+  #nextPageBtn {
+    background-color: #4CAF50; border: none; color: white; font-weight: bold;
+  }
+  #nextPageBtn:hover { background-color: #45a049; }
+  #restartBtn {
+    background-color: #d2b48c; border: 1px solid #a1886f; color: #3b2f1e;
+  }
+  #restartBtn:hover { background-color: #c9a96b; }
+
+  #scoreCard { margin-top: 2rem; font-size: 1.2rem; color: #4b3b2a; }
+</style>
+</head>
+
+<body>
+<div class="container" id="quizContainer">
+
+  <div id="nameForm">
+    <h1 id="quizTitle" style="font-size:2rem; margin-bottom:0.3rem; color:#4a3b2a;">
+      US President Ronald Reagan's Reframing
+    </h1>
+    <h3 id="quizAuthor" style="font-size:1.1rem; margin-bottom:1.5rem; color:#6b4f33; font-weight:normal;"><br></h3>
+
+    <input type="text" id="nameInput" placeholder="Enter your name" />
+    <select id="departmentSelect">
+      <option value="">-- Select Department --</option>
+      <option value="Cyber Security">Cyber Security</option>
+      <option value="CSE-1">CSE-1</option>
+      <option value="CSE-2">CSE-2</option>
+      <option value="CSE-3">CSE-3</option>
+      <option value="Mechanical Engineering">Mechanical Engineering</option>
+      <option value="ECE-1">ECE-1</option>
+      <option value="ECE-2">ECE-2</option>
+      <option value="ECE-3">ECE-3</option>
+      <option value="AI DS-1">AI DS-1</option>
+      <option value="AI DS-2">AI DS-2</option>
+      <option value="Civil">Civil</option>
+      <option value="Agri">Agri</option>
+      <option value="EEE">EEE</option>
+      <option value="EIE">EIE</option>
+      <option value="Medical Electronics">Medical Electronics</option>
+      <option value="IT-1">IT-1</option>
+      <option value="IT-2">IT-2</option>
+    </select>
+    <button id="startQuizBtn" onclick="beginQuiz()">Start Quiz</button>
+  </div>
+
+  <div id="quizContent" style="display:none;">
+    <div class="top-strip" id="topStrip">
+      <div class="top-strip-header">
+        <div id="timer">⏳ 0s</div>
+        <div id="gemsCounter">💎 0</div>
+        <div id="progressTracker">📍 1 / 1</div>
+      </div>
+      <div class="top-strip-answers" id="dragOptions"></div>
+    </div>
+
+    <div class="drop-container" id="dropContainer"></div>
+    <div id="scoreCard"></div>
+    <button id="nextPageBtn" style="display: none;">Next →</button>
+    <button id="restartBtn" style="display: none;">Restart</button>
+  </div>
+</div>
+
+<script>
+function autoGenerateBlanks(passage, frequency = 7) {
+  const words = passage.split(/(\s+)/);
+  const answers = [];
+  let wordCount = 0;
+  
+  const blankedPassage = words.map(word => {
+    if (word.trim() && ++wordCount % frequency === 0) {
+      answers.push(word.trim());
+      return '___';
+    }
+    return word;
+  }).join('');
+  
+  return { passage: blankedPassage, answers };
+}
+
+const quizDataStore = (() => {
+  const fullPassage = ` In 1984, America was preparing for its presidential election. Ronald Reagan, the sitting president, was seventy-three years old, the oldest man to have held the office at that time. His opponent, Walter Mondale, was much younger and wanted the country to notice it.
+
+The media did too. `;
+  
+  const result = autoGenerateBlanks(fullPassage, 7);
+  return [result];
+})();
+
+let quizData = [];           // flattened pages
+let current = 0;             // current page index
+let wrongQuestions = [];     // pages to retry
+let correctCount = 0;
+let totalWrongGuesses = 0;
+let gemsCount = 0;
+let startTime;
+let timerInterval;
+let playerName = "";
+let playerDept = "";
+let selectedOption = null;
+let totalQuestionsInQuiz = 0; // includes wrong-page retries
+
+const blanksPerPage = 10;
+
+const quizContainer   = document.getElementById("quizContainer");
+const dragOptionsEl   = document.getElementById("dragOptions");
+const dropContainerEl = document.getElementById("dropContainer");
+const timerEl         = document.getElementById("timer");
+const gemsCounterEl   = document.getElementById("gemsCounter");
+const progressTracker = document.getElementById("progressTracker");
+const scoreCard       = document.getElementById("scoreCard");
+const restartBtn      = document.getElementById("restartBtn");
+const nextPageBtn     = document.getElementById("nextPageBtn");
+const quizContentEl   = document.getElementById("quizContent");
+const nameFormEl      = document.getElementById("nameForm");
+const nameInputEl     = document.getElementById("nameInput");
+const deptSelectEl    = document.getElementById("departmentSelect");
+const topStripEl      = document.getElementById("topStrip");
+
+/* --------------- TOP STRIP -> LAYOUT ADJUST --------------- */
+/* Measure the top strip height and push the passage below it */
+function adjustForTopStrip() {
+  const h = topStripEl ? topStripEl.offsetHeight : 0;
+  dropContainerEl.style.marginTop = h + "px";
+  // Leave ~1.5rem visual breathing at bottom; ensure max-height fits viewport
+  dropContainerEl.style.maxHeight = `calc(100vh - ${h}px - 2rem)`;
+}
+
+
+
+
+function autoFillFromStorage() {
+  try {
+    const storedName = localStorage.getItem('playerName');
+    const storedDept = localStorage.getItem('playerDept');
+    
+    if (storedName) {
+      nameInputEl.value = storedName;
+    }
+    if (storedDept) {
+      deptSelectEl.value = storedDept;
+    }
+  } catch (e) {
+    console.log('Could not access localStorage:', e);
+  }
+}
+
+// Call auto-fill when page loads
+window.addEventListener('DOMContentLoaded', autoFillFromStorage);
+
+
+
+
+
+/* --------------- QUIZ FLOW --------------- */
+function beginQuiz() {
+  if (!nameInputEl.value.trim()) {
+    nameInputEl.style.borderColor = "red";
+    return;
+  }
+  if (!deptSelectEl.value) {
+    deptSelectEl.style.borderColor = "red";
+    return;
+  }
+  nameInputEl.style.borderColor = "#c2a677";
+  deptSelectEl.style.borderColor = "#c2a677";
+
+playerName = nameInputEl.value.trim();
+  playerDept = deptSelectEl.value;
+  
+  // Save to localStorage for future use
+  try {
+    localStorage.setItem('playerName', playerName);
+    localStorage.setItem('playerDept', playerDept);
+  } catch (e) {
+    console.log('Could not save to localStorage:', e);
+  }
+
+  document.getElementById("quizTitle").style.display = "none";
+document.getElementById("quizAuthor").style.display = "none";
+
+  nameFormEl.style.display = "none";
+  quizContentEl.style.display = "block";
+  startQuiz();
+}
+
+function startQuiz() {
+  quizData = [];
+  wrongQuestions = [];
+
+  // Flatten passages into page objects
+  quizDataStore.forEach((p, idx) => {
+    const total = p.answers.length;
+    const totalPages = Math.ceil(total / blanksPerPage);
+    for (let i = 0; i < totalPages; i++) {
+      quizData.push({
+        originalPassage: p.passage,
+        originalAnswers: p.answers,
+        pageIndex: i,
+        passageIndex: idx,
+        totalPassagePages: totalPages,
+        pageId: `p${idx}-pg${i}`
+      });
+    }
+  });
+
+  current = 0;
+  correctCount = 0;
+  totalWrongGuesses = 0;
+  gemsCount = 0;
+  startTime = Date.now();
+  totalQuestionsInQuiz = quizData.length;
+
+  timerEl.innerText = "⏳ 0s";
+  gemsCounterEl.innerText = `💎 0`;
+  scoreCard.innerHTML = "";
+  restartBtn.style.display = "none";
+  nextPageBtn.style.display = "none";
+
+  loadQuestion();
+  startTimer();
+}
+
+function updateProgress() {
+  const currentQuestionNumber = current + 1;
+  if (quizData[current]) {
+    progressTracker.innerText = `📍 ${currentQuestionNumber} / ${totalQuestionsInQuiz}`;
+  } else if (current > 0) {
+    progressTracker.innerText = "Done!";
+  } else {
+    progressTracker.innerText = `📍 1 / ${totalQuestionsInQuiz}`;
+  }
+}
+
+function loadQuestion() {
+  if (current >= quizData.length) {
+    return showScore();
+  }
+
+  selectedOption = null;
+  const d = quizData[current];
+
+  updateProgress();
+
+  dragOptionsEl.innerHTML = "";
+  dropContainerEl.innerHTML = "";
+  nextPageBtn.style.display = "none";
+
+  // Page slice
+  const s = d.pageIndex * blanksPerPage;
+  const e = s + blanksPerPage;
+
+  const answers = d.originalAnswers.slice(s, e);
+  const parts = d.originalPassage.split("___").slice(s, e + 1);
+
+  // Render answers (shuffled), compact & centered
+  const shuffled = [...answers].sort(() => Math.random() - 0.5);
+  shuffled.forEach(ans => {
+    const div = document.createElement("div");
+    div.classList.add("drag-item");
+    div.innerText = ans;
+    div.onclick = () => selectOption(div);
+    dragOptionsEl.appendChild(div);
+  });
+
+  // Passage parts
+  if (s > 0) dropContainerEl.appendChild(document.createTextNode("... "));
+  parts.forEach((part, i) => {
+    dropContainerEl.appendChild(document.createTextNode(part));
+    if (i < answers.length) {
+      const b = document.createElement("button");
+      b.classList.add("drop-zone");
+      b.innerText = "___";
+      b.dataset.answer = answers[i];
+      b.onclick = () => placeOption(b);
+      dropContainerEl.appendChild(b);
+      dropContainerEl.appendChild(document.createTextNode(" "));
+    }
+  });
+  if (e < d.originalAnswers.length) dropContainerEl.appendChild(document.createTextNode(" ..."));
+
+  // After rendering, adjust for top strip height
+  adjustForTopStrip();
+}
+
+function selectOption(div) {
+  if (div.style.display === "none") return;
+  if (selectedOption) selectedOption.classList.remove("selected");
+  selectedOption = div;
+  div.classList.add("selected");
+}
+
+function placeOption(dz) {
+  if (!selectedOption || dz.classList.contains("filled")) return;
+
+  const ans = selectedOption.innerText;
+  const correct = dz.dataset.answer;
+
+  if (ans === correct) {
+    // Correct
+    correctCount++;
+    gemsCount++;
+    gemsCounterEl.innerText = `💎 ${gemsCount}`;
+
+    // FX
+    createSparkleEffect(dz);
+    gemsCounterEl.classList.add('gem-counter-pulse');
+    setTimeout(() => gemsCounterEl.classList.remove('gem-counter-pulse'), 400);
+
+    dz.innerText = ans;
+    dz.classList.add("correct", "filled");
+    dz.disabled = true;
+    selectedOption.style.display = "none";
+  } else {
+    // Wrong
+    totalWrongGuesses++;
+    gemsCount--;
+    gemsCounterEl.innerText = `💎 ${gemsCount}`;
+    dz.classList.add("wrong");
+    setTimeout(() => dz.classList.remove("wrong"), 600);
+
+    // Queue this page for retry if not already queued
+    const currentData = quizData[current];
+    if (!wrongQuestions.includes(currentData)) {
+      wrongQuestions.push(currentData);
+      totalQuestionsInQuiz++;   // keep total growing to reflect retries
+      updateProgress();         // immediate reflect in header
+    }
+  }
+
+  if (selectedOption) {
+    selectedOption.classList.remove("selected");
+    selectedOption = null;
+  }
+
+ if (!dropContainerEl.querySelector(".drop-zone:not(.filled)")) {
+    nextPageBtn.style.display = "inline-block";
+  }
+}
+
+nextPageBtn.onclick = () => {
+  current++;
+  if (current >= quizData.length && wrongQuestions.length > 0) {
+    quizData = quizData.concat(wrongQuestions);
+    wrongQuestions = [];
+  }
+  loadQuestion();
+};
+
+restartBtn.onclick = () => {
+  nameFormEl.style.display = "block";
+  quizContentEl.style.display = "none";
+  document.getElementById("quizTitle").style.display = "block";
+  document.getElementById("quizAuthor").style.display = "block";
+  nameInputEl.value = playerName;
+  deptSelectEl.value = playerDept;
+};
+
+function createSparkleEffect(element) {
+  const rect = element.getBoundingClientRect();
+  const containerRect = quizContainer.getBoundingClientRect();
+
+  const sparkCount = 8;
+  for (let i = 0; i < sparkCount; i++) {
+    const spark = document.createElement('div');
+    spark.className = 'gem-spark';
+    spark.innerText = ['💎', '✨', '⭐'][Math.floor(Math.random() * 3)];
+    spark.style.left = `${rect.left - containerRect.left + rect.width / 2}px`;
+    spark.style.top  = `${rect.top  - containerRect.top  + rect.height / 2}px`;
+    const randomX = (Math.random() - 0.5) * 100;
+    spark.style.setProperty('--random-x', `${randomX}px`);
+    quizContainer.appendChild(spark);
+    setTimeout(() => spark.remove(), 1000);
+  }
+}
+
+/* === Corrected Firestore-enabled showScore === */
+async function showScore() {
+  clearInterval(timerInterval);
+  const totalTime = Math.floor((Date.now() - startTime) / 1000);
+  dragOptionsEl.innerHTML = "";
+  dropContainerEl.innerHTML = "<h2 style='text-align:center;'>🎉 Quiz Completed!</h2>";
+  progressTracker.innerText = "Done!";
+  nextPageBtn.style.display = "none";
+
+  const successMessage =
+    totalWrongGuesses === 0
+      ? "<p>✅ Flawless! All questions answered correctly on the first attempt!</p>"
+      : `<p>✅ Correct Answers: ${correctCount}</p>
+         <p>❌ Wrong Attempts: ${totalWrongGuesses}</p>`;
+
+  scoreCard.innerHTML = `
+    <p>👤 Player: <strong>${playerName}</strong> (${playerDept})</p>
+    ${successMessage}
+    <p>💎 Final Gems: ${gemsCount}</p>
+    <p>⏱️ Time Taken: ${totalTime} seconds</p>
+    <button onclick="downloadPDFReport()" 
+      style="margin-top: 1rem; padding: 0.7rem 2rem; background-color: #4CAF50; 
+      border: none; border-radius: 10px; cursor: pointer; color: white; font-size: 1rem;">
+      📥 Download PDF Report
+    </button>
+  `;
+  restartBtn.style.display = "inline-block";
+
+  try {
+    const { collection, addDoc } = await import("https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js");
+    await addDoc(collection(window.db, "Quests"), {
+      name: playerName,
+      department: playerDept,
+      correct: correctCount,
+      wrong: totalWrongGuesses,
+      gems: gemsCount,
+      time: totalTime,
+      questId: "Story 79",
+      date: new Date().toISOString()
+    });
+    console.log("✅ Data successfully sent to Firestore!");
+  } catch (err) {
+    console.error("❌ Firestore write failed:", err);
+  }
+}
+</script>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
+  import { getFirestore } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCBB4yCSciJUu7pujDh5-zO3QMWjvsCXUY",
+    authDomain: "backend-e448f.firebaseapp.com",
+    projectId: "backend-e448f",
+    storageBucket: "backend-e448f.appspot.com",
+    messagingSenderId: "888323564503",
+    appId: "1:888323564503:web:28f3b799eee38da837a192",
+    measurementId: "G-FXBT6X58ED"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  window.db = db;
+</script>
+</body>
+</html>
+

@@ -1,0 +1,1650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SRM VEC English — Quest & Video Calendar</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#7A0019">
+
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
+
+.loading-screen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  color: white;
+}
+
+.loading-screen.show {
+  display: flex;
+}
+
+.loading-screen h1 {
+  font-size: 1.5rem;
+  margin-bottom: 20px;
+  text-align: center;
+  padding: 0 20px;
+}
+
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid rgba(255,255,255,0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.credits {
+  position: absolute;
+  bottom: 30px;
+  font-size: 0.9rem;
+  opacity: 0.9;
+  text-align: center;
+  padding: 0 20px;
+}
+
+.name-input-container {
+  background: white;
+  border-radius: 20px;
+  padding: 40px 30px;
+  max-width: 500px;
+margin: 50px auto; 
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  text-align: center;
+  display: none;
+}
+
+.name-input-container.show {
+  display: block;
+}
+
+.name-input-container h1 {
+  color: #7A0019;
+  font-size: 1.5rem;
+  margin-bottom: 10px;
+}
+
+.name-input-container h2 {
+  color: #333;
+  font-size: 1.1rem;
+  margin-bottom: 30px;
+}
+
+.name-input-container input {
+  width: 100%;
+  padding: 15px;
+  font-size: 1rem;
+  border: 2px solid #ddd;
+  border-radius: 10px;
+  margin-bottom: 15px;
+  transition: border 0.3s;
+}
+
+.name-input-container input:focus {
+  outline: none;
+  border-color: #7A0019;
+}
+
+.name-input-container button, .name-input-container a button {
+  width: 100%;
+  padding: 15px;
+  font-size: 1rem;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  margin-bottom: 10px;
+  transition: transform 0.2s, box-shadow 0.2s;
+  font-weight: 600;
+}
+
+.name-input-container a {
+  text-decoration: none;
+  display: block;
+}
+
+.name-input-container button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+.btn-primary {
+  background: #7A0019;
+  color: white;
+}
+
+.btn-vocab {
+  background: #4CAF50;
+  color: white;
+}
+
+.btn-mystic {
+  background: #FF5722;
+  color: white;
+}
+
+.btn-wordle {
+  background: #FFC0CB;
+  color: black;
+}
+
+.btn-leaderboard {
+  background: #A020F0;
+  color: white;
+}
+
+.btn-elll {
+  background: #000000;
+  color: white;
+}
+
+.leaderboard-icon {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  width: 50px;
+  height: 50px;
+  background: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+  z-index: 1000;
+  transition: transform 0.3s;
+}
+
+.leaderboard-icon:hover {
+  transform: scale(1.1);
+}
+.elll-icon {
+  position: fixed;
+  top: 20px;
+  left: 90px;
+  width: 50px;
+  height: 50px;
+  background: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+  z-index: 1000;
+  transition: transform 0.3s;
+}
+
+.elll-icon:hover {
+  transform: scale(1.1);
+}
+
+.profile-icon {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  width: 50px;
+  height: 50px;
+  background: white;
+  border-radius: 50%;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+  z-index: 1000;
+  transition: transform 0.3s;
+}
+
+.profile-icon.show {
+  display: flex;
+}
+
+.profile-icon:hover {
+  transform: scale(1.1);
+}
+
+.profile-drawer {
+  position: fixed;
+  top: 0;
+  right: -350px;
+  width: 350px;
+  height: 100%;
+  background: white;
+  box-shadow: -5px 0 25px rgba(0,0,0,0.3);
+  z-index: 999;
+  transition: right 0.3s ease;
+  overflow-y: auto;
+  padding: 80px 20px 20px;
+}
+
+.profile-drawer.open {
+  right: 0;
+}
+
+.profile-drawer h3 {
+  color: #7A0019;
+  margin-bottom: 20px;
+  font-size: 1.3rem;
+}
+
+.user-stats {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 10px;
+}
+
+.stat-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: white;
+  margin-bottom: 10px;
+  font-size: 0.9rem;
+}
+
+.stat-item:last-child {
+  margin-bottom: 0;
+}
+
+.stat-label {
+  font-weight: 500;
+}
+
+.stat-value {
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.drawer-item {
+  padding: 15px;
+  margin-bottom: 10px;
+  background: #f5f5f5;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.drawer-item:hover {
+  background: #e0e0e0;
+}
+
+.drawer-item a {
+  text-decoration: none;
+  color: #333;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 500;
+}
+
+.close-drawer {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  font-size: 2rem;
+  cursor: pointer;
+  color: #666;
+}
+
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.5);
+  z-index: 998;
+  display: none;
+}
+
+.overlay.active {
+  display: block;
+}
+
+.calendar-container {
+  background: white;
+  border-radius: 20px;
+  padding: 20px;
+  max-width: 800px;
+  margin: 0 auto;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  display: none;
+  max-height: calc(100vh - 40px);
+  overflow: hidden;
+  flex-direction: column;
+}
+
+.calendar-container.show {
+  display: flex;
+}
+
+.user-info {
+  text-align: center;
+  margin-bottom: 15px;
+  flex-shrink: 0;
+}
+
+.user-info h2 {
+  color: #7A0019;
+  font-size: 1.5rem;
+  margin-bottom: 15px;
+}
+
+.stats {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.stat-box {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 15px 25px;
+  border-radius: 10px;
+  font-weight: 600;
+}
+
+.type-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+.type-button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s;
+  color: white;
+  font-size: 0.9rem;
+}
+
+.type-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+
+.type-button.active {
+  transform: translateY(-5px) scale(1.05); /* Lifts higher AND makes it bigger */
+  box-shadow: 0 12px 25px rgba(0,0,0,0.4),  /* A darker, heavier shadow for depth */
+              0 0 25px 5px currentColor;   /* A much wider and brighter glow */
+  z-index: 2; /* Ensures it's visually on top of the other buttons */
+}
+.calendar {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.calendar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  flex-shrink: 0;
+}
+
+.calendar-header button {
+  background: #7A0019;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.calendar-header div {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.days-of-week {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  margin-bottom: 6px;
+  font-weight: 600;
+  text-align: center;
+  color: #666;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+.dates {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  flex: 1;
+  align-content: start;
+  overflow: hidden;
+}
+
+.dates div {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.3s;
+  font-size: 0.9rem;
+}
+
+.dates div:hover:not(.disabled) {
+  transform: scale(1.05);
+}
+
+.dates .done {
+  background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+  color: white;
+}
+
+.dates .missed {
+  background: #ffebee;
+  color: #c62828;
+}
+
+.dates .disabled {
+  background: #f5f5f5;
+  color: #ccc;
+  cursor: default;
+}
+
+.offline-banner {
+  background: #ff9800;
+  color: white;
+  padding: 12px;
+  text-align: center;
+  border-radius: 10px;
+  margin-bottom: 12px;
+  font-weight: 600;
+  display: none;
+  flex-shrink: 0;
+  font-size: 0.9rem;
+}
+
+.offline-banner.show {
+  display: block;
+}
+
+.logout-btn {
+  width: 100%;
+  padding: 15px;
+  background: #c62828;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 600;
+  margin-top: 20px;
+}
+
+.custom-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+}
+.custom-modal-overlay.show {
+  display: flex;
+  opacity: 1;
+}
+.custom-modal {
+  background: white;
+  padding: 30px;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  width: 90%;
+  max-width: 400px;
+  text-align: center;
+  transform: scale(0.9);
+  transition: transform 0.2s ease-in-out;
+}
+.custom-modal-overlay.show .custom-modal {
+  transform: scale(1);
+}
+.custom-modal p {
+  font-size: 1.1rem;
+  color: #333;
+  margin-bottom: 25px;
+  line-height: 1.5;
+}
+.modal-buttons {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+}
+.modal-btn {
+  border: none;
+  border-radius: 10px;
+  padding: 12px 20px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex: 1;
+}
+.modal-btn-confirm {
+  background: #c62828;
+  color: white;
+}
+.modal-btn-confirm:hover {
+  background: #a02020;
+  transform: translateY(-2px);
+}
+.modal-btn-cancel {
+  background: #e0e0e0;
+  color: #333;
+}
+.modal-btn-cancel:hover {
+  background: #c7c7c7;
+  transform: translateY(-2px);
+}
+
+@media (max-width: 768px) {
+  body {
+    padding: 10px;
+  }
+  
+  .calendar-container {
+    padding: 12px;
+    border-radius: 15px;
+    max-height: calc(100vh - 20px);
+  }
+  
+  .user-info h2 {
+    font-size: 1.1rem;
+    margin-bottom: 10px;
+  }
+  
+  .type-button {
+    padding: 8px 14px;
+    font-size: 0.8rem;
+  }
+  
+  .calendar-header button {
+    padding: 6px 12px;
+    font-size: 0.9rem;
+  }
+  
+  .calendar-header div {
+    font-size: 0.95rem;
+  }
+  
+  .calendar-header {
+    margin-bottom: 10px;
+  }
+  
+  .days-of-week {
+    font-size: 0.7rem;
+    gap: 3px;
+    margin-bottom: 4px;
+  }
+  
+  .dates {
+    gap: 3px;
+  }
+  
+  .dates div {
+    font-size: 0.75rem;
+  }
+  
+  .offline-banner {
+    padding: 10px;
+    font-size: 0.85rem;
+    margin-bottom: 10px;
+  }
+  
+  .profile-drawer {
+    width: 100%;
+    right: -100%;
+  }
+}
+.quotes-carousel {
+  margin-top: 10px;
+  text-align: center;
+  color: #7A0019; 
+  font-style: italic;
+  font-size: 0.95rem;
+  opacity: 0.9;
+  transition: opacity 5s ease;
+  min-height: 24px;
+}
+.level-dashboard {
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  border-radius: 20px;
+  padding: 20px;
+  color: white;
+  text-align: center;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+  margin: 0 auto 20px auto;
+  max-width: 800px;
+  animation: fadeIn 1s ease-out;
+}
+
+.level-dashboard h2 {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+  letter-spacing: 1px;
+  color: #ffe082;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.6);
+}
+
+.xp-bar {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 10px;
+  height: 12px;
+  width: 100%;
+  margin: 6px 0;
+  overflow: hidden;
+}
+
+.xp-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #ffcc33, #ff9100);
+  border-radius: 10px;
+  transition: width 1s ease-in-out;
+}
+
+.xp-text {
+  font-size: 0.8rem;
+  color: #eee;
+  margin-bottom: 15px;
+}
+
+.power-bar-deck {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-around;
+  gap: 6px;
+}
+
+.power-item {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  width: 60px;
+  font-size: 0.8rem;
+  color: #fff;
+}
+
+.power-bar {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 5px;
+  margin: 3px 0;
+  overflow: hidden;
+}
+
+.power-bar .fill {
+  height: 100%;
+  border-radius: 5px;
+  transition: width 1s ease;
+}
+
+.power-item:nth-child(1) .fill { background: linear-gradient(90deg, gold, orange); }
+.power-item:nth-child(2) .fill { background: linear-gradient(90deg, #2196F3, #21CBF3); }
+.power-item:nth-child(3) .fill { background: linear-gradient(90deg, #4CAF50, #8BC34A); }
+.power-item:nth-child(4) .fill { background: linear-gradient(90deg, #FF5722, #FFC107); }
+.power-item:nth-child(5) .fill { background: linear-gradient(90deg, #9C27B0, #E040FB); }
+
+.power-value {
+  margin-top: 2px;
+  font-weight: bold;
+  font-size: 0.8rem;
+  text-shadow: 0 0 5px rgba(0,0,0,0.3);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Desktop/laptop fix: allow full calendar to expand vertically */
+@media (min-width: 1025px) {
+  /* let the calendar container expand instead of clipping */
+  .calendar-container {
+    max-height: none;    /* remove the viewport-limited height */
+    overflow: visible;   /* show the whole calendar */
+  }
+
+  /* allow date cells to have a fixed height (not forced square) */
+  .dates div {
+    aspect-ratio: auto;  /* stop forcing 1:1 squares on desktop */
+    height: 78px;        /* comfortable row height for desktop */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* make sure calendar column track stays readable when wide */
+  .dates {
+    align-content: start;
+    overflow: visible;
+  }
+
+  /* let calendar itself grow naturally */
+  .calendar {
+    min-height: auto;
+  }
+
+  /* small tweak so the whole page centers on large screens */
+  body {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 40px;
+  }
+
+  /* keep container width stable for nicer desktop layout */
+  .calendar-container,
+  .name-input-container,
+  .level-dashboard {
+    width: 900px;
+    max-width: 90vw;
+  }
+}
+
+
+</style>
+</head>
+<body>
+
+<div class="loading-screen" id="loadingScreen">
+  <h1>Loading your Quest Calendar...</h1>
+  <div class="spinner"></div>
+  <p class="credits"> Created with ♥️ grit, nurtured with love and charged with passion by Andrew Veda<br>SRM Valliammai Engineering College</p>
+</div>
+
+<div class="name-input-container" id="nameInputContainer">
+  <h1>SRM Valliammai Engineering College (Autonomous)</h1>
+  <h2>Department of English</h2>
+  <input type="text" id="nameInput" placeholder="Enter Your Name">
+  <button class="btn-primary" onclick="saveAndLogin()">Get Started</button>
+  <a href="https://sites.google.com/view/srm-vec-english/daily-vocabulary">
+    <button class="btn-vocab">📚 Daily Vocabulary</button>
+  </a>
+  <a href="https://sites.google.com/view/cys-english/preliminary-event-registration">
+    <button class="btn-mystic">🎯 Register for Mystic Summit</button>
+  </a>
+  <a href="https://andrewveda.github.io/Quiz/">
+    <button class="btn-wordle">👽 WORDLE!</button>
+  </a>
+  <a href="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/leaderboard">
+    <button class="btn-leaderboard">😎 Leaderboard</button>
+  </a>
+  <a href="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/ELLL.html">
+    <button class="btn-elll">📝 ELLL Virtual Record✨</button>
+  </a>
+</div>
+
+<div class="profile-icon" id="profileIcon">👤</div>
+<div class="leaderboard-icon" id="leaderboardIcon">👑</div>
+  <div class="elll-icon" id="elllIcon">📜</div>
+<div class="overlay" id="overlay"></div>
+<div class="profile-drawer" id="profileDrawer">
+  <span class="close-drawer" id="closeDrawer">&times;</span>
+  <h3 id="drawerUserName">User Profile</h3>
+  <div class="user-stats">
+    <div class="stat-item">
+      <span class="stat-label">🏆 Rank:</span>
+      <span class="stat-value" id="drawerRank">-</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-label">📊 Score:</span>
+      <span class="stat-value" id="drawerScore">0</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-label">⏱️ Total Time:</span>
+      <span class="stat-value" id="drawerTotalTime">0m</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-label">📝 Quests:</span>
+      <span class="stat-value" id="drawerQuests">0</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-label">🎯 Videos:</span>
+      <span class="stat-value" id="drawerMainQuests">0</span>
+    </div>
+  </div>
+  <hr style="margin: 20px 0; border: none; border-top: 1px solid #ddd;">
+  <h3 style="font-size: 1.1rem; margin-bottom: 15px;">Quick Links</h3>
+  <div class="drawer-item">
+    <a href="https://andrewveda.github.io/V">📚 Daily Vocabulary</a>
+  </div>
+  <div class="drawer-item">
+    <a href="https://sites.google.com/view/cys-english/preliminary-event-registration">🎯 Mystic Summit</a>
+  </div>
+  <div class="drawer-item">
+    <a href="  https://andrewveda.github.io/videoquest"> 🎥 Video Quests</a>
+  </div>
+  <div class="drawer-item">
+    <a href="https://andrewveda.github.io/Quiz/">👽 WORDLE!</a>
+  </div>
+  <div class="drawer-item">
+    <a href="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/leaderboard">😎 Leaderboard</a>
+  </div>
+  <div class="drawer-item">
+    <a href="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/ELLL.html">📝 ELLL Virtual Record</a>
+  </div>
+  <button class="logout-btn" onclick="logout()">🚪 Logout</button>
+</div>
+
+
+
+<div class="level-dashboard" id="levelDashboard">
+  <h2 id="levelTitle">LEVEL : Loading.. ☆☆☆☆</h2>
+  <div class="xp-bar">
+    <div class="xp-fill" style="width: 0%;"></div>
+  </div>
+  <p class="xp-text">0% to next level</p>
+
+
+
+<div class="power-bar-deck">
+  <div class="power-item" data-label="Score">
+    📊 <div class="power-bar"><div class="fill" style="width:70%;"></div></div>
+    <span class="power-value">2140</span>
+  </div>
+  <div class="power-item" data-label="Quests">
+    📝 <div class="power-bar"><div class="fill" style="width:80%;"></div></div>
+    <span class="power-value">16</span>
+  </div>
+  <div class="power-item" data-label="Videos">
+    🎥 <div class="power-bar"><div class="fill" style="width:40%;"></div></div>
+    <span class="power-value">4</span>
+  </div>
+  <div class="power-item" data-label="Time">
+    ⏱️ <div class="power-bar"><div class="fill" style="width:52%;"></div></div>
+    <span class="power-value">52m</span>
+  </div>
+</div>
+</div>
+
+
+<div class="calendar-container" id="calendarContainer">
+  <div class="offline-banner" id="offlineBanner">📡 Offline mode — progress will sync when online.</div>
+  
+  <div class="user-info">
+    <h2 id="userName"></h2>
+  </div>
+
+<div class="type-buttons">
+  <button class="type-button active" style="background:#2196F3;" onclick="switchType('quest')">📝 Quest</button>
+  <button class="type-button" style="background:#E53935;" onclick="switchType('video')">🎥 Videos</button>
+  <button class="type-button" style="background:#4CAF50;" onclick="switchType('ipa')">📚 Stories</button>
+</div>
+
+  <div class="calendar">
+    <div class="calendar-header">
+      <button onclick="changeMonth(-1)">◀</button>
+      <div id="monthYear"></div>
+      <button onclick="changeMonth(1)">▶</button>
+    </div>
+    <div class="days-of-week">
+      <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div>
+      <div>Thu</div><div>Fri</div><div>Sat</div>
+    </div>
+    <div class="dates" id="datesGrid"></div>
+  </div>
+  
+<div class="quotes-carousel" id="quotesCarousel">
+  <p>"Language is the dress of thought." — Samuel Johnson</p>
+</div>
+  
+  <p style="text-align: center; font-size: 0.8rem; color: #888; margin-top: 15px; padding-bottom: 5px; flex-shrink: 0;">
+    Created with ♥️ grit, nurtured with love and charged with passion by Andrew Veda, AP<br>SRM Valliammai Engineering College
+  </p>
+</div>
+
+<div id="customModal" class="custom-modal-overlay">
+  <div class="custom-modal">
+    <p id="modalMessage">Are you sure?</p>
+    <div class="modal-buttons">
+      <button id="modalCancel" class="modal-btn modal-btn-cancel">Cancel</button>
+      <button id="modalConfirm" class="modal-btn modal-btn-confirm">OK</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+  window.supabase = createClient(
+    "https://ahezssoczvpbkteffcgz.supabase.co", 
+"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoZXpzc29jenZwYmt0ZWZmY2d6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI4NTk1ODUsImV4cCI6MjA3ODQzNTU4NX0.2ZlqXnZxv0opkhynAT7OlK4S-xPygcc7ETUyTXRfGHE"
+  );
+</script>
+
+<script>
+let sessionStartTime = Date.now();
+let totalTimeSpent = 0;
+let userData = null;
+let userProfileData = null;
+let currentMonth = new Date().getMonth();
+let currentYear = new Date().getFullYear();
+let currentType = 'quest';
+const startDate = new Date(2025, 7, 25);
+
+const questLinks = {
+  1: "https://andrewveda.github.io/SRM-VEC-English-PWA/quests/quest1", 2: "https://sites.google.com/view/srm-vec-english/quest/wh-questions-1",
+  3: "https://sites.google.com/view/cys-english/self-introduction-1", 4: "https://sites.google.com/view/srm-vec-english/quest/one-word-substitution-1",
+  5: "https://sites.google.com/view/cys-english/self-introduction-3", 6: "https://sites.google.com/view/srm-vec-english/quest/film-review",
+  7: "https://sites.google.com/view/srm-vec-english/quest/pronouns-1", 8: "https://sites.google.com/view/srm-vec-english/quest/pronouns-2",
+  9: "https://sites.google.com/view/srm-vec-english/quest/parts-of-speech-1", 10: "https://sites.google.com/view/srm-vec-english/quest/question-tags-1",
+  11: "https://sites.google.com/view/srm-vec-english/quest/question-tags-2", 12: "https://sites.google.com/view/srm-vec-english/quest/subject-verb-agreement",
+  13: "https://sites.google.com/view/srm-vec-english/quest/comparative-1", 14: "https://sites.google.com/view/srm-vec-english/quest/comparative-2",
+  15: "https://sites.google.com/view/srm-vec-english/quest/discourse-markers", 16: "https://sites.google.com/view/srm-vec-english/quest/past-1",
+  17: "https://sites.google.com/view/cys-english/questyesno1", 18: "https://sites.google.com/view/srm-vec-english/quest/yesno-2",
+  19: "https://sites.google.com/view/srm-vec-english/quest/one-word-substitution-2", 20: "https://sites.google.com/view/cys-english/match1",
+  21: "https://sites.google.com/view/cys-english/match2", 22: "https://sites.google.com/view/cys-english/past",
+  23: "https://sites.google.com/view/cys-english/homophone1", 24: "https://sites.google.com/view/cys-english/homophone2",
+  25: "https://sites.google.com/view/cys-english/comparisons1", 26: "https://sites.google.com/view/cys-english/comparisons2",
+  27: "https://sites.google.com/view/cys-english/discoursemarkers", 28: "https://sites.google.com/view/cys-english/article",
+  29: "https://sites.google.com/view/cys-english/synonym1", 30: "https://sites.google.com/view/cys-english/synonym2",
+  31: "https://sites.google.com/view/cys-english/antonym1", 32: "https://sites.google.com/view/cys-english/antonym2",
+  33: "https://sites.google.com/view/cys-english/prep1", 34: "https://sites.google.com/view/cys-english/prep2",
+  35: "https://sites.google.com/view/cys-english/past2", 36: "https://sites.google.com/view/cys-english/prep3",
+  37: "https://sites.google.com/view/cys-english/match3", 38: "https://sites.google.com/view/cys-english/article2",
+  39: "https://sites.google.com/view/cys-english/article3", 40: "https://sites.google.com/view/cys-english/quest40",
+  41: "https://sites.google.com/view/cys-english/quest41", 42: "https://sites.google.com/view/cys-english/quest42",
+  43: "https://sites.google.com/view/cys-english/quest43", 44: "https://sites.google.com/view/cys-english/quest44",
+  45: "https://sites.google.com/view/cys-english/quest45", 46: "https://sites.google.com/view/cys-english/quest46",
+  47: "https://sites.google.com/view/cys-english/quest47", 48: "https://sites.google.com/view/cys-english/quest48",
+  49: "https://sites.google.com/view/cys-english/quest49", 
+  50: "https://sites.google.com/view/cys-english/quest50",
+  51: "https://sites.google.com/view/cys-english/quest51", 
+   52: "https://sites.google.com/view/cys-english/quest52",
+    53: "https://sites.google.com/view/cys-english/quest53",
+    54: "https://sites.google.com/view/cys-english/quest54",
+    55: "https://sites.google.com/view/cys-english/quest55",
+    56: "https://sites.google.com/view/cys-english/quest56",
+    57: "https://sites.google.com/view/cys-english/quest57",
+    58: "https://sites.google.com/view/cys-english/quest58",
+    59: "https://sites.google.com/view/cys-english/quest59",
+    60: "https://sites.google.com/view/cys-english/quest60",
+    61: "https://sites.google.com/view/cys-english/quest61",
+    62: "https://sites.google.com/view/cys-english/quest62",
+    63: "https://sites.google.com/view/cys-english/full-streak-wh-questions", 
+    64: "https://sites.google.com/view/cys-english/full-streak-single-word",
+  65: "https://sites.google.com/view/cys-english/full-streak-3", 
+  66: "https://sites.google.com/view/cys-english/full-streak-4",
+  67: "https://sites.google.com/view/cys-english/full-streak-5", 
+  68: "https://sites.google.com/view/cys-english/full-streak-6",
+  69: "https://sites.google.com/view/cys-english/full-streak-7", 
+  70: "https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/bookreview1", 
+  71: "https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/bookreview2", 
+  72: "https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/bookreview3", 
+  73: "https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/bookreview4", 
+  74: "https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/blog1", 
+  75: "https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/blog2",
+  76: "https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/blog3",
+  77: "https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/blog4",
+  78: "https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/blog5",
+  79: "https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/blog6",
+  80: "https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/blog7",
+  81: "https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/blog8",
+  82: "https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/blog9"
+
+};
+
+const videoLink = "https://andrewveda.github.io/videoquest/";
+const ipaLinks = { 69: "https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story1", 70: "https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story2", 71: "https://andrewveda.github.io/SRM-VEC-English-PWA/quests/quest1", 
+                 72: "https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story3", 73: "https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story4", 
+                 74: "https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story5", 75: "https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story6", 76: "https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story7", 
+                 77: "https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story8",
+                  78: "https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story9",
+                  79: "https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story10",
+                 80: "https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story11",
+                 81: "https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story12"
+                 
+                  
+
+                  
+                 }
+
+async function init() {
+  const savedName = localStorage.getItem('userName');
+  
+  if (savedName) {
+    const cached = localStorage.getItem('cachedUserData');
+    if (cached) {
+      userData = JSON.parse(cached);
+      const cachedProfile = localStorage.getItem('cachedProfileData');
+      if (cachedProfile) {
+        userProfileData = JSON.parse(cachedProfile);
+      }
+      showCalendar();
+      updateProfileDrawer();
+      await loadUserDataInBackground(savedName);
+    } else {
+      document.getElementById('loadingScreen').classList.add('show');
+      await loadUserData(savedName);
+      await fetchProfileData(savedName);
+    }
+  } else {
+    document.getElementById('nameInputContainer').classList.add('show');
+  }
+  
+  setupEventListeners();
+  checkOnlineStatus();
+  trackInstall();
+}
+
+function setupEventListeners() {
+  document.getElementById('profileIcon').addEventListener('click', toggleDrawer);
+  document.getElementById('closeDrawer').addEventListener('click', toggleDrawer);
+  document.getElementById('overlay').addEventListener('click', toggleDrawer);
+  
+  window.addEventListener('beforeunload', syncData);
+  window.addEventListener('online', handleOnline);
+  window.addEventListener('offline', handleOffline);
+  
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      syncData();
+    } else {
+      sessionStartTime = Date.now();
+    }
+  });
+  
+  setInterval(() => {
+    totalTimeSpent = Math.floor((Date.now() - sessionStartTime) / 1000 / 60);
+    localStorage.setItem('totalTimeSpent', totalTimeSpent);
+  }, 30000);
+
+  document.getElementById('modalConfirm').addEventListener('click', () => {
+    if (window.confirmCallback) {
+      window.confirmCallback();
+    }
+    document.getElementById('customModal').classList.remove('show');
+    window.confirmCallback = null;
+  });
+
+  document.getElementById('modalCancel').addEventListener('click', () => {
+    document.getElementById('customModal').classList.remove('show');
+    window.confirmCallback = null;
+  });
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("leaderboardIcon").onclick = () => {
+    window.location.href = "https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/leaderboard";
+  };
+  document.getElementById("elllIcon").onclick = () => {
+    window.location.href = "https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/ELLL.html";
+  };
+});
+
+
+function showModal(message, onConfirm) {
+  const modal = document.getElementById('customModal');
+  document.getElementById('modalMessage').textContent = message;
+  modal.classList.add('show');
+  window.confirmCallback = onConfirm;
+}
+
+function toggleDrawer() {
+  const drawer = document.getElementById('profileDrawer');
+  const overlay = document.getElementById('overlay');
+
+  // Open/close instantly
+  drawer.classList.toggle('open');
+  overlay.classList.toggle('active');
+
+  // Lazy load profile data ONLY when the drawer is opened
+  if (drawer.classList.contains('open')) {
+    const name = localStorage.getItem('userName');
+    if (name && !userProfileData) {
+      document.getElementById('drawerUserName').textContent = "Loading...";
+      fetchProfileData(name);
+    }
+  }
+}
+
+
+async function saveAndLogin() {
+  const name = document.getElementById('nameInput').value.trim();
+  if (!name) {
+    showModal('Please enter your name!', () => {});
+    return;
+  }
+  
+  localStorage.setItem('userName', name.toUpperCase());
+  
+  userData = {
+    Name: name.toUpperCase(),
+    Challenges: []
+  };
+  
+  document.getElementById('nameInputContainer').classList.remove('show');
+  showCalendar();
+  
+  await loadUserDataInBackground(name);
+}
+
+async function loadUserDataInBackground(name) {
+  try {
+   const { data: profileData, error } = await supabase
+  .from('leaderboard')
+  .select('*');
+
+if (error) console.error(error);
+
+    
+   // --- SUPABASE version ---
+const { data, error } = await supabase
+  .from('summary_import')
+  .select('*');
+
+if (error) throw error;
+
+const fetchedUser = data.find(u => u.student_name?.toUpperCase() === name.toUpperCase());
+
+    if (fetchedUser) {
+      userData = fetchedUser;
+    }
+    
+    localStorage.setItem('cachedUserData', JSON.stringify(userData));
+    
+    await fetchProfileData(name);
+    
+    renderCalendar(currentMonth, currentYear, currentType);
+  } catch (err) {
+    console.error('Error loading data:', err);
+    
+    const cached = localStorage.getItem('cachedUserData');
+    if (cached) {
+      userData = JSON.parse(cached);
+      const cachedProfile = localStorage.getItem('cachedProfileData');
+      if (cachedProfile) {
+        userProfileData = JSON.parse(cachedProfile);
+      }
+      updateProfileDrawer();
+      renderCalendar(currentMonth, currentYear, currentType);
+      document.getElementById('offlineBanner').classList.add('show');
+    }
+  }
+}
+
+async function fetchProfileData(name) {
+  try {
+   const { data: profileData, error } = await supabase
+  .from('leaderboard')
+  .select('*');
+
+if (error) console.error(error);
+
+    
+    // Partial match - check if the stored name starts with the entered name
+    userProfileData = profileData.find(u => {
+      if (!u.Name) return false;
+      const fullName = u.Name.toUpperCase();
+      const searchName = name.toUpperCase();
+      // Check if full name starts with search name OR contains it before the dash
+      return fullName.startsWith(searchName) || fullName.split(' - ')[0].trim().startsWith(searchName);
+    });
+    
+    if (userProfileData) {
+      localStorage.setItem('cachedProfileData', JSON.stringify(userProfileData));
+      updateProfileDrawer();
+    }
+  } catch (err) {
+    console.error('Error loading profile data:', err);
+  }
+}
+
+async function loadUserData(name) {
+  try {
+    const { data, error } = await supabase
+  .from('summary_import')
+  .select('*');
+
+if (error) throw error;
+
+    
+   userData = data.find(u => u.student_name.toUpperCase() === name.toUpperCase()) || {
+      Name: name.toUpperCase(),
+      Quests: 0,
+      TotalCorrect: 0,
+      Challenges: []
+    };
+    
+    const savedTime = localStorage.getItem('totalTimeSpent');
+    if (savedTime) totalTimeSpent = parseInt(savedTime);
+    
+    localStorage.setItem('cachedUserData', JSON.stringify(userData));
+    
+    showCalendar();
+  } catch (err) {
+    console.error('Error loading data:', err);
+    
+    const cached = localStorage.getItem('cachedUserData');
+    if (cached) {
+      userData = JSON.parse(cached);
+      showCalendar();
+      document.getElementById('offlineBanner').classList.add('show');
+    } else {
+      showModal('Error loading data. Please check your connection and try again.', () => {
+        document.getElementById('loadingScreen').classList.remove('show');
+        document.getElementById('nameInputContainer').classList.add('show');
+      });
+    }
+  }
+}
+
+function showCalendar() {
+  document.getElementById('loadingScreen').classList.remove('show');
+  document.getElementById('calendarContainer').classList.add('show');
+  document.getElementById('profileIcon').classList.add('show');
+  document.getElementById('userName').textContent = userData.Name;
+  
+  renderCalendar(currentMonth, currentYear, currentType);
+}
+
+function updateProfileDrawer() {
+  if (userProfileData) {
+    console.log('Profile Data:', userProfileData);
+    
+    document.getElementById('drawerUserName').textContent = userProfileData.Name || 'User Profile';
+    document.getElementById('drawerRank').textContent = userProfileData.Rank || '-';
+    
+    // Try multiple possible field names for Score
+    document.getElementById('drawerScore').textContent = 
+      userProfileData['Score (Correct–Wrong)'] || userProfileData.Score || 0;
+    
+    // Handle time - convert seconds to minutes if needed
+    let timeValue = userProfileData['Total Time (s)'] || userProfileData.TotalTime || 0;
+    if (typeof timeValue === 'number') {
+      timeValue = Math.round(timeValue / 60) + 'm';
+    }
+    document.getElementById('drawerTotalTime').textContent = timeValue;
+    
+    document.getElementById('drawerQuests').textContent = userProfileData.Quests || 0;
+    document.getElementById('drawerMainQuests').textContent = userProfileData['Main Quests'] || userProfileData.MainQuests || 0;
+    // 🌟 Update top Level Dashboard dynamically
+const score = parseInt(userProfileData['Score (Correct–Wrong)'] || userProfileData.Score || 0);
+const quests = parseInt(userProfileData.Quests || 0);
+const videos = parseInt(userProfileData['Main Quests'] || userProfileData.MainQuests || 0);
+const time = parseInt(userProfileData['Total Time (s)'] || userProfileData.TotalTime || 0);
+const rank = userProfileData.Rank || '-';
+
+// Compute simple level logic
+const level = Math.floor(score / 500) + 1;
+const xpPercent = Math.min((score % 500) / 5, 100);
+const titles = ["Novice", "Apprentice", "Scholar", "Wordsmith", "Virtuoso", "Maestro"];
+const title = titles[Math.min(level - 1, titles.length - 1)];
+
+// Update display
+const dash = document.getElementById("levelDashboard");
+if (dash) {
+  dash.querySelector("#levelTitle").textContent = `LEVEL ${level}: ${title}`;
+  dash.querySelector(".xp-fill").style.width = xpPercent + "%";
+  dash.querySelector(".xp-text").textContent = `${Math.round(xpPercent)}% to next level`;
+  dash.querySelectorAll(".power-item")[0].querySelector(".power-value").textContent = score;
+dash.querySelectorAll(".power-item")[1].querySelector(".power-value").textContent = quests;
+dash.querySelectorAll(".power-item")[2].querySelector(".power-value").textContent = videos;
+dash.querySelectorAll(".power-item")[3].querySelector(".power-value").textContent = Math.round(time / 60) + "m";
+}
+
+  } else if (userData) {
+    document.getElementById('drawerUserName').textContent = userData.Name || 'User Profile';
+    console.log('Profile data not loaded yet');
+  }
+}
+
+function switchType(type) {
+  currentType = type;
+  document.querySelectorAll('.type-button').forEach(btn => btn.classList.remove('active'));
+  event.target.classList.add('active');
+  renderCalendar(currentMonth, currentYear, currentType);
+}
+
+function changeMonth(direction) {
+  currentMonth += direction;
+  if (currentMonth < 0) {
+    currentMonth = 11;
+    currentYear--;
+  } else if (currentMonth > 11) {
+    currentMonth = 0;
+    currentYear++;
+  }
+  renderCalendar(currentMonth, currentYear, currentType);
+}
+
+function renderCalendar(month, year, type) {
+  const datesGrid = document.getElementById('datesGrid');
+  const monthYear = document.getElementById('monthYear');
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  
+  monthYear.textContent = new Date(year, month).toLocaleString('default', { month: 'long' }) + ' ' + year;
+  datesGrid.innerHTML = '';
+  
+  const firstDayOfMonth = new Date(year, month, 1).getDay();
+  for (let i = 0; i < firstDayOfMonth; i++) {
+    const emptyDiv = document.createElement('div');
+    emptyDiv.className = 'disabled';
+    datesGrid.appendChild(emptyDiv);
+  }
+  
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const challengesString = Array.isArray(userData.Challenges) ? userData.Challenges.join(",") : (userData.Challenges || "");
+  const challenges = challengesString.split(",").map(c => c.trim()).filter(c => {
+    if (type === 'quest') return c.startsWith('Quest');
+    if (type === 'video') return c.startsWith('Video');
+    if (type === 'ipa') return c.startsWith('Story');
+    return false;
+  });
+  
+  for (let d = 1; d <= daysInMonth; d++) {
+    const currentDate = new Date(year, month, d);
+    const diffDays = Math.floor((currentDate - startDate) / (1000 * 60 * 60 * 24));
+    const questNumber = diffDays >= 0 ? diffDays + 1 : null;
+ const questName = questNumber
+  ? (type === 'quest'
+      ? `Quest ${questNumber}`
+      : type === 'video'
+        ? `Video ${questNumber}`
+        : `Story ${questNumber}`)
+  : null;    
+    const dayDiv = document.createElement('div');
+    
+    if (questName && challenges.includes(questName)) {
+      dayDiv.className = 'done';
+      dayDiv.textContent = `${d} 🔥`;
+    } else if (currentDate > today || questNumber === null) {
+      dayDiv.className = 'disabled';
+      dayDiv.textContent = d;
+    } else if (questName) {
+      if (currentDate < today) {
+        dayDiv.className = 'missed';
+      }
+      dayDiv.textContent = d;
+    } else {
+      dayDiv.className = 'disabled';
+      dayDiv.textContent = d;
+    }
+    
+  
+    dayDiv.onclick = () => {
+      let link;
+      if (type === 'quest') link = questLinks[questNumber];
+      if (type === 'ipa') link = ipaLinks[questNumber];
+      // FIX 3: Look up the link from the new objects
+         else if (type === 'video') link = videoLink;
+    
+      
+      if (link) {
+        const internalDomains = ["andrewveda.github.io", "sites.google.com"];
+        const isInternal = internalDomains.some(domain => link.includes(domain));
+        
+        if (isInternal) {
+          window.location.href = link;
+        } else {
+          window.open(link, '_blank');
+        }
+      }
+    };
+    
+    datesGrid.appendChild(dayDiv);
+  }
+}
+
+async function syncData() {
+  if (!userData) return;
+  
+  const sessionDuration = Math.floor((Date.now() - sessionStartTime) / 1000);
+  
+  const analyticsData = {
+    name: userData.Name,
+    sessionDuration: sessionDuration,
+    lastActive: new Date().toISOString(),
+    sessionStart: new Date(sessionStartTime).toISOString(),
+    device: navigator.userAgent,
+    isOnline: navigator.onLine
+  };
+  
+  if (navigator.onLine) {
+    const formData = new FormData();
+    Object.entries(analyticsData).forEach(([k, v]) => formData.append(k, v));
+   await supabase.from('quest_submissions').insert([
+  {
+    student_name: userData.Name,
+    time_spent: sessionDuration,
+    quest_id: 'SessionSync',
+    department: userProfileData?.Department || 'Unknown'
+  }
+]);
+
+  } else {
+    const pending = JSON.parse(localStorage.getItem('pendingSync') || '[]');
+    pending.push(analyticsData);
+    localStorage.setItem('pendingSync', JSON.stringify(pending));
+  }
+}
+
+function handleOnline() {
+  document.getElementById('offlineBanner').classList.remove('show');
+  
+  const pending = JSON.parse(localStorage.getItem('pendingSync') || '[]');
+  if (pending.length > 0) {
+   pending.forEach(async data => {
+  await supabase.from('quest_submissions').insert([
+    {
+      student_name: data.name,
+      time_spent: data.sessionDuration,
+      quest_id: 'OfflineSync',
+      department: userProfileData?.Department || 'Unknown'
+    }
+  ]);
+});    
+    localStorage.removeItem('pendingSync');
+  }
+  
+  const savedName = localStorage.getItem('userName');
+  if (savedName) loadUserDataInBackground(savedName);
+}
+
+function handleOffline() {
+  document.getElementById('offlineBanner').classList.add('show');
+}
+
+function checkOnlineStatus() {
+  if (!navigator.onLine) {
+    document.getElementById('offlineBanner').classList.add('show');
+  }
+}
+
+function trackInstall() {
+  window.addEventListener('beforeinstallprompt', async (e) => {
+    e.preventDefault();
+
+    const installData = {
+      name: localStorage.getItem('userName') || 'Unknown',
+      event: 'install_prompt_shown',
+      timestamp: new Date().toISOString(),
+      device: navigator.userAgent
+    };
+
+    try {
+      await supabase.from('quest_submissions').insert([
+        {
+          student_name: installData.name,
+          quest_id: installData.event,
+          time_spent: 0,
+          department: 'InstallEvent'
+        }
+      ]);
+    } catch (err) {
+      console.error('Install tracking error:', err);
+    }
+  });
+}
+window.addEventListener('appinstalled', async () => {
+  const installData = {
+    name: localStorage.getItem('userName') || 'Unknown',
+    event: 'app_installed',
+    timestamp: new Date().toISOString(),
+    device: navigator.userAgent
+  };
+
+  try {
+    await supabase.from('quest_submissions').insert([
+      {
+        student_name: installData.name,
+        quest_id: installData.event,
+        time_spent: 0,
+        department: 'InstallEvent'
+      }
+    ]);
+  } catch (err) {
+    console.error('App install tracking error:', err);
+  }
+});
+
+
+function logout() {
+  showModal('Are you sure you want to logout?', () => {
+    syncData();
+    localStorage.removeItem('userName');
+    localStorage.removeItem('cachedUserData');
+    localStorage.removeItem('cachedProfileData');
+    localStorage.removeItem('totalTimeSpent');
+    window.location.reload();
+  });
+}
+supabase
+  .channel('leaderboard-realtime')
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'leaderboard' }, payload => {
+    console.log('Leaderboard updated:', payload);
+    const savedName = localStorage.getItem('userName');
+    if (savedName) loadUserDataInBackground(savedName);
+  })
+  .subscribe();
+
+window.onload = () => init();
+
+</script>
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('service-worker.js')
+      .then(reg => console.log('✅ Service worker registered:', reg.scope))
+      .catch(err => console.error('❌ Service worker registration failed:', err));
+  });
+}
+
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  console.log('📲 Install prompt captured');
+
+  if (document.getElementById('installPwaBtn')) return;
+
+  const installBtn = document.createElement('button');
+  installBtn.id = 'installPwaBtn';
+  installBtn.textContent = 'Install App';
+  
+  Object.assign(installBtn.style, {
+    position: 'fixed',
+    bottom: '20px',
+    right: '20px',
+    padding: '12px 20px',
+    background: '#7A0019',
+    color: 'white',
+    border: 'none',
+    borderRadius: '10px',
+    cursor: 'pointer',
+    zIndex: '9999',
+    boxShadow: '0 5px 15px rgba(0,0,0,0.3)',
+    fontWeight: '600',
+    transition: 'transform 0.2s ease'
+  });
+
+  installBtn.onmouseover = () => installBtn.style.transform = 'translateY(-2px)';
+  installBtn.onmouseout = () => installBtn.style.transform = 'translateY(0)';
+
+  document.body.appendChild(installBtn);
+
+  installBtn.addEventListener('click', async () => {
+    installBtn.remove();
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    console.log(`User response: ${outcome}`);
+    deferredPrompt = null;
+  });
+});
+</script>
+
+<script>
+const quotes = [
+  `"Do or do not. There is no try." <br> — Yoda`,
+  `"Ever tried. Ever failed. No matter. Try again. Fail again. Fail better." <br> — Samuel Beckett`,
+  `"The opposite of a profound truth may well be another profound truth." <br> — Niels Bohr`,
+  `"The opposite of a good idea is another good idea." <br> — Rory Sutherland`
+];
+
+
+let qIndex = 0;
+setInterval(() => {
+  const el = document.getElementById("quotesCarousel");
+  el.style.opacity = 0;
+  setTimeout(() => {
+    qIndex = (qIndex + 1) % quotes.length;
+    el.innerHTML = `<p>${quotes[qIndex]}</p>`;
+    el.style.opacity = 0.9;
+  }, 1000);
+}, 5000);
+</script>
+</body>
+</html>

@@ -129,7 +129,7 @@
   .drop-container {
     padding: 0.8rem var(--page-padding-x) 2rem;
     overflow-y: auto;
-    text-align: justify;       /* FULL JUSTIFICATION */
+    text-align: justify;        /* FULL JUSTIFICATION */
     line-height: 1.9;
     font-size: 1.3rem;
     color: #3b2f1e;
@@ -254,6 +254,7 @@ US President Ronald Reagan's Reframing </h1>
       <option value="IT-1">IT-1</option>
       <option value="IT-2">IT-2</option>
     </select>
+    <!-- FIX: Removed inline onclick, will be added in JS. But for minimal change, we just need to make beginQuiz global. -->
     <button id="startQuizBtn" onclick="beginQuiz()">Start Quiz</button>
   </div>
 
@@ -275,8 +276,15 @@ US President Ronald Reagan's Reframing </h1>
   </div>
 </div>
 
-<script>
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
+const supabase = createClient(
+  'https://ahezssoczvpbkteffcgz.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoZXpzc29jenZwYmt0ZWZmY2d6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI4NTk1ODUsImV4cCI6MjA3ODQzNTU4NX0.2ZlqXnZxv0opkhynAT7OlK4S-xPygcc7ETUyTXRfGHE'
+);
+
+// --- HELPER FUNCTIONS ---
 function autoGenerateBlanks(passage, frequency = 7) {
   const words = passage.split(/(\s+)/);
   const answers = [];
@@ -293,6 +301,7 @@ function autoGenerateBlanks(passage, frequency = 7) {
   return { passage: blankedPassage, answers };
 }
 
+// --- QUIZ DATA ---
 const quizDataStore = (() => {
   const fullPassage = ` In 1984, America was preparing for its presidential election. Ronald Reagan, the sitting president, was seventy-three years old, the oldest man to have held the office at that time. His opponent, Walter Mondale, was much younger and wanted the country to notice it.
 
@@ -318,15 +327,19 @@ Simple reframing turns weakness into strength. It transforms the weapons aimed a
 Reagan didn’t argue about age. He did not fight.
 
 You have to win the war without fighting, remember?
-He agreed to what was said. Agreement is the first step, remember?`;
+He agreed to what was said. Agreement is the first step, remember? `;
   
   const result = autoGenerateBlanks(fullPassage, 7);
   return [result];
 })();
 
-let quizData = [];           // flattened pages
-let current = 0;             // current page index
-let wrongQuestions = [];     // pages to retry
+// FIX: Define Quest ID for PDF report
+const currentQuestID = "Story 79 (Cloze)";
+
+// --- STATE VARIABLES ---
+let quizData = [];          // flattened pages
+let current = 0;            // current page index
+let wrongQuestions = [];    // pages to retry
 let correctCount = 0;
 let totalWrongGuesses = 0;
 let gemsCount = 0;
@@ -339,6 +352,7 @@ let totalQuestionsInQuiz = 0; // includes wrong-page retries
 
 const blanksPerPage = 10;
 
+// --- DOM ELEMENTS ---
 const quizContainer   = document.getElementById("quizContainer");
 const dragOptionsEl   = document.getElementById("dragOptions");
 const dropContainerEl = document.getElementById("dropContainer");
@@ -354,7 +368,8 @@ const nameInputEl     = document.getElementById("nameInput");
 const deptSelectEl    = document.getElementById("departmentSelect");
 const topStripEl      = document.getElementById("topStrip");
 
-/* --------------- TOP STRIP -> LAYOUT ADJUST --------------- */
+/* --------------- LAYOUT & PRE-FLIGHT --------------- */
+
 /* Measure the top strip height and push the passage below it */
 function adjustForTopStrip() {
   const h = topStripEl ? topStripEl.offsetHeight : 0;
@@ -362,9 +377,6 @@ function adjustForTopStrip() {
   // Leave ~1.5rem visual breathing at bottom; ensure max-height fits viewport
   dropContainerEl.style.maxHeight = `calc(100vh - ${h}px - 2rem)`;
 }
-
-
-
 
 function autoFillFromStorage() {
   try {
@@ -382,14 +394,8 @@ function autoFillFromStorage() {
   }
 }
 
-// Call auto-fill when page loads
-window.addEventListener('DOMContentLoaded', autoFillFromStorage);
+/* --------------- QUIZ FLOW (FUNCTIONS) --------------- */
 
-
-
-
-
-/* --------------- QUIZ FLOW --------------- */
 function beginQuiz() {
   if (!nameInputEl.value.trim()) {
     nameInputEl.style.borderColor = "red";
@@ -402,7 +408,7 @@ function beginQuiz() {
   nameInputEl.style.borderColor = "#c2a677";
   deptSelectEl.style.borderColor = "#c2a677";
 
-playerName = nameInputEl.value.trim();
+  playerName = nameInputEl.value.trim();
   playerDept = deptSelectEl.value;
   
   // Save to localStorage for future use
@@ -414,12 +420,15 @@ playerName = nameInputEl.value.trim();
   }
 
   document.getElementById("quizTitle").style.display = "none";
-document.getElementById("quizAuthor").style.display = "none";
+  document.getElementById("quizAuthor").style.display = "none";
 
   nameFormEl.style.display = "none";
   quizContentEl.style.display = "block";
   startQuiz();
 }
+
+// FIX: Expose beginQuiz to the global scope for the inline onclick attribute
+window.beginQuiz = beginQuiz;
 
 function startQuiz() {
   quizData = [];
@@ -455,7 +464,7 @@ function startQuiz() {
   nextPageBtn.style.display = "none";
 
   loadQuestion();
-  startTimer();
+  startTimer(); // This will now work
 }
 
 function updateProgress() {
@@ -593,7 +602,7 @@ function createSparkleEffect(element) {
   }
 }
 
-function showScore() {
+async function showScore() {
   clearInterval(timerInterval);
   const totalTime = Math.floor((Date.now() - startTime) / 1000);
 
@@ -616,22 +625,28 @@ function showScore() {
   `;
   restartBtn.style.display = "inline-block";
 
-  // send to Google Sheet (fire-and-forget)
-  fetch("https://script.google.com/macros/s/AKfycbxA0lRkERWFt2cYfmm04IQioaG4-21k5VFF5CFKP30zyVaJXM5_27PL3v8JIZEweK3u/exec", {
-    method: "POST",
-    mode: "no-cors",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      name: playerName,
-      correct: correctCount,
-      wrong: totalWrongGuesses,
-      time: totalTime,
-      department: playerDept,
-      questId: "Story 79"
-    })
-  });
+  // save to Supabase
+  try {
+    const { error } = await supabase
+      .from('Quests')
+      .insert([
+        {
+          student_name: playerName,
+          department: playerDept,
+          correct: correctCount,
+          wrong: totalWrongGuesses,
+          time_spent: totalTime,
+          quest_id: "Story 79" // Matches the PDF Quest ID
+        }
+      ]);
+    if (error) console.error('Supabase insert error:', error);
+    else console.log('✅ Quest saved to Supabase');
+  } catch (err) {
+    console.error('Error inserting into Supabase:', err);
+  }
 }
 
+// FIX: Moved startTimer to the top-level scope
 function startTimer() {
   clearInterval(timerInterval);
   timerInterval = setInterval(() => {
@@ -641,6 +656,7 @@ function startTimer() {
 }
 
 /* --------------- PDF REPORT --------------- */
+// FIX: Moved downloadPDFReport to the top-level scope
 function downloadPDFReport() {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ unit: "mm", format: "a4" });
@@ -652,8 +668,8 @@ function downloadPDFReport() {
   const totalTime = Math.floor((Date.now() - startTime) / 1000);
   const reportDate = new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
 
-  // ✅ Dynamic Quest ID variable (example: "Quest 20 (Cloze)")
-  const questID = typeof currentQuestID !== "undefined" ? currentQuestID : "Quest";
+  // ✅ Uses the questID variable defined at the top
+  const questID = currentQuestID; 
 
   /* ---------------- HEADER ---------------- */
 
@@ -795,13 +811,40 @@ function downloadPDFReport() {
   doc.save(`${cleanName}_${cleanQuest}_Report.pdf`);
 }
 
-/* --------------- CONTROLS --------------- */
+// FIX: Expose downloadPDFReport to the global scope for the inline onclick
+window.downloadPDFReport = downloadPDFReport;
+
+
+/* --------------- EVENT LISTENERS --------------- */
+
+// Call auto-fill when page loads
+window.addEventListener('DOMContentLoaded', autoFillFromStorage);
+
+/* Recalculate layout on resize (for top-strip height changes due to wrapping) */
+window.addEventListener('resize', adjustForTopStrip);
+
+/* --- Button Clicks (using JS properties) --- */
 restartBtn.onclick = () => {
   quizContentEl.style.display = "none";
   nameFormEl.style.display = "block";
-  nameInputEl.value = "";
+  
+  // Clear the fields for a true restart
+  nameInputEl.value = ""; 
   deptSelectEl.value = "";
+  
+  // Also clear from storage so it doesn't auto-fill next time
+  try {
+     localStorage.removeItem('playerName');
+     localStorage.removeItem('playerDept');
+  } catch(e) {
+     console.log('Could not clear localStorage');
+  }
+
   nextPageBtn.style.display = "none";
+  
+  // Reset title/author
+  document.getElementById("quizTitle").style.display = "block";
+  document.getElementById("quizAuthor").style.display = "block";
 };
 
 nextPageBtn.onclick = () => {
@@ -813,8 +856,6 @@ nextPageBtn.onclick = () => {
   loadQuestion();
 };
 
-/* Recalculate layout on resize (for top-strip height changes due to wrapping) */
-window.addEventListener('resize', adjustForTopStrip);
 </script>
 
 <!-- PWA-friendly link handling -->
@@ -841,28 +882,6 @@ document.addEventListener("click", function (e) {
       e.preventDefault();
       window.location.href = url;
     }
-  } else {
-    target.setAttribute("target", "_blank");
-  }
-});
-</script>
-
-<script>
-document.addEventListener("click", function (e) {
-  const target = e.target.closest("a");
-  if (!target) return;
-
-  const url = target.href;
-  const internalDomains = [
-    "andrewveda.github.io",
-    "sites.google.com/view/cys-english",
-    "sites.google.com/view/srm-vec-english"
-  ];
-  const isInternal = internalDomains.some(domain => url.includes(domain));
-
-  if (isInternal) {
-    e.preventDefault();
-    window.location.href = url;
   } else {
     target.setAttribute("target", "_blank");
   }

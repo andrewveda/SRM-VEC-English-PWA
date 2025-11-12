@@ -957,13 +957,12 @@ margin: 50px auto;
 
 <script type="module">
   import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-  window.supabase = createClient(
+  
+  const supabase = createClient(
     "https://ahezssoczvpbkteffcgz.supabase.co", 
-"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoZXpzc29jenZwYmt0ZWZmY2d6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI4NTk1ODUsImV4cCI6MjA3ODQzNTU4NX0.2ZlqXnZxv0opkhynAT7OlK4S-xPygcc7ETUyTXRfGHE"
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoZXpzc29jenZwYmt0ZWZmY2d6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI4NTk1ODUsImV4cCI6MjA3ODQzNTU4NX0.2ZlqXnZxv0opkhynAT7OlK4S-xPygcc7ETUyTXRfGHE"
   );
-</script>
 
-<script>
 let sessionStartTime = Date.now();
 let totalTimeSpent = 0;
 let userData = null;
@@ -1172,21 +1171,16 @@ async function saveAndLogin() {
 
 async function loadUserDataInBackground(name) {
   try {
-   const { data: profileData, error } = await supabase
-  .from('leaderboard')
-  .select('*');
-
-if (error) console.error(error);
-
+    // FIX: Removed redundant/shadowed Supabase call here
     
-   // --- SUPABASE version ---
-const { data, error } = await supabase
-  .from('summary_import')
-  .select('*');
+    // --- SUPABASE version ---
+    const { data, error } = await supabase
+      .from('summary_import')
+      .select('*');
 
-if (error) throw error;
+    if (error) throw error;
 
-const fetchedUser = data.find(u => u.student_name?.toUpperCase() === name.toUpperCase());
+    const fetchedUser = data.find(u => u.student_name?.toUpperCase() === name.toUpperCase());
 
     if (fetchedUser) {
       userData = fetchedUser;
@@ -1561,6 +1555,15 @@ function logout() {
     window.location.reload();
   });
 }
+
+// IMPORTANT: Expose functions to window so HTML onclick attributes can see them
+window.saveAndLogin = saveAndLogin;
+window.switchType = switchType;
+window.changeMonth = changeMonth;
+window.toggleDrawer = toggleDrawer;
+window.logout = logout;
+
+// Initialize
 supabase
   .channel('leaderboard-realtime')
   .on('postgres_changes', { event: '*', schema: 'public', table: 'leaderboard' }, payload => {
@@ -1570,7 +1573,7 @@ supabase
   })
   .subscribe();
 
-window.onload = () => init();
+init();
 
 </script>
 
@@ -1648,3 +1651,4 @@ setInterval(() => {
 </script>
 </body>
 </html>
+

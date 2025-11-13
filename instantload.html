@@ -1365,120 +1365,129 @@ function changeMonth(direction) {
 function renderCalendar(month, year, type) {
   const datesGrid = document.getElementById('datesGrid');
   const monthYear = document.getElementById('monthYear');
+
   const daysInMonth = new Date(year, month + 1, 0).getDate();
-  
-  monthYear.textContent = new Date(year, month).toLocaleString('default', { month: 'long' }) + ' ' + year;
+  monthYear.textContent = new Date(year, month).toLocaleString('default', {
+    month: 'long'
+  }) + ' ' + year;
+
   datesGrid.innerHTML = '';
-  
+
+  // Pad empty cells for the first week
   const firstDayOfMonth = new Date(year, month, 1).getDay();
   for (let i = 0; i < firstDayOfMonth; i++) {
-    const emptyDiv = document.createElement('div');
-    emptyDiv.className = 'disabled';
-    datesGrid.appendChild(emptyDiv);
+    const empty = document.createElement('div');
+    empty.className = 'disabled';
+    datesGrid.appendChild(empty);
   }
-  
+
+  // ===========================
+  // 1. GET THE CORRECT LIST
+  // ===========================
+
+  let challengesString = "";
+
+  // FIRST SOURCE — summary_import (userData)
+  if (type === "quest")  challengesString = userData.quest_list || "";
+  if (type === "video")  challengesString = userData.video_list || "";
+  if (type === "ipa")    challengesString = userData.story_list || "";
+
+  // SECOND SOURCE — leaderboard (userProfileData)
+  if ((!challengesString || challengesString.trim() === "") && userProfileData) {
+    for (const key of Object.keys(userProfileData)) {
+      const lower = key.toLowerCase();
+
+      if (type === "quest" && lower.includes("quest")) {
+        challengesString = userProfileData[key] || "";
+      }
+      if (type === "video" && lower.includes("video")) {
+        challengesString = userProfileData[key] || "";
+      }
+      if (type === "ipa" && (lower.includes("story") || lower.includes("ipa"))) {
+        challengesString = userProfileData[key] || "";
+      }
+    }
+  }
+
+  // ===========================
+  // 2. NORMALISE THE LIST
+  // ===========================
+
+  const normalizedList = challengesString
+    .split(",")
+    .map(x => x.trim())
+    .filter(x => x.length > 0)
+    .map(x => x.replace(/\s+/g, "").toLowerCase()); // Quest 47 → quest47
+
+  // ===========================
+  // 3. RENDER DATES
+  // ===========================
+
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-let challengesString = "";
 
-// Determine which list to use (quest / video / story)
-
-// --- 1. Read from summary_import (userData) ---
-let challengesString = "";
-if (type === "quest")  challengesString = userData.quest_list || "";
-if (type === "video")  challengesString = userData.video_list || "";
-if (type === "ipa")    challengesString = userData.story_list || "";
-
-// --- 2. FALLBACK to leaderboard data (userProfileData) ---
-if (!challengesString && userProfileData) {
-    const keys = Object.keys(userProfileData);
-
-    for (const k of keys) {
-        const lower = k.toLowerCase();
-
-        if (type === "quest" && lower.includes("quest")) {
-            challengesString = userProfileData[k] || "";
-        }
-        if (type === "video" && lower.includes("video")) {
-            challengesString = userProfileData[k] || "";
-        }
-        if (type === "ipa" && (lower.includes("story") || lower.includes("ipa"))) {
-            challengesString = userProfileData[k] || "";
-        }
-    }
-}
-
-
-// Split & clean values but keep original formatting
-const rawChallenges = challengesString
-  .split(",")
-  .map(c => c.trim())
-  .filter(c => c.length > 0);
-
-// Create normalized versions without spaces (for matching)
-const normalizedChallenges = rawChallenges.map(c =>
-  c.replace(/\s+/g, "").toLowerCase()
-);
-
-// Only keep items belonging to the current type
-const challenges = normalizedChallenges.filter(c => {
-  if (type === "quest") return c.startsWith("quest");
-  if (type === "video") return c.startsWith("video");
-  if (type === "ipa")   return c.startsWith("story");
-  return false;
-});
-
-  
   for (let d = 1; d <= daysInMonth; d++) {
     const currentDate = new Date(year, month, d);
+
+    // Calculate quest index
     const diffDays = Math.floor((currentDate - startDate) / (1000 * 60 * 60 * 24));
     const questNumber = diffDays >= 0 ? diffDays + 1 : null;
- const questName = questNumber
-  ? (type === 'quest'
-      ? `Quest${questNumber}`
-      : type === 'video'
-        ? `Video${questNumber}`
-        : `Story${questNumber}`)
-  : null;    
+
     const dayDiv = document.createElement('div');
-    
-    if (questName && challenges.includes(questName)) {
-      dayDiv.className = 'done';
-      dayDiv.textContent = `${d} 🔥`;
-    } else if (currentDate > today || questNumber === null) {
+
+    if (!questNumber || currentDate > today) {
       dayDiv.className = 'disabled';
       dayDiv.textContent = d;
-    } else if (questName) {
-      if (currentDate < today) {
-        dayDiv.className = 'missed';
-      }
+      datesGrid.appendChild(dayDiv);
+      continue;
+    }
+
+    // Build the name for matching
+    const questName =
+      (type === "quest" ? "Quest" :
+       type === "video" ? "Video" :
+       "Story") + questNumber;
+
+    const normalizedQuestName = questName.replace(/\s+/g, "").toLowerCase();
+
+    const isCompleted = normalizedList.includes(normalizedQuestName);
+
+    // ===========================
+    // FIRE EMOJI LOGIC
+    // ===========================
+
+    if (isCompleted) {
+      dayDiv.className = "done";
+      dayDiv.textContent = `${d} 🔥`;
+    } else if (currentDate < today) {
+      dayDiv.className = "missed";
       dayDiv.textContent = d;
     } else {
-      dayDiv.className = 'disabled';
+      dayDiv.className = "disabled";
       dayDiv.textContent = d;
     }
-    
-  
+
+    // ===========================
+    // CLICK HANDLER
+    // ===========================
+
     dayDiv.onclick = () => {
-      let link;
-      if (type === 'quest') link = questLinks[questNumber];
-      if (type === 'ipa') link = ipaLinks[questNumber];
-      // FIX 3: Look up the link from the new objects
-         else if (type === 'video') link = videoLink;
-    
-      
+      let link = null;
+
+      if (type === "quest") link = questLinks[questNumber];
+      else if (type === "video") link = videoLink;
+      else if (type === "ipa") link = ipaLinks[questNumber];
+
       if (link) {
-        const internalDomains = ["andrewveda.github.io", "sites.google.com"];
-        const isInternal = internalDomains.some(domain => link.includes(domain));
-        
-        if (isInternal) {
+        const internal = ["andrewveda.github.io", "sites.google.com"];
+        if (internal.some(domain => link.includes(domain))) {
           window.location.href = link;
         } else {
-          window.open(link, '_blank');
+          window.open(link, "_blank");
         }
       }
     };
-    
+
     datesGrid.appendChild(dayDiv);
   }
 }

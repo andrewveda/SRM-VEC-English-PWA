@@ -1381,27 +1381,33 @@ function renderCalendar(month, year, type) {
   today.setHours(0, 0, 0, 0);
 let challengesString = "";
 
-// 🔹 Map calendar type → correct Supabase column
-if (type === "quest") {
-  challengesString =
-    userData.QuestList ||        // <-- CORRECT FIELD NAME
-    userData.quest_list || 
-    "";
+// Determine which list to use (quest / video / story)
+
+// --- 1. Read from summary_import (userData) ---
+let challengesString = "";
+if (type === "quest")  challengesString = userData.quest_list || "";
+if (type === "video")  challengesString = userData.video_list || "";
+if (type === "ipa")    challengesString = userData.story_list || "";
+
+// --- 2. FALLBACK to leaderboard data (userProfileData) ---
+if (!challengesString && userProfileData) {
+    const keys = Object.keys(userProfileData);
+
+    for (const k of keys) {
+        const lower = k.toLowerCase();
+
+        if (type === "quest" && lower.includes("quest")) {
+            challengesString = userProfileData[k] || "";
+        }
+        if (type === "video" && lower.includes("video")) {
+            challengesString = userProfileData[k] || "";
+        }
+        if (type === "ipa" && (lower.includes("story") || lower.includes("ipa"))) {
+            challengesString = userProfileData[k] || "";
+        }
+    }
 }
 
-if (type === "video") {
-  challengesString =
-    userData.VideoList ||        // if your table uses VideoList
-    userData.video_list ||
-    "";
-}
-
-if (type === "ipa") {
-  challengesString =
-    userData.StoryList ||        // if your table uses StoryList
-    userData.story_list ||
-    "";
-}
 
 // Split & clean values but keep original formatting
 const rawChallenges = challengesString

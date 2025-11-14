@@ -34,15 +34,19 @@ self.addEventListener("fetch", (event) => {
   const req = event.request;
   const url = new URL(req.url);
 
+  // ✅ FIXED — Supabase POST/GET must bypass cache completely
   if (url.origin.includes("supabase.co")) {
-    return; // ALWAYS go to network
+    event.respondWith(fetch(req));  // <-- REQUIRED
+    return;
   }
 
-
+  // Non-GET requests should bypass cache
   if (req.method !== "GET") {
-    return; // bypass SW
+    event.respondWith(fetch(req));  // <-- REQUIRED
+    return;
   }
 
+  // Navigation fallback
   if (req.mode === "navigate") {
     event.respondWith(
       fetch(req).catch(() => caches.match("./index.html"))
@@ -50,6 +54,7 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  // Cache-first for GET requests
   event.respondWith(
     caches.match(req).then((cached) => {
       if (cached) return cached;

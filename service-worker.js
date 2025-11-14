@@ -1,4 +1,4 @@
-const CACHE_NAME = "vec-english-cache-v1";
+const CACHE_NAME = "vec-english-cache-v2";
 const FILES_TO_CACHE = [
   "./",
   "./index.html",
@@ -7,49 +7,58 @@ const FILES_TO_CACHE = [
   "./icons/icon-512.png"
 ];
 
-// Install: Cache basic app shell
+// Install
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log("Service Worker: Pre-caching app shell");
+      console.log("SW: Pre-caching app shell");
       return cache.addAll(FILES_TO_CACHE);
     })
   );
   self.skipWaiting();
 });
 
-// Activate: Clear old caches
+// Activate
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
       Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
     )
   );
-  console.log("Service Worker: Activated");
+  console.log("SW: Activated");
   self.clients.claim();
 });
 
-// Fetch: Always try network first for HTML, fallback to cache
+// Fetch handler — FIXED
 self.addEventListener("fetch", (event) => {
-  if (event.request.mode === "navigate") {
+  const req = event.request;
+  const url = new URL(req.url);
+
+  if (url.origin.includes("supabase.co")) {
+    return; // ALWAYS go to network
+  }
+
+
+  if (req.method !== "GET") {
+    return; // bypass SW
+  }
+
+  if (req.mode === "navigate") {
     event.respondWith(
-      fetch(event.request).catch(() => caches.match("./index.html"))
+      fetch(req).catch(() => caches.match("./index.html"))
     );
     return;
   }
 
-  // For static files, try cache first
   event.respondWith(
-    caches.match(event.request).then((response) => {
-      return (
-        response ||
-        fetch(event.request).then((res) => {
-          return caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, res.clone());
-            return res;
-          });
-        })
-      );
+    caches.match(req).then((cached) => {
+      if (cached) return cached;
+
+      return fetch(req).then((res) => {
+        const clone = res.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(req, clone));
+        return res;
+      });
     })
   );
 });

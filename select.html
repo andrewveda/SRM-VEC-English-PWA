@@ -1,0 +1,1650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SRM VEC English — Quest & Video Calendar</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#7A0019">
+
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
+
+.loading-screen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  color: white;
+}
+
+.loading-screen.show {
+  display: flex;
+}
+
+.loading-screen h1 {
+  font-size: 1.5rem;
+  margin-bottom: 20px;
+  text-align: center;
+  padding: 0 20px;
+}
+
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid rgba(255,255,255,0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.credits {
+  position: absolute;
+  bottom: 30px;
+  font-size: 0.9rem;
+  opacity: 0.9;
+  text-align: center;
+  padding: 0 20px;
+}
+
+.name-input-container {
+  background: white;
+  border-radius: 20px;
+  padding: 40px 30px;
+  max-width: 500px;
+margin: 50px auto; 
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  text-align: center;
+  display: none;
+}
+
+.name-input-container.show {
+  display: block;
+}
+
+.name-input-container h1 {
+  color: #7A0019;
+  font-size: 1.5rem;
+  margin-bottom: 10px;
+}
+
+.name-input-container h2 {
+  color: #333;
+  font-size: 1.1rem;
+  margin-bottom: 30px;
+}
+
+.name-input-container input {
+  width: 100%;
+  padding: 15px;
+  font-size: 1rem;
+  border: 2px solid #ddd;
+  border-radius: 10px;
+  margin-bottom: 15px;
+  transition: border 0.3s;
+}
+
+.name-input-container input:focus {
+  outline: none;
+  border-color: #7A0019;
+}
+
+.name-input-container button, .name-input-container a button {
+  width: 100%;
+  padding: 15px;
+  font-size: 1rem;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  margin-bottom: 10px;
+  transition: transform 0.2s, box-shadow 0.2s;
+  font-weight: 600;
+}
+
+.name-input-container a {
+  text-decoration: none;
+  display: block;
+}
+
+.name-input-container button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+.btn-primary {
+  background: #7A0019;
+  color: white;
+}
+
+.btn-vocab {
+  background: #4CAF50;
+  color: white;
+}
+
+.btn-mystic {
+  background: #FF5722;
+  color: white;
+}
+
+.btn-wordle {
+  background: #FFC0CB;
+  color: black;
+}
+
+.btn-leaderboard {
+  background: #A020F0;
+  color: white;
+}
+
+.btn-elll {
+  background: #000000;
+  color: white;
+}
+
+.leaderboard-icon {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  width: 50px;
+  height: 50px;
+  background: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+  z-index: 1000;
+  transition: transform 0.3s;
+}
+
+.leaderboard-icon:hover {
+  transform: scale(1.1);
+}
+.elll-icon {
+  position: fixed;
+  top: 20px;
+  left: 90px;
+  width: 50px;
+  height: 50px;
+  background: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+  z-index: 1000;
+  transition: transform 0.3s;
+}
+
+.elll-icon:hover {
+  transform: scale(1.1);
+}
+
+.profile-icon {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  width: 50px;
+  height: 50px;
+  background: white;
+  border-radius: 50%;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+  z-index: 1000;
+  transition: transform 0.3s;
+}
+
+.profile-icon.show {
+  display: flex;
+}
+
+.profile-icon:hover {
+  transform: scale(1.1);
+}
+
+.profile-drawer {
+  position: fixed;
+  top: 0;
+  right: -350px;
+  width: 350px;
+  height: 100%;
+  background: white;
+  box-shadow: -5px 0 25px rgba(0,0,0,0.3);
+  z-index: 999;
+  transition: right 0.3s ease;
+  overflow-y: auto;
+  padding: 80px 20px 20px;
+}
+
+.profile-drawer.open {
+  right: 0;
+}
+
+.profile-drawer h3 {
+  color: #7A0019;
+  margin-bottom: 20px;
+  font-size: 1.3rem;
+}
+
+.drawer-item {
+  padding: 15px;
+  margin-bottom: 10px;
+  background: #f5f5f5;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.drawer-item:hover {
+  background: #e0e0e0;
+}
+
+.drawer-item a {
+  text-decoration: none;
+  color: #333;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 500;
+}
+
+.close-drawer {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  font-size: 2rem;
+  cursor: pointer;
+  color: #666;
+}
+
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.5);
+  z-index: 998;
+  display: none;
+}
+
+.overlay.active {
+  display: block;
+}
+
+.calendar-container {
+  background: white;
+  border-radius: 20px;
+  padding: 20px;
+  max-width: 800px;
+  margin: 0 auto;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  display: none;
+  max-height: calc(100vh - 40px);
+  overflow: hidden;
+  flex-direction: column;
+}
+
+.calendar-container.show {
+  display: flex;
+}
+
+.user-info {
+  text-align: center;
+  margin-bottom: 15px;
+  flex-shrink: 0;
+}
+
+.user-info h2 {
+  color: #7A0019;
+  font-size: 1.5rem;
+  margin-bottom: 15px;
+}
+
+.stats {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.stat-box {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 15px 25px;
+  border-radius: 10px;
+  font-weight: 600;
+}
+
+.type-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+.type-button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s;
+  color: white;
+  font-size: 0.9rem;
+}
+
+.type-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+
+.type-button.active {
+  transform: translateY(-5px) scale(1.05); /* Lifts higher AND makes it bigger */
+  box-shadow: 0 12px 25px rgba(0,0,0,0.4),  /* A darker, heavier shadow for depth */
+          0 0 25px 5px currentColor;    /* A much wider and brighter glow */
+  z-index: 2; /* Ensures it's visually on top of the other buttons */
+}
+.calendar {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.calendar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  flex-shrink: 0;
+}
+
+.calendar-header button {
+  background: #7A0019;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.calendar-header div {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.days-of-week {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  margin-bottom: 6px;
+  font-weight: 600;
+  text-align: center;
+  color: #666;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+.dates {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  flex: 1;
+  align-content: start;
+  overflow: hidden;
+}
+
+.dates div {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.3s;
+  font-size: 0.9rem;
+}
+
+.dates div:hover:not(.disabled) {
+  transform: scale(1.05);
+}
+
+.dates .done {
+  background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+  color: white;
+}
+
+.dates .missed {
+  background: #ffebee;
+  color: #c62828;
+}
+
+.dates .disabled {
+  background: #f5f5f5;
+  color: #ccc;
+  cursor: default;
+}
+
+.offline-banner {
+  background: #ff9800;
+  color: white;
+  padding: 12px;
+  text-align: center;
+  border-radius: 10px;
+  margin-bottom: 12px;
+  font-weight: 600;
+  display: none;
+  flex-shrink: 0;
+  font-size: 0.9rem;
+}
+
+.offline-banner.show {
+  display: block;
+}
+
+.logout-btn {
+  width: 100%;
+  padding: 15px;
+  background: #c62828;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 600;
+  margin-top: 20px;
+}
+
+.custom-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+}
+.custom-modal-overlay.show {
+  display: flex;
+  opacity: 1;
+}
+.custom-modal {
+  background: white;
+  padding: 30px;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  width: 90%;
+  max-width: 400px;
+  text-align: center;
+  transform: scale(0.9);
+  transition: transform 0.2s ease-in-out;
+}
+.custom-modal-overlay.show .custom-modal {
+  transform: scale(1);
+}
+.custom-modal p {
+  font-size: 1.1rem;
+  color: #333;
+  margin-bottom: 25px;
+  line-height: 1.5;
+}
+.modal-buttons {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+}
+.modal-btn {
+  border: none;
+  border-radius: 10px;
+  padding: 12px 20px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex: 1;
+}
+.modal-btn-confirm {
+  background: #c62828;
+  color: white;
+}
+.modal-btn-confirm:hover {
+  background: #a02020;
+  transform: translateY(-2px);
+}
+.modal-btn-cancel {
+  background: #e0e0e0;
+  color: #333;
+}
+.modal-btn-cancel:hover {
+  background: #c7c7c7;
+  transform: translateY(-2px);
+}
+
+@media (max-width: 768px) {
+  body {
+    padding: 10px;
+  }
+ 
+  .calendar-container {
+    padding: 12px;
+    border-radius: 15px;
+    max-height: calc(100vh - 20px);
+  }
+ 
+  .user-info h2 {
+    font-size: 1.1rem;
+    margin-bottom: 10px;
+  }
+ 
+  .type-button {
+    padding: 8px 14px;
+    font-size: 0.8rem;
+  }
+ 
+  .calendar-header button {
+    padding: 6px 12px;
+    font-size: 0.9rem;
+  }
+ 
+  .calendar-header div {
+    font-size: 0.95rem;
+  }
+ 
+  .calendar-header {
+    margin-bottom: 10px;
+  }
+ 
+  .days-of-week {
+    font-size: 0.7rem;
+    gap: 3px;
+    margin-bottom: 4px;
+  }
+ 
+  .dates {
+    gap: 3px;
+  }
+ 
+  .dates div {
+    font-size: 0.75rem;
+  }
+ 
+  .offline-banner {
+    padding: 10px;
+    font-size: 0.85rem;
+    margin-bottom: 10px;
+  }
+ 
+  .profile-drawer {
+    width: 100%;
+    right: -100%;
+  }
+}
+.quotes-carousel {
+  margin-top: 10px;
+  text-align: center;
+  color: #7A0019; 
+  font-style: italic;
+  font-size: 0.95rem;
+  opacity: 0.9;
+  transition: opacity 5s ease;
+  min-height: 24px;
+}
+.level-dashboard {
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  border-radius: 20px;
+  padding: 20px;
+  color: white;
+  text-align: center;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+  margin: 0 auto 20px auto;
+  max-width: 800px;
+  animation: fadeIn 1s ease-out;
+}
+
+.level-dashboard h2 {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+  letter-spacing: 1px;
+  color: #ffe082;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.6);
+}
+
+.xp-bar {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 10px;
+  height: 12px;
+  width: 100%;
+  margin: 6px 0;
+  overflow: hidden;
+}
+
+.xp-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #ffcc33, #ff9100);
+  border-radius: 10px;
+  transition: width 1s ease-in-out;
+}
+
+.xp-text {
+  font-size: 0.8rem;
+  color: #eee;
+  margin-bottom: 15px;
+}
+
+.power-bar-deck {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-around;
+  gap: 6px;
+}
+
+.power-item {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  width: 60px;
+  font-size: 0.8rem;
+  color: #fff;
+}
+
+.power-bar {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 5px;
+  margin: 3px 0;
+  overflow: hidden;
+}
+
+.power-bar .fill {
+  height: 100%;
+  border-radius: 5px;
+  transition: width 1s ease;
+}
+
+.power-item:nth-child(1) .fill { background: linear-gradient(90deg, gold, orange); }
+.power-item:nth-child(2) .fill { background: linear-gradient(90deg, #2196F3, #21CBF3); }
+.power-item:nth-child(3) .fill { background: linear-gradient(90deg, #4CAF50, #8BC34A); }
+.power-item:nth-child(4) .fill { background: linear-gradient(90deg, #FF5722, #FFC107); }
+/* .power-item:nth-child(5) .fill { background: linear-gradient(90deg, #9C27B0, #E040FB); } */
+
+.power-value {
+  margin-top: 2px;
+  font-weight: bold;
+  font-size: 0.8rem;
+  text-shadow: 0 0 5px rgba(0,0,0,0.3);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Desktop/laptop fix: allow full calendar to expand vertically */
+@media (min-width: 1025px) {
+  /* let the calendar container expand instead of clipping */
+  .calendar-container {
+    max-height: none;    /* remove the viewport-limited height */
+    overflow: visible;    /* show the whole calendar */
+  }
+
+  /* allow date cells to have a fixed height (not forced square) */
+  .dates div {
+    aspect-ratio: auto;  /* stop forcing 1:1 squares on desktop */
+    height: 78px;        /* comfortable row height for desktop */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* make sure calendar column track stays readable when wide */
+  .dates {
+    align-content: start;
+    overflow: visible;
+  }
+
+  /* let calendar itself grow naturally */
+  .calendar {
+    min-height: auto;
+  }
+
+  /* small tweak so the whole page centers on large screens */
+  body {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 40px;
+  }
+
+  /* keep container width stable for nicer desktop layout */
+  .calendar-container,
+  .name-input-container,
+  .level-dashboard {
+    width: 900px;
+    max-width: 90vw;
+  }
+}
+
+
+</style>
+</head>
+<body>
+
+<div class="loading-screen" id="loadingScreen">
+  <h1>Loading your Quest Calendar...</h1>
+  <div class="spinner"></div>
+  <p class="credits"> Created with ♥️ grit, nurtured with love and charged with passion by Andrew Veda<br>SRM Valliammai Engineering College</p>
+</div>
+
+<div class="name-input-container" id="nameInputContainer">
+  <h1>SRM Valliammai Engineering College (Autonomous)</h1>
+  <h2>Department of English</h2>
+  <input type="text" id="nameInput" placeholder="Enter Your Name">
+  <select id="deptSelect" style="
+  width:100%; padding:15px; font-size:1rem; border:2px solid #ddd;
+  border-radius:10px; margin-bottom:15px;">
+  <option value="">Select Department</option>
+  <option value="Cyber Security">Cyber Security</option>
+      <option value="CSE-1">CSE-1</option>
+      <option value="CSE-2">CSE-2</option>
+      <option value="CSE-3">CSE-3</option>
+      <option value="EIE">EIE</option>
+      <option value="Mechanical Engineering">Mechanical Engineering</option>
+      <option value="ECE-1">ECE-1</option>
+      <option value="ECE-2">ECE-2</option>
+      <option value="ECE-3">ECE-3</option>
+      <option value="AI DS-1">AI DS-1</option>
+      <option value="AI DS-2">AI DS-2</option>
+      <option value="Civil">Civil</option>
+      <option value="Agri">Agri</option>
+      <option value="EEE">EEE</option>
+      <option value="Medical Electronics">Medical Electronics</option>
+      <option value="IT-1">IT-1</option>
+      <option value="IT-2">IT-2</option>
+</select>
+  <button class="btn-primary" onclick="saveAndLogin()">Get Started</button>
+  <a href="https://sites.google.com/view/srm-vec-english/daily-vocabulary">
+    <button class="btn-vocab">📚 Daily Vocabulary</button>
+  </a>
+  <a href="https://sites.google.com/view/cys-english/preliminary-event-registration">
+    <button class="btn-mystic">🎯 Register for Mystic Summit</button>
+  </a>
+  <a href="https://andrewveda.github.io/Quiz/">
+    <button class="btn-wordle">👽 WORDLE!</button>
+  </a>
+  <a href="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/leaderboard">
+    <button class="btn-leaderboard">😎 Leaderboard</button>
+  </a>
+  <a href="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/ELLL.html">
+    <button class="btn-elll">📝 ELLL Virtual Record✨</button>
+  </a>
+</div>
+
+<div class="profile-icon" id="profileIcon">👤</div>
+<div class="leaderboard-icon" id="leaderboardIcon">👑</div>
+  <div class="elll-icon" id="elllIcon">📜</div>
+<div class="overlay" id="overlay"></div>
+<div class="profile-drawer" id="profileDrawer">
+  <span class="close-drawer" id="closeDrawer">&times;</span>
+
+  <h3 id="drawerUserName">User Profile</h3>
+
+  <!-- User stats removed as requested -->
+
+  <h3 style="font-size:1.1rem; margin-bottom:15px; margin-top: 20px;">Quick Links</h3>
+
+  <div class="drawer-item"><a href="https://andrewveda.github.io/V">📚 Daily Vocabulary</a></div>
+  <div class="drawer-item"><a href="https://sites.google.com/view/cys-english/preliminary-event-registration">🎯 Mystic Summit</a></div>
+  <div class="drawer-item"><a href="https://andrewveda.github.io/videoquest">🎥 Video Quests</a></div>
+  <div class="drawer-item"><a href="https://andrewveda.github.io/Quiz/">👽 Wordle</a></div>
+  <div class="drawer-item"><a href="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/leaderboard">😎 Leaderboard</a></div>
+  <div class="drawer-item"><a href="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/ELLL.html">📝 ELLL Record</a></div>
+
+  <button class="logout-btn" onclick="logout()">🚪 Logout</button>
+
+</div>
+ 
+<!-- REMOVED level-dashboard DIV -->
+<!-- <div class="level-dashboard" id="levelDashboard"> ... </div> -->
+
+
+<div class="calendar-container" id="calendarContainer">
+  <div class="offline-banner" id="offlineBanner">📡 Offline mode — progress will sync when online.</div>
+ 
+  <div class="user-info">
+    <h2 id="userName"></h2>
+  </div>
+
+<div class="type-buttons">
+  <button class="type-button active" style="background:#2196F3;" onclick="switchType('quest')">📝 Quest</button>
+  <button class="type-button" style="background:#E53935;" onclick="switchType('video')">🎥 Videos</button>
+  <button class="type-button" style="background:#4CAF50;" onclick="switchType('story')">📚 Stories</button>
+</div>
+
+  <div class="calendar">
+    <div class="calendar-header">
+      <button onclick="changeMonth(-1)">◀</button>
+      <div id="monthYear"></div>
+      <button onclick="changeMonth(1)">▶</button>
+    </div>
+    <div class="days-of-week">
+      <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div>
+      <div>Thu</div><div>Fri</div><div>Sat</div>
+    </div>
+    <div class="dates" id="datesGrid"></div>
+  </div>
+ 
+<div class="quotes-carousel" id="quotesCarousel">
+  <p>"Language is the dress of thought." — Samuel Johnson</p>
+</div>
+ 
+  <p style="text-align: center; font-size: 0.8rem; color: #888; margin-top: 15px; padding-bottom: 5px; flex-shrink: 0;">
+    Created with ♥️ grit, nurtured with love and charged with passion by Andrew Veda, AP<br>SRM Valliammai Engineering College
+  </p>
+</div>
+
+<div id="customModal" class="custom-modal-overlay">
+  <div class="custom-modal">
+    <p id="modalMessage">Are you sure?</p>
+    <div class="modal-buttons">
+      <button id="modalCancel" class="modal-btn modal-btn-cancel">Cancel</button>
+      <button id="modalConfirm" class="modal-btn modal-btn-confirm">OK</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+ 
+  const supabase = createClient(
+    "https://ahezssoczvpbkteffcgz.supabase.co", 
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoZXpzc29jenZwYmt0ZWZmY2d6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI4NTk1ODUsImV4cCI6MjA3ODQzNTU4NX0.2ZlqXnZxv0opkhynAT7OlK4S-xPygcc7ETUyTXRfGHE"
+  );
+
+let sessionStartTime = Date.now();
+let totalTimeSpent = 0; // This is session time, not total
+let userData = null;
+let userProfileData = null;
+let currentMonth = new Date().getMonth();
+let currentYear = new Date().getFullYear();
+let currentType = 'quest';
+const startDate = new Date(2025, 7, 25); // Note: Months are 0-indexed (7 = August)
+
+// --- Quest Links (omitted for brevity, they are unchanged) ---
+const questLinks = {
+  1: "https://andrewveda.github.io/SRM-VEC-English-PWA/quests/quest1", 2: "https://sites.google.com/view/srm-vec-english/quest/wh-questions-1",
+  3: "https://sites.google.com/view/cys-english/self-introduction-1", 4: "https://sites.google.com/view/srm-vec-english/quest/one-word-substitution-1",
+  5: "https://sites.google.com/view/cys-english/self-introduction-3", 6: "https://sites.google.com/view/srm-vec-english/quest/film-review",
+  7: "https://sites.google.com/view/srm-vec-english/quest/pronouns-1", 8: "https://sites.google.com/view/srm-vec-english/quest/pronouns-2",
+  9: "https://sites.google.com/view/srm-vec-english/quest/parts-of-speech-1", 10: "https://sites.google.com/view/srm-vec-english/quest/question-tags-1",
+  11: "https://sites.google.com/view/srm-vec-english/quest/question-tags-2", 12: "https://sites.google.com/view/srm-vec-english/quest/subject-verb-agreement",
+  13: "https://sites.google.com/view/srm-vec-english/quest/comparative-1", 14: "https://sites.google.com/view/srm-vec-english/quest/comparative-2",
+  15: "https://sites.google.com/view/srm-vec-english/quest/discourse-markers", 16: "https://sites.google.com/view/srm-vec-english/quest/past-1",
+  17: "https://sites.google.com/view/cys-english/questyesno1", 18: "https://sites.google.com/view/srm-vec-english/quest/yesno-2",
+  19: "https://sites.google.com/view/srm-vec-english/quest/one-word-substitution-2", 20: "https://sites.google.com/view/cys-english/match1",
+  21: "https://sites.google.com/view/cys-english/match2", 22: "https://sites.google.com/view/cys-english/past",
+  23: "https://sites.google.com/view/cys-english/homophone1", 24: "https://sites.google.com/view/cys-english/homophone2",
+  25: "https://sites.google.com/view/cys-english/comparisons1", 26: "https://sites.google.com/view/cys-english/comparisons2",
+  27: "https://sites.google.com/view/cys-english/discoursemarkers", 28: "https://sites.google.com/view/cys-english/article",
+  29: "https://sites.google.com/view/cys-english/synonym1", 30: "https://sites.google.com/view/cys-english/synonym2",
+  31: "https://sites.google.com/view/cys-english/antonym1", 32: "https://sites.google.com/view/cys-english/antonym2",
+  33: "https://sites.google.com/view/cys-english/prep1", 34: "https://sites.google.com/view/cys-english/prep2",
+  35: "https://sites.google.com/view/cys-english/past2", 36: "https://sites.google.com/view/cys-english/prep3",
+  37: "https://sites.google.com/view/cys-english/match3", 38: "https://sites.google.com/view/cys-english/article2",
+  39: "https://sites.google.com/view/cys-english/article3", 40: "https://sites.google.com/view/cys-english/quest40",
+  41: "https://sites.google.com/view/cys-english/quest41", 42: "https://sites.google.com/view/cys-english/quest42",
+  43: "https://sites.google.com/view/cys-english/quest43", 44: "https://sites.google.com/view/cys-english/quest44",
+  45: "https://sites.google.com/view/cys-english/quest45", 46: "https://sites.google.com/view/cys-english/quest46",
+  47: "https://sites.google.com/view/cys-english/quest47", 48: "https://sites.google.com/view/cys-english/quest48",
+  49: "https://sites.google.com/view/cys-english/quest49", 
+  50: "https://sites.google.com/view/cys-english/quest50",
+  51: "https://sites.google.com/view/cys-english/quest51", 
+    52: "https://sites.google.com/view/cys-english/quest52",
+    53: "https://sites.google.com/view/cys-english/quest53",
+    54: "https://sites.google.com/view/cys-english/quest54",
+    55: "https://sites.google.com/view/cys-english/quest55",
+    56: "https://sites.google.com/view/cys-english/quest56",
+    57: "https://sites.google.com/view/cys-english/quest57",
+    58: "https://sites.google.com/view/cys-english/quest58",
+    59: "https://sites.google.com/view/cys-english/quest59",
+    60: "https://sites.google.com/view/cys-english/quest60",
+    61: "https://sites.google.com/view/cys-english/quest61",
+    62: "https://sites.google.com/view/cys-english/quest62",
+    63: "https://sites.google.com/view/cys-english/full-streak-wh-questions", 
+    64: "https://sites.google.com/view/cys-english/full-streak-single-word",
+  65: "https://sites.google.com/view/cys-english/full-streak-3", 
+  66: "https://sites.google.com/view/cys-english/full-streak-4",
+  67: "https://sites.google.com/view/cys-english/full-streak-5", 
+  68: "https://sites.google.com/view/cys-english/full-streak-6",
+  69: "https://sites.google.com/view/cys-english/full-streak-7", 
+  70: "https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/bookreview1", 
+  71: "https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/bookreview2", 
+  72: "https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/bookreview3", 
+  73: "https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/bookreview4", 
+  74: "https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/blog1", 
+  75: "https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/blog2",
+  76: "https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/blog3",
+  77: "https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/blog4",
+  78: "https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/blog5",
+  79: "https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/blog6",
+  80: "https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/blog7",
+  81: "https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/blog8",
+  82: "https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/blog9"
+
+};
+const videoLink = "https://andrewveda.github.io/videoquest/";
+const storyLinks = { 69: "https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story1", 70: "https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story2", 71: "https://andrewveda.github.io/SRM-VEC-English-PWA/quests/quest1", 
+                    72: "https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story3", 73: "https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story4", 
+                    74: "https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story5", 75: "https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story6", 76: "https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story7", 
+                    77: "https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story8",
+                      78: "https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story9",
+                      79: "https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story10",
+                      80: "https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story11",
+                      81: "https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story12"
+                      
+                      
+                       
+                      }
+
+async function init() {
+  const savedName = localStorage.getItem('userName');
+  
+  if (savedName) {
+    const cachedUser = localStorage.getItem('cachedUserData');
+    const cachedProfile = localStorage.getItem('cachedProfileData');
+    
+    if (cachedUser && cachedProfile) {
+      // Load from cache for instant startup
+      userData = JSON.parse(cachedUser);
+      userProfileData = JSON.parse(cachedProfile);
+      showCalendar(); // Show UI immediately
+      
+      // Refresh data in the background
+      refreshData(savedName); 
+    } else {
+      // No cache, show loading screen and fetch
+      document.getElementById('loadingScreen').classList.add('show');
+      await fetchInitialData(savedName);
+      showCalendar();
+      document.getElementById('loadingScreen').classList.remove('show');
+    }
+  } else {
+    // New user
+    document.getElementById('nameInputContainer').classList.add('show');
+  }
+  
+  setupEventListeners();
+  checkOnlineStatus();
+  trackInstall();
+}
+
+/**
+ * Fetches all necessary data from Supabase. Used for initial login.
+ * Shows loading screen.
+ */
+async function fetchInitialData(name) {
+  console.log("Fetching initial data for:", name);
+  try {
+    const [summaryResult, leaderboardResult] = await Promise.all([
+      supabase.from('summary_import').select('*'),
+      supabase.from('leaderboard').select('*')
+    ]);
+
+    if (summaryResult.error) throw summaryResult.error;
+    if (leaderboardResult.error) throw leaderboardResult.error;
+
+    // Find user in summary data
+      // Find user in summary data
+    const dept = (localStorage.getItem('userDept') || "").toUpperCase();
+    const searchName = name.toUpperCase();
+
+    userData =
+      summaryResult.data.find(u =>
+        u.student_name?.toUpperCase().includes(searchName) &&
+        (u.department?.toUpperCase() === dept)
+      ) || {
+        student_name: searchName,
+        quest_list: "",
+        video_list: "",
+        story_list: ""
+      };
+
+    // Find user in leaderboard data
+     // Find user in leaderboard data
+    userProfileData =
+      leaderboardResult.data.find(u => {
+        const fullName = u.Name?.toUpperCase() || "";
+        const userDept = (u.Department || "").toUpperCase();
+        return (
+          fullName.startsWith(searchName) &&
+          userDept === dept
+        );
+      }) || {
+        Name: searchName,
+        Correct: 0,
+        Wrong: 0,
+        "Total Time (s)": 0,
+        Rank: "-"
+      };
+
+    // Cache results
+    localStorage.setItem('cachedUserData', JSON.stringify(userData));
+    localStorage.setItem('cachedProfileData', JSON.stringify(userProfileData));
+
+  } catch (err) {
+    console.error('Error loading initial data:', err);
+    showModal('Error loading data. Please check your connection and try again.', () => {
+      document.getElementById('loadingScreen').classList.remove('show');
+      document.getElementById('nameInputContainer').classList.add('show');
+    });
+  }
+}
+
+/**
+ * Refreshes data in the background without a loading screen.
+ */
+async function refreshData(name) {
+  if (!name) return;
+  console.log("Refreshing data in background for:", name);
+  try {
+    const [summaryResult, leaderboardResult] = await Promise.all([
+      supabase.from('summary_import').select('*'),
+      supabase.from('leaderboard').select('*')
+    ]);
+
+    if (summaryResult.error) throw summaryResult.error;
+    if (leaderboardResult.error) throw leaderboardResult.error;
+
+    // Find user in summary data
+       // Find user in summary data
+    const dept = (localStorage.getItem('userDept') || "").toUpperCase();
+    const searchName = name.toUpperCase();
+
+    const summaryUser = summaryResult.data.find(u =>
+      u.student_name?.toUpperCase().includes(searchName) &&
+      (u.department?.toUpperCase() === dept)
+    );
+
+    if (summaryUser) {
+      userData = summaryUser;
+      localStorage.setItem('cachedUserData', JSON.stringify(userData));
+    }
+
+    // Find user in leaderboard data
+    const profileUser = leaderboardResult.data.find(u => {
+      if (!u.Name) return false;
+      const fullName = u.Name.toUpperCase();
+      const searchName = name.toUpperCase();
+      return fullName.startsWith(searchName) || fullName.split(' - ')[0].trim().startsWith(searchName);
+    });
+    if (profileUser) {
+      userProfileData = profileUser;
+      localStorage.setItem('cachedProfileData', JSON.stringify(userProfileData));
+    }
+
+    // Update UI with new data
+    updateAllUI();
+
+  } catch (err) {
+    console.error('Error refreshing data:', err);
+    // Don't show modal, just log error and keep using cached data
+    document.getElementById('offlineBanner').classList.add('show');
+  }
+}
+
+
+function setupEventListeners() {
+  document.getElementById('profileIcon').addEventListener('click', toggleDrawer);
+  document.getElementById('closeDrawer').addEventListener('click', toggleDrawer);
+  document.getElementById('overlay').addEventListener('click', toggleDrawer);
+ 
+  window.addEventListener('beforeunload', syncData);
+  window.addEventListener('online', handleOnline);
+  window.addEventListener('offline', handleOffline);
+
+  document.addEventListener('visibilitychange', async () => {
+    if (document.hidden) {
+      syncData();
+    } else {
+      sessionStartTime = Date.now();
+      // Refresh data when user returns to tab
+      const savedName = localStorage.getItem("userName");
+      if (savedName) {
+        refreshData(savedName); 
+      }
+    }
+  });
+  
+  // Removed session time tracking interval, handled by syncData on close
+
+  document.getElementById('modalConfirm').addEventListener('click', () => {
+    if (window.confirmCallback) {
+      window.confirmCallback();
+    }
+    document.getElementById('customModal').classList.remove('show');
+    window.confirmCallback = null;
+  });
+
+  document.getElementById('modalCancel').addEventListener('click', () => {
+    document.getElementById('customModal').classList.remove('show');
+    window.confirmCallback = null;
+  });
+
+  document.getElementById("leaderboardIcon").onclick = () => {
+    window.location.href = "https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/leaderboard";
+  };
+  document.getElementById("elllIcon").onclick = () => {
+    window.location.href = "https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/ELLL.html";
+  };
+}
+
+
+function showModal(message, onConfirm) {
+  const modal = document.getElementById('customModal');
+  document.getElementById('modalMessage').textContent = message;
+  modal.classList.add('show');
+  window.confirmCallback = onConfirm;
+}
+
+function toggleDrawer() {
+  const drawer = document.getElementById('profileDrawer');
+  const overlay = document.getElementById('overlay');
+
+  drawer.classList.toggle('open');
+  overlay.classList.toggle('active');
+
+  // Update name in drawer when opened (it might have been "Loading...")
+  if (drawer.classList.contains('open')) {
+    updateProfileDrawer();
+  }
+}
+
+
+async function saveAndLogin() {
+  const name = document.getElementById('nameInput').value.trim();
+  if (!name) {
+    showModal('Please enter your name!', () => {});
+    return;
+  }
+ 
+  const upperCaseName = name.toUpperCase();
+  localStorage.setItem('userName', upperCaseName);
+  const dept = document.getElementById('deptSelect').value;
+localStorage.setItem('userDept', dept);
+
+ 
+  document.getElementById('nameInputContainer').classList.remove('show');
+  document.getElementById('loadingScreen').classList.add('show');
+
+  // Perform the first-time data fetch
+  await fetchInitialData(upperCaseName);
+  
+  showCalendar();
+  
+  document.getElementById('loadingScreen').classList.remove('show');
+}
+
+
+function showCalendar() {
+  document.getElementById('calendarContainer').classList.add('show');
+  document.getElementById('profileIcon').classList.add('show');
+  
+  // Update all UI components that depend on data
+  updateAllUI();
+}
+
+/**
+ * Helper function to update all dynamic UI parts from global data.
+ */
+function updateAllUI() {
+  if (!userData || !userProfileData) return;
+  
+  const displayName = userProfileData?.Name || userData?.student_name || 'Unknown';
+  document.getElementById('userName').textContent = displayName;
+
+  updateProfileDrawer();
+  // REMOVED call to updateLevelDashboard()
+  // updateLevelDashboard(); 
+  renderCalendar(currentMonth, currentYear, currentType);
+}
+
+function parseList(raw) {
+  if (!raw) return [];
+  return raw
+    .split(",")
+    .map(x => x.trim())
+    .filter(x => x.length > 0)
+    .map(x => x.replace(/\s+/g, "").toLowerCase()); // Normalize: "Quest 1" -> "quest1"
+}
+
+/**
+ * Updates the Profile Drawer (now just the name).
+ */
+function updateProfileDrawer() {
+  if (!userData && !userProfileData) return;
+
+  const name =
+    userProfileData?.Name ||
+    userData?.student_name ||
+    "User";
+
+  document.getElementById("drawerUserName").textContent = name;
+  // All stat-related code removed.
+}
+
+/**
+ * Updates the Level Dashboard with stats.
+ */
+// REMOVED entire updateLevelDashboard function
+/*
+function updateLevelDashboard() {
+  if (!userData || !userProfileData) return;
+...
+  document.getElementById("powerTimeFill").style.width = `${Math.min(100, (timeMin / maxTime) * 100)}%`;
+}
+*/
+
+
+function switchType(type) {
+  currentType = type;
+  document.querySelectorAll('.type-button').forEach(btn => btn.classList.remove('active'));
+  event.target.classList.add('active');
+  renderCalendar(currentMonth, currentYear, currentType);
+}
+
+function changeMonth(direction) {
+  currentMonth += direction;
+  if (currentMonth < 0) {
+    currentMonth = 11;
+    currentYear--;
+  } else if (currentMonth > 11) {
+    currentMonth = 0;
+    currentYear++;
+  }
+  renderCalendar(currentMonth, currentYear, currentType);
+}
+
+function renderCalendar(month, year, type) {
+  // console.group(`📅 Calendar Debug — ${type.toUpperCase()} — ${month+1}/${year}`);
+  
+  const datesGrid = document.getElementById('datesGrid');
+  const monthYear = document.getElementById('monthYear');
+
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  monthYear.textContent = new Date(year, month).toLocaleString('default', {
+    month: 'long'
+  }) + ' ' + year;
+
+  datesGrid.innerHTML = '';
+
+  // Pad empty cells
+  const firstDayOfMonth = new Date(year, month, 1).getDay();
+  for (let i = 0; i < firstDayOfMonth; i++) {
+    const empty = document.createElement('div');
+    empty.className = 'disabled';
+    datesGrid.appendChild(empty);
+  }
+
+  // --- 1. GET THE CORRECT LIST (RE-WRITTEN) ---
+  // This single block replaces the two separate, complex blocks for
+  // getting the challenge string. It's cleaner and handles fallbacks correctly.
+  let challengesString = "";
+
+  if (type === "quest") {
+      challengesString = userData?.quest_list || userProfileData?.quest_list || userProfileData?.QuestList || "";
+  } else if (type === "video") {
+      challengesString = userData?.video_list || userProfileData?.video_list || userProfileData?.VideoList || "";
+  } else if (type === "story") {
+      challengesString = userData?.story_list || userProfileData?.story_list || userProfileData?.StoryList || "";
+  }
+
+  // --- 2. NORMALISE THE LIST (done by parseList) ---
+  const normalizedList = parseList(challengesString);
+  // console.log("➡ RAW string:", challengesString);
+  // console.log("➡ Normalized List:", normalizedList);
+
+  // --- 3. RENDER DATES ---
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const currentDate = new Date(year, month, d);
+
+    const diffDays = Math.floor((currentDate - startDate) / (1000 * 60 * 60 * 24));
+    const questNumber = diffDays >= 0 ? diffDays + 1 : null;
+
+    const dayDiv = document.createElement('div');
+
+    if (!questNumber) {
+    dayDiv.className = 'disabled';
+    dayDiv.textContent = d;
+    datesGrid.appendChild(dayDiv);
+    continue;
+}
+    // Build the name for matching (e.g., "quest47")
+    // ORIGINAL BUG: This block always prefixed "video" or "story"
+    // const normalizedType =
+    //   type === "quest" ? "quest" :
+    //   type === "video" ? "video" :
+    //   "story";
+    // const normalizedQuestName = `${normalizedType}${questNumber}`;
+
+    // MINIMAL FIX: Conditionally add the prefix ONLY for 'quest'
+    let normalizedQuestName;
+
+if (type === 'quest') {
+    // Quest format → "quest1"
+    normalizedQuestName = `quest${questNumber}`;
+}
+else if (type === 'video') {
+    // Video stored as "Video 1" → becomes "video1"
+    normalizedQuestName = `video${questNumber}`;
+}
+else if (type === 'story') {
+    // Story stored as "Story 70" → becomes "story70"
+    normalizedQuestName = `story${questNumber}`;
+}
+
+    // console.log(
+    //   `Date: ${d} | Quest#: ${questNumber} | Check: ${normalizedQuestName} | Completed?`,
+    //   normalizedList.includes(normalizedQuestName)
+    // );
+
+    const isCompleted = normalizedList.includes(normalizedQuestName);
+
+    // --- Apply Classes ---
+    if (isCompleted) {
+      dayDiv.className = "done";
+      dayDiv.textContent = `${d} 🔥`;
+    } else if (currentDate < today) {
+      dayDiv.className = "missed";
+      dayDiv.textContent = d;
+    } else {
+      // This is for today's date if not yet completed
+      dayDiv.className = ""; // Today's available quest
+      dayDiv.textContent = d;
+      // Add a special style for "today"
+      dayDiv.style.border = "2px solid #7A0019";
+      dayDiv.style.fontWeight = "bold";
+    }
+
+    // --- Click Handler ---
+    dayDiv.onclick = () => {
+      let link = null;
+
+      if (type === "quest") link = questLinks[questNumber];
+      else if (type === "video") link = videoLink; // Video link is always the same
+      else if (type === "story") link = storyLinks[questNumber];
+
+      if (link) {
+        window.location.href = link;
+      } else {
+        console.warn(`No link found for ${type} ${questNumber}`);
+      }
+    };
+
+    datesGrid.appendChild(dayDiv);
+  }
+  // console.groupEnd();
+}
+
+async function syncData() {
+  if (!userData) return;
+ 
+  const sessionDuration = Math.floor((Date.now() - sessionStartTime) / 1000);
+  if (sessionDuration < 10) return; // Don't sync very short sessions
+  
+  const analyticsData = {
+    name: userData.student_name,
+    sessionDuration: sessionDuration,
+    lastActive: new Date().toISOString(),
+    sessionStart: new Date(sessionStartTime).toISOString(),
+    isOnline: navigator.onLine,
+    department: userProfileData?.Department || userProfileData?.department || 'Unknown'
+  };
+ 
+  if (navigator.onLine) {
+    try {
+      await supabase.from('quest_submissions').insert([
+        {
+          student_name: analyticsData.name,
+          time_spent: analyticsData.sessionDuration,
+          quest_id: 'SessionSync',
+          department: analyticsData.department
+        }
+      ]);
+    } catch (err) {
+      console.error("Error syncing session data:", err);
+      savePendingSync(analyticsData); // Save to local if sync fails
+    }
+  } else {
+    savePendingSync(analyticsData);
+  }
+}
+
+function savePendingSync(data) {
+  const pending = JSON.parse(localStorage.getItem('pendingSync') || '[]');
+  pending.push(data);
+  localStorage.setItem('pendingSync', JSON.stringify(pending));
+}
+
+async function handleOnline() {
+  document.getElementById('offlineBanner').classList.remove('show');
+ 
+  const pending = JSON.parse(localStorage.getItem('pendingSync') || '[]');
+  if (pending.length > 0) {
+    console.log(`Syncing ${pending.length} offline sessions...`);
+    for (const data of pending) {
+        try {
+          await supabase.from('quest_submissions').insert([
+            {
+              student_name: data.name,
+              time_spent: data.sessionDuration,
+              quest_id: 'OfflineSync',
+              department: data.department
+            }
+          ]);
+        } catch (err) {
+          console.error("Error submitting pending sync:", err);
+        }
+    }
+    localStorage.removeItem('pendingSync');
+  }
+ 
+  // Refresh all data now that we are online
+  const savedName = localStorage.getItem('userName');
+  if (savedName) refreshData(savedName);
+}
+
+function handleOffline() {
+  document.getElementById('offlineBanner').classList.add('show');
+}
+
+function checkOnlineStatus() {
+  if (!navigator.onLine) {
+    handleOffline();
+  }
+}
+
+async function trackInstall() {
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    console.log('Install prompt captured');
+    // We could log this to Supabase, but will wait for actual install
+  });
+  
+  window.addEventListener('appinstalled', async () => {
+    const installData = {
+      name: localStorage.getItem('userName') || 'Unknown',
+      event: 'app_installed',
+      timestamp: new Date().toISOString()
+    };
+    try {
+      await supabase.from('quest_submissions').insert([
+        {
+          student_name: installData.name,
+          quest_id: installData.event,
+          time_spent: 0,
+          department: 'InstallEvent'
+        }
+      ]);
+    } catch (err) {
+      console.error('App install tracking error:', err);
+    }
+  });
+}
+
+
+function logout() {
+  showModal('Are you sure you want to logout?', () => {
+    syncData(); // Sync one last time
+    localStorage.removeItem('userName');
+    localStorage.removeItem('cachedUserData');
+    localStorage.removeItem('cachedProfileData');
+    // localStorage.removeItem('totalTimeSpent'); // This was session time, no longer needed
+    window.location.reload();
+  });
+}
+
+// IMPORTANT: Expose functions to window so HTML onclick attributes can see them
+window.saveAndLogin = saveAndLogin;
+window.switchType = switchType;
+window.changeMonth = changeMonth;
+window.toggleDrawer = toggleDrawer;
+window.logout = logout;
+
+// Initialize
+supabase
+  .channel('leaderboard-realtime')
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'leaderboard' }, payload => {
+    console.log('Leaderboard updated via realtime:', payload);
+    const savedName = localStorage.getItem('userName');
+    if (savedName) refreshData(savedName); // Refresh data on any change
+  })
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'summary_import' }, payload => {
+    console.log('Summary data updated via realtime:', payload);
+    const savedName = localStorage.getItem('userName');
+    if (savedName) refreshData(savedName); // Refresh data on any change
+  })
+  .subscribe();
+
+init();
+
+</script>
+
+<script>
+// This script doesn't need module-type, so it's separate.
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('service-worker.js')
+      .then(reg => console.log('✅ Service worker registered:', reg.scope))
+      .catch(err => console.error('❌ Service worker registration failed:', err));
+  });
+}
+
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  console.log('📲 Install prompt captured');
+
+  if (document.getElementById('installPwaBtn')) return;
+
+  const installBtn = document.createElement('button');
+  installBtn.id = 'installPwaBtn';
+  installBtn.textContent = 'Install App';
+ 
+  Object.assign(installBtn.style, {
+    position: 'fixed',
+    bottom: '20px',
+    right: '20px',
+    padding: '12px 20px',
+    background: '#7A0019',
+    color: 'white',
+    border: 'none',
+    borderRadius: '10px',
+    cursor: 'pointer',
+    zIndex: '9999',
+    boxShadow: '0 5px 15px rgba(0,0,0,0.3)',
+    fontWeight: '600',
+    transition: 'transform 0.2s ease'
+  });
+
+  installBtn.onmouseover = () => installBtn.style.transform = 'translateY(-2px)';
+  installBtn.onmouseout = () => installBtn.style.transform = 'translateY(0)';
+
+  document.body.appendChild(installBtn);
+
+  installBtn.addEventListener('click', async () => {
+    installBtn.remove();
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    console.log(`User response: ${outcome}`);
+    deferredPrompt = null;
+  });
+});
+</script>
+
+<script>
+// Quotes carousel script
+const quotes = [
+  `"Do or do not. There is no try." <br> — Yoda`,
+  `"Ever tried. Ever failed. No matter. Try again. Fail again. Fail better." <br> — Samuel Beckett`,
+  `"The opposite of a profound truth may well be another profound truth." <br> — Niels Bohr`,
+  `"The opposite of a good idea is another good idea." <br> — Rory Sutherland`
+];
+
+
+let qIndex = 0;
+setInterval(() => {
+  const el = document.getElementById("quotesCarousel");
+  if (!el) return;
+  el.style.opacity = 0;
+  setTimeout(() => {
+    qIndex = (qIndex + 1) % quotes.length;
+    el.innerHTML = `<p>${quotes[qIndex]}</p>`;
+    el.style.opacity = 0.9;
+  }, 1000);
+}, 5000);
+</script>
+</body>
+</html>

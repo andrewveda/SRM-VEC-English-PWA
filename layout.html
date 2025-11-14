@@ -1223,14 +1223,6 @@ function updateAllUI() {
   renderCalendar(currentMonth, currentYear, currentType);
 }
 
-function parseList(raw) {
-  if (!raw) return [];
-  return raw
-    .split(",")
-    .map(x => x.trim())
-    .filter(x => x.length > 0)
-    .map(x => x.replace(/\s+/g, "").toLowerCase()); // Normalize: "Quest 1" -> "quest1"
-}
 
 /**
  * Updates the Profile Drawer (now just the name).
@@ -1345,32 +1337,22 @@ function renderCalendar(month, year, type) {
     datesGrid.appendChild(empty);
   }
 
-  // --- 1. GET THE CORRECT LIST ---
+  // --- 1. GET THE CORRECT LIST (RE-WRITTEN) ---
+  // This single block replaces the two separate, complex blocks for
+  // getting the challenge string. It's cleaner and handles fallbacks correctly.
   let challengesString = "";
-  if (type === "quest")  challengesString = userData.quest_list || "";
-  if (type === "video")  challengesString = userData.video_list || "";
-  if (type === "story")    challengesString = userData.story_list || "";
 
-  // Fallback to profile data if summary data is empty
-  if ((!challengesString || challengesString.trim() === "") && userProfileData) {
-    for (const key of Object.keys(userProfileData)) {
-      const lower = key.toLowerCase();
-      if (type === "quest" && lower.includes("quest")) {
-        challengesString = userProfileData[key] || "";
-      }
-      if (type === "video" && lower.includes("video")) {
-        challengesString = userProfileData[key] || "";
-      }
-      if (type === "story" && lower.includes("story")) {
-        challengesString = userProfileData[key] || "";
-      }
-    }
+  if (type === "quest") {
+      challengesString = userData?.quest_list || userProfileData?.quest_list || userProfileData?.QuestList || "";
+  } else if (type === "video") {
+      challengesString = userData?.video_list || userProfileData?.video_list || userProfileData?.VideoList || "";
+  } else if (type === "story") {
+      challengesString = userData?.story_list || userProfileData?.story_list || userProfileData?.StoryList || "";
   }
 
   // --- 2. NORMALISE THE LIST (done by parseList) ---
-  const normalizedList = parseList(challengesString);
+
   // console.log("➡ RAW string:", challengesString);
-  // console.log("➡ Normalized List:", normalizedList);
 
   // --- 3. RENDER DATES ---
   const today = new Date();
@@ -1392,18 +1374,13 @@ function renderCalendar(month, year, type) {
     }
 
     // Build the name for matching (e.g., "quest47")
-    const normalizedType =
-      type === "quest" ? "quest" :
-      type === "video" ? "video" :
-      "story";
-    const normalizedQuestName = `${normalizedType}${questNumber}`;
+   let checkString = "";
 
-    // console.log(
-    //   `Date: ${d} | Quest#: ${questNumber} | Check: ${normalizedQuestName} | Completed?`,
-    //   normalizedList.includes(normalizedQuestName)
-    // );
+if (type === "quest")  checkString = `Quest ${questNumber}`;
+if (type === "video")  checkString = `Video ${questNumber}`;
+if (type === "story")  checkString = `Story ${questNumber}`;
 
-    const isCompleted = normalizedList.includes(normalizedQuestName);
+const isCompleted = challengesString.includes(checkString);
 
     // --- Apply Classes ---
     if (isCompleted) {

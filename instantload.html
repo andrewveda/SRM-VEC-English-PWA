@@ -1102,15 +1102,21 @@ function setupEventListeners() {
   window.addEventListener('beforeunload', syncData);
   window.addEventListener('online', handleOnline);
   window.addEventListener('offline', handleOffline);
-  
-  document.addEventListener('visibilitychange', () => {
-    if (document.hidden) {
-      syncData();
-    } else {
-      sessionStartTime = Date.now();
+
+  document.addEventListener('visibilitychange', async () => {
+  if (document.hidden) {
+    syncData();
+  } else {
+    sessionStartTime = Date.now();
+
+    const savedName = localStorage.getItem("userName");
+    if (savedName) {
+      await loadUserDataInBackground(savedName);  // re-fetch lists
     }
-  });
-  
+
+    renderCalendar(currentMonth, currentYear, currentType);  // repaint 🔥
+  }
+});
   setInterval(() => {
     totalTimeSpent = Math.floor((Date.now() - sessionStartTime) / 1000 / 60);
     localStorage.setItem('totalTimeSpent', totalTimeSpent);

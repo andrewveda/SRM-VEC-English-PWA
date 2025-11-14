@@ -820,38 +820,9 @@ margin: 50px auto;
   <button class="logout-btn" onclick="logout()">🚪 Logout</button>
 
 </div>
-
-
-
-
-<div class="level-dashboard" id="levelDashboard">
-  <h2 id="levelTitle">LEVEL : Loading.. ☆☆☆☆</h2>
-  <div class="xp-bar">
-    <div class="xp-fill" id="xpFill" style="width: 0%;"></div>
-  </div>
-  <p class="xp-text" id="xpText">0% to next level</p>
-
-
-
-<div class="power-bar-deck">
-  <div class="power-item" data-label="Score">
-    📊 <div class="power-bar"><div class="fill" id="powerScoreFill" style="width:0%;"></div></div>
-    <span class="power-value" id="powerScoreValue">0</span>
-  </div>
-  <div class="power-item" data-label="Quests">
-    📝 <div class="power-bar"><div class="fill" id="powerQuestsFill" style="width:0%;"></div></div>
-    <span class="power-value" id="powerQuestsValue">0</span>
-  </div>
-  <div class="power-item" data-label="Videos">
-    🎥 <div class="power-bar"><div class="fill" id="powerVideosFill" style="width:0%;"></div></div>
-    <span class="power-value" id="powerVideosValue">0</span>
-  </div>
-  <div class="power-item" data-label="Time">
-    ⏱️ <div class="power-bar"><div class="fill" id="powerTimeFill" style="width:0%;"></div></div>
-    <span class="power-value" id="powerTimeValue">0m</span>
-  </div>
-</div>
-</div>
+ 
+<!-- REMOVED level-dashboard DIV -->
+<!-- <div class="level-dashboard" id="levelDashboard"> ... </div> -->
 
 
 <div class="calendar-container" id="calendarContainer">
@@ -1219,10 +1190,19 @@ function updateAllUI() {
   document.getElementById('userName').textContent = displayName;
 
   updateProfileDrawer();
-  updateLevelDashboard();
+  // REMOVED call to updateLevelDashboard()
+  // updateLevelDashboard(); 
   renderCalendar(currentMonth, currentYear, currentType);
 }
 
+function parseList(raw) {
+  if (!raw) return [];
+  return raw
+    .split(",")
+    .map(x => x.trim())
+    .filter(x => x.length > 0)
+    .map(x => x.replace(/\s+/g, "").toLowerCase()); // Normalize: "Quest 1" -> "quest1"
+}
 
 /**
  * Updates the Profile Drawer (now just the name).
@@ -1242,55 +1222,14 @@ function updateProfileDrawer() {
 /**
  * Updates the Level Dashboard with stats.
  */
+// REMOVED entire updateLevelDashboard function
+/*
 function updateLevelDashboard() {
   if (!userData || !userProfileData) return;
-
-  // --- Get data ---
-  const correct = parseInt(userProfileData?.Correct || 0);
-  const wrong = parseInt(userProfileData?.Wrong || 0);
-  const score = correct - wrong;
-
-  let time = userProfileData?.["Total Time (s)"] || userProfileData?.TotalTime || 0;
-  const timeMin = Math.round(time / 60);
-
-  const questList = userData?.quest_list || userProfileData?.quest_list || userProfileData?.QuestList || "";
-  const videoList = userData?.video_list || userProfileData?.video_list || userProfileData?.VideoList || "";
-  const storyList = userData?.story_list || userProfileData?.story_list || userProfileData?.StoryList || "";
-
-  // --- Level & XP Calculation ---
-  const totalXP = (questCount * 100) + (videoCount * 50) + (score * 10) + (timeMin * 2);
-  const level = Math.floor(totalXP / 1000) + 1; // 1000 XP per level
-  const xpInCurrentLevel = totalXP % 1000;
-  const xpPercentage = (xpInCurrentLevel / 1000) * 100;
-
-  const levelNames = ["Rookie", "Apprentice", "Scribe", "Adept", "Scholar", "Wordsmith", "Orator", "Sage", "Master", "Legend"];
-  const stars = '★'.repeat(level) + '☆'.repeat(Math.max(0, 5 - level));
-  const levelName = levelNames[Math.min(level - 1, levelNames.length - 1)];
-
-  document.getElementById("levelTitle").textContent = `LEVEL ${level}: ${levelName} ${stars}`;
-  document.getElementById("xpFill").style.width = `${xpPercentage}%`;
-  document.getElementById("xpText").textContent = `${Math.round(xpPercentage)}% to Level ${level + 1}`;
-
-
-  // --- Power Bars (normalize values to 0-100%) ---
-  // These max values are estimates for visual scaling. Adjust as needed.
-  const maxScore = 5000;
-  const maxQuests = 80;
-  const maxVideos = 20;
-  const maxTime = 300; // 5 hours
-
-  document.getElementById("powerScoreValue").textContent = score;
-  document.getElementById("powerScoreFill").style.width = `${Math.min(100, (score / maxScore) * 100)}%`;
-
-  document.getElementById("powerQuestsValue").textContent = questCount;
-  document.getElementById("powerQuestsFill").style.width = `${Math.min(100, (questCount / maxQuests) * 100)}%`;
-
-  document.getElementById("powerVideosValue").textContent = videoCount;
-  document.getElementById("powerVideosFill").style.width = `${Math.min(100, (videoCount / maxVideos) * 100)}%`;
-
-  document.getElementById("powerTimeValue").textContent = `${timeMin}m`;
+...
   document.getElementById("powerTimeFill").style.width = `${Math.min(100, (timeMin / maxTime) * 100)}%`;
 }
+*/
 
 
 function switchType(type) {
@@ -1347,8 +1286,9 @@ function renderCalendar(month, year, type) {
   }
 
   // --- 2. NORMALISE THE LIST (done by parseList) ---
-
+  const normalizedList = parseList(challengesString);
   // console.log("➡ RAW string:", challengesString);
+  // console.log("➡ Normalized List:", normalizedList);
 
   // --- 3. RENDER DATES ---
   const today = new Date();
@@ -1370,13 +1310,29 @@ function renderCalendar(month, year, type) {
     }
 
     // Build the name for matching (e.g., "quest47")
-   let checkString = "";
+    // ORIGINAL BUG: This block always prefixed "video" or "story"
+    // const normalizedType =
+    //   type === "quest" ? "quest" :
+    //   type === "video" ? "video" :
+    //   "story";
+    // const normalizedQuestName = `${normalizedType}${questNumber}`;
 
-if (type === "quest")  checkString = `Quest ${questNumber}`;
-if (type === "video")  checkString = `Video ${questNumber}`;
-if (type === "story")  checkString = `Story ${questNumber}`;
+    // MINIMAL FIX: Conditionally add the prefix ONLY for 'quest'
+    let normalizedQuestName;
+    if (type === 'quest') {
+      normalizedQuestName = `quest${questNumber}`;
+    } else {
+      // For 'video' and 'story', assume the list just contains the number.
+      normalizedQuestName = `${questNumber}`;
+    }
 
-const isCompleted = challengesString.includes(checkString);
+
+    // console.log(
+    //   `Date: ${d} | Quest#: ${questNumber} | Check: ${normalizedQuestName} | Completed?`,
+    //   normalizedList.includes(normalizedQuestName)
+    // );
+
+    const isCompleted = normalizedList.includes(normalizedQuestName);
 
     // --- Apply Classes ---
     if (isCompleted) {

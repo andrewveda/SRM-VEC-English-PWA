@@ -280,7 +280,7 @@ Blog </h1>
 </div>
 
 <script type="module">
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
 const supabase = createClient(
   'https://ahezssoczvpbkteffcgz.supabase.co',
@@ -309,12 +309,12 @@ const quizDataStore = (() => {
   const fullPassage = ` Whether I'm using it to learn something new, share an important moment, or find directions in an unfamiliar place, it helps me make the most of every moment.
 In a fast-paced world, the smartphone empowers me to focus on what truly matters, making it a gadget I can't imagine living without. As Tyrion Lannister observed, "A mind needs books as a sword needs a whetstone"," my smartphone feeds my curiosity with endless access to knowledge. Why is my Smartphone essential?  My smartphone is essential because it keeps me connected in a world where constant communication is vital. It allows me to instantly share moments with family, friends, and colleagues through messages, calls, and social media. It's also indispensable for my productivity. Whether it's keeping track of work tasks, setting reminders, or taking notes, the smartphone makes my daily routine smoother. `;
   
-  const result = autoGenerateBlanks(fullPassage, 7);
+  const result = autoGenerateBlanks(fullPassage, 8);
   return [result];
 })();
 
 // FIX: Define Quest ID for PDF report
-const currentQuestID = " Quest 82 (Cloze)";
+const currentQuestID = "Quest 82 (Cloze)";
 
 // --- STATE VARIABLES ---
 let quizData = [];          // flattened pages
@@ -585,6 +585,25 @@ function createSparkleEffect(element) {
 async function showScore() {
   clearInterval(timerInterval);
   const totalTime = Math.floor((Date.now() - startTime) / 1000);
+  let saveError = null;
+  try {
+    const { error } = await supabase
+      .from('Quests')
+      .insert([
+        {
+          student_name: playerName,
+          department: playerDept,
+          correct: correctCount,
+          wrong: totalWrongGuesses,
+          time_spent: totalTime,
+          quest_id: "Quest 82"
+        }
+      ]);
+    saveError = error;
+  } catch (e) {
+    saveError = e;
+  }
+  // ⭐⭐⭐ BELOW: JS block ends here (do not put inside HTML)
 
   dragOptionsEl.innerHTML = "";
   dropContainerEl.innerHTML = "<h2 style='text-align:center;'>🎉 Quiz Completed!</h2>";
@@ -596,35 +615,27 @@ async function showScore() {
     : `<p>✅ Correct Answers (total): ${correctCount}</p>
        <p>❌ Wrong Attempts (total): ${totalWrongGuesses}</p>`;
 
+  // ⭐⭐⭐ ABOVE: build status line OUTSIDE scoreCard HTML
+  const statusLine = saveError
+    ? `<p style="color:red;">⚠️ Could not save to server. Please take a screenshot.</p>`
+    : `<p style="color:green;">✔ Saved to server</p>`;
+  // ⭐⭐⭐ BELOW: statusLine inserted inside template
+
   scoreCard.innerHTML = `
     <p>👤 Player: <strong>${playerName}</strong> (${playerDept})</p>
     ${successMessage}
     <p>💎 Final Gems: ${gemsCount}</p>
     <p>⏱️ Time Taken: ${totalTime} seconds</p>
-    <button onclick="downloadPDFReport()" style="margin-top: 1rem; padding: 0.7rem 2rem; background-color: #4CAF50; border: none; border-radius: 10px; cursor: pointer; color: white; font-size: 1rem;">📥 Download PDF Report</button>
+    ${statusLine}
+    <button onclick="downloadPDFReport()" 
+      style="margin-top: 1rem; padding: 0.7rem 2rem; background-color: #4CAF50; border: none; border-radius: 10px; cursor: pointer; color: white; font-size: 1rem;">
+      📥 Download PDF Report
+    </button>
   `;
-  restartBtn.style.display = "inline-block";
 
-  // save to Supabase
-  try {
-    const { error } = await supabase
-      .from('Quests')
-      .insert([
-        {
-          student_name: playerName,
-          department: playerDept,
-          correct: correctCount,
-          wrong: totalWrongGuesses,
-          time_spent: totalTime,
-          quest_id: "Quest 82" 
-        }
-      ]);
-    if (error) console.error('Supabase insert error:', error);
-    else console.log('✅ Quest saved to Supabase');
-  } catch (err) {
-    console.error('Error inserting into Supabase:', err);
-  }
+  restartBtn.style.display = "inline-block";
 }
+
 
 // FIX: Moved startTimer to the top-level scope
 function startTimer() {

@@ -69,26 +69,33 @@
         hour12: true
       });
     }
-
-    function formatTime(seconds) {
-      if (seconds === null || seconds === undefined) return "0s";
-      seconds = Math.round(seconds);
-      const hours = Math.floor(seconds / 3600);
-      const minutes = Math.floor((seconds % 3600) / 60);
-      const secs = seconds % 60;
-      
-      if (hours > 0) {
-        return `${hours}h ${minutes}m ${secs}s`;
-      } else if (minutes > 0) {
-        return `${minutes}m ${secs}s`;
-      } else {
-        return `${secs}s`;
-      }
-    }
-function formatSecondsOnly(seconds) {   // << ADD THIS
+    function formatSecondsOnly(seconds) {
   if (!seconds) return "0s";
   return `${Math.round(seconds)}s`;
 }
+
+
+  function formatTime(seconds) {
+  if (!seconds) {
+    return `
+      <span class="time-unit">
+        <span class="num">0</span><span class="unit s">s</span>
+      </span>`;
+  }
+
+  seconds = Math.round(seconds);
+
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+
+  return `
+    ${h > 0 ? `<span class="time-unit"><span class="num">${h}</span><span class="unit h">h</span></span>` : ""}
+    ${m > 0 ? `<span class="time-unit"><span class="num">${m}</span><span class="unit m">m</span></span>` : ""}
+    <span class="time-unit"><span class="num">${s}</span><span class="unit s">s</span></span>
+  `;
+}
+
 
     function sortData(key) {
       if (currentSort === key) {
@@ -201,9 +208,10 @@ if (currentSort === "last_test_taken") {
     </div>
 
     <div class="score name-two-line">
-     <div class="last-test-small">${showSecondsOnly ? formatSecondsOnly(s.total_time) : formatTime(s.total_time)}</div>
-
-    </div>
+    <div class="last-test-small time-colored">
+  ${showSecondsOnly ? formatSecondsOnly(s.total_time) : formatTime(s.total_time)}
+</div>
+</div>
   `;
 
 } else {
@@ -888,6 +896,32 @@ window.toggleTimeFormat = function () {     // << ADD THIS
   font-size: 11px;
   color: var(--text-secondary);
 }
+/* --- Aesthetic coloured time capsules --- */
+.time-unit {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-right: 6px;
+  padding: 2px 6px;
+  background: #1f1f1f;
+  border-radius: 6px;
+}
+
+.time-unit .num {
+  font-size: 14px;
+  font-weight: 700;
+  color: white;
+}
+
+.time-unit .unit {
+  font-size: 11px;
+  font-weight: 600;
+  opacity: 0.9;
+}
+
+.unit.h { color: #b86bff; }   /* purple */
+.unit.m { color: #6ba8ff; }   /* blue */
+.unit.s { color: #6bffd4; }   /* teal */
 
   </style>
 </head>

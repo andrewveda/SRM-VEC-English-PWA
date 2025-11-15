@@ -22,6 +22,7 @@
     let currentSort = "accuracy";
     let sortAscending = false;
     let lastTestInfo = { name: "", date: "" };
+    let showSecondsOnly = false;
 
     async function loadData() {
       const loader = document.getElementById("loader");
@@ -84,6 +85,10 @@
         return `${secs}s`;
       }
     }
+function formatSecondsOnly(seconds) {   // << ADD THIS
+  if (!seconds) return "0s";
+  return `${Math.round(seconds)}s`;
+}
 
     function sortData(key) {
       if (currentSort === key) {
@@ -115,14 +120,21 @@
     }
 
     function updateActiveButton() {
-      document.querySelectorAll(".sort-btn").forEach(btn => {
-        btn.classList.remove("active");
-        // Reset sort indicator
-        const indicator = btn.querySelector('.sort-indicator');
-        if (indicator) {
-          indicator.textContent = "";
-        }
-      });
+     document.querySelectorAll(".sort-btn").forEach(btn => {
+  btn.classList.remove("active");
+
+  const indicator = btn.querySelector('.sort-indicator');
+  if (indicator) {
+    indicator.textContent = "";
+  }
+});
+
+// Toggle button visibility OUTSIDE the loop
+const toggle = document.getElementById("time-toggle");
+if (toggle) {
+  toggle.style.display = (currentSort === "total_time") ? "inline-block" : "none";
+}
+
       
       const activeButton = document.querySelector(`[data-sort="${currentSort}"]`);
       if (activeButton) {
@@ -159,8 +171,9 @@
 
 const displayValue = currentSort === "accuracy" ? `${Math.round(value * 100)}%` :
 
-                             currentSort === "total_time" ? formatTime(value) :
+                             currentSort === "total_time" ? (showSecondsOnly ? formatSecondsOnly(value) : formatTime(value)) :
                              currentSort === "last_test_taken" ? formatDate(value) : value;
+
 if (currentSort === "last_test_taken") {
 
   row.innerHTML = `
@@ -188,7 +201,8 @@ if (currentSort === "last_test_taken") {
     </div>
 
     <div class="score name-two-line">
-      <div class="last-test-small">${formatTime(s.total_time)}</div>
+     <div class="last-test-small">${showSecondsOnly ? formatSecondsOnly(s.total_time) : formatTime(s.total_time)}</div>
+
     </div>
   `;
 
@@ -444,6 +458,12 @@ renderMiniCalendar("mini-calendar", grouped);
     window.closeModal = closeModal;
     window.showClassStats = showClassStats;
     window.onload = loadData;
+window.toggleTimeFormat = function () {     // << ADD THIS
+  showSecondsOnly = !showSecondsOnly;
+  const btn = document.getElementById("time-toggle");
+  btn.textContent = showSecondsOnly ? "Show h/m/s" : "Show Seconds";
+  renderLeaderboard();
+};
 
     window.onclick = function(event) {
       const modal = document.getElementById("modal");
@@ -888,8 +908,14 @@ renderMiniCalendar("mini-calendar", grouped);
     <button class="sort-btn" data-sort="videos_completed" onclick="sortData('videos_completed')">Videos</button>
     <button class="sort-btn" data-sort="stories_completed" onclick="sortData('stories_completed')">Stories</button>
     <button class="sort-btn" data-sort="last_test_taken" onclick="sortData('last_test_taken')">Last Test</button>
-  </div>
+    <button id="time-toggle"
+        class="sort-btn"
+        style="display:none; font-size:12px;"
+        onclick="toggleTimeFormat()">
+  Show Seconds
+</button>
 </div>
+    </div>
   <!-- The .table-header div has been removed -->
 
   <div id="loader">

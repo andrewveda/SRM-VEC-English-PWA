@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>V for Video! 🌌</title>
+  <style>
+    body {
+      margin: 0; padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: radial-gradient(ellipse at bottom, #0b0c1b 0%, #000000 100%);
+      color: white; text-align: center;
+    }
+    .container {
+      max-width: 800px; margin: 2rem auto;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 2rem; border-radius: 15px;
+      box-shadow: 0 0 30px rgba(255, 255, 255, 0.1);
+    }
+    .question { font-size: 1.5rem; margin-bottom: 1rem; }
+    .options { display: flex; flex-direction: column; gap: 1rem; }
+    button {
+      padding: 1rem; border: none; border-radius: 10px;
+      font-size: 1rem; cursor: pointer;
+      background-color: #1f1f2e; color: white;
+      transition: background-color 0.3s ease;
+    }
+    button:hover { background-color: #343454; }
+    button:disabled { background-color: #555; cursor: not-allowed; }
+    .correct { background-color: green !important; }
+    .wrong { background-color: red !important; }
+    #scoreCard { margin-top: 2rem; font-size: 1.2rem; }
+    #timer, #wrongCounter, #progressTracker { font-size: 1rem; margin-bottom: 1rem; color: #ffd700; }
+    #restartBtn { margin-top: 2rem; padding: 0.7rem 2rem; font-size: 1.1rem; background-color: #444466; border: none; border-radius: 10px; cursor: pointer; color: white; }
+    #nameForm { margin-bottom: 1.5rem; }
+    #nameInput { padding: 0.5rem; font-size: 1rem; border-radius: 5px; border: none; margin-right: 0.5rem; }
+    #videoContainer { margin: 1rem 0; }
+    #nextBtn { margin-top: 1rem; padding: 0.7rem 2rem; font-size: 1rem; border-radius: 10px; border: none; background-color: #1f1f2e; color: white; }
+/* Directory Button Grid */
+#videoList {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+/* Card-like Buttons with Neon Glow */
+#videoList button {
+  padding: 1rem 1.2rem;
+  border-radius: 15px;
+  background: rgba(255, 255, 255, 0.05);
+  color: #F0EDEE;
+  font-weight: 500;
+  font-size: 1rem;
+  text-align: center;
+  cursor: pointer;
+  color: #fff;
+  background: linear-gradient(135deg, #5D5D81, #8C7B92); /* warm orange to pink */
+  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+  transition: all 0.3s ease;
+}
+
+/* Hover Glow Effect */
+#videoList button:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+  color: #ffd700;
+  transform: translateY(-3px) scale(1.03);
+  box-shadow: 0 0 10px #ffd700, 0 0 20px #ffd700, 0 0 30px #ff8c00;
+}
+
+/* Optional: Add subtle animation on load */
+#videoList button {
+  opacity: 0;
+  animation: fadeInUp 0.5s forwards;
+  animation-delay: calc(var(--i) * 0.05s);
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+#wrongCounter, #progressTracker {
+  display: none !important;
+}
+
+  </style>
+</head>
+<body>
+  <div class="container" id="quizContainer">
+    <!-- Step 1: Name Form -->
+       <div id="nameForm">
+  <p style="color: #ffd700; font-size: 1rem; margin-bottom: 0.5rem;">
+   "Ever tried. Ever failed. No matter. Try again. Fail again. Fail better." Samuel Beckett <br><br> "Try not. Do. Or, do not. There is no Try." Yoda. <br> <br>"The Opposite of a Good Idea is another Good Idea." Neils Bohr <br> <br>
+      </a>
+  </p>
+
+  <!-- Department Selector -->
+  <select id="departmentSelect" style="display: block; width: 90%; max-width: 300px; margin: 0.5rem auto; padding: 0.7rem; font-size: 1rem; border-radius: 5px; border: none;">
+    <option value="">-- Select Department --</option>
+    <option value="Cyber Security">Cyber Security</option>
+    <option value="CSE-1">CSE-1</option>
+    <option value="CSE-2">CSE-2</option>
+    <option value="CSE-3">CSE-3</option>
+    <option value="Mechanical Engineering">Mechanical Engineering</option>
+    <option value="ECE-1">ECE-1</option>
+    <option value="ECE-2">ECE-2</option>
+    <option value="ECE-3">ECE-3</option>
+    <option value="AI DS-1">AI DS-1</option>
+    <option value="AI DS-2">AI DS-2</option>
+    <option value="Civil">Civil</option>
+    <option value="Agri">Agri</option>
+    <option value="EEE">EEE</option>
+    <option value="EIE">EIE</option>
+    <option value="Medical Electronics">Medical Electronics</option>
+    <option value="IT-1">IT-1</option>
+    <option value="IT-2">IT-2</option>
+  </select>
+
+  <!-- Name Fields -->
+  <input type="text" id="nameInput" placeholder="Enter your name" />
+  <button onclick="beginQuiz()">Start Quiz</button>
+</div>
+
+    <!-- Step 2: Directory -->
+    <div id="directory" style="display:none;">
+      <h2>🎬 Choose Your Quest</h2>
+      <div id="videoList"></div>
+    </div>
+
+    <!-- Step 3: Quiz Content -->
+    <div id="quizContent" style="display:none;">
+      <div id="timer">⏳ Time: 0s | 🎬 Watched: 0s</div>
+      <div id="wrongCounter">❌ Wrong Attempts: 0</div>
+      <div id="progressTracker">📍 Question 1</div>
+      <div class="question" id="question">Loading...</div>
+      <div id="videoContainer"></div>
+      <div class="options" id="options"></div>
+      <button id="nextBtn" disabled>Next ➡️ (Watch 0s to unlock)</button>
+      <div id="scoreCard"></div>
+      <button id="restartBtn" style="display: none;">Restart</button>
+    </div>
+  </div>
+
+  <script src="https://www.youtube.com/iframe_api"></script>
+
+  <script type="module">
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const supabase = createClient(
+  'https://ahezssoczvpbkteffcgz.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoZXpzc29jenZwYmt0ZWZmY2d6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI4NTk1ODUsImV4cCI6MjA3ODQzNTU4NX0.2ZlqXnZxv0opkhynAT7OlK4S-xPygcc7ETUyTXRfGHE'
+);
+
+window.supabase = supabase;
+</script>
+
+<script>
+
+    // 🔹 Add multiple videos here
+   let quizData = []; // empty array initially
+
+async function loadQuizData() {
+  const res = await fetch("https://script.google.com/macros/s/AKfycbyUgtinZaRqkRl2BAxPxxpjPsnzQAZkd7IivO2wbiCOqrv7mil9es6r05IdJKVELPYE/exec"); // replace with your Apps Script URL
+  quizData = await res.json();
+}
+
+// call this before showing directory
+  loadQuizData();
+
+    let current = 0, totalWrongGuesses = 0;
+    let startTime, timerInterval, playerName = "", guessesPerQuestion = [];
+    let player, videoWatchTime = 0, videoWatchInterval = null;
+    let currentQuestId = "";
+    let WATCH_TARGET = 0;
+    let playerDept = "";
+    let correctCount = 0; // ✅ added
+
+    const questionEl = document.getElementById("question");
+    const optionsEl = document.getElementById("options");
+    const timerEl = document.getElementById("timer");
+    const wrongCounterEl = document.getElementById("wrongCounter");
+    const progressTracker = document.getElementById("progressTracker");
+    const scoreCard = document.getElementById("scoreCard");
+    const restartBtn = document.getElementById("restartBtn");
+    const videoContainer = document.getElementById("videoContainer");
+    const nextBtn = document.getElementById("nextBtn");
+    const directoryEl = document.getElementById("directory");
+
+    let selectedCategory = "";
+
+function showDirectory() {
+  const nameField = document.getElementById("nameInput");
+  if (!nameField.value.trim()) { alert("Please enter your name!"); return; }
+  playerName = nameField.value.trim();
+  const deptField = document.getElementById("departmentSelect");
+  if (!deptField.value) { alert("Please select your department!"); return; }
+  playerDept = deptField.value; // ✅ store dept
+
+  document.getElementById("nameForm").style.display = "none";
+  directoryEl.style.display = "block";
+
+  const list = document.getElementById("videoList");
+  list.innerHTML = "";
+
+  // Show categories first
+  const categories = [...new Set(quizData.map(q => q.category))];
+  categories.forEach(category => {
+    const btn = document.createElement("button");
+    btn.innerText = category;
+    btn.onclick = () => showCategory(category);
+    list.appendChild(btn);
+  });
+}
+function showCategory(category) {
+  selectedCategory = category;
+  const list = document.getElementById("videoList");
+  list.innerHTML = "";
+
+  // 🔹 Back Button
+  const backBtn = document.createElement("button");
+  backBtn.innerText = "⬅️ Back to Categories";
+  backBtn.style.background = "linear-gradient(135deg, #3b3b5e, #5c4f63)";
+  backBtn.style.fontWeight = "bold";
+  backBtn.onclick = showDirectory;
+  list.appendChild(backBtn);
+
+  // 🔹 Show videos in selected category
+  const filteredData = quizData.filter(q => q.category === category);
+  filteredData.forEach((data, idx) => {
+    const btn = document.createElement("button");
+    btn.innerText = data.title;
+    btn.onclick = () => startQuizFromCategory(idx);
+    list.appendChild(btn);
+  });
+}
+
+function startQuizFromCategory(index) {
+  directoryEl.style.display = "none";
+  document.getElementById("quizContent").style.display = "block";
+
+  const filteredData = quizData.filter(q => q.category === selectedCategory);
+  const data = filteredData[index];
+
+  current = index;
+  totalWrongGuesses = 0; guessesPerQuestion = [];
+  startTime = Date.now();
+  videoWatchTime = 0;
+  currentQuestId = data.questId;
+  WATCH_TARGET = data.watchTarget;
+  correctCount = 0;
+
+  timerEl.innerText = "⏳ Time: 0s | 🎬 Watched: 0s";
+  wrongCounterEl.innerText = `❌ Wrong Attempts: 0`;
+  scoreCard.innerHTML = "";
+  restartBtn.style.display = "none";
+
+  loadQuestionFromData(data);
+}
+
+function loadQuestionFromData(data) {
+  guessesPerQuestion[current] = 0;
+  totalWrongGuesses = 0;
+  correctCount = 0;
+  videoWatchTime = 0;
+  currentQuestId = data.questId;
+
+  questionEl.innerText = data.q;
+  progressTracker.innerText = `📍 Question 1 of 1`;
+
+  videoContainer.innerHTML = `<div id="ytPlayer"></div>`;
+  const videoId = data.video.split("v=")[1];
+  player = new YT.Player("ytPlayer", {
+    height: "315", width: "100%", videoId: videoId,
+    events: { onStateChange: onPlayerStateChange },
+    playerVars: { autoplay: 0, controls: 1 }
+  });
+
+  optionsEl.innerHTML = "";
+  data.options.forEach((option) => {
+    const btn = document.createElement("button");
+    btn.innerText = option;
+    btn.onclick = () => handleAnswer(btn, data.options[data.correct]);
+    optionsEl.appendChild(btn);
+  });
+
+  nextBtn.disabled = true;
+  nextBtn.innerText = `Next ➡️ (Watch ${WATCH_TARGET}s to unlock)`;
+}
+
+
+    function startQuiz(index) {
+      directoryEl.style.display = "none";
+      document.getElementById("quizContent").style.display = "block";
+
+      current = index;
+      totalWrongGuesses = 0; guessesPerQuestion = [];
+      startTime = Date.now();
+      videoWatchTime = 0;
+      currentQuestId = quizData[index].questId;
+      WATCH_TARGET = quizData[index].watchTarget;
+      correctCount = 0; // ✅ reset
+      
+      timerEl.innerText = "⏳ Time: 0s | 🎬 Watched: 0s";
+      wrongCounterEl.innerText = `❌ Wrong Attempts: 0`;
+      scoreCard.innerHTML = "";
+      restartBtn.style.display = "none";
+      loadQuestion();
+    }
+
+    function loadQuestion() {
+      const data = quizData[current];
+      guessesPerQuestion[current] = 0;
+
+      questionEl.innerText = data.q;
+      progressTracker.innerText = `📍 Question 1 of 1`;
+
+      videoContainer.innerHTML = `<div id="ytPlayer"></div>`;
+      const videoId = data.video.split("v=")[1];
+      player = new YT.Player("ytPlayer", {
+        height: "315", width: "100%", videoId: videoId,
+        events: { onStateChange: onPlayerStateChange },
+        playerVars: { autoplay: 0, controls: 1 }
+      });
+
+      optionsEl.innerHTML = "";
+      data.options.forEach((option) => {
+        const btn = document.createElement("button");
+        btn.innerText = option;
+        btn.onclick = () => handleAnswer(btn, data.options[data.correct]);
+        optionsEl.appendChild(btn);
+      });
+
+      nextBtn.disabled = true;
+      nextBtn.innerText = `Next ➡️ (Watch ${WATCH_TARGET}s to unlock)`;
+    }
+
+    function handleAnswer(button, correctAnswer) {
+      guessesPerQuestion[current]++;
+      const isCorrect = button.innerText === correctAnswer;
+      if (isCorrect) { correctCount++; button.classList.add("correct"); }
+      else { totalWrongGuesses++; wrongCounterEl.innerText = `❌ Wrong Attempts: ${totalWrongGuesses}`; button.classList.add("wrong"); setTimeout(() => button.classList.remove("wrong"), 500); }
+    }
+
+    // ✅ CHANGE HERE: Next button now submits and auto-loads next video
+    nextBtn.onclick = () => submitAndNext();
+
+    function submitAndNext() {
+      // Send data to Google Sheet
+      const payload = {
+        name: playerName,
+       correct: 10,
+        wrong: totalWrongGuesses,
+        time: videoWatchTime,
+        department: playerDept,
+        questId: currentQuestId
+      };
+
+    supabase.from("video_results").insert([
+    {
+      name: playerName,
+      department: playerDept,
+      correct: 10,
+      wrong: totalWrongGuesses,
+      time_spent: videoWatchTime,
+  quest_id: currentQuestId
+    }
+  ])
+  .then(res => console.log("Supabase saved:", res))
+  .catch(err => console.error("Supabase error:", err));
+
+      // Move to next question in the same category
+      const filteredData = quizData.filter(q => q.category === selectedCategory);
+      current++;
+
+      if (current < filteredData.length) {
+        totalWrongGuesses = 0;
+        correctCount = 0;
+        videoWatchTime = 0;
+        currentQuestId = filteredData[current].questId;
+
+        loadQuestionFromData(filteredData[current]);
+      } else {
+        showFinalScore();
+      }
+    }
+
+    function showFinalScore() {
+      clearInterval(timerInterval); clearInterval(videoWatchInterval);
+      const qc = document.getElementById("quizContent");
+      Array.from(qc.children).forEach(child => {
+        if (child.id !== 'scoreCard' && child.id !== 'restartBtn') {
+          child.style.display = 'none';
+        }
+      });
+      scoreCard.style.display = 'block';
+      scoreCard.innerHTML = `
+        <h2>🎉 All Quests Completed!</h2>
+        <p>👤 Player: ${playerName}</p>
+        <p>🏫 Department: ${playerDept}</p>
+        <p>⏱️ Last Video Watched: ${videoWatchTime}s</p>
+      `;
+      restartBtn.style.display = "inline-block";
+    }
+
+    function onPlayerStateChange(event) {
+      if (event.data === YT.PlayerState.PLAYING) {
+        if (!videoWatchInterval) {
+          videoWatchInterval = setInterval(() => {
+            videoWatchTime++;
+           timerEl.innerText = `🎬 Watched: ${videoWatchTime}s`;
+            if (videoWatchTime >= WATCH_TARGET) {
+              nextBtn.disabled = false;
+              nextBtn.innerText = "Next ➡️";
+            }
+          }, 1000);
+        }
+      } else {
+        clearInterval(videoWatchInterval); videoWatchInterval = null;
+      }
+    }
+
+    restartBtn.onclick = () => {
+      document.getElementById("quizContent").style.display = "none";
+      document.getElementById("nameForm").style.display = "block";
+      document.getElementById("nameInput").value = "";
+      nextBtn.style.display = "inline-block";
+      Array.from(document.getElementById("quizContent").children).forEach(c => c.style.display = "block");
+    };
+
+    function beginQuiz() { showDirectory(); }
+  </script>
+</body>
+</html>

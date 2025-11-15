@@ -217,6 +217,30 @@
     font-size: 1.2rem;
     color: #4b3b2a;
   }
+  /* Nice dual-ring spinner */
+.lds-dual-ring {
+  display: inline-block;
+  width: 32px;
+  height: 32px;
+}
+
+.lds-dual-ring:after {
+  content: " ";
+  display: block;
+  width: 24px;
+  height: 24px;
+  margin: 4px;
+  border-radius: 50%;
+  border: 3px solid #6b4f33;
+  border-color: #6b4f33 transparent #6b4f33 transparent;
+  animation: lds-dual-ring 1.2s linear infinite;
+}
+
+@keyframes lds-dual-ring {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
 </style>
 </head>
 
@@ -273,6 +297,21 @@ Blog </h1>
     </div>
 
     <div class="drop-container" id="dropContainer"></div>
+    <div id="savingSpinner" style="
+  display:none;
+  margin-top: 1.5rem;
+  font-size: 1.1rem;
+  color:#6b4f33;
+  text-align:center;
+">
+  <div class="lds-dual-ring" style="
+    display:inline-block;
+    width:32px;
+    height:32px;
+    margin-bottom:8px;
+  "></div>
+  <div>Saving your progress...</div>
+</div>
     <div id="scoreCard"></div>
     <button id="nextPageBtn" style="display: none;">Next &rarr;</button>
     <button id="restartBtn" style="display: none;">Restart</button>
@@ -286,6 +325,9 @@ const supabase = createClient(
   'https://ahezssoczvpbkteffcgz.supabase.co',
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoZXpzc29jenZwYmt0ZWZmY2d6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI4NTk1ODUsImV4cCI6MjA3ODQzNTU4NX0.2ZlqXnZxv0opkhynAT7OlK4S-xPygcc7ETUyTXRfGHE'
 );
+
+// DNS warm-up 
+fetch("https://ahezssoczvpbkteffcgz.supabase.co/rest/v1/", { mode: "no-cors" });
 
 // --- HELPER FUNCTIONS ---
 function autoGenerateBlanks(passage, frequency = 7) {
@@ -308,8 +350,8 @@ function autoGenerateBlanks(passage, frequency = 7) {
 const quizDataStore = (() => {
   const fullPassage = ` With all these capabilities in one device, it eliminates the need for multiple gadgets and ensures I stay organized and on top of things. As Hermione Granger wisely said, "When in doubt, go to the library." In the case of my smartphone, this "library" is always with me, providing endless resources, tools, and information to solve almost any problem. Whether I'm researching a new topic or simply finding answers to questions, the smartphone is the go-to source for almost everything I need.
 One feature I particularly adore is its versatility. With just a few taps, I can switch from reading an engrossing eBook to navigating an unfamiliar city with GPS. My smartphone also serves as my personal health assistant, helping me track fitness goals and meditate for mental well-being. With GPS and other tools, my smartphone transforms into a trusted companion on adventures. Whether traveling or trying a new route in my city, I never feel lost. As Gandalf said, "Not all those who wander are lost." This device ensures that my explorations are safe and enjoyable. `;
-  
-  const result = autoGenerateBlanks(fullPassage, 9);
+
+  const result = autoGenerateBlanks(fullPassage, 8);
   return [result];
 })();
 
@@ -373,6 +415,35 @@ function autoFillFromStorage() {
     console.log('Could not access localStorage:', e);
   }
 }
+  async function resendPendingSubmissions() {
+  const key = 'pendingQuestSubmissions';
+  let pending = JSON.parse(localStorage.getItem(key) || "[]");
+
+  if (pending.length === 0) return;
+
+  console.log("🔄 Trying to resend pending submissions:", pending);
+
+  const stillPending = [];
+
+  for (const entry of pending) {
+    try {
+      const { error } = await supabase.from('Quests').insert(entry);
+      if (error) throw error;
+      console.log("✔ Resent successfully:", entry);
+    } catch (e) {
+      console.warn("⚠ Still pending:", entry);
+      stillPending.push(entry);
+    }
+  }
+
+  // update storage
+  if (stillPending.length === 0) {
+    localStorage.removeItem(key);
+  } else {
+    localStorage.setItem(key, JSON.stringify(stillPending));
+  }
+}
+
 
 /* --------------- QUIZ FLOW (FUNCTIONS) --------------- */
 
@@ -581,57 +652,130 @@ function createSparkleEffect(element) {
     setTimeout(() => spark.remove(), 1000);
   }
 }
-
 async function showScore() {
   clearInterval(timerInterval);
   const totalTime = Math.floor((Date.now() - startTime) / 1000);
-  let saveError = null;
-  try {
-    const { error } = await supabase
-      .from('Quests')
-      .insert([
-        {
-          student_name: playerName,
-          department: playerDept,
-          correct: correctCount,
-          wrong: totalWrongGuesses,
-          time_spent: totalTime,
-          quest_id: "Quest 83"
-        }
-      ]);
-    saveError = error;
-  } catch (e) {
-    saveError = e;
+
+  // ⭐ SHOW spinner while saving
+  document.getElementById("savingSpinner").style.display = "block";
+  scoreCard.innerHTML = "";
+  nextPageBtn.style.display = "none";
+
+  // ⭐ Retry logic for iPhone
+  async function trySave(attempt = 1) {
+    try {
+      const { error } = await supabase
+        .from('Quests')
+        .insert([
+          {
+            student_name: playerName,
+            department: playerDept,
+            correct: correctCount,
+            wrong: totalWrongGuesses,
+            time_spent: totalTime,
+            quest_id: currentQuestID
+          }
+        ]);
+
+      if (error) throw error;
+      return true;
+
+    } catch (err) {
+      if (attempt < 3) {
+        console.warn(`Save failed (attempt ${attempt}), retrying...`);
+        await new Promise(res => setTimeout(res, 1000));
+        return await trySave(attempt + 1);
+      }
+      return false;
+    }
   }
-  // ⭐⭐⭐ BELOW: JS block ends here (do not put inside HTML)
+
+  const saved = await trySave();
+
+  // ⭐ Hide spinner after saving
+  document.getElementById("savingSpinner").style.display = "none";
 
   dragOptionsEl.innerHTML = "";
   dropContainerEl.innerHTML = "<h2 style='text-align:center;'>🎉 Quiz Completed!</h2>";
   progressTracker.innerText = "Done!";
-  nextPageBtn.style.display = "none";
 
   const successMessage = (totalWrongGuesses === 0)
     ? "<p>✅ Flawless! All questions answered correctly on the first attempt!</p>"
     : `<p>✅ Correct Answers (total): ${correctCount}</p>
        <p>❌ Wrong Attempts (total): ${totalWrongGuesses}</p>`;
+  let statusLine = "";
 
-  // ⭐⭐⭐ ABOVE: build status line OUTSIDE scoreCard HTML
-  const statusLine = saveError
-    ? `<p style="color:red;">⚠️ Could not save to server. Please take a screenshot.</p>`
-    : `<p style="color:green;">✔ Saved to server</p>`;
-  // ⭐⭐⭐ BELOW: statusLine inserted inside template
+  if (saved) {
+    statusLine = `<p style="color:green;">✔ Saved to server</p>`;
 
+  } else {
+    // save locally
+    const key = 'pendingQuestSubmissions';
+    const pending = JSON.parse(localStorage.getItem(key) || "[]");
+
+    const submission = {
+      student_name: playerName,
+      department: playerDept,
+      correct: correctCount,
+      wrong: totalWrongGuesses,
+      time_spent: totalTime,
+      quest_id: currentQuestID,
+      timestamp: Date.now()
+    };
+
+    pending.push(submission);
+    localStorage.setItem(key, JSON.stringify(pending));
+
+    statusLine = `
+      <p style="color:red;">⚠️ Could not save to server.<br>Saved locally.</p>
+      <button id="retrySaveBtn"
+        style="margin-top:10px; padding:6px 14px; background:#d9534f; color:white; border:none; border-radius:8px; cursor:pointer;">
+        🔄 Try Again
+      </button>
+    `;
+  }
+
+  // ⭐ PDF ALWAYS ENABLED
+  const pdfButton = `
+    <button onclick="downloadPDFReport()" 
+      style="margin-top: 1rem; padding: 0.7rem 2rem; background-color: #4CAF50; border: none; border-radius: 10px; cursor: pointer; color: white; font-size: 1rem;">
+      📥 Download PDF Report
+    </button>
+  `;
+
+  // ⭐ FINAL SCORECARD RENDERING
   scoreCard.innerHTML = `
     <p>👤 Player: <strong>${playerName}</strong> (${playerDept})</p>
     ${successMessage}
     <p>💎 Final Gems: ${gemsCount}</p>
     <p>⏱️ Time Taken: ${totalTime} seconds</p>
     ${statusLine}
-    <button onclick="downloadPDFReport()" 
-      style="margin-top: 1rem; padding: 0.7rem 2rem; background-color: #4CAF50; border: none; border-radius: 10px; cursor: pointer; color: white; font-size: 1rem;">
-      📥 Download PDF Report
-    </button>
+    ${pdfButton}
   `;
+
+  // ⭐ Manual retry button activation
+  setTimeout(() => {
+    const retryBtn = document.getElementById("retrySaveBtn");
+    if (retryBtn) {
+      retryBtn.onclick = async () => {
+        retryBtn.innerText = "Trying...";
+        retryBtn.style.opacity = 0.6;
+
+        await resendPendingSubmissions();
+
+        const key = 'pendingQuestSubmissions';
+        const pending = JSON.parse(localStorage.getItem(key) || "[]");
+
+        if (pending.length === 0) {
+          retryBtn.innerText = "✔ Saved!";
+          retryBtn.style.background = "#4CAF50";
+        } else {
+          retryBtn.innerText = "Retry Failed";
+          retryBtn.style.background = "#a94442";
+        }
+      };
+    }
+  }, 50);
 
   restartBtn.style.display = "inline-block";
 }
@@ -805,11 +949,11 @@ function downloadPDFReport() {
 // FIX: Expose downloadPDFReport to the global scope for the inline onclick
 window.downloadPDFReport = downloadPDFReport;
 
-
-/* --------------- EVENT LISTENERS --------------- */
-
-// Call auto-fill when page loads
-window.addEventListener('DOMContentLoaded', autoFillFromStorage);
+  /* Safe autoresend: Supabase is ready because we are inside the module */
+window.addEventListener('DOMContentLoaded', () => {
+  autoFillFromStorage();
+  resendPendingSubmissions();
+});
 
 /* Recalculate layout on resize (for top-strip height changes due to wrapping) */
 window.addEventListener('resize', adjustForTopStrip);

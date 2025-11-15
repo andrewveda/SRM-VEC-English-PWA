@@ -1203,18 +1203,32 @@ function showCalendar() {
   // Update all UI components that depend on data
   updateAllUI();
 }
+  
+async function loadTotalTime(name) {
+  const { data, error } = await supabase
+    .from('report_card_view')
+    .select('*')
+    .ilike('name', `${name}%`);  
 
-  function updateMiniPowerDeck() {
+  if (error) {
+    console.error("Error loading total_time:", error);
+    return 0;
+  }
+
+  if (!data || data.length === 0) return 0;
+
+  return data[0].total_time || 0;
+}
+  async function updateMiniPowerDeck() {
   if (!userData || !userProfileData) return;
-
+    
   const questCount = parseList(userData.quest_list).length;
   const videoCount = parseList(userData.video_list).length;
   const storyCount = parseList(userData.story_list).length;
   console.log("MiniDeck profile data:", userProfileData);
   console.log("total_time field value:", userProfileData?.total_time);
   // ⭐ The correct field from your Supabase report_card_view
-  const totalTimeSeconds = userProfileData.total_time || 0;
-
+ const totalTimeSeconds = await loadTotalTime(userProfileData.Name);
   // Convert to human-friendly m/s
   const minutes = Math.floor(totalTimeSeconds / 60);
   const seconds = totalTimeSeconds % 60;

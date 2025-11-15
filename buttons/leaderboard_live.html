@@ -177,7 +177,115 @@
     function getMedalEmoji(idx) {
       return idx === 0 ? "🥇" : idx === 1 ? "🥈" : "🥉";
     }
+const START_DATE = new Date("2025-08-22");
 
+// Map number → date
+function mapToDate(number) {
+  const d = new Date(START_DATE);
+  d.setDate(d.getDate() + (number - 1));
+  return d;
+}
+
+// Parse "Quest 38, Quest 50" → { type:"Quest", number:38, label:"Quest 38" }
+function parseItems(rawList) {
+  if (!rawList || rawList === "NULL") return [];
+
+  return rawList
+    .split(",")
+    .map(item => item.trim())
+    .filter(item => item.length > 0) // prevent empty ""
+    .map(item => {
+      const [type, num] = item.split(" ");
+      return { type, number: Number(num), label: item };
+    });
+}
+
+// Icons
+function iconFor(label) {
+  if (label.startsWith("Quest")) return "🔥";
+  if (label.startsWith("Video")) return "🎥";
+  if (label.startsWith("Story")) return "📚";
+  return "•";
+}
+
+// Group items by calendar date
+function groupByDate(quests, videos, stories) {
+  const map = {};
+
+  const add = (date, label) => {
+    const key = date.toDateString();
+    if (!map[key]) map[key] = [];
+    map[key].push(label);
+  };
+
+  quests.forEach(q => add(mapToDate(q.number), q.label));
+  videos.forEach(v => add(mapToDate(v.number), v.label));
+  stories.forEach(s => add(mapToDate(s.number), s.label));
+
+  return map;
+}
+function renderOneMonth(baseDate, grouped) {
+  const year = baseDate.getFullYear();
+  const month = baseDate.getMonth();
+
+  const firstDay = new Date(year, month, 1).getDay();
+  const numDays = new Date(year, month + 1, 0).getDate();
+
+  let html = `
+    <div class="mini-cal-title">
+      ${baseDate.toLocaleString('en-IN', { month: 'long', year: 'numeric' })}
+    </div>
+
+    <div class="mini-cal-grid">
+      <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div>
+      <div>Thu</div><div>Fri</div><div>Sat</div>
+  `;
+
+  // Empty placeholders
+  for (let i = 0; i < firstDay; i++) {
+    html += `<div class="mini-cal-empty"></div>`;
+  }
+
+  // Fill days
+  for (let d = 1; d <= numDays; d++) {
+    const date = new Date(year, month, d);
+    const key = date.toDateString();
+    const items = grouped[key];
+
+    if (items) {
+      html += `
+        <div class="mini-cal-day marked">
+          <div class="mini-cal-date">${d}</div>
+          <div class="mini-cal-items">
+            ${items.map(i => `<div>${iconFor(i)} ${i}</div>`).join("")}
+          </div>
+        </div>
+      `;
+    } else {
+      html += `<div class="mini-cal-day">${d}</div>`;
+    }
+  }
+
+  html += "</div>"; // close grid
+  return html;
+}
+
+function renderMiniCalendar(containerId, grouped) {
+  const container = document.getElementById(containerId);
+  container.innerHTML = "";
+
+  // Begin at August 2025
+  let cursor = new Date(START_DATE.getFullYear(), START_DATE.getMonth(), 1);
+
+  // End at the current month
+  const today = new Date();
+  const end = new Date(today.getFullYear(), today.getMonth(), 1);
+
+  while (cursor <= end) {
+    container.innerHTML += renderOneMonth(cursor, grouped);
+    cursor.setMonth(cursor.getMonth() + 1);
+  }
+}
     function showDetail(s) {
       const modal = document.getElementById("modal");
       const content = document.getElementById("modal-content");
@@ -215,27 +323,24 @@
           </div>
         </div>
 
-        <div class="detail-box">
-          <h3>📹 Videos Completed (${s.videos_completed ?? 0})</h3>
-          <p>${s.video_list || "None yet"}</p>
-        </div>
+     <div class="detail-box">
+  <h3>📅 Activity Calendar</h3>
+  <div id="mini-calendar"></div>
+</div>
 
-        <div class="detail-box">
-          <h3>📖 Stories Completed (${s.stories_completed ?? 0})</h3>
-          <p>${s.story_list || "None yet"}</p>
-        </div>
-
-        <div class="detail-box">
-          <h3>🎯 Quests Completed (${s.quests_completed ?? 0})</h3>
-          <p>${s.quest_list || "None yet"}</p>
-        </div>
 
         <div class="detail-box">
           <h3>🕐 Last Test Taken</h3>
           <p>${formatDate(s.last_test_taken)}</p>
         </div>
       `;
-      
+      const quests = parseItems(s.quest_list);
+const videos = parseItems(s.video_list);
+const stories = parseItems(s.story_list);
+
+const grouped = groupByDate(quests, videos, stories);
+renderMiniCalendar("mini-calendar", grouped);
+
       modal.style.display = "flex";
     }
 
@@ -652,6 +757,54 @@
       word-wrap: break-word;
       white-space: pre-wrap;
     }
+
+    .mini-cal-title {
+  text-align: center;
+  font-weight: 700;
+  margin-bottom: 10px;
+  font-size: 14px;
+  color: var(--accent-primary);
+}
+
+.mini-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  font-size: 11px;
+}
+
+.mini-cal-day {
+  background: #222;
+  padding: 6px;
+  border-radius: 6px;
+  min-height: 60px;
+  font-size: 10px;
+  color: #fff;
+}
+
+.mini-cal-day.marked {
+  background: #2d7d46;
+}
+
+.mini-cal-date {
+  font-weight: 700;
+  margin-bottom: 3px;
+}
+
+.mini-cal-items div {
+  font-size: 9px;
+  line-height: 1.1;
+}
+#mini-calendar {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.mini-cal-grid {
+  margin-bottom: 20px;
+}
+
   </style>
 </head>
 

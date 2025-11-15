@@ -1204,22 +1204,36 @@ function showCalendar() {
   updateAllUI();
 }
 function updateMiniPowerDeck() {
-  if (!userData) return;
+  if (!userData || !userProfileData) return;
 
   const questCount = parseList(userData.quest_list).length;
   const videoCount = parseList(userData.video_list).length;
   const storyCount = parseList(userData.story_list).length;
 
- const text = `🔥 ${questCount} &nbsp;&nbsp;&nbsp; 🎥 ${videoCount} &nbsp;&nbsp;&nbsp; 📚 ${storyCount}`;
+  // ⭐ NEW — safely read total time from leaderboard (in seconds)
+  const totalTimeSeconds = userProfileData["Total Time (s)"] || 0;
+
+  // Convert to minutes for readability
+  const minutes = Math.floor(totalTimeSeconds / 60);
+  const seconds = totalTimeSeconds % 60;
+
+  const formattedTime =
+    minutes > 0
+      ? `${minutes}m ${seconds}s`
+      : `${seconds}s`;
+
+  const text = `
+    🔥 ${questCount} &nbsp;&nbsp;&nbsp;
+    🎥 ${videoCount} &nbsp;&nbsp;&nbsp;
+    📚 ${storyCount} &nbsp;&nbsp;&nbsp;
+    ⏱️ ${formattedTime}
+  `;
 
   const topEl = document.getElementById("miniPowerDeckTop");
   if (topEl) topEl.innerHTML = text;
 }
 
-/**
- * Helper function to update all dynamic UI parts from global data.
- */
-function updateAllUI() {
+  function updateAllUI() {
   if (!userData || !userProfileData) return;
   
   const displayName = userProfileData?.Name || userData?.student_name || 'Unknown';

@@ -144,7 +144,7 @@
 
   <script src="https://www.youtube.com/iframe_api"></script>
 
-  <script type="module">
+<script type="module">
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const supabase = createClient(
@@ -153,6 +153,7 @@ const supabase = createClient(
 );
 
 window.supabase = supabase;
+console.log("✅ Supabase client initialised:", window.supabase);
 </script>
 
 <script>
@@ -344,33 +345,52 @@ function loadQuestionFromData(data) {
 
     // ✅ CHANGE HERE: Next button now submits and auto-loads next video
     nextBtn.onclick = () => submitAndNext();
+ function submitAndNext() {
+      console.log("▶ submitAndNext() called");
 
-    function submitAndNext() {
-      // Send data to Google Sheet
       const payload = {
         name: playerName,
-       correct: 10,
+        correct: 10,
         wrong: totalWrongGuesses,
         time: videoWatchTime,
         department: playerDept,
         questId: currentQuestId
       };
 
-    supabase.from("video_results").insert([
-    {
-      name: playerName,
-      department: playerDept,
-      correct: 10,
-      wrong: totalWrongGuesses,
-      time_spent: videoWatchTime,
-  quest_id: currentQuestId
-    }
-  ])
-  .then(res => console.log("Supabase saved:", res))
-  .catch(err => console.error("Supabase error:", err));
+      console.log("📤 Payload about to send to Supabase:", payload);
 
-      // Move to next question in the same category
-      const filteredData = quizData.filter(q => q.category === selectedCategory);
+      // Make sure the Supabase client is available
+      const client = window.supabase;
+      if (!client) {
+        console.error("❌ Supabase client NOT found on window.supabase");
+        console.log("window.supabase is:", window.supabase);
+        return;
+      }
+
+      client
+        .from("video_results")
+        .insert([
+          {
+            name: playerName,
+            department: playerDept,
+            correct: 10,
+            wrong: totalWrongGuesses,
+            time_spent: videoWatchTime,
+            quest_id: currentQuestId
+          }
+        ])
+        .then(({ data, error }) => {
+          if (error) {
+            console.error("❌ Supabase insert error:", error);
+          } else {
+            console.log("✅ Supabase insert success. Returned data:", data);
+          }
+        })
+        .catch(err => {
+          console.error("🔥 Supabase insert threw an exception:", err);
+        });
+   
+   const filteredData = quizData.filter(q => q.category === selectedCategory);
       current++;
 
       if (current < filteredData.length) {

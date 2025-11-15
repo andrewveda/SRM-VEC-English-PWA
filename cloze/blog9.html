@@ -217,6 +217,30 @@
     font-size: 1.2rem;
     color: #4b3b2a;
   }
+  /* Nice dual-ring spinner */
+.lds-dual-ring {
+  display: inline-block;
+  width: 32px;
+  height: 32px;
+}
+
+.lds-dual-ring:after {
+  content: " ";
+  display: block;
+  width: 24px;
+  height: 24px;
+  margin: 4px;
+  border-radius: 50%;
+  border: 3px solid #6b4f33;
+  border-color: #6b4f33 transparent #6b4f33 transparent;
+  animation: lds-dual-ring 1.2s linear infinite;
+}
+
+@keyframes lds-dual-ring {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
 </style>
 </head>
 
@@ -273,6 +297,21 @@ Blog </h1>
     </div>
 
     <div class="drop-container" id="dropContainer"></div>
+    <div id="savingSpinner" style="
+  display:none;
+  margin-top: 1.5rem;
+  font-size: 1.1rem;
+  color:#6b4f33;
+  text-align:center;
+">
+  <div class="lds-dual-ring" style="
+    display:inline-block;
+    width:32px;
+    height:32px;
+    margin-bottom:8px;
+  "></div>
+  <div>Saving your progress...</div>
+</div>
     <div id="scoreCard"></div>
     <button id="nextPageBtn" style="display: none;">Next &rarr;</button>
     <button id="restartBtn" style="display: none;">Restart</button>
@@ -585,41 +624,68 @@ function createSparkleEffect(element) {
 async function showScore() {
   clearInterval(timerInterval);
   const totalTime = Math.floor((Date.now() - startTime) / 1000);
-  let saveError = null;
-  try {
-    const { error } = await supabase
-      .from('Quests')
-      .insert([
-        {
-          student_name: playerName,
-          department: playerDept,
-          correct: correctCount,
-          wrong: totalWrongGuesses,
-          time_spent: totalTime,
-          quest_id: "Quest 82"
-        }
-      ]);
-    saveError = error;
-  } catch (e) {
-    saveError = e;
+
+  // ⭐ SHOW spinner while saving
+  document.getElementById("savingSpinner").style.display = "block";
+  scoreCard.innerHTML = "";
+  nextPageBtn.style.display = "none";
+
+  // ⭐ Retry logic for iPhone
+  async function trySave(attempt = 1) {
+    try {
+      const { error } = await supabase
+        .from('Quests')
+        .insert([
+          {
+            student_name: playerName,
+            department: playerDept,
+            correct: correctCount,
+            wrong: totalWrongGuesses,
+            time_spent: totalTime,
+            quest_id: "Quest 82"
+          }
+        ]);
+
+      if (error) throw error;
+      return true;
+
+    } catch (err) {
+      if (attempt < 3) {
+        console.warn(`Save failed (attempt ${attempt}), retrying...`);
+        await new Promise(res => setTimeout(res, 1000));
+        return await trySave(attempt + 1);
+      }
+      return false;
+    }
   }
-  // ⭐⭐⭐ BELOW: JS block ends here (do not put inside HTML)
+
+  const saved = await trySave();
+
+  // ⭐ Hide spinner after saving
+  document.getElementById("savingSpinner").style.display = "none";
 
   dragOptionsEl.innerHTML = "";
   dropContainerEl.innerHTML = "<h2 style='text-align:center;'>🎉 Quiz Completed!</h2>";
   progressTracker.innerText = "Done!";
-  nextPageBtn.style.display = "none";
 
   const successMessage = (totalWrongGuesses === 0)
     ? "<p>✅ Flawless! All questions answered correctly on the first attempt!</p>"
     : `<p>✅ Correct Answers (total): ${correctCount}</p>
        <p>❌ Wrong Attempts (total): ${totalWrongGuesses}</p>`;
 
-  // ⭐⭐⭐ ABOVE: build status line OUTSIDE scoreCard HTML
-  const statusLine = saveError
-    ? `<p style="color:red;">⚠️ Could not save to server. Please take a screenshot.</p>`
-    : `<p style="color:green;">✔ Saved to server</p>`;
-  // ⭐⭐⭐ BELOW: statusLine inserted inside template
+  const statusLine = saved
+    ? `<p style="color:green;">✔ Saved to server</p>`
+    : `<p style="color:red;">⚠️ Could not save even after 3 attempts.<br>Please show this to your teacher.</p>`;
+
+  const pdfButton = saved
+    ? `<button onclick="downloadPDFReport()" 
+         style="margin-top: 1rem; padding: 0.7rem 2rem; background-color: #4CAF50; border: none; border-radius: 10px; cursor: pointer; color: white; font-size: 1rem;">
+         📥 Download PDF Report
+       </button>`
+    : `<button disabled 
+         style="margin-top: 1rem; padding: 0.7rem 2rem; background-color: grey; border: none; border-radius: 10px; cursor: not-allowed; color: white; font-size: 1rem;">
+         🚫 Cannot Download PDF (Save Failed)
+       </button>`;
 
   scoreCard.innerHTML = `
     <p>👤 Player: <strong>${playerName}</strong> (${playerDept})</p>
@@ -627,14 +693,12 @@ async function showScore() {
     <p>💎 Final Gems: ${gemsCount}</p>
     <p>⏱️ Time Taken: ${totalTime} seconds</p>
     ${statusLine}
-    <button onclick="downloadPDFReport()" 
-      style="margin-top: 1rem; padding: 0.7rem 2rem; background-color: #4CAF50; border: none; border-radius: 10px; cursor: pointer; color: white; font-size: 1rem;">
-      📥 Download PDF Report
-    </button>
+    ${pdfButton}
   `;
 
   restartBtn.style.display = "inline-block";
 }
+
 
 
 // FIX: Moved startTimer to the top-level scope

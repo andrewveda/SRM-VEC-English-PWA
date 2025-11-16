@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mission: Veni, Vidi, Vici! Leaderboard</title>
+  <title>Mission: Veni, Vidi, Vici! — Command Deck Leaderboard</title>
   
   <!-- Import Google Font: Inter -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -34,11 +34,11 @@
       
       if (error) {
         console.error(error);
-        document.getElementById("error").textContent = "Error loading data";
+        document.getElementById("error").textContent = "⚠️ Telemetry link lost: unable to load data.";
         return;
       }
       
-      reportData = data;
+      reportData = data || [];
       
       // Find most recent test
       if (reportData.length > 0) {
@@ -50,7 +50,9 @@
           date: formatDate(sorted[0].last_test_taken)
         };
         document.getElementById("last-test-info").textContent = 
-          `Last Test Taken by ${lastTestInfo.name} at ${lastTestInfo.date}`;
+          `⏱ ✨${lastTestInfo.name} at ${lastTestInfo.date}`;
+      } else {
+        document.getElementById("last-test-info").textContent = "Awaiting first mission log...";
       }
       
       sortData("accuracy");
@@ -69,35 +71,43 @@
         hour12: true
       });
     }
+
     function formatSecondsOnly(seconds) {
-  if (!seconds) return "0s";
-  return `${Math.round(seconds)}s`;
-}
+      if (!seconds) return "0s";
+      return `${Math.round(seconds)}s`;
+    }
 
+    function formatTime(seconds) {
+      if (!seconds && seconds !== 0) return `
+        <span class="time-block">
+          <span class="time-num">0</span><span class="time-unit h">h</span>
+        </span>
+        <span class="time-block">
+          <span class="time-num">0</span><span class="time-unit m">m</span>
+        </span>
+        <span class="time-block">
+          <span class="time-num">0</span><span class="time-unit s">s</span>
+        </span>
+      `;
 
- function formatTime(seconds) {
-  if (!seconds && seconds !== 0) return "0h 0m 0s";
+      seconds = Math.round(seconds);
 
-  seconds = Math.round(seconds);
+      const h = Math.floor(seconds / 3600);
+      const m = Math.floor((seconds % 3600) / 60);
+      const s = seconds % 60;
 
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  const s = seconds % 60;
-
-   return `
-    <span class="time-block">
-      <span class="time-num">${h}</span><span class="time-unit h">h</span>
-    </span>
-    <span class="time-block">
-      <span class="time-num">${m}</span><span class="time-unit m">m</span>
-    </span>
-    <span class="time-block">
-      <span class="time-num">${s}</span><span class="time-unit s">s</span>
-    </span>
-  `;
-}
-
-
+      return `
+        <span class="time-block">
+          <span class="time-num">${h}</span><span class="time-unit h">h</span>
+        </span>
+        <span class="time-block">
+          <span class="time-num">${m}</span><span class="time-unit m">m</span>
+        </span>
+        <span class="time-block">
+          <span class="time-num">${s}</span><span class="time-unit s">s</span>
+        </span>
+      `;
+    }
 
     function sortData(key) {
       if (currentSort === key) {
@@ -129,33 +139,31 @@
     }
 
     function updateActiveButton() {
-     document.querySelectorAll(".sort-btn").forEach(btn => {
-  btn.classList.remove("active");
+      document.querySelectorAll(".sort-btn").forEach(btn => {
+        btn.classList.remove("active");
 
-  const indicator = btn.querySelector('.sort-indicator');
-  if (indicator) {
-    indicator.textContent = "";
-  }
-});
+        const indicator = btn.querySelector('.sort-indicator');
+        if (indicator) {
+          indicator.textContent = "";
+        }
+      });
 
-// Toggle button visibility OUTSIDE the loop
-const toggle = document.getElementById("time-toggle");
-if (toggle) {
-  toggle.style.display = (currentSort === "total_time") ? "inline-block" : "none";
-}
+      // Toggle time display button visibility
+      const toggle = document.getElementById("time-toggle");
+      if (toggle) {
+        toggle.style.display = (currentSort === "total_time") ? "inline-flex" : "none";
+      }
 
-      
       const activeButton = document.querySelector(`[data-sort="${currentSort}"]`);
       if (activeButton) {
         activeButton.classList.add("active");
-        // Add sort indicator
         let indicator = activeButton.querySelector('.sort-indicator');
         if (!indicator) {
           indicator = document.createElement('span');
           indicator.className = 'sort-indicator';
           activeButton.appendChild(indicator);
         }
-        indicator.textContent = "";
+        indicator.textContent = sortAscending ? "▲" : "▼";
       }
     }
 
@@ -173,259 +181,271 @@ if (toggle) {
         else if (idx === 2) row.classList.add("bronze");
 
         let value = s[currentSort];
-        // Handle null or undefined values for display
         if (value === null || value === undefined) {
-            value = (currentSort === "last_test_taken") ? null : 0;
+          value = (currentSort === "last_test_taken") ? null : 0;
         }
 
-const displayValue = currentSort === "accuracy" ? `${Math.round(value * 100)}%` :
+        const displayValue = 
+          currentSort === "accuracy" 
+            ? `${Math.round((value || 0) * 100)}%` :
+          currentSort === "total_time"
+            ? (showSecondsOnly ? formatSecondsOnly(value) : formatTime(value)) :
+          currentSort === "last_test_taken"
+            ? formatDate(value) :
+          value;
 
-                             currentSort === "total_time" ? (showSecondsOnly ? formatSecondsOnly(value) : formatTime(value)) :
-                             currentSort === "last_test_taken" ? formatDate(value) : value;
+        if (currentSort === "last_test_taken") {
 
-if (currentSort === "last_test_taken") {
+          row.innerHTML = `
+            <div class="rank">
+              ${idx < 3 ? getMedalEmoji(idx) : rank}
+            </div>
 
-  row.innerHTML = `
-    <div class="rank">
-      ${idx < 3 ? getMedalEmoji(idx) : rank}
-    </div>
+            <div class="name name-two-line">
+              <div class="full-name">${s.name}</div>
+              <div class="last-test-small time-colored">
+                ${formatDate(s.last_test_taken)}
+              </div>
+            </div>
 
-    <div class="name name-two-line">
-      <div class="full-name">${s.name}</div>
-      <div class="last-test-small time-colored">
-        ${formatDate(s.last_test_taken)}
-      </div>
-    </div>
+            <div class="score"></div>
+          `;
 
-    <div class="score"></div>
-  `;
+        } else if (currentSort === "total_time") {
 
-} else if (currentSort === "total_time") {
+          if (showSecondsOnly) {
+            row.innerHTML = `
+              <div class="rank">
+                ${idx < 3 ? getMedalEmoji(idx) : rank}
+              </div>
 
-  if (showSecondsOnly) {
-    row.innerHTML = `
-      <div class="rank">
-        ${idx < 3 ? getMedalEmoji(idx) : rank}
-      </div>
+              <div class="name name-two-line">
+                <div class="full-name">${s.name}</div>
+              </div>
 
-      <div class="name name-two-line">
-        <div class="full-name">${s.name}</div>
-      </div>
+              <div class="score score-seconds">
+                ${formatSecondsOnly(s.total_time)}
+              </div>
+            `;
+          } else {
+            const totalSeconds = s.total_time ?? 0;
+            const h = Math.floor(totalSeconds / 3600).toString().padStart(2, "0");
+            const m = Math.floor((totalSeconds % 3600) / 60).toString().padStart(2, "0");
+            const s_val = (totalSeconds % 60).toString().padStart(2, "0");
 
-      <div class="score">
-        ${formatSecondsOnly(s.total_time)}
-      </div>
-    `;
-  } else {
-    // Existing aligned hh:mm:ss layout
-    const totalSeconds = s.total_time ?? 0;
-    const h = Math.floor(totalSeconds / 3600).toString().padStart(2, "0");
-    const m = Math.floor((totalSeconds % 3600) / 60).toString().padStart(2, "0");
-    const s_val = (totalSeconds % 60).toString().padStart(2, "0");
+            row.innerHTML = `
+              <div class="rank">
+                ${idx < 3 ? getMedalEmoji(idx) : rank}
+              </div>
 
-    row.innerHTML = `
-      <div class="rank">
-        ${idx < 3 ? getMedalEmoji(idx) : rank}
-      </div>
+              <div class="name name-two-line">
+                <div class="full-name">${s.name}</div>
+              </div>
 
-      <div class="name name-two-line">
-        <div class="full-name">${s.name}</div>
-      </div>
+              <div class="score name-two-line aligned-time">
+                <div class="time-row">
+                  <span class="t-block"><span class="t-num">${h}</span><span class="t-unit h">h</span></span>
+                  <span class="t-block"><span class="t-num">${m}</span><span class="t-unit m">m</span></span>
+                  <span class="t-block"><span class="t-num">${s_val}</span><span class="t-unit s">s</span></span>
+                </div>
+              </div>
+            `;
+          }
+        } else {
 
-      <div class="score name-two-line aligned-time">
-        <div class="time-row">
-          <span class="t-block"><span class="t-num">${h}</span><span class="t-unit h">h</span></span>
-          <span class="t-block"><span class="t-num">${m}</span><span class="t-unit m">m</span></span>
-          <span class="t-block"><span class="t-num">${s_val}</span><span class="t-unit s">s</span></span>
-        </div>
-      </div>
-    `;
-  }
-}
-else {
+          row.innerHTML = `
+            <div class="rank">
+              ${idx < 3 ? getMedalEmoji(idx) : rank}
+            </div>
+            <div class="name">
+              <div class="cadet-name">${s.name}</div>
+              <div class="metric-tag">
+                ${currentSort === "accuracy" ? "TARGET LOCK" : 
+                  currentSort === "quests_completed" ? "QUESTS" :
+                  currentSort === "videos_completed" ? "VIDEOS" :
+                  currentSort === "stories_completed" ? "STORIES" : ""}
+              </div>
+            </div>
+            <div class="score">${displayValue}</div>
+          `;
+        }
 
-  row.innerHTML = `
-    <div class="rank">
-      ${idx < 3 ? getMedalEmoji(idx) : rank}
-    </div>
-    <div class="name">${s.name}</div>
-    <div class="score">${displayValue}</div>
-  `;
-
-}
-
-        
         row.onclick = () => showDetail(s);
         container.appendChild(row);
       });
     }
 
     function getMedalEmoji(idx) {
-      return idx === 0 ? "🥇" : idx === 1 ? "🥈" : "🥉";
+      return idx === 0 ? "🚀" : idx === 1 ? "🛰️" : "🌌";
     }
-const START_DATE = new Date("2025-08-25");
 
-// Map number → date
-function mapToDate(number) {
-  const d = new Date(START_DATE);
-  d.setDate(d.getDate() + (number - 1));
-  return d;
-}
+    // === Mission Calendar Logic ===
+    const START_DATE = new Date("2025-08-25");
 
-// Parse "Quest 38, Quest 50" → { type:"Quest", number:38, label:"Quest 38" }
-function parseItems(rawList) {
-  if (!rawList || rawList === "NULL") return [];
+    function mapToDate(number) {
+      const d = new Date(START_DATE);
+      d.setDate(d.getDate() + (number - 1));
+      return d;
+    }
 
-  return rawList
-    .split(",")
-    .map(item => item.trim())
-    .filter(item => item.length > 0) // prevent empty ""
-    .map(item => {
-      const [type, num] = item.split(" ");
-      return { type, number: Number(num), label: item };
-    });
-}
+    function parseItems(rawList) {
+      if (!rawList || rawList === "NULL") return [];
 
-// Icons
-function iconFor(label) {
-  if (label.startsWith("Quest")) return "🔥";
-  if (label.startsWith("Video")) return "🎥";
-  if (label.startsWith("Story")) return "📚";
-  return "•";
-}
+      return rawList
+        .split(",")
+        .map(item => item.trim())
+        .filter(item => item.length > 0)
+        .map(item => {
+          const [type, num] = item.split(" ");
+          return { type, number: Number(num), label: item };
+        });
+    }
 
-// Group items by calendar date
-function groupByDate(quests, videos, stories) {
-  const map = {};
+    function iconFor(label) {
+      if (label.startsWith("Quest")) return "🔁";
+      if (label.startsWith("Video")) return "📡";
+      if (label.startsWith("Story")) return "📖";
+      return "•";
+    }
 
-  const add = (date, label) => {
-    const key = date.toDateString();
-    if (!map[key]) map[key] = [];
-    map[key].push(label);
-  };
+    function groupByDate(quests, videos, stories) {
+      const map = {};
 
-  quests.forEach(q => add(mapToDate(q.number), q.label));
-  videos.forEach(v => add(mapToDate(v.number), v.label));
-  stories.forEach(s => add(mapToDate(s.number), s.label));
+      const add = (date, label) => {
+        const key = date.toDateString();
+        if (!map[key]) map[key] = [];
+        map[key].push(label);
+      };
 
-  return map;
-}
-function renderOneMonth(baseDate, grouped) {
-  const year = baseDate.getFullYear();
-  const month = baseDate.getMonth();
+      quests.forEach(q => add(mapToDate(q.number), q.label));
+      videos.forEach(v => add(mapToDate(v.number), v.label));
+      stories.forEach(s => add(mapToDate(s.number), s.label));
 
-  const firstDay = new Date(year, month, 1).getDay();
-  const numDays = new Date(year, month + 1, 0).getDate();
+      return map;
+    }
 
-  let html = `
-    <div class="mini-cal-title">
-      ${baseDate.toLocaleString('en-IN', { month: 'long', year: 'numeric' })}
-    </div>
+    function renderOneMonth(baseDate, grouped) {
+      const year = baseDate.getFullYear();
+      const month = baseDate.getMonth();
 
-    <div class="mini-cal-grid">
-      <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div>
-      <div>Thu</div><div>Fri</div><div>Sat</div>
-  `;
+      const firstDay = new Date(year, month, 1).getDay();
+      const numDays = new Date(year, month + 1, 0).getDate();
 
-  // Empty placeholders
-  for (let i = 0; i < firstDay; i++) {
-    html += `<div class="mini-cal-empty"></div>`;
-  }
-
-  // Fill days
-  for (let d = 1; d <= numDays; d++) {
-    const date = new Date(year, month, d);
-    const key = date.toDateString();
-    const items = grouped[key];
-
-    if (items) {
-      html += `
-        <div class="mini-cal-day marked">
-          <div class="mini-cal-date">${d}</div>
-          <div class="mini-cal-items">
-       ${items.map(i => `<div>${iconFor(i)}</div>`).join("")}
-          </div>
+      let html = `
+        <div class="mini-cal-title">
+          ${baseDate.toLocaleString('en-IN', { month: 'long', year: 'numeric' })}
         </div>
+
+        <div class="mini-cal-grid">
+          <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div>
+          <div>Thu</div><div>Fri</div><div>Sat</div>
       `;
-    } else {
-      html += `<div class="mini-cal-day">${d}</div>`;
+
+      for (let i = 0; i < firstDay; i++) {
+        html += `<div class="mini-cal-empty"></div>`;
+      }
+
+      for (let d = 1; d <= numDays; d++) {
+        const date = new Date(year, month, d);
+        const key = date.toDateString();
+        const items = grouped[key];
+
+        if (items) {
+          html += `
+            <div class="mini-cal-day marked">
+              <div class="mini-cal-date">${d}</div>
+              <div class="mini-cal-items">
+                ${items.map(i => `<div>${iconFor(i)}</div>`).join("")}
+              </div>
+            </div>
+          `;
+        } else {
+          html += `<div class="mini-cal-day">${d}</div>`;
+        }
+      }
+
+      html += "</div>";
+      return html;
     }
-  }
 
-  html += "</div>"; // close grid
-  return html;
-}
+    function renderMiniCalendar(containerId, grouped) {
+      const container = document.getElementById(containerId);
+      container.innerHTML = "";
 
-function renderMiniCalendar(containerId, grouped) {
-  const container = document.getElementById(containerId);
-  container.innerHTML = "";
+      let cursor = new Date(START_DATE.getFullYear(), START_DATE.getMonth(), 1);
+      const today = new Date();
+      const end = new Date(today.getFullYear(), today.getMonth(), 1);
 
-  // Begin at August 2025
-  let cursor = new Date(START_DATE.getFullYear(), START_DATE.getMonth(), 1);
+      while (cursor <= end) {
+        container.innerHTML += renderOneMonth(cursor, grouped);
+        cursor.setMonth(cursor.getMonth() + 1);
+      }
+    }
 
-  // End at the current month
-  const today = new Date();
-  const end = new Date(today.getFullYear(), today.getMonth(), 1);
-
-  while (cursor <= end) {
-    container.innerHTML += renderOneMonth(cursor, grouped);
-    cursor.setMonth(cursor.getMonth() + 1);
-  }
-}
     function showDetail(s) {
       const modal = document.getElementById("modal");
       const content = document.getElementById("modal-content");
       
       content.innerHTML = `
         <div class="modal-header">
+          <div class="modal-id-tag">Pilot Profile</div>
           <h2>${s.name}</h2>
           <button class="close-btn" onclick="closeModal()">×</button>
         </div>
         
         <div class="stats-grid">
           <div class="stat-box">
-            <div class="stat-label">Score</div>
+            <div class="stat-label">Total Score</div>
             <div class="stat-value">${s.total_score ?? 0}</div>
+            <div class="stat-foot">Mission Points</div>
           </div>
           <div class="stat-box">
             <div class="stat-label">Accuracy</div>
-           <div class="stat-value">${Math.round((s.accuracy ?? 0) * 100)}%</div>
+            <div class="stat-value">${Math.round((s.accuracy ?? 0) * 100)}%</div>
+            <div class="stat-foot">Hit Rate</div>
           </div>
           <div class="stat-box">
             <div class="stat-label">Attempts</div>
             <div class="stat-value">${s.total_attempts ?? 0}</div>
+            <div class="stat-foot">Shots Fired</div>
           </div>
           <div class="stat-box">
             <div class="stat-label">Correct</div>
             <div class="stat-value">${s.total_correct ?? 0}</div>
+            <div class="stat-foot">Direct Hits</div>
           </div>
           <div class="stat-box">
             <div class="stat-label">Wrong</div>
             <div class="stat-value">${s.total_wrong ?? 0}</div>
+            <div class="stat-foot">Near Misses</div>
           </div>
           <div class="stat-box">
-            <div class="stat-label">Time</div>
-            <div class="stat-value">${formatTime(s.total_time)}</div>
+            <div class="stat-label">Time on Mission</div>
+            <div class="stat-value time-stat">
+              ${formatTime(s.total_time)}
+            </div>
+            <div class="stat-foot">Cumulative</div>
           </div>
         </div>
 
-     <div class="detail-box">
-  <h3>📅 Activity Calendar</h3>
-  <div id="mini-calendar"></div>
-</div>
-
+        <div class="detail-box">
+          <h3>📡 Mission Activity Grid</h3>
+          <p class="detail-caption">Green sectors show days with completed Quests, Videos, or Stories.</p>
+          <div id="mini-calendar" class="mission-calendar"></div>
+        </div>
 
         <div class="detail-box">
-          <h3>🕐 Last Test Taken</h3>
+          <h3>🕐 Last Mission Timestamp</h3>
           <p>${formatDate(s.last_test_taken)}</p>
         </div>
       `;
-      const quests = parseItems(s.quest_list);
-const videos = parseItems(s.video_list);
-const stories = parseItems(s.story_list);
 
-const grouped = groupByDate(quests, videos, stories);
-renderMiniCalendar("mini-calendar", grouped);
+      const quests = parseItems(s.quest_list);
+      const videos = parseItems(s.video_list);
+      const stories = parseItems(s.story_list);
+
+      const grouped = groupByDate(quests, videos, stories);
+      renderMiniCalendar("mini-calendar", grouped);
 
       modal.style.display = "flex";
     }
@@ -439,7 +459,9 @@ renderMiniCalendar("mini-calendar", grouped);
       
       const totalStudents = reportData.length;
       const avgScore = Math.round(reportData.reduce((sum, s) => sum + (s.total_score || 0), 0) / totalStudents);
-      const avgAccuracy = Math.round(reportData.reduce((sum, s) => sum + (s.accuracy || 0), 0) / totalStudents);
+      const avgAccuracy = Math.round(
+        (reportData.reduce((sum, s) => sum + (s.accuracy || 0), 0) / totalStudents) * 100
+      );
       const totalAttempts = reportData.reduce((sum, s) => sum + (s.total_attempts || 0), 0);
       const totalTime = reportData.reduce((sum, s) => sum + (s.total_time || 0), 0);
       const totalVideos = reportData.reduce((sum, s) => sum + (s.videos_completed || 0), 0);
@@ -451,7 +473,8 @@ renderMiniCalendar("mini-calendar", grouped);
       
       content.innerHTML = `
         <div class="modal-header">
-          <h2>📊 Class Statistics</h2>
+          <div class="modal-id-tag">Class Telemetry</div>
+          <h2>📊 Squad Mission Stats</h2>
           <button class="close-btn" onclick="closeModal()">×</button>
         </div>
         
@@ -459,30 +482,39 @@ renderMiniCalendar("mini-calendar", grouped);
           <div class="stat-box">
             <div class="stat-label">Avg Score</div>
             <div class="stat-value">${avgScore}</div>
+            <div class="stat-foot">Per Pilot</div>
           </div>
           <div class="stat-box">
             <div class="stat-label">Avg Accuracy</div>
             <div class="stat-value">${avgAccuracy}%</div>
+            <div class="stat-foot">Hit Rate</div>
           </div>
           <div class="stat-box">
             <div class="stat-label">Total Attempts</div>
             <div class="stat-value">${totalAttempts}</div>
+            <div class="stat-foot">Shots Fired</div>
           </div>
           <div class="stat-box">
             <div class="stat-label">Total Time</div>
-            <div class="stat-value">${formatTime(totalTime)}</div>
+            <div class="stat-value time-stat">
+              ${formatTime(totalTime)}
+            </div>
+            <div class="stat-foot">Cumulative Time</div>
           </div>
           <div class="stat-box">
-            <div class="stat-label">Videos Done</div>
+            <div class="stat-label">Videos Completed</div>
             <div class="stat-value">${totalVideos}</div>
+            <div class="stat-foot">Training Logs</div>
           </div>
           <div class="stat-box">
-            <div class="stat-label">Stories Done</div>
+            <div class="stat-label">Stories Completed</div>
             <div class="stat-value">${totalStories}</div>
+            <div class="stat-foot">Narrative Sims</div>
           </div>
           <div class="stat-box">
-            <div class="stat-label">Quests Done</div>
+            <div class="stat-label">Quests Completed</div>
             <div class="stat-value">${totalQuests}</div>
+            <div class="stat-foot">Missions</div>
           </div>
         </div>
       `;
@@ -494,12 +526,13 @@ renderMiniCalendar("mini-calendar", grouped);
     window.closeModal = closeModal;
     window.showClassStats = showClassStats;
     window.onload = loadData;
-window.toggleTimeFormat = function () {     // << ADD THIS
-  showSecondsOnly = !showSecondsOnly;
-  const btn = document.getElementById("time-toggle");
-  btn.textContent = showSecondsOnly ? "Show h/m/s" : "Show Seconds";
-  renderLeaderboard();
-};
+
+    window.toggleTimeFormat = function () {
+      showSecondsOnly = !showSecondsOnly;
+      const btn = document.getElementById("time-toggle");
+      btn.textContent = showSecondsOnly ? "Show h:m:s" : "Show Seconds";
+      renderLeaderboard();
+    };
 
     window.onclick = function(event) {
       const modal = document.getElementById("modal");
@@ -511,17 +544,21 @@ window.toggleTimeFormat = function () {     // << ADD THIS
 
   <style>
     :root {
-      --bg-deep: #0F0F0F;
-      --bg-surface: #1A1A1A;
-      --bg-muted: #111111;
-      --border-color: #2a2a2a;
-      --text-primary: #F0F0F0;
-      --text-secondary: #A0A0A0;
-      --accent-primary: #9F55FF; /* A vibrant purple */
-      --accent-secondary: #7F33FF;
-      --gold: #FFD700;
-      --silver: #C0C0C0;
-      --bronze: #CD7F32;
+      --bg-deep: #020617;
+      --bg-surface: rgba(15, 23, 42, 0.92);
+      --bg-surface-strong: rgba(15, 23, 42, 0.98);
+      --bg-muted: rgba(15, 23, 42, 0.85);
+      --border-color: rgba(148, 163, 184, 0.35);
+      --text-primary: #E5F2FF;
+      --text-secondary: #94A3B8;
+      --accent-primary: #22D3EE; /* cyan */
+      --accent-secondary: #A855F7; /* purple */
+      --accent-warm: #F97316; /* orange for energy */
+      --gold: #FACC15;
+      --silver: #E5E7EB;
+      --bronze: #FB923C;
+      --danger: #F97373;
+      --success: #4ADE80;
     }
 
     * {
@@ -531,204 +568,482 @@ window.toggleTimeFormat = function () {     // << ADD THIS
     }
 
     body {
-      background: var(--bg-deep);
+      background:
+        radial-gradient(circle at top, rgba(56, 189, 248, 0.2), transparent 55%),
+        radial-gradient(circle at bottom, rgba(147, 51, 234, 0.25), transparent 55%),
+        #020617;
       color: var(--text-primary);
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       min-height: 100vh;
-      padding-bottom: 20px;
+      padding: 14px 10px 32px;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* Faint grid for mission control feel */
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background-image: linear-gradient(rgba(148, 163, 184, 0.08) 1px, transparent 1px),
+                        linear-gradient(90deg, rgba(148, 163, 184, 0.08) 1px, transparent 1px);
+      background-size: 40px 40px;
+      opacity: 0.35;
+      pointer-events: none;
+      z-index: -2;
+    }
+
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(circle at 20% 0%, rgba(248, 250, 252, 0.04), transparent 50%);
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    .command-frame {
+      max-width: 960px;
+      margin: 0 auto;
+      border-radius: 18px;
+      border: 1px solid rgba(148, 163, 184, 0.5);
+      background: linear-gradient(135deg, rgba(15,23,42,0.9), rgba(15,23,42,0.96));
+      box-shadow:
+        0 0 0 1px rgba(15, 23, 42, 0.6),
+        0 30px 80px rgba(15, 23, 42, 0.9),
+        0 0 24px rgba(34, 211, 238, 0.25);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .command-frame::before {
+      content: "SRM VEC · ENGLISH COMMAND";
+      position: absolute;
+      top: 10px;
+      right: 18px;
+      font-size: 9px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: rgba(148, 163, 184, 0.7);
     }
 
     .header {
-      background: var(--bg-surface);
-      padding: 20px 15px;
-      text-align: center;
-      border-bottom: 1px solid var(--border-color);
+      padding: 18px 18px 10px;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.3);
+      backdrop-filter: blur(14px);
+      background: linear-gradient(135deg, rgba(15,23,42,0.96), rgba(15,23,42,0.9));
+    }
+
+    .header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .title-block {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
     }
 
     .title {
-      font-size: 24px;
-      font-weight: 800;
-      margin-bottom: 8px;
-      line-height: 1.3;
+      font-size: 22px;
+      font-weight: 900;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      background: linear-gradient(120deg, #E0F2FE, #5EEAD4, #C4B5FD);
+      -webkit-background-clip: text;
+      color: transparent;
+    }
+
+    .subtitle-main {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      color: var(--text-secondary);
+    }
+
+    .badge-live {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: radial-gradient(circle at 0 0, rgba(45, 212, 191, 0.35), transparent 55%),
+                  rgba(15,23,42,0.9);
+      border: 1px solid rgba(45, 212, 191, 0.7);
+      box-shadow: 0 0 10px rgba(45, 212, 191, 0.5);
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .badge-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      background: #22C55E;
+      box-shadow: 0 0 10px #22C55E, 0 0 20px #22C55E;
+      animation: pulse 1.2s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); opacity: 1; }
+      60% { transform: scale(1.8); opacity: 0; }
+      100% { transform: scale(1.8); opacity: 0; }
     }
 
     .emoji-row {
       font-size: 24px;
-      margin-bottom: 12px;
+      margin-bottom: 10px;
+      text-align: left;
     }
 
     .subtitle {
-      font-size: 13px;
+      font-size: 11px;
       color: var(--text-secondary);
-      margin-bottom: 20px;
-      min-height: 1.2em; /* Prevent layout shift */
+      min-height: 1.2em;
+    }
+
+    /* TOP CONTROLS ================================= */
+    .top-controls {
+      display: flex;
+      gap: 10px;
+      padding: 12px 18px 14px;
+      align-items: stretch;
+      background: radial-gradient(circle at 0 0, rgba(56, 189, 248, 0.15), transparent 55%);
+      border-bottom: 1px solid rgba(148, 163, 184, 0.25);
     }
 
     .class-stats-btn {
-      background: var(--accent-primary);
-      color: white;
-      border: none;
-      padding: 12px 24px;
-      border-radius: 99px; /* Pill shape */
-      font-size: 15px;
+      min-width: 120px;
+      max-width: 140px;
+      height: auto;
+      padding: 12px 10px;
+      border-radius: 16px;
+      border: 1px solid rgba(56, 189, 248, 0.6);
+      background: radial-gradient(circle at 0 0, rgba(34, 211, 238, 0.3), transparent 55%),
+                  rgba(15,23,42, 0.95);
+      font-size: 13px;
       font-weight: 700;
+      text-align: left;
+      color: #E0F2FE;
       cursor: pointer;
-      width: 100%;
-      max-width: 300px;
-      margin: 0 auto;
-      display: block;
-      transition: all 0.2s ease;
-      box-shadow: 0 4px 15px rgba(127, 51, 255, 0.2);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 4px;
+      box-shadow:
+        0 0 12px rgba(34, 211, 238, 0.35),
+        0 0 1px rgba(15, 23, 42, 0.9);
+      transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
+    }
+
+    .class-stats-btn::before {
+      content: "Squad Uplink";
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      color: rgba(186, 230, 253, 0.8);
     }
 
     .class-stats-btn:hover {
-      background: var(--accent-secondary);
-      box-shadow: 0 6px 20px rgba(127, 51, 255, 0.3);
-      transform: translateY(-2px);
+      transform: translateY(-1px);
+      box-shadow:
+        0 0 18px rgba(34, 211, 238, 0.5),
+        0 20px 40px rgba(15, 23, 42, 0.9);
+      border-color: rgba(56, 189, 248, 0.9);
     }
 
-  
-.top-controls {
-  display: flex;
-  gap: 12px;
-  padding: 12px 15px;
-  align-items: flex-start;
-}
+    .sort-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
 
-.class-stats-btn {
-  width: 120px;
-  height: 90px;           /* makes it “square-ish” */
-  white-space: normal;    /* allow 2 lines */
-  text-align: center;
-  line-height: 1.2;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
+    .sort-label-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      color: rgba(148, 163, 184, 0.9);
+    }
 
-.sort-buttons {
-  flex: 1;
-  display: grid;
-  grid-template-columns: repeat(2, 1fr); /* 2 clean columns */
-  gap: 10px;
-  padding: 0;
-}
+    .sort-label-row span:last-child {
+      font-size: 9px;
+      color: rgba(148, 163, 184, 0.8);
+    }
 
+    .sort-buttons {
+      flex: 1;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
 
-    .sort-btn {
-      display: inline-block;
-      background: #222;
+    .sort-btn, #time-toggle {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      background: radial-gradient(circle at 0 0, rgba(79, 70, 229, 0.4), transparent 55%),
+                  rgba(15,23,42,0.95);
       color: var(--text-primary);
-      border: 1px solid var(--border-color);
-      padding: 8px 16px;
-      border-radius: 99px;
-      font-size: 13px;
+      border: 1px solid rgba(148, 163, 184, 0.6);
+      padding: 7px 8px;
+      border-radius: 999px;
+      font-size: 11px;
       font-weight: 600;
       cursor: pointer;
-      transition: all 0.2s;
-      margin-right: 8px;
       white-space: nowrap;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      transition: all 0.14s ease;
+      min-height: 30px;
+    }
+
+    .sort-btn .sort-indicator {
+      font-size: 9px;
+      opacity: 0.8;
     }
 
     .sort-btn.active {
-      background: var(--accent-primary);
-      border-color: var(--accent-primary);
-      color: white;
-      font-weight: 700;
-      box-shadow: 0 0 15px rgba(127, 51, 255, 0.3);
-    }
-    
-    .sort-indicator {
-      font-weight: 700;
+      background:
+        radial-gradient(circle at 0 0, rgba(129, 230, 217, 0.7), transparent 55%),
+        linear-gradient(135deg, #0EA5E9, #A855F7);
+      border-color: rgba(56, 189, 248, 0.9);
+      color: #0F172A;
+      box-shadow:
+        0 0 12px rgba(56, 189, 248, 0.6),
+        0 0 1px rgba(15, 23, 42, 0.9);
     }
 
-    /* --- Leaderboard List --- */
+    #time-toggle {
+      font-size: 10px;
+      padding-inline: 10px;
+      justify-self: flex-end;
+    }
+
+    /* LEADERBOARD ================================== */
     #leaderboard {
-      background: var(--bg-surface);
-      margin: 15px;
-      border-radius: 12px;
-      overflow: hidden; /* To clip children to border-radius */
-      border: 1px solid var(--border-color);
+      margin: 10px 14px 16px;
+      border-radius: 14px;
+      border: 1px solid rgba(148, 163, 184, 0.5);
+      overflow: hidden;
+      background: radial-gradient(circle at 0 0, rgba(56, 189, 248, 0.15), transparent 45%),
+                  radial-gradient(circle at 100% 100%, rgba(147, 51, 234, 0.12), transparent 50%),
+                  rgba(15, 23, 42, 0.96);
+    }
+
+    .leaderboard-header-row {
+      display: grid;
+      grid-template-columns: 48px 1fr auto;
+      padding: 6px 12px;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: rgba(148, 163, 184, 0.9);
+      border-bottom: 1px solid rgba(148, 163, 184, 0.35);
+      background: linear-gradient(90deg, rgba(15,23,42,0.9), rgba(30,64,175,0.65));
     }
 
     .leaderboard-row {
       display: grid;
-      grid-template-columns: 30px 1fr auto; /* Rank | Name | Score */
-      padding: 8px 10px;
-      border-bottom: 1px solid var(--border-color);
+      grid-template-columns: 48px 1fr auto;
+      padding: 9px 12px;
+      border-bottom: 1px solid rgba(30, 41, 59, 0.9);
       cursor: pointer;
-      transition: background-color 0.2s;
       align-items: center;
+      position: relative;
+      transition: background 0.15s ease, transform 0.12s ease, box-shadow 0.12s ease;
     }
 
     .leaderboard-row:last-child {
       border-bottom: none;
     }
 
-    .leaderboard-row:hover { /* For desktop */
-      background-color: #222;
+    .leaderboard-row::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, rgba(56,189,248,0.06), transparent);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.18s ease;
     }
-    
-    /* Medal Styles */
+
+    .leaderboard-row:hover {
+      background: radial-gradient(circle at 0 0, rgba(56,189,248,0.15), transparent 50%);
+      transform: translateY(-1px);
+      box-shadow: 0 8px 18px rgba(15, 23, 42, 0.9);
+    }
+
+    .leaderboard-row:hover::after {
+      opacity: 1;
+    }
+
     .leaderboard-row.gold {
-      border-left: 5px solid var(--gold);
-      padding-left: 11px; /* 16px - 5px */
+      border-left: 3px solid var(--gold);
     }
     .leaderboard-row.silver {
-      border-left: 5px solid var(--silver);
-      padding-left: 11px;
+      border-left: 3px solid rgba(148, 163, 184, 0.9);
     }
     .leaderboard-row.bronze {
-      border-left: 5px solid var(--bronze);
-      padding-left: 11px;
+      border-left: 3px solid var(--bronze);
     }
 
     .rank {
-      font-size: 12px;
+      font-size: 13px;
       font-weight: 800;
       text-align: center;
-      color: var(--text-secondary);
+      color: rgba(148, 163, 184, 0.95);
     }
 
     .leaderboard-row.gold .rank,
     .leaderboard-row.silver .rank,
     .leaderboard-row.bronze .rank {
-      font-size: 16px; /* Make medal emoji slightly larger */
+      font-size: 18px;
     }
 
     .name {
-      font-size: 16px;
-      font-weight: 600;
+      padding: 0 10px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .cadet-name,
+    .full-name {
+      font-size: 14px;
+      font-weight: 700;
       color: var(--text-primary);
-      padding: 0 12px;
-      /* Truncate long names */
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
 
-    .score {
-      font-size: 20px;
-      font-weight: 800;
-      color: var(--accent-primary);
-      text-align: right;
-      min-width: 80px; /* Ensure alignment */
+    .metric-tag {
+      margin-top: 2px;
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      color: rgba(148, 163, 184, 0.9);
     }
 
+    .last-test-small {
+      font-size: 10px;
+      color: rgba(148, 163, 184, 0.95);
+      margin-top: 3px;
+    }
+
+    .score {
+      font-size: 18px;
+      font-weight: 800;
+      color: #E0F2FE;
+      text-align: right;
+      min-width: 90px;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .score-seconds {
+      font-size: 16px;
+      color: var(--accent-primary);
+    }
+
+    /* Time layout (Apple-ish) */
+    .time-block {
+      display: inline-flex;
+      align-items: baseline;
+      gap: 3px;
+      margin-right: 10px;
+    }
+
+    .time-num {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-primary);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .time-unit {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      position: relative;
+      top: -1px;
+      background: transparent !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      border-radius: 0 !important;
+    }
+    .time-unit.h { color: #A855F7; }
+    .time-unit.m { color: #38BDF8; }
+    .time-unit.s { color: #34D399; }
+
+    .aligned-time {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .time-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      text-align: center;
+      margin-top: 2px;
+    }
+
+    .t-block {
+      display: flex;
+      justify-content: center;
+      align-items: baseline;
+      gap: 2px;
+    }
+
+    .t-num {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-primary);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .t-unit {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      position: relative;
+      top: -1px;
+      padding-left: 1px;
+    }
+
+    .t-unit.h { color: #A855F7; }
+    .t-unit.m { color: #38BDF8; }
+    .t-unit.s { color: #34D399; }
+
+    /* LOAD + ERROR =============================== */
     #loader {
       display: none;
       justify-content: center;
       align-items: center;
-      padding: 60px;
+      padding: 40px 0 20px;
     }
 
     .spinner {
-      width: 50px;
-      height: 50px;
-      border: 4px solid var(--border-color);
-      border-top-color: var(--accent-primary);
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
+      width: 46px;
+      height: 46px;
+      border-radius: 999px;
+      border: 3px solid rgba(148, 163, 184, 0.5);
+      border-top-color: #22D3EE;
+      border-right-color: #A855F7;
+      animation: spin 0.9s linear infinite;
+      box-shadow: 0 0 18px rgba(34, 211, 238, 0.6);
     }
 
     @keyframes spin {
@@ -736,13 +1051,14 @@ window.toggleTimeFormat = function () {     // << ADD THIS
     }
 
     #error {
-      color: #ef4444;
+      color: var(--danger);
       text-align: center;
-      padding: 20px;
+      padding: 12px 16px 18px;
       font-weight: 600;
+      font-size: 12px;
     }
 
-    /* --- Modal Styling --- */
+    /* MODAL ====================================== */
     #modal {
       display: none;
       position: fixed;
@@ -750,291 +1066,360 @@ window.toggleTimeFormat = function () {     // << ADD THIS
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(0, 0, 0, 0.8);
-      backdrop-filter: blur(5px);
+      background: radial-gradient(circle at top, rgba(15,23,42,0.9), rgba(15,23,42,0.98));
+      backdrop-filter: blur(6px);
       justify-content: center;
       align-items: flex-start;
       z-index: 1000;
       overflow-y: auto;
-      padding: 15px;
+      padding: 25px 12px;
     }
 
     #modal-content {
-      background: #1C1C1C;
-      border-radius: 12px;
-      padding: 20px;
+      background: var(--bg-surface-strong);
+      border-radius: 18px;
+      padding: 18px 16px 20px;
       width: 100%;
-      max-width: 500px;
-      margin: 20px auto;
-      border: 1px solid var(--border-color);
-      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      max-width: 520px;
+      margin: 0 auto;
+      border: 1px solid rgba(148, 163, 184, 0.7);
+      box-shadow:
+        0 0 1px rgba(15,23,42,1),
+        0 30px 80px rgba(15, 23, 42, 1),
+        0 0 26px rgba(56, 189, 248, 0.35);
+      position: relative;
     }
 
     .modal-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 20px;
-      padding-bottom: 15px;
-      border-bottom: 1px solid var(--border-color);
+      gap: 10px;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.45);
     }
 
     .modal-header h2 {
-      font-size: 22px;
-      font-weight: 700;
-      color: var(--accent-primary);
+      font-size: 18px;
+      font-weight: 800;
+      color: #E0F2FE;
+    }
+
+    .modal-id-tag {
+      position: absolute;
+      top: -10px;
+      left: 16px;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: rgba(15,23,42,0.9);
+      border: 1px solid rgba(148, 163, 184, 0.7);
+      color: rgba(148, 163, 184, 0.95);
     }
 
     .close-btn {
-      background: #333;
-      border: none;
-      color: white;
-      font-size: 28px;
+      background: rgba(15,23,42,0.95);
+      border: 1px solid rgba(148, 163, 184, 0.7);
+      color: #E0F2FE;
+      font-size: 20px;
       cursor: pointer;
-      width: 36px;
-      height: 36px;
-      border-radius: 8px;
+      width: 32px;
+      height: 32px;
+      border-radius: 999px;
       display: flex;
       align-items: center;
       justify-content: center;
       line-height: 1;
-      transition: background-color 0.2s;
+      transition: background 0.1s ease, transform 0.1s ease, box-shadow 0.1s ease;
     }
+
     .close-btn:hover {
-      background-color: #444;
+      background: rgba(30,64,175,0.9);
+      transform: translateY(-1px);
+      box-shadow: 0 0 12px rgba(59, 130, 246, 0.7);
     }
 
     .stats-grid {
       display: grid;
-      /* Fluid grid: fits as many 100px columns as possible */
-      grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-      gap: 12px;
-      margin-bottom: 20px;
+      grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+      gap: 10px;
+      margin-bottom: 16px;
     }
 
     .stat-box {
-      background: var(--bg-muted);
-      padding: 15px;
-      border-radius: 8px;
-      text-align: center;
-      border: 1px solid var(--border-color);
+      background: radial-gradient(circle at 0 0, rgba(56, 189, 248, 0.16), transparent 55%),
+                  rgba(15,23,42, 0.98);
+      padding: 10px 10px 9px;
+      border-radius: 10px;
+      text-align: left;
+      border: 1px solid rgba(148, 163, 184, 0.6);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .stat-box::after {
+      content: "";
+      position: absolute;
+      inset: -40%;
+      background: radial-gradient(circle at 120% -10%, rgba(56,189,248,0.28), transparent 55%);
+      opacity: 0.8;
+      pointer-events: none;
     }
 
     .stat-label {
-      font-size: 11px;
-      color: var(--text-secondary);
+      font-size: 10px;
+      color: rgba(148, 163, 184, 0.9);
       text-transform: uppercase;
-      margin-bottom: 6px;
-      letter-spacing: 0.5px;
-      font-weight: 600;
+      margin-bottom: 2px;
+      letter-spacing: 0.16em;
+      position: relative;
+      z-index: 1;
     }
 
     .stat-value {
-      font-size: 22px;
+      font-size: 20px;
       font-weight: 800;
-      color: var(--accent-primary);
+      color: #E0F2FE;
       line-height: 1.2;
+      position: relative;
+      z-index: 1;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .time-stat {
+      font-size: 0;
+    }
+
+    .stat-foot {
+      font-size: 10px;
+      color: rgba(148, 163, 184, 0.9);
+      margin-top: 4px;
+      position: relative;
+      z-index: 1;
     }
 
     .detail-box {
-      background: var(--bg-muted);
-      padding: 15px;
-      border-radius: 8px;
+      background: rgba(15, 23, 42, 0.98);
+      padding: 12px 11px 11px;
+      border-radius: 10px;
       margin-bottom: 12px;
-      border: 1px solid var(--border-color);
+      border: 1px solid rgba(148, 163, 184, 0.55);
     }
 
     .detail-box h3 {
-      color: var(--accent-primary);
-      margin-bottom: 10px;
-      font-size: 16px;
+      color: #E0F2FE;
+      margin-bottom: 6px;
+      font-size: 14px;
       font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
 
     .detail-box p {
-      color: #D0D0D0;
-      line-height: 1.6;
-      font-size: 14px;
-      /* Allow text wrapping for long lists */
+      color: rgba(226, 232, 240, 0.96);
+      line-height: 1.5;
+      font-size: 12px;
       word-wrap: break-word;
       white-space: pre-wrap;
     }
 
+    .detail-caption {
+      font-size: 10px;
+      color: rgba(148, 163, 184, 0.95);
+      margin-bottom: 8px;
+    }
+
+    /* MINI CALENDAR =============================== */
+    .mission-calendar {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
     .mini-cal-title {
-  text-align: center;
-  font-weight: 700;
-  margin-bottom: 10px;
-  font-size: 14px;
-  color: var(--accent-primary);
+      text-align: center;
+      font-weight: 600;
+      margin-bottom: 6px;
+      font-size: 11px;
+      color: #7DD3FC;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+
+    .mini-cal-grid {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 4px;
+      font-size: 9px;
+    }
+
+    .mini-cal-grid > div:nth-child(-n+7) {
+      font-weight: 600;
+      text-align: center;
+      color: rgba(148, 163, 184, 0.95);
+      padding-bottom: 2px;
+    }
+
+    .mini-cal-day {
+      background: rgba(15, 23, 42, 0.96);
+      padding: 4px 3px;
+      border-radius: 6px;
+      min-height: 46px;
+      font-size: 9px;
+      color: #E5E7EB;
+      border: 1px solid rgba(30, 64, 175, 0.7);
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .mini-cal-day.marked {
+      background: radial-gradient(circle at 0 0, rgba(34, 197, 94, 0.3), transparent 55%),
+                  rgba(15, 23, 42, 0.98);
+      border-color: rgba(34, 197, 94, 0.9);
+      box-shadow: 0 0 10px rgba(34, 197, 94, 0.5);
+    }
+
+    .mini-cal-date {
+      font-weight: 700;
+      margin-bottom: 2px;
+    }
+
+    .mini-cal-items div {
+      font-size: 9px;
+      line-height: 1.1;
+    }
+
+    /* RESPONSIVE ================================= */
+    @media (max-width: 600px) {
+      .command-frame {
+        border-radius: 16px;
+      }
+      .header {
+        padding: 14px 14px 8px;
+      }
+      .top-controls {
+        flex-direction: column;
+      }
+      .class-stats-btn {
+        max-width: none;
+      }
+      .sort-buttons {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+      #leaderboard {
+        margin-inline: 10px;
+      }
+      .leaderboard-header-row {
+        display: none;
+      }
+    }
+.title {
+  white-space: nowrap;
+  letter-spacing: 0.04em;
 }
 
-.mini-cal-grid {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 6px;
-  font-size: 11px;
+.badge-live {
+  cursor: pointer;
+  border: 1px solid rgba(45, 212, 191, 0.7);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
 
-.mini-cal-day {
-  background: #222;
-  padding: 6px;
-  border-radius: 6px;
-  min-height: 60px;
-  font-size: 10px;
-  color: #fff;
+.badge-live:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 0 14px rgba(34, 211, 238, 0.7);
 }
-
-.mini-cal-day.marked {
-  background: #2d7d46;
-}
-
-.mini-cal-date {
-  font-weight: 700;
-  margin-bottom: 3px;
-}
-
-.mini-cal-items div {
-  font-size: 9px;
-  line-height: 1.1;
-}
-#mini-calendar {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.mini-cal-grid {
-  margin-bottom: 20px;
-}
-.name-two-line {
-  display: flex;
-  flex-direction: column;
-  white-space: normal !important;
-   overflow: visible !important;
-  line-height: 1.25;
-}
-
-.full-name {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
-.last-test-small {
-  font-size: 11px;
-  color: var(--text-secondary);
-}
-
-/* Apple Minimal Time Layout */
-.time-block {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 3px;
-  margin-right: 14px; /* Apple’s natural spacing */
-}
-
-.time-num {
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.time-unit {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-secondary);
-  position: relative;
-  top: -1px;
-  background: transparent !important;
-  padding: 0 !important;
-  margin: 0 !important;
-  border-radius: 0 !important;
-}
-.time-unit.h { color: #b86bff; }
-.time-unit.m { color: #6ba8ff; }
-.time-unit.s { color: #6bffd4; }
-
-      /* Perfect Apple-style aligned time (hh mm ss) */
-.aligned-time {
-  display: flex;
-  flex-direction: column;
-}
-
-.time-row {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr); /* equal columns */
-  text-align: center;
-  margin-top: 2px;
-}
-
-.t-block {
-  display: flex;
-  justify-content: center;
-  align-items: baseline;
-  gap: 2px;
-}
-
-.t-num {
+.mission-title {
   font-size: 14px;
   font-weight: 700;
-  color: var(--text-primary);
-  font-variant-numeric: tabular-nums; /* monospaced digits */
-}
-
-.t-unit {
-  font-size: 11px;
-  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
   color: var(--text-secondary);
-  position: relative;
-  top: -1px;
-  padding-left: 1px;
+  white-space: nowrap;
 }
-
-/* colour accents */
-.t-unit.h { color: #b86bff; }
-.t-unit.m { color: #6ba8ff; }
-.t-unit.s { color: #6bffd4; }
-
   </style>
 </head>
 
 <body>
-  <div class="header">
-    <div class="title">Mission: Veni, Vidi, Vici!</div>
-    <div class="emoji-row">🏆 Leaderboard 🏆</div>
-    <div class="subtitle" id="last-test-info">Loading...</div>
-  <div class="top-controls">
-  <button class="class-stats-btn" onclick="showClassStats()">Show Class Stats</button>
-
-  <div class="sort-buttons">
-    
-    <button class="sort-btn" data-sort="accuracy" onclick="sortData('accuracy')">Accuracy</button>
-    <button class="sort-btn" data-sort="total_time" onclick="sortData('total_time')">Time</button>
-    <button class="sort-btn" data-sort="quests_completed" onclick="sortData('quests_completed')">Quests</button>
-    <button class="sort-btn" data-sort="videos_completed" onclick="sortData('videos_completed')">Videos</button>
-    <button class="sort-btn" data-sort="stories_completed" onclick="sortData('stories_completed')">Stories</button>
-    <button class="sort-btn" data-sort="last_test_taken" onclick="sortData('last_test_taken')">Last Test</button>
-    <button id="time-toggle"
-        class="sort-btn"
-        style="display:none; font-size:12px;"
-        onclick="toggleTimeFormat()">
-  Show Seconds
+  <div class="command-frame">
+    <div class="header">
+      <div class="header-top">
+        <div class="title-block">
+         <div class="mission-title">Mission: Veni, Vidi, Vici!</div>
+<div class="title">LEADERBOARD</div>
+        </div>
+        <button class="badge-live" onclick="showClassStats()">
+  <span class="badge-dot"></span>
+  🔍
 </button>
-</div>
+      </div>
+      <div class="subtitle" id="last-test-info">Initializing mission feed...</div>
     </div>
-  <!-- The .table-header div has been removed -->
 
-  <div id="loader">
-    <div class="spinner"></div>
- </div>
-  <div id="error"></div>
+    <div class="top-controls">
+           <div class="sort-panel">
+        <div class="sort-label-row">
+        </div>
+        <div class="sort-buttons">
+          <button class="sort-btn" data-sort="accuracy" onclick="sortData('accuracy')">
+            Accuracy
+            <span class="sort-indicator"></span>
+          </button>
+          <button class="sort-btn" data-sort="total_time" onclick="sortData('total_time')">
+            Time
+            <span class="sort-indicator"></span>
+          </button>
+          <button class="sort-btn" data-sort="quests_completed" onclick="sortData('quests_completed')">
+            Quests
+            <span class="sort-indicator"></span>
+          </button>
+          <button class="sort-btn" data-sort="videos_completed" onclick="sortData('videos_completed')">
+            Videos
+            <span class="sort-indicator"></span>
+          </button>
+          <button class="sort-btn" data-sort="stories_completed" onclick="sortData('stories_completed')">
+            Stories
+            <span class="sort-indicator"></span>
+          </button>
+          <button class="sort-btn" data-sort="last_test_taken" onclick="sortData('last_test_taken')">
+            Last Test
+            <span class="sort-indicator"></span>
+          </button>
+        </div>
+      </div>
+    </div>
 
-  <!-- Leaderboard rows will be injected here -->
-  <div id="leaderboard"></div>
+    <div style="display:flex; justify-content:flex-end; padding:4px 18px 0;">
+      <button id="time-toggle"
+        class="sort-btn"
+        style="display:none; font-size:10px; padding-inline:12px; min-width:auto;"
+        onclick="toggleTimeFormat()">
+        Show Seconds
+      </button>
+    </div>
 
-  <div id="modal">
-    <!-- Modal content will be injected here -->
-    <div id="modal-content"></div>
+    <div id="loader">
+      <div class="spinner"></div>
+    </div>
+    <div id="error"></div>
+
+    <div id="leaderboard">
+      <div class="leaderboard-header-row">
+        <div>Rank</div>
+        <div>Pilot</div>
+        <div>Metric</div>
+      </div>
+      <!-- Rows injected here -->
+    </div>
+
+    <div id="modal">
+      <div id="modal-content"></div>
+    </div>
   </div>
 </body>
 </html>
+

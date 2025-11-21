@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mystic Summit: Interstellar Event Management Trials</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg-dark: #050714;
+      --card-bg: rgba(10, 12, 30, 0.9);
+      --accent: #ffd700;
+      --accent-soft: rgba(255, 215, 0, 0.15);
+      --accent2: #7df9ff;
+      --text-main: #f5f5ff;
+      --text-muted: #b3b7d9;
+      --danger: #ff6b6b;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+        sans-serif;
+      background: radial-gradient(circle at top, #141b3f 0, #050714 50%, #02030a 100%);
+      color: var(--text-main);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    canvas#starfield {
+      position: fixed;
+      inset: 0;
+      z-index: -2;
+    }
+
+    .overlay-gradient {
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(circle at top, rgba(125, 249, 255, 0.1), transparent 55%),
+                  radial-gradient(circle at bottom, rgba(255, 215, 0, 0.08), transparent 60%);
+      z-index: -1;
+      pointer-events: none;
+    }
+
+    .content {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 2.5rem 1.5rem 4rem;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 2.5rem;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.3rem 0.9rem;
+      border-radius: 999px;
+      border: 1px solid var(--accent-soft);
+      background: rgba(5, 7, 20, 0.7);
+      font-size: 0.8rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--accent2);
+      margin-bottom: 0.8rem;
+    }
+
+    .badge span.wand {
+      font-size: 1.1rem;
+    }
+
+    h1 {
+      font-size: clamp(2.3rem, 5vw, 3.1rem);
+      margin-bottom: 0.6rem;
+      text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+    }
+
+    .subtitle {
+      font-size: 1rem;
+      color: var(--text-muted);
+      min-height: 1.4em;
+    }
+
+    .subtitle .cursor {
+      display: inline-block;
+      width: 0.9ch;
+      animation: blink 1s infinite;
+    }
+
+    @keyframes blink {
+      0%, 49% { opacity: 1; }
+      50%, 100% { opacity: 0; }
+    }
+
+    main {
+      display: grid;
+      gap: 1.8rem;
+      margin-top: 2rem;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border-radius: 1.2rem;
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      box-shadow: 0 18px 45px rgba(0, 0, 0, 0.7);
+      padding: 1.5rem 1.6rem;
+      position: relative;
+      overflow: hidden;
+      transform: translateY(10px);
+      opacity: 0;
+      transition: transform 0.7s ease, opacity 0.7s ease, box-shadow 0.3s ease,
+        border-color 0.3s ease, background 0.3s ease;
+    }
+
+    .card::before {
+      content: "";
+      position: absolute;
+      inset: -40%;
+      background: radial-gradient(circle at var(--glow-x, 0%) var(--glow-y, 0%),
+                  rgba(255, 215, 0, 0.2),
+                  transparent 60%);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.4s ease;
+      mix-blend-mode: screen;
+    }
+
+    .card.revealed {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    .card:hover {
+      border-color: rgba(255, 215, 0, 0.5);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.85);
+      background: radial-gradient(circle at top left, rgba(255, 215, 0, 0.04), transparent 55%),
+                  var(--card-bg);
+    }
+
+    .card:hover::before {
+      opacity: 1;
+    }
+
+    .card h2 {
+      font-size: 1.15rem;
+      margin-bottom: 0.6rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+
+    .card p, .card li {
+      font-size: 0.95rem;
+      line-height: 1.6;
+      color: var(--text-muted);
+    }
+
+    .tagline {
+      font-style: italic;
+      font-size: 0.9rem;
+      margin-top: 0.2rem;
+      color: var(--accent2);
+    }
+
+    ul {
+      list-style: none;
+      margin-top: 0.5rem;
+    }
+
+    ul li {
+      position: relative;
+      padding-left: 1.3rem;
+      margin: 0.25rem 0;
+    }
+
+    ul li::before {
+      content: "✶";
+      position: absolute;
+      left: 0;
+      top: 0.1rem;
+      font-size: 0.8rem;
+      color: var(--accent2);
+    }
+
+    .deliverables-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1rem;
+      margin-top: 0.8rem;
+    }
+
+    .deliverable {
+      border-radius: 0.9rem;
+      border: 1px dashed rgba(255, 255, 255, 0.18);
+      padding: 0.7rem 0.8rem;
+      background: rgba(3, 5, 20, 0.7);
+      font-size: 0.9rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .deliverable-title {
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+      color: var(--accent);
+    }
+
+    .deliverable-tag {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--accent2);
+    }
+
+    .deliverable::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(120deg, transparent 0, rgba(255, 255, 255, 0.12) 20%, transparent 40%);
+      transform: translateX(-120%);
+      opacity: 0;
+    }
+
+    .deliverable:hover::after {
+      opacity: 1;
+      transform: translateX(120%);
+      transition: transform 0.8s ease;
+    }
+
+    .metrics {
+      margin-top: 0.6rem;
+      display: grid;
+      gap: 0.85rem;
+    }
+
+    .metric {
+      display: grid;
+      gap: 0.2rem;
+    }
+
+    .metric-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      font-size: 0.85rem;
+    }
+
+    .metric-name {
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    .metric-tooltip {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      opacity: 0.8;
+    }
+
+    .metric-bar {
+      height: 0.5rem;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.07);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .metric-bar-fill {
+      height: 100%;
+      width: 0;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--accent2), var(--accent));
+      box-shadow: 0 0 12px rgba(255, 215, 0, 0.6);
+      transition: width 1.2s cubic-bezier(0.19, 1, 0.22, 1);
+    }
+
+    .metric-bar-fill::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image: linear-gradient(
+        120deg,
+        rgba(255, 255, 255, 0.25) 25%,
+        transparent 25%,
+        transparent 50%,
+        rgba(255, 255, 255, 0.25) 50%,
+        rgba(255, 255, 255, 0.25) 75%,
+        transparent 75%,
+        transparent
+      );
+      background-size: 36px 100%;
+      mix-blend-mode: screen;
+      opacity: 0.5;
+      animation: slide-stripes 1.8s linear infinite;
+    }
+
+    @keyframes slide-stripes {
+      0% { background-position: 0 0; }
+      100% { background-position: 36px 0; }
+    }
+
+    .houses {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 0.9rem;
+      margin-top: 1rem;
+      font-size: 0.9rem;
+    }
+
+    .house {
+      border-radius: 1rem;
+      padding: 0.9rem 1rem;
+      background: linear-gradient(135deg, rgba(255, 215, 0, 0.04), rgba(0, 0, 0, 0.6));
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .house-name {
+      font-weight: 600;
+      margin-bottom: 0.35rem;
+    }
+
+    .house-tag {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--accent2);
+      margin-bottom: 0.25rem;
+    }
+
+    footer {
+      margin-top: 2.5rem;
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .cta {
+      margin-top: 0.8rem;
+      font-size: 0.9rem;
+      color: var(--accent);
+    }
+
+    .cta span {
+      font-weight: 600;
+      color: var(--accent2);
+    }
+
+    .hint {
+      margin-top: 0.5rem;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      opacity: 0.85;
+    }
+
+    .hint code {
+      background: rgba(0, 0, 0, 0.5);
+      border-radius: 0.4rem;
+      padding: 0.15rem 0.35rem;
+      font-size: 0.75rem;
+    }
+
+    @media (max-width: 600px) {
+      .content {
+        padding: 1.8rem 1.1rem 3rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="starfield"></canvas>
+  <div class="overlay-gradient"></div>
+
+  <div class="content">
+    <header>
+      <div class="badge">
+        <span class="wand">✨</span>
+        Mystic Summit · Year One Trials
+      </div>
+      <h1>Interstellar Event Management Presentation</h1>
+      <p class="subtitle">
+        <span id="subtitle-text"></span><span class="cursor">▋</span>
+      </p>
+    </header>
+
+    <main>
+      <!-- Overview -->
+      <section class="card reveal">
+        <h2>Mission Brief</h2>
+        <p>
+          First-year students are summoned to the
+          <strong>School of Cosmic Arts & Applied Eventcraft</strong> to present
+          their original events — as if pitching to a council of professors from
+          Hogwarts and a galactic management board.
+        </p>
+        <p class="tagline">
+          Think of it as an advanced <strong>Event Management O.W.L.</strong> with a sci-fi twist.
+        </p>
+      </section>
+
+      <!-- What they do -->
+      <section class="card reveal">
+        <h2>The Trial</h2>
+        <p>
+          Each student team delivers a short, high-impact presentation about the
+          event they intend to conduct during the semester. They must show that
+          their concept can work in the real (Muggle) world — not just in magical
+          theory.
+        </p>
+
+        <ul>
+          <li>Explain the event concept, target participants, and learning outcomes.</li>
+          <li>Walk the judges through how the event will actually run, step by step.</li>
+          <li>Demonstrate how technology and creativity will support smooth execution.</li>
+          <li>Convince the panel that their event deserves to be launched at Mystic Summit.</li>
+        </ul>
+      </section>
+
+      <!-- Deliverables -->
+      <section class="card reveal">
+        <h2>Artifacts of Power (Deliverables)</h2>
+        <p>
+          To prove their mastery, every team must conjure a complete event
+          blueprint, combining magic and modern tech:
+        </p>
+
+        <div class="deliverables-grid">
+          <div class="deliverable">
+            <div class="deliverable-title">Spellbound Slide Deck</div>
+            <div class="deliverable-tag">PPT Presentation</div>
+            <p>
+              A clear, visually engaging PPT that summarises the event idea, flow,
+              logistics, roles, and expected impact.
+            </p>
+          </div>
+          <div class="deliverable">
+            <div class="deliverable-title">Moving Portrait Chronicle</div>
+            <div class="deliverable-tag">Promo / Concept Video</div>
+            <p>
+              A short video that introduces the event as a cinematic trailer or
+              teaser, capturing the mood and purpose.
+            </p>
+          </div>
+          <div class="deliverable">
+            <div class="deliverable-title">Wizarding World Brochure</div>
+            <div class="deliverable-tag">Event Brochure</div>
+            <p>
+              A brochure or one-page handout that explains the event to potential
+              participants in simple, persuasive language.
+            </p>
+          </div>
+          <div class="deliverable">
+            <div class="deliverable-title">Portal & Scrolls</div>
+            <div class="deliverable-tag">Website & Registration</div>
+            <p>
+              A simple event webpage and online registration form (Google Form or
+              similar), with clear instructions and required fields.
+            </p>
+          </div>
+        </div>
+
+        <p style="margin-top:0.9rem;">
+          Along with these, teams must present
+          <strong>complete instructions for participants</strong>, resource
+          requirements, and a practical timeline — everything needed for any other
+          student to conduct the event without additional magic.
+        </p>
+      </section>
+
+      <!-- Judging -->
+      <section class="card reveal">
+        <h2>Judging Metrics (Effectiveness Spells)</h2>
+        <p>
+          Teams are judged not only on imagination, but on
+          <strong>effectiveness</strong> — how convincingly they can move from
+          idea to implementation. The panel will score each team on the following
+          dimensions:
+        </p>
+
+        <div class="metrics" id="metrics">
+          <div class="metric" data-score="92">
+            <div class="metric-header">
+              <span class="metric-name">Clarity of Concept</span>
+              <span class="metric-tooltip">Is the event easy to understand?</span>
+            </div>
+            <div class="metric-bar">
+              <div class="metric-bar-fill"></div>
+            </div>
+          </div>
+
+          <div class="metric" data-score="88">
+            <div class="metric-header">
+              <span class="metric-name">Feasibility & Logistics</span>
+              <span class="metric-tooltip">Can it really be conducted on campus?</span>
+            </div>
+            <div class="metric-bar">
+              <div class="metric-bar-fill"></div>
+            </div>
+          </div>
+
+          <div class="metric" data-score="90">
+            <div class="metric-header">
+              <span class="metric-name">Creativity & Theme</span>
+              <span class="metric-tooltip">Is the idea fresh, engaging, and on-theme?</span>
+            </div>
+            <div class="metric-bar">
+              <div class="metric-bar-fill"></div>
+            </div>
+          </div>
+
+          <div class="metric" data-score="85">
+            <div class="metric-header">
+              <span class="metric-name">Communication & Delivery</span>
+              <span class="metric-tooltip">How strong is the presentation itself?</span>
+            </div>
+            <div class="metric-bar">
+              <div class="metric-bar-fill"></div>
+            </div>
+          </div>
+
+          <div class="metric" data-score="87">
+            <div class="metric-header">
+              <span class="metric-name">Use of Digital Tools</span>
+              <span class="metric-tooltip">PPT, video, website, and forms used effectively?</span>
+            </div>
+            <div class="metric-bar">
+              <div class="metric-bar-fill"></div>
+            </div>
+          </div>
+
+          <div class="metric" data-score="89">
+            <div class="metric-header">
+              <span class="metric-name">Teamwork & Role Clarity</span>
+              <span class="metric-tooltip">Are roles and responsibilities well defined?</span>
+            </div>
+            <div class="metric-bar">
+              <div class="metric-bar-fill"></div>
+            </div>
+          </div>
+
+          <div class="metric" data-score="80">
+            <div class="metric-header">
+              <span class="metric-name">Time Management</span>
+              <span class="metric-tooltip">Was the pitch kept within the time limit?</span>
+            </div>
+            <div class="metric-bar">
+              <div class="metric-bar-fill"></div>
+            </div>
+          </div>
+        </div>
+
+        <p style="margin-top:0.8rem;">
+          The final score reflects how convincingly a team can plan, explain, and
+          <strong>actually run</strong> their event — as if they were launching it
+          tomorrow.
+        </p>
+      </section>
+
+      <!-- Houses / Tracks -->
+      <section class="card reveal">
+        <h2>Houses of Eventcraft</h2>
+        <p>
+          For flavour (and a little friendly rivalry), each event can align with a
+          “house” — a blend of Hogwarts spirit and sci-fi mission profiles:
+        </p>
+        <div class="houses">
+          <div class="house">
+            <div class="house-name">Stellar Gryffindor</div>
+            <div class="house-tag">Courage & Live Interaction</div>
+            <p>
+              High-energy, stage-heavy events: debates, live games, public
+              speaking, hackathons with live demos.
+            </p>
+          </div>
+          <div class="house">
+            <div class="house-name">Quantum Ravenclaw</div>
+            <div class="house-tag">Ideas & Intellectual Design</div>
+            <p>
+              Quizzes, research showcases, problem-solving challenges, and
+              concept-driven workshops.
+            </p>
+          </div>
+          <div class="house">
+            <div class="house-name">Nebula Hufflepuff</div>
+            <div class="house-tag">Collaboration & Inclusivity</div>
+            <p>
+              Peer-learning events, mentoring circles, beginner-friendly skill
+              labs, and collaborative projects.
+            </p>
+          </div>
+          <div class="house">
+            <div class="house-name">Cyber Slytherin</div>
+            <div class="house-tag">Strategy & Ambition</div>
+            <p>
+              Competitions with clear strategy, leaderboards, negotiation
+              simulations, and design-to-win formats.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Closing -->
+      <section class="card reveal">
+        <h2>Outcome</h2>
+        <p>
+          By the end of <strong>Mystic Summit</strong>, students will not only
+          have imagined an event — they will have designed a full, ready-to-launch
+          experience with all the materials, links, and instructions needed to
+          conduct it in reality.
+        </p>
+        <p class="cta">
+          <span>Expectation:</span> Walk in as first-year students; walk out as
+          junior event managers armed with both wands and websites.
+        </p>
+        <p class="hint">
+          <strong>Hint for participants:</strong> Your PPT, video, brochure, and
+          website are not decorations — they are proof that your idea can leave
+          the page and live in the real world. Treat them like your personal
+          Marauder’s Map for the event.
+        </p>
+      </section>
+    </main>
+
+    <footer>
+      Mystic Summit · Event Management Presentation &mdash; “Mischief managed, but
+      only after proper planning.”
+    </footer>
+  </div>
+
+  <script>
+    // --- Starfield Background ---
+    (function starfield() {
+      const canvas = document.getElementById("starfield");
+      const ctx = canvas.getContext("2d");
+
+      let stars = [];
+      let w, h;
+
+      function resize() {
+        w = canvas.width = window.innerWidth;
+        h = canvas.height = window.innerHeight;
+        initStars();
+      }
+
+      function initStars() {
+        const count = Math.floor((w * h) / 8000);
+        stars = [];
+        for (let i = 0; i < count; i++) {
+          stars.push({
+            x: Math.random() * w,
+            y: Math.random() * h,
+            z: Math.random() * 0.8 + 0.2,
+            r: Math.random() * 1.2 + 0.2,
+            twinkle: Math.random() * Math.PI * 2
+          });
+        }
+      }
+
+      function draw() {
+        ctx.clearRect(0, 0, w, h);
+        for (const s of stars) {
+          const alpha = 0.4 + 0.3 * Math.sin(s.twinkle);
+          ctx.beginPath();
+          ctx.fillStyle = `rgba(255,255,255,${alpha})`;
+          ctx.arc(s.x, s.y, s.r * s.z, 0, Math.PI * 2);
+          ctx.fill();
+          s.twinkle += 0.02;
+          s.y += 0.05 * s.z;
+          if (s.y > h) s.y = 0;
+        }
+        requestAnimationFrame(draw);
+      }
+
+      window.addEventListener("resize", resize);
+      resize();
+      draw();
+    })();
+
+    // --- Typewriter Subtitle ---
+    (function typewriter() {
+      const el = document.getElementById("subtitle-text");
+      const text =
+        "A Harry Potter × science fiction showcase where first-years pitch full-fledged events with PPTs, videos, brochures & portals.";
+      let i = 0;
+
+      function step() {
+        if (!el) return;
+        if (i <= text.length) {
+          el.textContent = text.slice(0, i);
+          i++;
+          const delay = i < text.length ? 32 + Math.random() * 60 : 0;
+          if (delay) setTimeout(step, delay);
+        }
+      }
+
+      step();
+    })();
+
+    // --- Scroll Reveal for Cards ---
+    (function scrollReveal() {
+      const cards = document.querySelectorAll(".card.reveal");
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add("revealed");
+              observer.unobserve(entry.target);
+            }
+          });
+        },
+        { threshold: 0.2 }
+      );
+
+      cards.forEach((card) => observer.observe(card));
+    })();
+
+    // --- Hover Glow for Cards ---
+    (function cardGlow() {
+      document.querySelectorAll(".card").forEach((card) => {
+        card.addEventListener("pointermove", (e) => {
+          const rect = card.getBoundingClientRect();
+          const x = ((e.clientX - rect.left) / rect.width) * 100;
+          const y = ((e.clientY - rect.top) / rect.height) * 100;
+          card.style.setProperty("--glow-x", x + "%");
+          card.style.setProperty("--glow-y", y + "%");
+        });
+      });
+    })();
+
+    // --- Animate Metric Bars on Scroll ---
+    (function metricBars() {
+      const metrics = document.querySelectorAll(".metric");
+
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              const metric = entry.target;
+              const bar = metric.querySelector(".metric-bar-fill");
+              const score = metric.getAttribute("data-score");
+              if (bar && score) {
+                bar.style.width = score + "%";
+              }
+              observer.unobserve(metric);
+            }
+          });
+        },
+        { threshold: 0.3 }
+      );
+
+      metrics.forEach((m) => observer.observe(m));
+    })();
+  </script>
+</body>
+</html>

@@ -1,33 +1,74 @@
 # SRM VEC English PWA
 
-A fast, mobile-friendly Progressive Web App designed for SRM Valliammai Engineering College students to practise English through short, engaging missions.
+An interactive gamified PWA that turns English learning into a daily mission, strengthening skills and helping students at SRM Valliammai Engineering College fall in love with consistent learning.
+
+Students complete short quests every day, earn streaks, and track progress through a visual dashboard.
 
 ---
 
-## What the App Offers
+## Features
 
-- **Daily Quests** – Quick English practice tasks (MCQs).
-- **Video Quests** – Curated from YouTube: TED talks, trailers, songs and clips
-- **Story Quests** – Narrative-based reading: Cloze tests.
-- **Mission Leaderboard** – Live ranking of students (accuracy, time, quests completed), powered by Supabase.
-- **Pilot Profile View** – Detailed stats for each learner, including attempts, accuracy, mission time, and a daily activity calendar.
-- **Class Telemetry Dashboard** – One-click view of class-wide averages and totals.
+### 🌟 Learning Missions
+- **Daily Quests** – Quick grammar/vocabulary challenges.  
+- **Video Quests** – Short learning videos followed by MCQs.  
+- **Story Quests** – Narrative-based comprehension tasks.  
+- Completed items appear with a **🔥 fire icon** in the calendar.
+
+### 🏆 Leaderboard (Mission: *Veni, Vidi, Vici!*)
+- Live rankings powered by **Supabase**.  
+- Sort by:
+  - Accuracy  
+  - Time  
+  - Quests Completed  
+  - Videos Completed  
+  - Stories Completed  
+  - Last Test Taken  
+- Pilot-style cards with medals and visual tags.
+
+### 👤 Pilot Profile Dashboard
+- Shows total Quests, Videos, Stories, and Time spent.  
+- Monthly calendar turns **green with 🔥** for every completed mission.  
+
+### 📚 ELLL Virtual Record (Gems System)
+- Tracks 9 English Lab components:
+  - SWOC  
+  - Phonics  
+  - Listening  
+  - Something Close to My Heart  
+  - Song Decode  
+  - Headline Hunt  
+  - Creative Rendezvous  
+  - Letter  
+  - Self Reflection  
+- Each task lights up as students progress.
+
+### 📱 Progressive Web App
+- PWA installable on Android/iOS. 
+- Smooth navigation with bottom navigation bar.
+
+### 🔗 Quick Links Menu
+- Daily Vocabulary  
+- Mystic Summit  
+- Video Quests  
+- Wordle  
+- Leaderboard  
+- ELLL Record  
 
 ---
 
 ## How It Works
 
-- The app is built using **HTML, CSS, and JavaScript**.
-- **Supabase** provides real-time data for scores, timings, quests, videos, and story completions.
-- The leaderboard updates dynamically and supports sorting by:
-  - Accuracy  
-  - Total mission time  
+- Built with **HTML, CSS, JavaScript**.  
+- Supabase stores:
   - Quests completed  
   - Videos completed  
   - Stories completed  
-  - Last mission timestamp  
-- A built-in **mission calendar** visualises activity streaks for Quests, Videos, and Stories.
-- No logins required; the app reads from a shared Supabase view.
+  - Accuracy  
+  - Time spent (seconds)  
+  - Last test timestamp  
+- Leaderboard and profile update automatically from a Supabase view.  
+- Calendar heatmap groups Quests, Videos, and Stories by date.  
+- No login required beyond student name; app updates in real time.
 
 ---
 
@@ -35,5 +76,7 @@ A fast, mobile-friendly Progressive Web App designed for SRM Valliammai Engineer
 
 ```bash
 git clone https://github.com/andrewveda/SRM-VEC-English-PWA
+cd SRM-VEC-English-PWA
+python3 -m http.server 8000
 cd SRM-VEC-English-PWA
 python3 -m http.server 8000

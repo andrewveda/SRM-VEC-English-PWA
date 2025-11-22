@@ -159,21 +159,29 @@ console.log("✅ Supabase client initialised:", window.supabase);
 <script>
 
     // 🔹 Add multiple videos here
-   let quizData = []; // empty array initially
+      // 🔹 Add multiple videos here
+    let quizData = [];      // empty array initially
+    let quizLoaded = false; // flag to know if it's already loaded
 
-async function loadQuizData() {
-  const res = await fetch("https://script.google.com/macros/s/AKfycbyUgtinZaRqkRl2BAxPxxpjPsnzQAZkd7IivO2wbiCOqrv7mil9es6r05IdJKVELPYE/exec"); // replace with your Apps Script URL
-  quizData = await res.json();
-}
+    async function loadQuizData() {
+      if (quizLoaded && quizData.length > 0) {
+        return quizData; // already loaded
+      }
 
-// call this before showing directory
-// call this before showing directory
-async function beginQuiz() {
-  if (quizData.length === 0) {
-    await loadQuizData();   // <-- this fixes the issue
-  }
-  showDirectory();
-}
+      try {
+        const res = await fetch(
+          "https://script.google.com/macros/s/AKfycbyUgtinZaRqkRl2BAxPxxpjPsnzQAZkd7IivO2wbiCOqrv7mil9es6r05IdJKVELPYE/exec"
+        );
+        quizData = await res.json();
+        quizLoaded = true;
+        console.log("✅ quizData loaded:", quizData);
+        return quizData;
+      } catch (e) {
+        console.error("❌ Failed to load quizData:", e);
+        alert("Error loading video list. Please refresh and try again.");
+      }
+    }
+
 
     let current = 0, totalWrongGuesses = 0;
     let startTime, timerInterval, playerName = "", guessesPerQuestion = [];
@@ -478,7 +486,11 @@ function loadQuestionFromData(data) {
       Array.from(document.getElementById("quizContent").children).forEach(c => c.style.display = "block");
     };
 
-    function beginQuiz() { showDirectory(); }
+    async function beginQuiz() {
+      // ensure data is loaded BEFORE we try to render categories
+      await loadQuizData();
+      showDirectory();
+    }
   </script>
 </body>
 </html>

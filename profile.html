@@ -1,0 +1,1025 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Pilot Profile — Mission: Veni, Vidi, Vici!</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Inter font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+  <script type="module">
+    import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+    // === Supabase client (same as leaderboard) ===
+    const supabase = createClient(
+      "https://ahezssoczvpbkteffcgz.supabase.co",
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoZXpzc29jenZwYmt0ZWZmY2d6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI4NTk1ODUsImV4cCI6MjA3ODQzNTU4NX0.2ZlqXnZxv0opkhynAT7OlK4S-xPygcc7ETUyTXRfGHE"
+    );
+
+    // === Mission calendar helpers (same as leaderboard) ===
+    const START_DATE = new Date("2025-08-25"); // Day 1 of missions
+
+    function mapToDate(number) {
+      const d = new Date(START_DATE);
+      d.setDate(d.getDate() + (number - 1));
+      return d;
+    }
+
+    function parseItems(rawList) {
+      if (!rawList || rawList === "NULL") return [];
+      return rawList
+        .split(",")
+        .map(s => s.trim())
+        .filter(Boolean)
+        .map(item => {
+          const [type, num] = item.split(" ");
+          return { type, number: Number(num), label: item };
+        });
+    }
+
+    function iconFor(label) {
+      if (label.startsWith("Quest")) return "🧭";
+      if (label.startsWith("Video")) return "🎥";
+      if (label.startsWith("Story")) return "📜";
+      return "✨";
+    }
+
+    function groupByDate(quests, videos, stories) {
+      const map = {};
+      const add = (date, label) => {
+        const key = date.toDateString();
+        if (!map[key]) map[key] = [];
+        map[key].push(label);
+      };
+      quests.forEach(q => add(mapToDate(q.number), q.label));
+      videos.forEach(v => add(mapToDate(v.number), v.label));
+      stories.forEach(s => add(mapToDate(s.number), s.label));
+      return map;
+    }
+
+    function renderOneMonth(baseDate, grouped) {
+      const year = baseDate.getFullYear();
+      const month = baseDate.getMonth();
+
+      const firstDay = new Date(year, month, 1).getDay();
+      const numDays = new Date(year, month + 1, 0).getDate();
+
+      let html = `
+        <div class="mini-cal-title">
+          ${baseDate.toLocaleString("en-IN", { month: "long", year: "numeric" })}
+        </div>
+        <div class="mini-cal-grid">
+          <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div>
+          <div>Thu</div><div>Fri</div><div>Sat</div>
+      `;
+
+      for (let i = 0; i < firstDay; i++) {
+        html += `<div class="mini-cal-empty"></div>`;
+      }
+
+      for (let d = 1; d <= numDays; d++) {
+        const date = new Date(year, month, d);
+        const key = date.toDateString();
+        const items = grouped[key];
+
+        if (items) {
+          html += `
+            <div class="mini-cal-day marked">
+              <div class="mini-cal-date">${d}</div>
+              <div class="mini-cal-items">
+                ${items.map(i => `<span>${iconFor(i)}</span>`).join("")}
+              </div>
+            </div>
+          `;
+        } else {
+          html += `<div class="mini-cal-day">${d}</div>`;
+        }
+      }
+
+      html += "</div>";
+      return html;
+    }
+
+    function renderMiniCalendar(containerId, grouped) {
+      const container = document.getElementById(containerId);
+      container.innerHTML = "";
+
+      let cursor = new Date(START_DATE.getFullYear(), START_DATE.getMonth(), 1);
+      const today = new Date();
+      const end = new Date(today.getFullYear(), today.getMonth(), 1);
+
+      while (cursor <= end) {
+        container.innerHTML += renderOneMonth(cursor, grouped);
+        cursor.setMonth(cursor.getMonth() + 1);
+      }
+    }
+
+    // === Formatting helpers ===
+    function formatDate(dateStr) {
+      if (!dateStr) return "No missions yet";
+      const date = new Date(dateStr);
+      return date.toLocaleString("en-IN", {
+        timeZone: "Asia/Kolkata",
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true
+      });
+    }
+
+    function formatTime(seconds) {
+      if (!seconds && seconds !== 0) return "00:00:00";
+      seconds = Math.round(seconds);
+      const h = Math.floor(seconds / 3600).toString().padStart(2, "0");
+      const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, "0");
+      const s = (seconds % 60).toString().padStart(2, "0");
+      return `${h}:${m}:${s}`;
+    }
+
+    function splitList(raw) {
+      if (!raw || raw === "NULL") return [];
+      return raw.split(",").map(s => s.trim()).filter(Boolean);
+    }
+
+    // === Fetch a single pilot, using SAME mechanism as leaderboard ===
+    async function fetchPilotFromSupabase(pilotName) {
+      const status = document.getElementById("status-text");
+      status.textContent = "Summoning pilot data from mission archive…";
+
+      const { data, error } = await supabase
+        .from("report_card_view")
+        .select("*")
+        .eq("name", pilotName)   // ONLY filter by name — no department column here
+        .maybeSingle();
+
+      if (error) {
+        console.error(error);
+        status.textContent = "Error: unable to load pilot report.";
+        return null;
+      }
+
+      if (!data) {
+        status.textContent = "No record found for this pilot name.";
+        return null;
+      }
+
+      status.textContent = "Pilot lock acquired.";
+      return data;
+    }
+
+    // === Render profile ===
+    function renderProfile(pilot) {
+      // Header
+      const pilotName = document.getElementById("pilot-name");
+      const pilotDept = document.getElementById("pilot-dept");
+      const lastSeen = document.getElementById("pilot-last-seen");
+
+      const storedName = localStorage.getItem("pilotName");
+      const storedDept = localStorage.getItem("pilotDepartment") || "Department not set";
+
+      pilotName.textContent = storedName || pilot.name;
+      pilotDept.textContent = storedDept;
+      lastSeen.textContent = formatDate(pilot.last_test_taken);
+
+      // Main stats
+      document.getElementById("stat-score").textContent = pilot.total_score ?? 0;
+      document.getElementById("stat-accuracy").textContent =
+        `${Math.round((pilot.accuracy ?? 0) * 100)}%`;
+      document.getElementById("stat-attempts").textContent = pilot.total_attempts ?? 0;
+      document.getElementById("stat-correct").textContent = pilot.total_correct ?? 0;
+      document.getElementById("stat-wrong").textContent = pilot.total_wrong ?? 0;
+      document.getElementById("stat-time").textContent = formatTime(pilot.total_time ?? 0);
+
+      // Quest / Video / Story counts
+      document.getElementById("stat-quests").textContent = pilot.quests_completed ?? 0;
+      document.getElementById("stat-videos").textContent = pilot.videos_completed ?? 0;
+      document.getElementById("stat-stories").textContent = pilot.stories_completed ?? 0;
+
+      // Recent lists
+      const questListEl = document.getElementById("quest-list");
+      const videoListEl = document.getElementById("video-list");
+      const storyListEl = document.getElementById("story-list");
+
+      questListEl.innerHTML = "";
+      videoListEl.innerHTML = "";
+      storyListEl.innerHTML = "";
+
+      splitList(pilot.quest_list).slice(-8).forEach(q => {
+        const li = document.createElement("li");
+        li.textContent = q;
+        questListEl.appendChild(li);
+      });
+
+      splitList(pilot.video_list).slice(-8).forEach(v => {
+        const li = document.createElement("li");
+        li.textContent = v;
+        videoListEl.appendChild(li);
+      });
+
+      splitList(pilot.story_list).slice(-8).forEach(s => {
+        const li = document.createElement("li");
+        li.textContent = s;
+        storyListEl.appendChild(li);
+      });
+
+      // Mission calendar
+      const quests = parseItems(pilot.quest_list);
+      const videos = parseItems(pilot.video_list);
+      const stories = parseItems(pilot.story_list);
+      const grouped = groupByDate(quests, videos, stories);
+      renderMiniCalendar("mission-calendar", grouped);
+
+      // Reveal profile
+      document.getElementById("profile-shell").classList.add("show");
+    }
+
+    // === Entry form logic (when localStorage is empty) ===
+    async function handleEntrySubmit(event) {
+      event.preventDefault();
+      const nameInput = document.getElementById("entry-name");
+      const deptInput = document.getElementById("entry-dept");
+
+      const name = nameInput.value.trim();
+      const dept = deptInput.value.trim() || "Unknown Department";
+
+      if (!name) return;
+
+      localStorage.setItem("pilotName", name);
+      localStorage.setItem("pilotDepartment", dept);
+
+      document.getElementById("entry-card").classList.add("hidden");
+
+      const pilot = await fetchPilotFromSupabase(name);
+      if (pilot) renderProfile(pilot);
+    }
+
+    // === Initial load ===
+    window.addEventListener("DOMContentLoaded", async () => {
+      const entryForm = document.getElementById("entry-form");
+      entryForm.addEventListener("submit", handleEntrySubmit);
+
+      const changeBtn = document.getElementById("change-pilot-btn");
+      changeBtn.addEventListener("click", () => {
+        document.getElementById("entry-card").classList.remove("hidden");
+        document.getElementById("profile-shell").classList.remove("show");
+      });
+
+      const storedName = localStorage.getItem("pilotName");
+
+      if (!storedName) {
+        // No name stored — show entry card
+        document.getElementById("entry-card").classList.remove("hidden");
+        document.getElementById("status-text").textContent =
+          "Enter pilot details to load mission profile.";
+        return;
+      }
+
+      // We have a stored name — auto-load profile
+      document.getElementById("entry-card").classList.add("hidden");
+      const pilot = await fetchPilotFromSupabase(storedName);
+      if (pilot) renderProfile(pilot);
+    });
+  </script>
+
+  <style>
+    :root {
+      --bg: #f5f3ff;
+      --bg-card: #ffffff;
+      --bg-soft: #faf5ff;
+      --border-subtle: rgba(148, 163, 184, 0.35);
+      --accent: #6366f1;
+      --accent-soft: rgba(129, 140, 248, 0.1);
+      --accent-strong: #8b5cf6;
+      --text-main: #111827;
+      --text-muted: #6b7280;
+      --success: #22c55e;
+      --danger: #ef4444;
+      --gold: #fbbf24;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 100vh;
+      font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at 0% 0%, rgba(244, 114, 182, 0.16), transparent 55%),
+        radial-gradient(circle at 100% 0%, rgba(96, 165, 250, 0.2), transparent 60%),
+        radial-gradient(circle at 50% 100%, rgba(129, 140, 248, 0.18), transparent 55%),
+        var(--bg);
+      color: var(--text-main);
+      padding: 18px 12px 32px;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(148, 163, 184, 0.15) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(148, 163, 184, 0.12) 1px, transparent 1px);
+      background-size: 46px 46px;
+      mix-blend-mode: soft-light;
+      opacity: 0.45;
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    .shell {
+      max-width: 1024px;
+      margin: 0 auto;
+      background: linear-gradient(145deg, rgba(255,255,255,0.9), rgba(250,245,255,0.96));
+      border-radius: 24px;
+      border: 1px solid rgba(148, 163, 184, 0.45);
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,0.8),
+        0 32px 80px rgba(148, 163, 184, 0.45);
+      padding: 18px 18px 22px;
+      position: relative;
+      overflow: hidden;
+      animation: floatIn 0.6s ease-out;
+    }
+
+    .shell::before {
+      content: "SRM VEC · ENGLISH COMMAND";
+      position: absolute;
+      top: 10px;
+      right: 18px;
+      font-size: 9px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: rgba(148, 163, 184, 0.9);
+    }
+
+    @keyframes floatIn {
+      from {
+        opacity: 0;
+        transform: translateY(14px) scale(0.98);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    /* Entry card */
+    #entry-card {
+      margin-bottom: 14px;
+      background: linear-gradient(135deg, #f9fafb, #f5f3ff);
+      border-radius: 18px;
+      border: 1px dashed rgba(148, 163, 184, 0.7);
+      padding: 14px 14px 12px;
+      display: none;
+      animation: shimmer 2.4s infinite;
+      background-size: 200% 200%;
+    }
+
+    #entry-card.hidden {
+      display: none !important;
+    }
+
+    @keyframes shimmer {
+      0% { background-position: 0% 0%; }
+      50% { background-position: 100% 100%; }
+      100% { background-position: 0% 0%; }
+    }
+
+    .entry-title {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+    }
+
+    .entry-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: flex-end;
+    }
+
+    .entry-field {
+      flex: 1;
+      min-width: 140px;
+    }
+
+    .entry-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    .entry-input {
+      width: 100%;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.7);
+      padding: 8px 12px;
+      font-size: 13px;
+      outline: none;
+      background: rgba(255,255,255,0.9);
+      transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.1s ease;
+    }
+
+    .entry-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px rgba(129, 140, 248, 0.4);
+      transform: translateY(-0.5px);
+    }
+
+    .entry-button {
+      border-radius: 999px;
+      border: none;
+      padding: 9px 16px;
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      background: radial-gradient(circle at 0 0, rgba(244, 114, 182, 0.4), transparent 55%),
+                  linear-gradient(135deg, #6366f1, #a855f7);
+      color: white;
+      cursor: pointer;
+      box-shadow:
+        0 12px 20px rgba(129, 140, 248, 0.45),
+        0 0 0 1px rgba(255,255,255,0.7);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+      transition: transform 0.12s ease, box-shadow 0.12s ease;
+    }
+
+    .entry-button:hover {
+      transform: translateY(-1px);
+      box-shadow:
+        0 18px 30px rgba(129, 140, 248, 0.6),
+        0 0 0 1px rgba(255,255,255,0.9);
+    }
+
+    /* Header */
+    .profile-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+
+    .identity-block {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .avatar-orbit {
+      width: 60px;
+      height: 60px;
+      border-radius: 999px;
+      background: radial-gradient(circle at 30% 0%, #f97316, transparent 55%),
+                  radial-gradient(circle at 70% 110%, #6366f1, transparent 55%),
+                  #eef2ff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+      box-shadow:
+        0 0 0 2px rgba(255,255,255,0.9),
+        0 18px 30px rgba(129, 140, 248, 0.65);
+      animation: avatarSpin 7s linear infinite;
+    }
+
+    .avatar-orbit::after {
+      content: "★";
+      position: absolute;
+      font-size: 24px;
+      color: rgba(255,255,255,0.9);
+      text-shadow: 0 0 12px rgba(56,189,248,0.6);
+      animation: twinkle 1.6s ease-in-out infinite alternate;
+    }
+
+    @keyframes avatarSpin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    @keyframes twinkle {
+      from { transform: scale(0.9); opacity: 0.8; }
+      to { transform: scale(1.05); opacity: 1; }
+    }
+
+    .identity-text h1 {
+      font-size: 22px;
+      font-weight: 900;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #111827;
+    }
+
+    .identity-text h2 {
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .last-seen {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 6px;
+    }
+
+    .badge-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-top: 6px;
+      flex-wrap: wrap;
+    }
+
+    .badge-chip {
+      font-size: 10px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      border: 1px solid rgba(148, 163, 184, 0.7);
+      background: rgba(255,255,255,0.9);
+      color: var(--text-muted);
+    }
+
+    .badge-chip.accent {
+      border-color: rgba(129, 140, 248, 0.8);
+      background: linear-gradient(135deg, #eef2ff, #fdf2ff);
+      color: #4338ca;
+    }
+
+    .header-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      align-items: flex-end;
+    }
+
+    .status-pill {
+      padding: 5px 9px;
+      border-radius: 999px;
+      border: 1px solid rgba(34, 197, 94, 0.6);
+      background: rgba(220, 252, 231, 0.9);
+      font-size: 11px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: #166534;
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: #22c55e;
+      box-shadow: 0 0 12px rgba(34, 197, 94, 0.9);
+      animation: pulseDot 1.1s infinite;
+    }
+
+    @keyframes pulseDot {
+      0% { transform: scale(1); opacity: 1; }
+      60% { transform: scale(1.7); opacity: 0; }
+      100% { transform: scale(1.7); opacity: 0; }
+    }
+
+    .subtext {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .change-btn {
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.7);
+      padding: 5px 9px;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      background: rgba(255,255,255,0.9);
+      cursor: pointer;
+      transition: background 0.12s ease, transform 0.1s ease;
+    }
+
+    .change-btn:hover {
+      background: #e5e7eb;
+      transform: translateY(-0.5px);
+    }
+
+    /* Grid layout */
+    #profile-shell {
+      opacity: 0;
+      transform: translateY(8px);
+      pointer-events: none;
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+
+    #profile-shell.show {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 3fr) minmax(0, 2.2fr);
+      gap: 14px;
+    }
+
+    .card {
+      background: var(--bg-card);
+      border-radius: 18px;
+      border: 1px solid var(--border-subtle);
+      padding: 12px 12px 10px;
+      box-shadow: 0 12px 30px rgba(148, 163, 184, 0.25);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card::before {
+      content: "";
+      position: absolute;
+      inset: -40%;
+      background: radial-gradient(circle at 0 0, rgba(129, 140, 248, 0.12), transparent 55%);
+      opacity: 0.8;
+      pointer-events: none;
+    }
+
+    .card-title {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .grid-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 10px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .stat-box {
+      border-radius: 14px;
+      background: linear-gradient(145deg, #f9fafb, #f5f3ff);
+      border: 1px solid rgba(148, 163, 184, 0.6);
+      padding: 10px 9px 8px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .stat-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    .stat-value {
+      font-size: 20px;
+      font-weight: 800;
+      color: #111827;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .stat-foot {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .stat-box.highlight {
+      background: radial-gradient(circle at 0 0, rgba(251, 191, 36, 0.35), transparent 55%),
+                  #fffbeb;
+      border-color: rgba(234, 179, 8, 0.9);
+    }
+
+    .stat-box.highlight .stat-value {
+      color: #92400e;
+    }
+
+    /* Quest / Video / Story strip */
+    .activity-strip {
+      display: flex;
+      gap: 10px;
+      margin-top: 4px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .activity-pill {
+      flex: 1;
+      border-radius: 999px;
+      padding: 7px 10px;
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--bg-soft);
+      border: 1px solid rgba(148, 163, 184, 0.7);
+    }
+
+    .activity-pill span:first-child {
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--text-muted);
+    }
+
+    .activity-count {
+      font-weight: 700;
+    }
+
+    /* Mission calendar */
+    .mini-cal-title {
+      text-align: center;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: #4b5563;
+      margin-bottom: 4px;
+    }
+
+    .mini-cal-grid {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 4px;
+      font-size: 10px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .mini-cal-grid > div:nth-child(-n+7) {
+      text-align: center;
+      font-weight: 600;
+      color: var(--text-muted);
+      padding-bottom: 2px;
+    }
+
+    .mini-cal-day {
+      min-height: 40px;
+      border-radius: 8px;
+      background: #f9fafb;
+      border: 1px solid rgba(209, 213, 219, 0.9);
+      padding: 3px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      justify-content: flex-start;
+      transition: transform 0.1s ease, box-shadow 0.12s ease, border-color 0.12s ease;
+    }
+
+    .mini-cal-day.marked {
+      background: radial-gradient(circle at 0 0, rgba(52, 211, 153, 0.35), transparent 55%),
+                  #ecfeff;
+      border-color: rgba(34, 197, 94, 0.9);
+      box-shadow: 0 0 0 1px rgba(34,197,94,0.6);
+      animation: sparkle 1.3s ease-in-out infinite alternate;
+    }
+
+    @keyframes sparkle {
+      from { box-shadow: 0 0 0 1px rgba(34,197,94,0.4); }
+      to { box-shadow: 0 0 14px rgba(45,212,191,0.8); }
+    }
+
+    .mini-cal-date {
+      font-weight: 700;
+      font-size: 11px;
+      margin-bottom: 2px;
+    }
+
+    .mini-cal-items span {
+      font-size: 11px;
+      margin-right: 2px;
+    }
+
+    /* Lists card */
+    .list-columns {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .list-block h4 {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    .list-block ul {
+      list-style: none;
+      max-height: 160px;
+      overflow-y: auto;
+      padding-right: 4px;
+      font-size: 11px;
+      line-height: 1.5;
+    }
+
+    .list-block li {
+      background: rgba(249, 250, 251, 0.9);
+      border-radius: 999px;
+      padding: 4px 8px;
+      margin-bottom: 3px;
+      border: 1px solid rgba(209, 213, 219, 0.9);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Status text */
+    #status-text {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 8px;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .profile-header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .header-actions {
+        align-items: flex-start;
+        width: 100%;
+      }
+      .layout {
+        grid-template-columns: minmax(0, 1fr);
+      }
+      .list-columns {
+        grid-template-columns: minmax(0, 1fr);
+      }
+      .avatar-orbit {
+        width: 52px;
+        height: 52px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="shell">
+    <!-- Entry card (shown when there is no pilotName in localStorage) -->
+    <div id="entry-card" class="hidden">
+      <div class="entry-title">Pilot Lock-In</div>
+      <form id="entry-form">
+        <div class="entry-grid">
+          <div class="entry-field">
+            <div class="entry-label">Pilot Name (exact as in Supabase)</div>
+            <input id="entry-name" class="entry-input" type="text" required placeholder="e.g. Kavipriya J" />
+          </div>
+          <div class="entry-field">
+            <div class="entry-label">Department (for display only)</div>
+            <input id="entry-dept" class="entry-input" type="text" placeholder="e.g. Cyber Security" />
+          </div>
+          <button class="entry-button" type="submit">
+            <span>Summon Profile</span> ✨
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Actual profile content -->
+    <div id="profile-shell">
+      <header class="profile-header">
+        <div class="identity-block">
+          <div class="avatar-orbit"></div>
+          <div class="identity-text">
+            <h1 id="pilot-name">Loading…</h1>
+            <h2 id="pilot-dept">Department</h2>
+            <p class="last-seen">
+              Last mission: <span id="pilot-last-seen">—</span>
+            </p>
+            <div class="badge-row">
+              <span class="badge-chip accent">Mission: Veni, Vidi, Vici!</span>
+              <span class="badge-chip">Pilot Telemetry Profile</span>
+            </div>
+          </div>
+        </div>
+        <div class="header-actions">
+          <div class="status-pill">
+            <span class="status-dot"></span>
+            <span>Live link to mission archive</span>
+          </div>
+          <p class="subtext" id="status-text">Connecting to Supabase…</p>
+          <button id="change-pilot-btn" class="change-btn">Change Pilot</button>
+        </div>
+      </header>
+
+      <div class="layout">
+        <!-- Left: stats + calendar -->
+        <section class="card">
+          <div class="card-title">Core Mission Stats</div>
+
+          <div class="grid-stats">
+            <div class="stat-box highlight">
+              <div class="stat-label">Total Score</div>
+              <div class="stat-value" id="stat-score">0</div>
+              <div class="stat-foot">Cumulative mission points</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">Accuracy</div>
+              <div class="stat-value" id="stat-accuracy">0%</div>
+              <div class="stat-foot">Direct hits vs attempts</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">Attempts</div>
+              <div class="stat-value" id="stat-attempts">0</div>
+              <div class="stat-foot">Questions answered</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">Correct</div>
+              <div class="stat-value" id="stat-correct">0</div>
+              <div class="stat-foot">Direct hits</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">Wrong</div>
+              <div class="stat-value" id="stat-wrong">0</div>
+              <div class="stat-foot">Near misses</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">Time On Mission</div>
+              <div class="stat-value" id="stat-time">00:00:00</div>
+              <div class="stat-foot">HH:MM:SS</div>
+            </div>
+          </div>
+
+          <div class="activity-strip">
+            <div class="activity-pill">
+              <span>Quests</span>
+              <span class="activity-count" id="stat-quests">0</span>
+            </div>
+            <div class="activity-pill">
+              <span>Videos</span>
+              <span class="activity-count" id="stat-videos">0</span>
+            </div>
+            <div class="activity-pill">
+              <span>Stories</span>
+              <span class="activity-count" id="stat-stories">0</span>
+            </div>
+          </div>
+
+          <div style="margin-top: 10px;">
+            <div class="card-title" style="margin-bottom:6px;">Mission Activity Calendar</div>
+            <div id="mission-calendar"></div>
+          </div>
+        </section>
+
+        <!-- Right: recent missions lists -->
+        <section class="card">
+          <div class="card-title">Recent Mission Threads</div>
+          <div class="list-columns">
+            <div class="list-block">
+              <h4>Quest Log</h4>
+              <ul id="quest-list">
+                <!-- quests injected -->
+              </ul>
+            </div>
+            <div class="list-block">
+              <h4>Video Runs</h4>
+              <ul id="video-list">
+                <!-- videos injected -->
+              </ul>
+            </div>
+            <div class="list-block">
+              <h4>Story Sims</h4>
+              <ul id="story-list">
+                <!-- stories injected -->
+              </ul>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

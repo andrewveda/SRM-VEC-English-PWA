@@ -328,11 +328,17 @@ fetch("https://ahezssoczvpbkteffcgz.supabase.co/rest/v1/", { mode: "no-cors" });
 
 // --- HELPER FUNCTIONS ---
 function autoGenerateBlanks(passage, frequency = 7) {
-const words = passage.split(/(\s+|<[^>]+>)/);
+  const words = passage.split(/(\s+)/);
   const answers = [];
   let wordCount = 0;
   
   const blankedPassage = words.map(word => {
+
+    // ✅ FIX: Never blank HTML tags (prevents <em> and </em> becoming answers)
+    if (word.trim().startsWith("<") && word.trim().endsWith(">")) {
+      return word;
+    }
+
     if (word.trim() && ++wordCount % frequency === 0) {
       answers.push(word.replace(/<[^>]*>/g, "").trim());
       return '___';
@@ -342,6 +348,8 @@ const words = passage.split(/(\s+|<[^>]+>)/);
   
   return { passage: blankedPassage, answers };
 }
+
+  
 
 // --- QUIZ DATA ---
 const quizDataStore = (() => {

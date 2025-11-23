@@ -333,6 +333,12 @@ function autoGenerateBlanks(passage, frequency = 7) {
   let wordCount = 0;
   
   const blankedPassage = words.map(word => {
+
+    // ✅ FIX: Never blank HTML tags (prevents <em> and </em> becoming answers)
+    if (word.trim().startsWith("<") && word.trim().endsWith(">")) {
+      return word;
+    }
+
     if (word.trim() && ++wordCount % frequency === 0) {
       answers.push(word.replace(/<[^>]*>/g, "").trim());
       return '___';
@@ -343,10 +349,11 @@ function autoGenerateBlanks(passage, frequency = 7) {
   return { passage: blankedPassage, answers };
 }
 
+  
+
 // --- QUIZ DATA ---
 const quizDataStore = (() => {
-const fullPassage = `
-<h4>B. Change Your Laptop/Desktop Login Password</h4>
+const fullPassage = `<h4>B. Change Your Laptop/Desktop Login Password</h4>
 <ul>
   <li>Follow the same password rules as above.</li>
   <li><strong>Do not reuse</strong> your email password.</li>
@@ -386,11 +393,16 @@ const fullPassage = `
   <li><strong>Any tool where you manage or view sensitive information</strong></li>
 </ul>
 
+<p>
+  Turning on 2FA means you will receive a temporary code on your phone each time you log in 
+  <em>(extra verification step to block attackers)</em>.
+</p>
+
 `;
 
   
 
-  const result = autoGenerateBlanks(fullPassage, 9);
+  const result = autoGenerateBlanks(fullPassage, 8);
   return [result];
 })();
 

@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Student Profile</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background: #f5f7fa;
+    }
+    .profile {
+      text-align: center;
+      margin-bottom: 25px;
+    }
+    .profile h1 {
+      margin-bottom: 4px;
+    }
+    .stats {
+      display: flex;
+      gap: 15px;
+      justify-content: center;
+      margin-bottom: 30px;
+    }
+    .stat-box {
+      padding: 12px 15px;
+      border-radius: 8px;
+      background: white;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      min-width: 90px;
+    }
+    .stat-label {
+      font-size: 13px;
+      color: #555;
+    }
+    .stat-value {
+      font-size: 20px;
+      font-weight: bold;
+      margin-top: 4px;
+    }
+    #calendar h3 {
+      margin: 20px 0 8px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+      background: white;
+      padding: 10px;
+      border-radius: 10px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .day {
+      padding: 6px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      min-height: 40px;
+      background: #fafafa;
+      font-size: 12px;
+    }
+    .marked {
+      background: #d8f5d8;
+      border-color: #16a34a;
+    }
+    .icons div {
+      font-size: 10px;
+      margin-top: 2px;
+    }
+  </style>
+
+  <script type="module">
+    import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+    // ----------------------
+    // YOUR ACTUAL FULL SUPABASE DETAILS
+    // ----------------------
+    const supabase = createClient(
+      "https://ahezssoczvpbkteffcgz.supabase.co",
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoZXpzc29jenZwYmt0ZWZmY2d6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI4NTk1ODUsImV4cCI6MjA3ODQzNTU4NX0.2ZlqXnZxv0opkhynAT7OlK4S-xPygcc7ETUyTXRfGHE"
+    );
+
+    // START DATE FOR ACTIVITY MAPPING
+    const START_DATE = new Date("2025-08-25");
+
+    // -------------------------
+    // READ STUDENT FROM LOCAL STORAGE
+    // -------------------------
+    function getSavedStudent() {
+      const data = localStorage.getItem("selectedStudent");
+      return data ? JSON.parse(data) : null;
+    }
+
+    // -------------------------
+    // PARSE QUEST/VIDEO/STORY LISTS
+    // -------------------------
+    function parseItems(list) {
+      if (!list) return [];
+      return list.split(",").map(item => {
+        const [type, num] = item.trim().split(" ");
+        return { type, num: Number(num), label: item.trim() };
+      });
+    }
+
+    // -------------------------
+    // MAP DAY NUMBER → ACTUAL DATE
+    // -------------------------
+    function mapToDate(num) {
+      const d = new Date(START_DATE);
+      d.setDate(d.getDate() + (num - 1));
+      return d;
+    }
+
+    // -------------------------
+    // GROUP ACTIVITIES BY CALENDAR DATE
+    // -------------------------
+    function buildActivity(quests, videos, stories) {
+      const map = {};
+
+      function add(date, symbol) {
+        const key = date.toDateString();
+        if (!map[key]) map[key] = [];
+        map[key].push(symbol);
+      }
+
+      quests.forEach(q => add(mapToDate(q.num), "Q"));
+      videos.forEach(v => add(mapToDate(v.num), "V"));
+      stories.forEach(s => add(mapToDate(s.num), "S"));
+
+      return map;
+    }
+
+    // -------------------------
+    // RENDER CALENDAR MONTHS
+    // -------------------------
+    function renderCalendar(activity) {
+      const container = document.getElementById("calendar");
+      let html = "";
+
+      const today = new Date();
+      let cursor = new Date(START_DATE.getFullYear(), START_DATE.getMonth(), 1);
+
+      while (cursor <= today) {
+        const month = cursor.getMonth();
+        const year = cursor.getFullYear();
+
+        html += `<h3>${cursor.toLocaleString('en-IN', { month: "long", year: "numeric" })}</h3>`;
+        html += `<div class="grid">`;
+
+        // weekday names
+        html += "<div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>";
+
+        const firstDay = new Date(year, month, 1).getDay();
+        const numDays = new Date(year, month + 1, 0).getDate();
+
+        for (let i = 0; i < firstDay; i++) html += `<div></div>`;
+
+        for (let d = 1; d <= numDays; d++) {
+          const dt = new Date(year, month, d);
+          const key = dt.toDateString();
+          const items = activity[key];
+
+          if (items) {
+            html += `
+              <div class="day marked">
+                <strong>${d}</strong>
+                <div class="icons">${items.map(i => `<div>${i}</div>`).join("")}</div>
+              </div>`;
+          } else {
+            html += `<div class="day">${d}</div>`;
+          }
+        }
+
+        html += "</div><br>";
+        cursor.setMonth(cursor.getMonth() + 1);
+      }
+
+      container.innerHTML = html;
+    }
+
+    // -------------------------
+    // MAIN: LOAD PROFILE
+    // -------------------------
+    async function loadProfile() {
+      const student = getSavedStudent();
+
+      if (!student) {
+        document.getElementById("name").textContent = "No student selected";
+        return;
+      }
+
+      document.getElementById("name").textContent = student.name;
+      document.getElementById("dept").textContent = student.department;
+
+      const { data, error } = await supabase
+        .from("report_card_view")
+        .select("*")
+        .eq("name", student.name)
+        .single();
+
+      if (!data) return;
+
+      // Basic stats
+      document.getElementById("score").textContent = data.total_score ?? 0;
+      document.getElementById("accuracy").textContent = Math.round((data.accuracy ?? 0) * 100) + "%";
+      document.getElementById("attempts").textContent = data.total_attempts ?? 0;
+
+      // Calendar
+      const quests = parseItems(data.quest_list);
+      const videos = parseItems(data.video_list);
+      const stories = parseItems(data.story_list);
+
+      const activity = buildActivity(quests, videos, stories);
+
+      renderCalendar(activity);
+    }
+
+    window.onload = loadProfile;
+  </script>
+</head>
+
+<body>
+  <div class="profile">
+    <h1 id="name"></h1>
+    <div id="dept" style="color:#777;"></div>
+  </div>
+
+  <div class="stats">
+    <div class="stat-box">
+      <div class="stat-label">Score</div>
+      <div class="stat-value" id="score"></div>
+    </div>
+
+    <div class="stat-box">
+      <div class="stat-label">Accuracy</div>
+      <div class="stat-value" id="accuracy"></div>
+    </div>
+
+    <div class="stat-box">
+      <div class="stat-label">Attempts</div>
+      <div class="stat-value" id="attempts"></div>
+    </div>
+  </div>
+
+  <h2>Activity Calendar</h2>
+  <div id="calendar"></div>
+
+</body>
+</html>

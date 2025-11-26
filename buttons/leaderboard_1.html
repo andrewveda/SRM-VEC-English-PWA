@@ -1,15 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Mission: Veni, Vidi, Vici! — Command Deck Leaderboard</title>
-  
+  <script src="emoji.js"></script>
+
   <!-- Import Google Font: Inter -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
-
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
   <script type="module">
     import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -19,7 +22,7 @@
     );
 
     let reportData = [];
-    let currentSort = "accuracy";
+let currentSort = "last_test_taken";
     let sortAscending = false;
     let lastTestInfo = { name: "", date: "" };
     let showSecondsOnly = false;
@@ -55,7 +58,10 @@
         document.getElementById("last-test-info").textContent = "Awaiting first mission log...";
       }
       
-      sortData("accuracy");
+ 
+sortData(currentSort);
+
+
     }
 
     function formatDate(dateStr) {
@@ -110,12 +116,15 @@
     }
 
     function sortData(key) {
-      if (currentSort === key) {
-        sortAscending = !sortAscending;
-      } else {
-        currentSort = key;
-        sortAscending = false; // Default to descending for new category
-      }
+if (currentSort === key && reportData.length > 0 && document.getElementById("leaderboard").children.length > 1) {
+
+    // Only flip if user manually clicked a sort button (leaderboard already rendered)
+    sortAscending = !sortAscending;
+} else {
+    currentSort = key;
+    sortAscending = false;  // default descending
+}
+
       
       reportData.sort((a, b) => {
         let A = a[key];
@@ -127,8 +136,9 @@
         
         // For last_test_taken, sort by date
         if (key === 'last_test_taken') {
-          A = new Date(a[key]).getTime() || (sortAscending ? Infinity : -Infinity);
-          B = new Date(b[key]).getTime() || (sortAscending ? Infinity : -Infinity);
+       A = new Date(a.last_test_taken).getTime();
+B = new Date(b.last_test_taken).getTime();
+
         }
         
         return sortAscending ? A - B : B - A;
@@ -302,9 +312,9 @@
     }
 
     function iconFor(label) {
-      if (label.startsWith("Quest")) return "🔁";
-      if (label.startsWith("Video")) return "📡";
-      if (label.startsWith("Story")) return "📖";
+      if (label.startsWith("Quest")) return "♥️";
+      if (label.startsWith("Video")) return "😍";
+      if (label.startsWith("Story")) return "📜";
       return "•";
     }
 
@@ -323,6 +333,12 @@
 
       return map;
     }
+window.drawEmoji = function (doc, type, x, y, size = 3.2) {
+  const img = window.emojiImages[type];
+  if (!img) return;
+
+  doc.addImage(img, "PNG", x, y, size, size);
+};
 
     function renderOneMonth(baseDate, grouped) {
       const year = baseDate.getFullYear();
@@ -381,17 +397,24 @@
         cursor.setMonth(cursor.getMonth() + 1);
       }
     }
+let activeProfile = null;
 
     function showDetail(s) {
+activeProfile = s;
+      window.activeProfile = s;
       const modal = document.getElementById("modal");
       const content = document.getElementById("modal-content");
       
       content.innerHTML = `
-        <div class="modal-header">
-          <div class="modal-id-tag">Pilot Profile</div>
-          <h2>${s.name}</h2>
-          <button class="close-btn" onclick="closeModal()">×</button>
-        </div>
+     <div class="modal-header">
+  <div class="modal-id-tag">Pilot Profile</div>
+  <h2>${s.name}</h2>
+  <div style="display:flex; gap:6px;">
+  <button class="close-btn" onclick="generateProfilePDF(activeProfile)">⤵️</button>
+    <button class="close-btn" onclick="closeModal()">×</button>
+  </div>
+</div>
+
         
         <div class="stats-grid">
           <div class="stat-box">
@@ -540,6 +563,284 @@
         closeModal();
       }
     };
+window.iconFor = iconFor;
+
+window.iconFor = iconFor;
+
+// ========== FULL-COLOR EMOJIS (PNG BASE64) ==========
+// Twemoji 72x72, resized by jsPDF
+window.emojiImages = {
+  "Quest": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABQklEQVQ4T7WTTUoDQRCGv7mESyqJH4gkNha2tZIWYuNkMZFYJroGZmHawNLoFWsrKwvbYGwpYq8QuYkE4mJl4WcqNcyZ4r33HPPe+455/whvQfTXpQ1MM9TfA06y5ExlhuKcgwu4pE9NRjRM5Qv9lPCA7zyJcEDEpE8vop4x0Zuu0xVQRNOS7G7lCSxN3uM8jJvS1tmiQedLWtt+5lMs64n5KKcnlZ5+xH0JmwAVk6snb8G5CMk29b70N0yT9trjzH5q9Ktgg6Td8Pq3QBiCqHdSX0x1HIEMoxBFxVF2qFfTmcT9u+b5GJtI3sVbnM0mAfXUm7iYWPxTBjJwDzlEm7lyq+sDX1z8QeAOJ/zJgZyuIcVmrW4Ab5tT30CeO0I2ScV7Z0rEZkdEjfwC/0aw7eEV24Yi6Lxph2xw2C9W7mKOjAE+7+Ef3AGVa09LhZcCdVysZ2j+kc+Z6H2YgT5xJ9TAgAAAABJRU5ErkJggg==",
+  "Video": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABZUlEQVQ4T6WTv0oDQRDHf7uJpVQpWgiCjVhYW1iIp4ia6GLiImhoYmuwsrC3kFtZWFmLkIiIgouLi6CggqyEglPdeZvM7sxk0zh3Jg/fee+45339BYpJ0M2oa8g4n8CspwQPqZbZvxBwz8wxDAnBHqSg4z8iE4zkUY0zscB6xoU0Ldh3gGZMBdWM3p5lr8Yx8C8xuKye6T7hi1Gm4V2pQDEekRk1yW+XCl6iN9F9L4u2pVkXpNOJ0p4z0DEY5+gltFndbqW9mly52z9UFMfSYwAtTm4GB9Gm3Qq9o8QdkGgEX4GfY67Zu4yZ9q2oJe8EHFs7AMYwgkibKO6M4DqI/5GjAw9cJ0L1oxZ0I2kFWGb2Kw8C9MGx2wZbSgZ9Jd0rC8qxDUXgzUDU1bMKip2onA3tKrTM8AvsI43iMap2z8FHsoN5w/S98JL9vQH83f7PeuSofzQEdvRJbM2kYJ+G6ALIKN2t9DDnGK/UOqLE7lIj3/4BxKcJ7bGZT0cAAAAASUVORK5CYII=",
+  "Story": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABb0lEQVQ4T6WTv0oDQRDHf7uJpVQpWgiCjVhYW1iIp4ia6GLiImhoYmuwsrC3kFtZWFmLkIiIgouLi6CggqyEglPdeZvM7sxk0zh3Jg/fee+45339BZpF0MGZp7iBZ8iQh8l0vwFQzszwWwwIgziUY8TkUc4Tz/BhQwuEHLahbwuEJzDyF44YulcZ6oL1G07UMw+soPoJRJ6QkFuH5YifpEdbYk6pukFkYVgRyV0J3Lwlg7be9F3dzqVy2tVxNw+gLZ+g0JoCuBd1G01OJ6sbXxXBYGh7UiFFrJ95Fqmu7H9gF8CjJb5KkO6Y2k5m804BtY6ncwBscgU9J0M3fJLZb5u0AMgTWCKHF7+H2s9xl2pYf63odZMA4n0HGeobdJEq9uoo87Av8DFxkhyEbrMO6d0lJxq2AcTaK60k8c0vW2UhNHn4CBe8Cfxjs8fAf9H8n5VgkP9Edd6X5DXCrjGMAAAAASUVORK5CYII="
+};
+
+window.generateProfilePDF = function (s) {
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: "mm", format: "a4" });
+
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    
+    // Helper function for time formatting
+    function formatHumanTime(sec) {
+        if (!sec) return "0h 0m 0s";
+        sec = Math.round(sec);
+        const h = Math.floor(sec / 3600);
+        const m = Math.floor((sec % 3600) / 60);
+        const s = sec % 60;
+        return `${h}h ${m}m ${s}s`;
+    }
+    
+    // ========== BACKGROUND GRADIENT ==========
+    for (let i = 0; i < pageHeight; i += 2) {
+        const alpha = 240 + (i / pageHeight) * 15;
+        doc.setFillColor(alpha, 248, 255);
+        doc.rect(0, i, pageWidth, 2, 'F');
+    }
+    
+    // Top decorative banner
+    doc.setFillColor(20, 184, 166);
+    doc.rect(0, 0, pageWidth, 35, 'F');
+    
+    // Accent line
+    doc.setFillColor(251, 191, 36);
+    doc.rect(0, 35, pageWidth, 2, 'F');
+    
+    let y = 15;
+
+    // ========== HEADER ==========
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(24);
+    doc.setTextColor(255, 255, 255);
+    doc.text("PILOT PROFILE", pageWidth / 2, y, { align: "center" });
+
+    y += 10;
+    doc.setFontSize(18);
+    doc.text(s.name.toUpperCase(), pageWidth / 2, y, { align: "center" });
+    
+    y += 3;
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "normal");
+    doc.text("Mission: Veni, Vidi, Vici!", pageWidth / 2, y, { align: "center" });
+
+    y = 45;
+    doc.setTextColor(0, 0, 0);
+
+    // ========== STATS GRID ==========
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(14);
+    doc.setTextColor(20, 184, 166);
+    doc.text("PERFORMANCE METRICS", pageWidth / 2, y, { align: "center" });
+    
+    y += 8;
+    
+    const boxWidth = 31;
+    const boxHeight = 22;
+    const gap = 2.5;
+    const startX = (pageWidth - (boxWidth * 6 + gap * 5)) / 2;
+
+    const statsData = [
+        { label: "SCORE", value: s.total_score ?? 0, color: [251, 191, 36] },
+        { label: "ACCURACY", value: Math.round((s.accuracy ?? 0) * 100) + "%", color: [34, 197, 94] },
+        { label: "ATTEMPTS", value: s.total_attempts ?? 0, color: [59, 130, 246] },
+        { label: "CORRECT", value: s.total_correct ?? 0, color: [16, 185, 129] },
+        { label: "WRONG", value: s.total_wrong ?? 0, color: [239, 68, 68] },
+        { label: "TIME", value: formatHumanTime(s.total_time), color: [168, 85, 247] }
+    ];
+
+    statsData.forEach((stat, idx) => {
+        const col = idx % 6;
+        const xPos = startX + col * (boxWidth + gap);
+        
+        doc.setFillColor(...stat.color);
+        doc.roundedRect(xPos, y, boxWidth, boxHeight, 2, 2, 'F');
+        
+        doc.setFillColor(255, 255, 255, 0.2);
+        doc.roundedRect(xPos, y, boxWidth, boxHeight / 3, 2, 2, 'F');
+        
+        doc.setDrawColor(255, 255, 255);
+        doc.setLineWidth(0.8);
+        doc.roundedRect(xPos, y, boxWidth, boxHeight, 2, 2, 'S');
+        
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(7);
+        doc.setTextColor(255, 255, 255);
+        doc.text(stat.label, xPos + boxWidth/2, y + 5.5, { align: "center" });
+        
+        doc.setFontSize(13);
+        doc.text(String(stat.value), xPos + boxWidth/2, y + 15, { align: "center" });
+    });
+
+    y += boxHeight + 12;
+
+    // ========== CALENDAR TITLE ==========
+    doc.setFillColor(99, 102, 241);
+    doc.rect(0, y, pageWidth, 12, 'F');
+    
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(16);
+    doc.setTextColor(255, 255, 255);
+    doc.text("MISSION COMPLETION CALENDAR", pageWidth / 2, y + 8, { align: "center" });
+
+    y += 16;
+    doc.setTextColor(60, 60, 60);
+
+    // Legend
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "bold");
+    const legendX = pageWidth / 2 - 30;
+    
+    doc.setFillColor(239, 68, 68);
+    doc.rect(legendX, y - 3, 3, 3, 'F');
+    doc.setTextColor(0, 0, 0);
+    doc.text("Quest", legendX + 5, y);
+    
+    doc.setFillColor(251, 191, 36);
+    doc.rect(legendX + 22, y - 3, 3, 3, 'F');
+    doc.text("Video", legendX + 27, y);
+    
+    doc.setFillColor(59, 130, 246);
+    doc.rect(legendX + 44, y - 3, 3, 3, 'F');
+    doc.text("Story", legendX + 49, y);
+    
+    y += 8;
+
+    // ========== 4 MONTHS ==========
+    const START_DATE = new Date("2025-08-25");
+    const quests = parseItems(s.quest_list);
+    const videos = parseItems(s.video_list);
+    const stories = parseItems(s.story_list);
+    const grouped = groupByDate(quests, videos, stories);
+
+    let cursor = new Date(START_DATE.getFullYear(), START_DATE.getMonth(), 1);
+    
+    const calWidth = 80;
+    const calHeight = 60;
+    const calGap = 5;
+    const gridStartX = (pageWidth - (calWidth * 2 + calGap)) / 2;
+    const gridStartY = y;
+
+    for (let m = 0; m < 4; m++) {
+        const row = Math.floor(m / 2);
+        const col = m % 2;
+        const xPos = gridStartX + col * (calWidth + calGap);
+        const yPos = gridStartY + row * (calHeight + calGap);
+        
+        renderMonthPDFCompact(doc, cursor, grouped, xPos, yPos, calWidth);
+        cursor.setMonth(cursor.getMonth() + 1);
+    }
+
+    // Footer
+    y = pageHeight - 20;
+    doc.setFillColor(20, 184, 166);
+    doc.rect(0, y, pageWidth, 20, 'F');
+    
+    doc.setFillColor(251, 191, 36);
+    doc.rect(0, y, pageWidth, 2, 'F');
+    
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.setTextColor(255, 255, 255);
+    doc.text("KEEP SOARING, PILOT!", pageWidth / 2, y + 12, { align: "center" });
+
+    doc.save(`${s.name}_Profile.pdf`);
+};
+
+function renderMonthPDFCompact(doc, monthDate, grouped, x, y, width) {
+    const cellSize = width / 7;
+    
+    // Month title bar
+    doc.setFillColor(20, 184, 166);
+    doc.roundedRect(x, y, width, 9, 1.5, 1.5, 'F');
+    
+    doc.setFillColor(251, 191, 36);
+    doc.rect(x, y + 8, width, 1, 'F');
+    
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.setTextColor(255, 255, 255);
+    const monthName = monthDate.toLocaleString("en-US", { month: "long", year: "numeric" }).toUpperCase();
+    doc.text(monthName, x + width / 2, y + 6, { align: "center" });
+    
+    y += 11;
+
+    // Day headers
+    const days = ["S", "M", "T", "W", "T", "F", "S"];
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(6);
+    doc.setTextColor(80, 80, 80);
+    
+    days.forEach((day, idx) => {
+        doc.text(day, x + idx * cellSize + cellSize/2, y + 2.5, { align: "center" });
+    });
+    
+    y += 4;
+
+    const year = monthDate.getFullYear();
+    const month = monthDate.getMonth();
+    const firstDay = new Date(year, month, 1).getDay();
+    const numDays = new Date(year, month + 1, 0).getDate();
+
+    let dayNum = 1;
+    
+    // Draw all grid cells first
+    for (let r = 0; r < 6; r++) {
+        for (let c = 0; c < 7; c++) {
+            const cellX = x + c * cellSize;
+            const cellY = y + r * cellSize;
+            
+            doc.setFillColor(255, 255, 255);
+            doc.setDrawColor(200, 200, 200);
+            doc.setLineWidth(0.2);
+            doc.rect(cellX, cellY, cellSize, cellSize, 'FD');
+        }
+    }
+
+    // Fill in the days with content
+    dayNum = 1;
+    for (let r = 0; r < 6; r++) {
+        for (let c = 0; c < 7; c++) {
+            if (r === 0 && c < firstDay) continue;
+            if (dayNum > numDays) break;
+            
+            const cellX = x + c * cellSize;
+            const cellY = y + r * cellSize;
+            
+            const date = new Date(year, month, dayNum).toDateString();
+            const items = grouped[date];
+           // Activity indicators — full-color emojis
+if (items && items.length > 0) {
+
+    let emojiX = cellX + 1;      
+    let emojiY = cellY + cellSize - 4;
+
+    items.forEach(item => {
+        const type =
+          item.startsWith("Quest") ? "Quest" :
+          item.startsWith("Video") ? "Video" :
+          item.startsWith("Story") ? "Story" : null;
+
+        if (type) {
+            drawEmoji(doc, type, emojiX, emojiY, 3.2);
+            emojiX += 4; 
+        }
+    });
+}
+
+
+            
+            dayNum++;
+        }
+        if (dayNum > numDays) break;
+    }
+    
+    // Outer border
+    doc.setDrawColor(150, 150, 150);
+    doc.setLineWidth(0.5);
+    doc.rect(x, y, width, cellSize * 6, 'S');
+}
   </script>
 
   <style>
@@ -778,7 +1079,9 @@
       font-size: 9px;
       color: rgba(148, 163, 184, 0.8);
     }
-
+.sort-label-row {
+  display: none !important;
+}
     .sort-buttons {
       flex: 1;
       display: grid;
@@ -831,7 +1134,7 @@
 
     /* LEADERBOARD ================================== */
     #leaderboard {
-      margin: 10px 14px 16px;
+      margin: 1px 14px 16px;
       border-radius: 14px;
       border: 1px solid rgba(148, 163, 184, 0.5);
       overflow: hidden;
@@ -1342,6 +1645,7 @@
   white-space: nowrap;
 }
   </style>
+
 </head>
 
 <body>
@@ -1393,8 +1697,8 @@
       </div>
     </div>
 
-    <div style="display:flex; justify-content:flex-end;">
-        <button id="time-toggle"
+    <div style="display:flex; justify-content:flex-end; padding:4px 18px 0;">
+      <button id="time-toggle"
         class="sort-btn"
         style="display:none; font-size:10px; padding-inline:12px; min-width:auto;"
         onclick="toggleTimeFormat()">
@@ -1422,4 +1726,3 @@
   </div>
 </body>
 </html>
-

@@ -8,237 +8,366 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
   <style>
-   /* ============================================
-   🌟 LORD OF THE RINGS – BRIGHT MAGIC THEME
-   Clean, energetic, parchment-based fantasy UI
-   ============================================ */
+   body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: radial-gradient(ellipse at bottom, #0b0c1b 0%, #000000 100%);
+      color: white;
+      text-align: center;
+      overflow-x: hidden;
+    }
+    
+    /* --- HEADER BAR STYLES --- */
+    .quiz-header-bar {
+      width: 100%;
+      background-color: #1a1a2e;
+      border-bottom: 1px solid #343454;
+      padding: 10px 0;
+      box-sizing: border-box;
+      /* Will be hidden/shown by JS */
+    }
+    
+    .quiz-header-content {
+      display: flex;
+      flex-direction: row;
+      flex-wrap: wrap; 
+      justify-content: space-between;
+      align-items: center;
+      
+      max-width: 800px; 
+      margin: 0 auto;
+      padding: 0 1rem; 
+      box-sizing: border-box;
+    }
+    
+    .stat-item {
+      margin: 5px 10px; 
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: white;
+      position: relative; /* Needed for animation */
+    }
+    
+    /* Specific colors for icons/text */
+    #timer { color: #00e0ff; }
+    #gemCounter { color: #20f090; } /* Gem counter color */
+    #streakCounter { color: #ffd700; }
+    #progressTracker { color: #9a9aff; }
 
-body {
-  margin: 0;
-  padding: 0;
-  font-family: "Cinzel", "Georgia", serif;
-  background: linear-gradient(135deg, #fbf3da 0%, #f6e6b4 40%, #f1d88a 100%);
-  color: #3b2a14;
+    /* --- GEM ANIMATION STYLES --- */
+
+    /* Animation for the counter pulsing green */
+    .gem-gain {
+      animation: gemGainPulse 0.5s ease-out;
+    }
+    @keyframes gemGainPulse {
+      0%, 100% { transform: scale(1); }
+      50% { 
+        transform: scale(1.2);
+        text-shadow: 0 0 15px #20f090, 0 0 25px #20f090;
+      }
+    }
+
+    /* Animation for the counter shaking red */
+    .gem-lose {
+      animation: gemLoseShake 0.5s ease-out;
+    }
+    @keyframes gemLoseShake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-8px); }
+      75% { transform: translateX(8px); }
+    }
+
+    /* Class for the flying "+1" or "-1" text */
+    .flying-gem-text {
+      position: fixed; /* Use fixed to overlay everything */
+      font-weight: bold;
+      font-size: 1.5rem;
+      z-index: 2000;
+      pointer-events: none;
+      animation: flyUpFadeOut 1s ease-out forwards;
+      text-shadow: 0 0 5px rgba(0,0,0,0.5);
+    }
+    .flying-gem-text.plus {
+      color: #20f090; /* Bright green */
+    }
+    .flying-gem-text.minus {
+      color: #ff6b6b; /* Bright red */
+    }
+    
+    @keyframes flyUpFadeOut {
+      0% {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+      }
+      100% {
+        transform: translateY(-60px) scale(1.2);
+        opacity: 0;
+      }
+    }
+    /* --- END OF NEW STYLES --- */
+
+
+    .container {
+      max-width: 800px;
+      margin: 1.5rem auto 2rem auto; 
+      background: rgba(255, 255, 255, 0.05);
+      padding: 2rem;
+      border-radius: 15px;
+      box-shadow: 0 0 30px rgba(255, 255, 255, 0.1);
+      transition: background 0.5s ease;
+      position: relative;
+    }
+    .container.retry-mode {
+      background: rgba(255, 100, 100, 0.15);
+      box-shadow: 0 0 40px rgba(255, 100, 100, 0.3);
+      border: 2px solid rgba(255, 100, 100, 0.4);
+    }
+    
+    .question {
+      font-size: 1.5rem;
+      margin-bottom: 1rem;
+    }
+    .options {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    button {
+      padding: 1rem;
+      border: none;
+      border-radius: 10px;
+      font-size: 1rem;
+      cursor: pointer;
+      background-color: #1f1f2e;
+      color: white;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: visible;
+    }
+    button:hover {
+      background-color: #343454;
+      transform: scale(1.02);
+    }
+    .correct {
+      background-color: green !important;
+      animation: correctPulse 0.6s ease-out;
+    }
+    .wrong {
+      background-color: red !important;
+      animation: wrongShake 0.5s ease-out;
+    }
+    
+    @keyframes correctPulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.1); box-shadow: 0 0 30px rgba(0, 255, 0, 0.8); }
+      100% { transform: scale(1); }
+    }
+    
+    @keyframes wrongShake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-10px); }
+      75% { transform: translateX(10px); }
+    }
+
+    @keyframes neonGlow {
+  0% { text-shadow: 0 0 5px #fff, 0 0 10px #0ff, 0 0 20px #0ff; color: #0ff; }
+  50% { text-shadow: 0 0 10px #fff, 0 0 20px #0ff, 0 0 40px #0ff; color: #fff; }
+  100% { text-shadow: 0 0 5px #fff, 0 0 10px #0ff, 0 0 20px #0ff; color: #0ff; }
+}
+
+.neon-typewriter {
+  display: inline-block;
+  white-space: pre-wrap;
+  overflow: hidden;
+  border-right: .15em solid #0ff;
+  animation: typing 1.5s steps(40, end), blink-caret .75s step-end infinite, neonGlow 2s ease-in-out infinite;
+}
+
+@keyframes typing {
+  from { width: 0 }
+  to { width: 100% }
+}
+
+@keyframes blink-caret {
+  50% { border-color: transparent }
+}
+    .flying-answer {
+      position: fixed;
+      color: #ffd700;
+      font-weight: bold;
+      font-size: 1.2rem;
+      pointer-events: none;
+      z-index: 1000;
+      text-shadow: 0 0 10px rgba(255, 215, 0, 0.8);
+    }
+    .focused-question {
   text-align: center;
-  overflow-x: hidden;
+  font-size: 1.3rem;
+  color: #00e0ff;
+  text-shadow: 0 0 10px #00e0ff, 0 0 20px #0080ff;
 }
 
-/* Header Bar */
-.quiz-header-bar {
-  width: 100%;
-  background: #d6b56d;
-  border-bottom: 2px solid #a27c3a;
-  padding: 10px 0;
-  box-sizing: border-box;
+@keyframes neon-type {
+  from { opacity: 0; filter: blur(3px); }
+  to { opacity: 1; filter: blur(0); }
 }
 
-.quiz-header-content {
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  align-items: center;
-  max-width: 850px;
-  margin: 0 auto;
-  padding: 0 1rem;
+.neon-typewriter {
+  display: inline-block;
+  animation: neon-type 1.5s ease forwards;
 }
 
-.stat-item {
-  margin: 5px 10px;
-  font-size: 1.2rem;
-  font-weight: bold;
-  color: #4a341a;
-}
+    @keyframes flyToQuestion {
+      0% {
+        opacity: 1;
+        transform: translate(0, 0) scale(1);
+      }
+      50% {
+        opacity: 1;
+        transform: translate(var(--dx), var(--dy)) scale(1.2);
+      }
+      100% {
+        opacity: 0;
+        transform: translate(var(--dx), var(--dy)) scale(0.8);
+      }
+    }
+    
+    .question-highlight {
+      display: inline-block;
+      color: #ffd700;
+      font-weight: bold;
+      animation: highlightPulse 0.5s ease-in-out;
+    }
+    
+    @keyframes highlightPulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.15); text-shadow: 0 0 20px rgba(255, 215, 0, 1); }
+    }
+    
+    .star-particle {
+      position: fixed;
+      width: 6px;
+      height: 6px;
+      background: white;
+      border-radius: 50%;
+      pointer-events: none;
+      animation: starFloat 1s ease-out forwards;
+      box-shadow: 0 0 6px rgba(255, 255, 255, 0.8);
+    }
+    
+    @keyframes starFloat {
+      0% {
+        opacity: 1;
+        transform: translate(0, 0) scale(1);
+      }
+      100% {
+        opacity: 0;
+        transform: translate(var(--tx), var(--ty)) scale(0);
+      }
+    }
+    
+    .confetti {
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      pointer-events: none;
+      animation: confettiFall 1.5s ease-out forwards;
+    }
+    
+    @keyframes confettiFall {
+      0% {
+        opacity: 1;
+        transform: translateY(0) rotate(0deg);
+      }
+      100% {
+        opacity: 0;
+        transform: translateY(300px) rotate(720deg);
+      }
+    }
 
-/* Colour coding */
-#timer { color: #8b4513; }
-#gemCounter { color: #b8860b; }
-#streakCounter { color: #d47f24; }
-#progressTracker { color: #6d4c1a; }
-
-/* Main container */
-.container {
-  max-width: 850px;
-  margin: 1.5rem auto 2rem auto;
-  background: rgba(255, 255, 255, 0.70);
-  padding: 2rem;
-  border-radius: 14px;
-  border: 2px solid #d3b175;
-  box-shadow: 0 0 25px rgba(186, 140, 50, 0.45);
-  transition: background 0.3s ease;
-  position: relative;
-}
-
-/* Retry mode (red parchment) */
-.container.retry-mode {
-  background: rgba(255, 220, 180, 0.7);
-  border: 2px solid #d66b4e;
-  box-shadow: 0 0 25px rgba(220, 90, 50, 0.5);
-}
-
-/* Question */
-.question {
-  font-size: 1.6rem;
-  font-weight: bold;
-  color: #4a3211;
-  margin-bottom: 1rem;
-  text-shadow: 0 0 6px rgba(255, 220, 150, 0.8);
-}
-
-/* Options */
-.options {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-button {
-  padding: 1rem;
-  border: 2px solid #b9975a;
-  border-radius: 10px;
-  font-size: 1rem;
-  cursor: pointer;
-  background-color: #f3e2be;
-  color: #4a3315;
-  font-weight: bold;
-  transition: all 0.25s ease;
-}
-
-button:hover {
-  background-color: #ecd49b;
-  transform: scale(1.02);
-}
-
-/* Correct answer effect */
-.correct {
-  background-color: #a7cc70 !important;
-  border-color: #6f993a !important;
-  box-shadow: 0 0 20px rgba(111, 153, 58, 0.7);
-  color: #1f3008 !important;
-}
-
-/* Wrong answer effect */
-.wrong {
-  background-color: #e58d7c !important;
-  border-color: #b84d37 !important;
-  box-shadow: 0 0 18px rgba(190, 60, 30, 0.7);
-  color: #3e0d04 !important;
-}
-
-/* Golden glowing fill-in effect */
-.focused-question {
-  text-align: center;
-  font-size: 1.35rem;
-  font-weight: bold;
-  color: #b8860b;
-  text-shadow: 0 0 10px #ffdf87, 0 0 25px #b8860b;
-}
-
-/* Golden highlight around inserted answer */
-.question-highlight {
-  color: #b8860b;
-  font-weight: bold;
-  text-shadow: 0 0 8px #ffdc73;
-}
-
-/* Next button */
-.next-btn {
+    .next-btn {
   margin-top: 1rem;
-  padding: 0.6rem 1.5rem;
-  background-color: #d4b16a;
-  color: #4a341a;
-  border-radius: 10px;
-  border: 2px solid #a9833a;
+  padding: 0.5rem 1rem;
+  background-color: #6c63ff;
+  color: white;
+  border: none;
+  border-radius: 0.3rem;
   cursor: pointer;
   font-weight: bold;
-  transition: 0.3s;
+  transition: background 0.3s;
 }
+
 .next-btn:hover {
-  background-color: #c29a49;
+  background-color: #5750d6;
 }
 
-/* Confetti and star particles (gold burst) */
-.star-particle {
-  position: fixed;
-  width: 7px;
-  height: 7px;
-  background: radial-gradient(circle, #fff7ca, #d4af37);
-  border-radius: 50%;
-  pointer-events: none;
-  animation: starFloat 1s ease-out forwards;
-  box-shadow: 0 0 10px #d4af37;
+.next-btn.hidden {
+  display: none;
 }
 
-@keyframes starFloat {
-  0% {
-    opacity: 1;
-    transform: translate(0,0) scale(1);
-  }
-  100% {
-    opacity: 0;
-    transform: translate(var(--tx), var(--ty)) scale(0);
-  }
-}
+    .streak-glow {
+      animation: streakGlow 0.8s ease-out;
+    }
+    
+    @keyframes streakGlow {
+      0%, 100% { box-shadow: 0 0 10px rgba(255, 215, 0, 0.5); }
+      50% { box-shadow: 0 0 40px rgba(255, 215, 0, 1), 0 0 60px rgba(255, 165, 0, 0.8); }
+    }
+    
+    #scoreCard {
+      margin-top: 2rem;
+      font-size: 1.2rem;
+    }
 
-.confetti {
-  position: absolute;
-  width: 10px;
-  height: 10px;
-  pointer-events: none;
-  border-radius: 2px;
-  animation: confettiFall 1.5s ease-out forwards;
-}
-
-@keyframes confettiFall {
-  0% { opacity: 1; transform: translateY(0) rotate(0deg); }
-  100% { opacity: 0; transform: translateY(300px) rotate(720deg); }
-}
-
-/* Restart button */
-#restartBtn {
-  margin-top: 2rem;
-  padding: 0.7rem 2rem;
-  font-size: 1.1rem;
-  background-color: #d4b16a;
-  border: 2px solid #a9833a;
-  border-radius: 10px;
-  cursor: pointer;
-  color: #4a341a;
-  font-weight: bold;
-  transition: 0.3s;
-}
-
-#restartBtn:hover {
-  background-color: #c29a49;
-}
-
-/* Input & Dropdown */
-#nameInput,
-#departmentSelect {
-  width: 90%;
-  max-width: 300px;
-  padding: 0.8rem;
-  font-size: 1rem;
-  border: 2px solid #c7a86a;
-  border-radius: 8px;
-  background-color: #f9edcf;
-  color: #3b2a14;
-}
-
-/* Mute button */
-#muteBtn {
-  background: #e9d49c;
-  border: 2px solid #b89a55;
-  color: #4a341a;
-}
-
-/* Score card */
-#scoreCard {
-  margin-top: 2rem;
-  font-size: 1.2rem;
-  color: #4a341a;
-}
-
+    #restartBtn {
+      margin-top: 2rem;
+      padding: 0.7rem 2rem;
+      font-size: 1.1rem;
+      background-color: #444466;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      color: white;
+    }
+    #nameForm {
+      margin-bottom: 1.5rem;
+    }
+    #nameInput {
+      display: block;
+      width: 90%;
+      max-width: 300px;
+      margin: 0.5rem auto; 
+      padding: 0.7rem;
+      font-size: 1rem;
+      border-radius: 5px;
+      border: none;
+    }
+    
+    .stars {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: -1;
+    }
+    
+    .star {
+      position: absolute;
+      width: 2px;
+      height: 2px;
+      background: white;
+      border-radius: 50%;
+      animation: twinkle 3s infinite;
+    }
+    
+    @keyframes twinkle {
+      0%, 100% { opacity: 0.3; }
+      50% { opacity: 1; }
+    }
   </style>
 </head>
 <body>

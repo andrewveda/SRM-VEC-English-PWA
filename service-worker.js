@@ -1,4 +1,5 @@
-const CACHE_NAME = "vec-english-cache-v2";
+// Force reset for all users — 28 Nov 2025
+const CACHE_NAME = "vec-english-cache-v3";
 const FILES_TO_CACHE = [
   "./",
   "./index.html",

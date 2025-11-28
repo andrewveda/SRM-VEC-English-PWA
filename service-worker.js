@@ -10,10 +10,7 @@ const FILES_TO_CACHE = [
 // Install
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      console.log("SW: Pre-caching app shell");
-      return cache.addAll(FILES_TO_CACHE);
-    })
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(FILES_TO_CACHE))
   );
   self.skipWaiting();
 });
@@ -25,24 +22,26 @@ self.addEventListener("activate", (event) => {
       Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
     )
   );
-  console.log("SW: Activated");
   self.clients.claim();
 });
 
-// Fetch handler — FIXED
+// Fetch
 self.addEventListener("fetch", (event) => {
   const req = event.request;
   const url = new URL(req.url);
 
-  // ✅ FIXED — Supabase POST/GET must bypass cache completely
+  // Ignore OPTIONS (CORS preflight)
+  if (req.method === "OPTIONS") return;
+
+  // Supabase should never be cached
   if (url.origin.includes("supabase.co")) {
-    event.respondWith(fetch(req));  // <-- REQUIRED
+    event.respondWith(fetch(req));
     return;
   }
 
-  // Non-GET requests should bypass cache
+  // Non-GET must bypass cache
   if (req.method !== "GET") {
-    event.respondWith(fetch(req));  // <-- REQUIRED
+    event.respondWith(fetch(req));
     return;
   }
 
@@ -54,14 +53,19 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Cache-first for GET requests
+  // Cache-first for static files
   event.respondWith(
     caches.match(req).then((cached) => {
       if (cached) return cached;
 
       return fetch(req).then((res) => {
-        const clone = res.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(req, clone));
+        // Cache only known static assets
+        if (
+          FILES_TO_CACHE.includes(req.url) ||
+          req.url.startsWith(self.location.origin)
+        ) {
+          caches.open(CACHE_NAME).then((cache) => cache.put(req, res.clone()));
+        }
         return res;
       });
     })

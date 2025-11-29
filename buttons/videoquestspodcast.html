@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>V for Video! 🌌</title>
+  <style>
+    body {
+      margin: 0; padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: radial-gradient(ellipse at bottom, #0b0c1b 0%, #000000 100%);
+      color: white; text-align: center;
+    }
+    .container {
+      max-width: 800px; margin: 2rem auto;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 2rem; border-radius: 15px;
+      box-shadow: 0 0 30px rgba(255, 255, 255, 0.1);
+    }
+    .question { font-size: 1.3rem; margin-bottom: 1rem; }
+    .options { display: flex; flex-direction: column; gap: 0.75rem; }
+    button {
+      padding: 0.9rem; border: none; border-radius: 10px;
+      font-size: 1rem; cursor: pointer;
+      background-color: #1f1f2e; color: white;
+      transition: background-color 0.3s ease, transform 0.2s ease;
+      width: 100%; box-sizing: border-box;
+    }
+    button:hover { background-color: #343454; transform: translateY(-1px); }
+    button:disabled { background-color: #555; cursor: not-allowed; }
+    .correct { background-color: green !important; }
+    .wrong { background-color: red !important; }
+
+    #scoreCard { margin-top: 2rem; font-size: 1.1rem; text-align: left; }
+
+    #timer, #wrongCounter, #progressTracker {
+      font-size: 0.95rem; margin-bottom: 0.4rem; color: #ffd700;
+    }
+
+    #restartBtn {
+      margin-top: 2rem; padding: 0.7rem 2rem;
+      font-size: 1.1rem; background-color: #444466;
+      border: none; border-radius: 10px;
+      cursor: pointer; color: white;
+    }
+
+    #nameForm { margin-bottom: 1.5rem; }
+    #nameInput {
+      padding: 0.7rem; font-size: 1rem;
+      border-radius: 5px; border: none;
+      margin-top: 0.5rem;
+      width: 90%; max-width: 300px;
+      box-sizing: border-box;
+    }
+    #departmentSelect {
+      display: block;
+      width: 90%; max-width: 300px;
+      margin: 0.75rem auto;
+      padding: 0.7rem; font-size: 1rem;
+      border-radius: 5px; border: none;
+      box-sizing: border-box;
+    }
+    #videoContainer { margin: 1rem 0; }
+
+    #nextBtn {
+      margin-top: 1rem; padding: 0.7rem 2rem;
+      font-size: 1rem; border-radius: 10px;
+      border: none; background-color: #1f1f2e; color: white;
+    }
+
+    /* Directory Button Grid */
+    #videoList {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    /* Card-like Buttons with Glow */
+    #videoList button {
+      padding: 1rem 1.2rem;
+      border-radius: 15px;
+      background: linear-gradient(135deg, #5D5D81, #8C7B92);
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+      transition: all 0.3s ease;
+      color: #fff;
+      font-weight: 500;
+      width: 100%;
+    }
+    #videoList button:hover {
+      color: #ffd700;
+      transform: translateY(-3px) scale(1.03);
+      box-shadow: 0 0 10px #ffd700, 0 0 20px #ffd700, 0 0 30px #ff8c00;
+    }
+
+    .loading-message {
+      color: #ffd700;
+      font-size: 1.1rem;
+      margin: 1rem 0;
+      grid-column: 1 / -1;
+    }
+
+    /* Hide these visually if you don't want them */
+    #wrongCounter, #progressTracker {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+  <div class="container" id="quizContainer">
+    <!-- Step 1: Name Form -->
+    <div id="nameForm">
+      <p style="color: #ffd700; font-size: 0.95rem; margin-bottom: 0.5rem;">
+        "Ever tried. Ever failed. No matter. Try again. Fail again. Fail better." — Beckett <br><br> 
+        "Try not. Do. Or do not. There is no try." — Yoda <br><br>
+        "The opposite of a good idea is another good idea." — Bohr
+      </p>
+
+      <select id="departmentSelect">
+        <option value="">-- Select Department --</option>
+        <option value="Cyber Security">Cyber Security</option>
+        <option value="CSE-1">CSE-1</option>
+        <option value="CSE-2">CSE-2</option>
+        <option value="CSE-3">CSE-3</option>
+        <option value="Mechanical Engineering">Mechanical Engineering</option>
+        <option value="ECE-1">ECE-1</option>
+        <option value="ECE-2">ECE-2</option>
+        <option value="ECE-3">ECE-3</option>
+        <option value="AI DS-1">AI DS-1</option>
+        <option value="AI DS-2">AI DS-2</option>
+        <option value="Civil">Civil</option>
+        <option value="Agri">Agri</option>
+        <option value="EEE">EEE</option>
+        <option value="EIE">EIE</option>
+        <option value="Medical Electronics">Medical Electronics</option>
+        <option value="IT-1">IT-1</option>
+        <option value="IT-2">IT-2</option>
+      </select>
+
+      <input type="text" id="nameInput" placeholder="Enter your name" />
+      <br>
+      <button onclick="beginQuiz()">Start Quiz</button>
+    </div>
+
+    <!-- Step 2: Directory -->
+    <div id="directory" style="display:none;">
+      <h2>🎬 Choose Your Quest</h2>
+      <div id="videoList"></div>
+    </div>
+
+    <!-- Step 3: Quiz Content -->
+    <div id="quizContent" style="display:none;">
+      <div id="timer">⏳ Time: 0s | 🎬 Watched: 0s</div>
+      <div id="wrongCounter">❌ Wrong Attempts: 0</div>
+      <div id="progressTracker">📍 Question 1</div>
+      <div class="question" id="question">Loading...</div>
+      <div id="videoContainer"></div>
+      <div class="options" id="options"></div>
+      <button id="nextBtn" disabled>Next ➡️</button>
+      <div id="scoreCard"></div>
+      <button id="restartBtn" style="display:none;">Restart</button>
+    </div>
+  </div>
+
+  <!-- YouTube IFrame API -->
+  <script src="https://www.youtube.com/iframe_api"></script>
+
+  <script>
+  
+    const quizData = [
+      {
+        category: "Unit - 1 Podcast",
+        title: "Elon Musk",
+        q: "Joe Rogan Experience #2281",
+        video: "https://www.youtube.com/watch?v=sSOxPJD-VNo",
+        options: ["✨👽"],
+        correct: 100,          
+        watchTarget: 1001,     
+        questId: "Quest 112"
+      }
+    ];
+
+    /* ---------------------------------------------
+       GLOBAL STATE
+    ---------------------------------------------- */
+    let youtubeAPIReady = false;
+    window.onYouTubeIframeAPIReady = function() {
+      youtubeAPIReady = true;
+      console.log("✅ YouTube IFrame API ready");
+    };
+
+    let player = null;
+    let selectedCategory = "";
+    let filteredData = [];
+    let current = 0;
+
+    let playerName = "";
+    let playerDept = "";
+
+    let totalWrongGuesses = 0;
+    let guessesPerQuestion = new Array(quizData.length).fill(0);
+    let answeredCorrectly = new Array(quizData.length).fill(false);
+
+    let currentVideoWatchTime = 0;
+    let totalVideoWatchTime = 0;
+    let videoWatchInterval = null;
+    let WATCH_TARGET = 0;
+
+    let correctCount = 0;
+    let startTime = null;
+    let timerInterval = null;
+
+    const EDGE_FUNCTION_URL =
+      "https://ahezssoczvpbkteffcgz.supabase.co/functions/v1/logQuest";
+
+    /* ---------------------------------------------
+       DOM ELEMENTS
+    ---------------------------------------------- */
+    const questionEl = document.getElementById("question");
+    const optionsEl = document.getElementById("options");
+    const timerEl = document.getElementById("timer");
+    const wrongCounterEl = document.getElementById("wrongCounter");
+    const progressTracker = document.getElementById("progressTracker");
+    const scoreCard = document.getElementById("scoreCard");
+    const videoContainer = document.getElementById("videoContainer");
+    const nextBtn = document.getElementById("nextBtn");
+    const directoryEl = document.getElementById("directory");
+    const restartBtn = document.getElementById("restartBtn");
+
+    /* ---------------------------------------------
+       BEGIN QUIZ – from Name/Dept form
+    ---------------------------------------------- */
+    function beginQuiz() {
+      const nameField = document.getElementById("nameInput");
+      const deptField = document.getElementById("departmentSelect");
+
+      const nameVal = nameField.value.trim();
+      const deptVal = deptField.value;
+
+      if (!deptVal) {
+        deptField.style.border = "2px solid red";
+        alert("Please select your department.");
+        return;
+      }
+      if (!nameVal) {
+        nameField.style.border = "2px solid red";
+        alert("Please enter your name.");
+        return;
+      }
+
+      playerName = nameVal;
+      playerDept = deptVal;
+
+      // Optional: remember in localStorage
+      try {
+        localStorage.setItem("studentName", playerName);
+        localStorage.setItem("studentDept", playerDept);
+      } catch (e) {
+        console.log("LocalStorage issue:", e);
+      }
+
+      document.getElementById("nameForm").style.display = "none";
+      showDirectory();
+    }
+
+    window.addEventListener("DOMContentLoaded", () => {
+      try {
+        const savedName = localStorage.getItem("studentName");
+        const savedDept = localStorage.getItem("studentDept");
+        if (savedName) document.getElementById("nameInput").value = savedName;
+        if (savedDept) document.getElementById("departmentSelect").value = savedDept;
+      } catch (e) {}
+    });
+
+    /* ---------------------------------------------
+       SHOW CATEGORY DIRECTORY
+    ---------------------------------------------- */
+    function showDirectory() {
+      directoryEl.style.display = "block";
+      document.getElementById("quizContent").style.display = "none";
+
+      const list = document.getElementById("videoList");
+      list.innerHTML = "";
+
+      const categories = [...new Set(quizData.map(q => q.category))];
+
+      if (categories.length === 0) {
+        list.innerHTML = '<p class="loading-message">No videos available.</p>';
+        return;
+      }
+
+      categories.forEach(category => {
+        const btn = document.createElement("button");
+        btn.innerText = category;
+        btn.onclick = () => showCategory(category);
+        list.appendChild(btn);
+      });
+    }
+
+    /* ---------------------------------------------
+       SHOW VIDEOS INSIDE A CATEGORY
+    ---------------------------------------------- */
+    function showCategory(category) {
+      selectedCategory = category;
+      const list = document.getElementById("videoList");
+      list.innerHTML = "";
+
+      // Back button
+      const backBtn = document.createElement("button");
+      backBtn.innerText = "⬅️ Back to Categories";
+      backBtn.style.background = "linear-gradient(135deg, #3b3b5e, #5c4f63)";
+      backBtn.style.fontWeight = "bold";
+      backBtn.onclick = showDirectory;
+      list.appendChild(backBtn);
+
+      filteredData = quizData.filter(q => q.category === category);
+
+      filteredData.forEach((data, idx) => {
+        const btn = document.createElement("button");
+        btn.innerText = data.title;
+        btn.onclick = () => startQuizFromCategory(idx);
+        list.appendChild(btn);
+      });
+    }
+
+    /* ---------------------------------------------
+       START QUIZ FOR A GIVEN CATEGORY + VIDEO INDEX
+    ---------------------------------------------- */
+    async function startQuizFromCategory(index) {
+      console.log("🎬 Starting quiz for category:", selectedCategory, "index:", index);
+      
+      // Ensure YouTube API is ready
+      if (!youtubeAPIReady) {
+        let attempts = 0;
+        while (!youtubeAPIReady && attempts < 50) {
+          await new Promise(r => setTimeout(r, 100));
+          attempts++;
+        }
+        if (!youtubeAPIReady) {
+          alert("YouTube player failed to load. Please refresh the page.");
+          return;
+        }
+      }
+
+      directoryEl.style.display = "none";
+      document.getElementById("quizContent").style.display = "block";
+
+      current = index;
+      totalWrongGuesses = 0;
+      correctCount = 0;
+      currentVideoWatchTime = 0;
+      totalVideoWatchTime = 0;
+      guessesPerQuestion.fill(0);
+      answeredCorrectly.fill(false);
+
+      startTime = Date.now();
+      startTimer();
+
+      loadQuestionFromData(filteredData[current]);
+    }
+
+    /* ---------------------------------------------
+       LOAD QUESTION + VIDEO
+    ---------------------------------------------- */
+    function loadQuestionFromData(data) {
+      console.log("📝 Loading question:", data.q);
+
+      questionEl.innerText = data.q;
+      progressTracker.innerText = `📍 Question ${current + 1} of ${filteredData.length}`;
+
+      // Reset watch time
+      currentVideoWatchTime = 0;
+      WATCH_TARGET = data.watchTarget;
+      timerEl.innerText = `⏳ Time: 0s | 🎬 Watched: 0s`;
+
+      // Setup YouTube player
+      videoContainer.innerHTML = `<div id="ytPlayer"></div>`;
+      const videoId = data.video.split("v=")[1];
+
+      if (player) {
+        try { player.destroy(); } catch (e) {}
+        player = null;
+      }
+
+      player = new YT.Player("ytPlayer", {
+        height: "315",
+        width: "100%",
+        videoId: videoId,
+        events: { onStateChange: onPlayerStateChange },
+        playerVars: { autoplay: 0, controls: 1 }
+      });
+
+      // Options
+      optionsEl.innerHTML = "";
+      data.options.forEach((option, idx) => {
+        const btn = document.createElement("button");
+        btn.innerText = option;
+        btn.dataset.index = idx;
+        btn.onclick = () => handleAnswer(btn, data);
+        optionsEl.appendChild(btn);
+      });
+
+      nextBtn.disabled = true;
+      nextBtn.innerText = `Next ➡️ (Watch ${WATCH_TARGET}s to unlock)`;
+      nextBtn.onclick = submitAndNext;
+      scoreCard.innerHTML = "";
+      restartBtn.style.display = "none";
+    }
+
+    /* ---------------------------------------------
+       HANDLE ANSWER CLICK
+    ---------------------------------------------- */
+    function handleAnswer(button, data) {
+      const selectedIndex = parseInt(button.dataset.index, 10);
+      const correctIndex = data.correct;
+
+      // Map to global question index
+      const globalIndex = quizData.indexOf(data);
+      if (globalIndex !== -1) {
+        guessesPerQuestion[globalIndex]++;
+      }
+
+      if (selectedIndex === correctIndex) {
+        button.classList.add("correct");
+        button.disabled = true;
+
+        // prevent multiple increment for same question
+        if (globalIndex !== -1 && !answeredCorrectly[globalIndex]) {
+          answeredCorrectly[globalIndex] = true;
+          correctCount++;
+        }
+      } else {
+        totalWrongGuesses++;
+        wrongCounterEl.innerText = `❌ Wrong Attempts: ${totalWrongGuesses}`;
+        button.classList.add("wrong");
+        setTimeout(() => button.classList.remove("wrong"), 500);
+      }
+    }
+
+    /* ---------------------------------------------
+       YOUTUBE PLAYER STATE CHANGE
+    ---------------------------------------------- */
+    function onPlayerStateChange(event) {
+      if (event.data === YT.PlayerState.PLAYING) {
+        if (!videoWatchInterval) {
+          videoWatchInterval = setInterval(() => {
+            currentVideoWatchTime++;
+            totalVideoWatchTime++;
+            const elapsed = Math.floor((Date.now() - startTime) / 1000);
+            timerEl.innerText = `⏳ Time: ${elapsed}s | 🎬 Watched: ${currentVideoWatchTime}s`;
+
+            if (currentVideoWatchTime >= WATCH_TARGET) {
+              nextBtn.disabled = false;
+              nextBtn.innerText = "Next ➡️";
+            }
+          }, 1000);
+        }
+      } else {
+        clearInterval(videoWatchInterval);
+        videoWatchInterval = null;
+      }
+    }
+
+    /* ---------------------------------------------
+       NEXT QUESTION / FINISH
+    ---------------------------------------------- */
+    function submitAndNext() {
+      current++;
+      if (current < filteredData.length) {
+        loadQuestionFromData(filteredData[current]);
+      } else {
+        showFinalScore();
+      }
+    }
+
+    /* ---------------------------------------------
+       EDGE FUNCTION CALL
+    ---------------------------------------------- */
+    async function sendViaEdgeFunction(payload) {
+      try {
+        const res = await fetch(EDGE_FUNCTION_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        if (!res.ok) {
+          console.error("❌ Edge function error:", await res.text());
+        } else {
+          console.log("✅ Saved to Supabase via Edge Function");
+        }
+      } catch (err) {
+        console.error("⚠️ Error calling edge function:", err);
+      }
+    }
+
+    /* ---------------------------------------------
+       FINAL SCORE
+    ---------------------------------------------- */
+    function showFinalScore() {
+      clearInterval(timerInterval);
+      clearInterval(videoWatchInterval);
+      videoWatchInterval = null;
+
+      const totalTime = Math.floor((Date.now() - startTime) / 1000);
+
+      questionEl.innerText = "🎉 All Quests Completed!";
+      optionsEl.innerHTML = "";
+      videoContainer.innerHTML = "";
+      progressTracker.innerText = "✅ Completed";
+
+      scoreCard.innerHTML = `
+        <h3>Summary</h3>
+        <p>👤 Name: ${playerName}</p>
+        <p>🏫 Department: ${playerDept}</p>
+        <p>📂 Category: ${selectedCategory}</p>
+        <p>✅ Correct questions: ${correctCount} / ${filteredData.length}</p>
+        <p>❌ Wrong attempts: ${totalWrongGuesses}</p>
+        <p>⏱️ Total time (wall clock): ${totalTime}s</p>
+        <p>🎬 Total video watch time: ${totalVideoWatchTime}s</p>
+        <p>📝 Guesses per question (global index): ${guessesPerQuestion.join(", ")}</p>
+      `;
+
+      restartBtn.style.display = "inline-block";
+
+      // Build quest_id like your Pygmalion code did ("Quest 110" style)
+      const questId = `VideoQuest-${selectedCategory}`;
+
+      const payload = {
+        student_name: playerName,
+        department: playerDept,
+        correct: correctCount,
+        wrong: totalWrongGuesses,
+        time_spent: totalTime,     // or totalVideoWatchTime if you prefer
+        guesses: guessesPerQuestion,
+        quest_id: questId
+      };
+
+      console.log("📤 Sending payload to Edge Function:", payload);
+      sendViaEdgeFunction(payload);
+    }
+
+    /* ---------------------------------------------
+       TIMER DISPLAY
+    ---------------------------------------------- */
+    function startTimer() {
+      if (timerInterval) clearInterval(timerInterval);
+      timerInterval = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - startTime) / 1000);
+        timerEl.innerText = `⏳ Time: ${elapsed}s | 🎬 Watched: ${currentVideoWatchTime}s`;
+      }, 1000);
+    }
+
+    /* ---------------------------------------------
+       RESTART
+    ---------------------------------------------- */
+    restartBtn.onclick = () => {
+      if (player) {
+        try { player.destroy(); } catch (e) {}
+        player = null;
+      }
+      clearInterval(timerInterval);
+      clearInterval(videoWatchInterval);
+
+      // Reset main views
+      document.getElementById("quizContent").style.display = "none";
+      document.getElementById("nameForm").style.display = "block";
+      nextBtn.disabled = true;
+      nextBtn.style.display = "inline-block";
+      scoreCard.innerHTML = "";
+
+      // optional clear inputs
+      // document.getElementById("nameInput").value = "";
+      // document.getElementById("departmentSelect").value = "";
+    };
+  </script>
+</body>
+</html>

@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Mission: Veni, Vidi, Vici! — Command Deck Leaderboard</title>
@@ -10,8 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+
   <script type="module">
     import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -390,24 +388,17 @@ B = new Date(b.last_test_taken).getTime();
         cursor.setMonth(cursor.getMonth() + 1);
       }
     }
-let activeProfile = null;
 
     function showDetail(s) {
-activeProfile = s;
-      window.activeProfile = s;
       const modal = document.getElementById("modal");
       const content = document.getElementById("modal-content");
       
       content.innerHTML = `
-     <div class="modal-header">
-  <div class="modal-id-tag">Pilot Profile</div>
-  <h2>${s.name}</h2>
-  <div style="display:flex; gap:6px;">
-  <button class="close-btn" onclick="generateProfilePDF(activeProfile)">⤵️</button>
-    <button class="close-btn" onclick="closeModal()">×</button>
-  </div>
-</div>
-
+        <div class="modal-header">
+          <div class="modal-id-tag">Pilot Profile</div>
+          <h2>${s.name}</h2>
+          <button class="close-btn" onclick="closeModal()">×</button>
+        </div>
         
         <div class="stats-grid">
           <div class="stat-box">
@@ -556,151 +547,123 @@ activeProfile = s;
         closeModal();
       }
     };
-window.iconFor = iconFor;
+    // === PDF GENERATION ===============================================
+// Requires jsPDF + html2canvas
+// Inject libraries once
+(function injectLibraries() {
+  if (!window.jspdf) {
+    const s1 = document.createElement("script");
+    const s2 = document.createElement("script");
+    s1.src = "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";
+    s2.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
+    document.head.appendChild(s1);
+    document.head.appendChild(s2);
+  }
+})();
 
-window.generateProfilePDF = function (s) {
- const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({ unit: "mm", format: "a4" });
+async function downloadProfilePDF(studentObj) {
+  const { jsPDF } = window.jspdf;
 
-    const pageWidth = doc.internal.pageSize.getWidth();
-    let y = 20;
+  // 1. CREATE A TEMPORARY PDF AREA (BLACK & WHITE)
+  const pdfArea = document.createElement("div");
+  pdfArea.style.width = "794px";   // A4 width
+  pdfArea.style.padding = "20px";
+  pdfArea.style.fontFamily = "Arial, sans-serif";
+  pdfArea.style.color = "#000";
+  pdfArea.style.background = "#fff";
+  pdfArea.style.lineHeight = "1.4";
+  pdfArea.innerHTML = `
+    <h2 style="text-align:center; margin-bottom:4px;">SRM VEC — English Mission Report</h2>
+    <h3 style="text-align:center; margin-top:0;">${studentObj.name}</h3>
 
-    // ========== HEADER ==========
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(20);
-    doc.text("Pilot Profile Report", pageWidth / 2, y, { align: "center" });
+    <hr/>
 
-    y += 10;
-    doc.setFontSize(14);
-    doc.text(s.name, pageWidth / 2, y, { align: "center" });
+    <h4>Statistics</h4>
+    <table style="width:100%; border-collapse:collapse; font-size:14px;">
+      <tr><td>Score:</td><td>${studentObj.total_score ?? 0}</td></tr>
+      <tr><td>Accuracy:</td><td>${Math.round((studentObj.accuracy ?? 0) * 100)}%</td></tr>
+      <tr><td>Attempts:</td><td>${studentObj.total_attempts ?? 0}</td></tr>
+      <tr><td>Correct:</td><td>${studentObj.total_correct ?? 0}</td></tr>
+      <tr><td>Wrong:</td><td>${studentObj.total_wrong ?? 0}</td></tr>
+      <tr><td>Time:</td><td>${Math.round(studentObj.total_time ?? 0)} sec</td></tr>
+      <tr><td>Last Test:</td><td>${studentObj.last_test_taken}</td></tr>
+    </table>
 
-    y += 8;
-    doc.setDrawColor(180);
-    doc.line(20, y, pageWidth - 20, y);
-    y += 10;
+    <hr style="margin-top:10px;"/>
 
-    // ========== GENERAL STATS ==========
-    const stats = [
-        ["Total Score", s.total_score ?? 0],
-        ["Accuracy", Math.round((s.accuracy ?? 0) * 100) + "%"],
-        ["Total Attempts", s.total_attempts ?? 0],
-        ["Correct", s.total_correct ?? 0],
-        ["Wrong", s.total_wrong ?? 0],
-        ["Total Time", formatHumanTime(s.total_time)]
-    ];
+    <h4>Activity Calendar (2×2 Months)</h4>
+    <div id="pdf-mini-calendar" style="display:flex; flex-wrap:wrap; gap:10px;"></div>
+  `;
 
-    doc.autoTable({
-        startY: y,
-        head: [["Metric", "Value"]],
-        body: stats,
-        theme: "grid",
-        headStyles: { fillColor: [22, 163, 198] },
-        styles: { fontSize: 11, halign: "left" },
-        tableWidth: "auto",
-        margin: { left: 20 }
-    });
+  // 2. RENDER MINI CAL (Reuse existing functions!)
+  const tempCalendarContainer = pdfArea.querySelector("#pdf-mini-calendar");
 
-    y = doc.autoTable.previous.finalY + 15;
+  const quests = parseItems(studentObj.quest_list);
+  const videos = parseItems(studentObj.video_list);
+  const stories = parseItems(studentObj.story_list);
+  const grouped = groupByDate(quests, videos, stories);
 
-    // ========== 4 MONTH CALENDAR ==========
-    const START_DATE = new Date("2025-08-25");
-    const quests = parseItems(s.quest_list);
-    const videos = parseItems(s.video_list);
-    const stories = parseItems(s.story_list);
-    const grouped = groupByDate(quests, videos, stories);
+  // Render the same mini-cal used in modal
+  let cursor = new Date(START_DATE.getFullYear(), START_DATE.getMonth(), 1);
+  const today = new Date();
+  const end = new Date(today.getFullYear(), today.getMonth(), 1);
 
-    doc.setFontSize(16);
-    doc.text("Mission Completion Calendar", pageWidth / 2, y, { align: "center" });
-    y += 8;
+  while (cursor <= end) {
+    const block = document.createElement("div");
+    block.style.width = "48%";
+    block.style.border = "1px solid #000";
+    block.style.padding = "6px";
 
-    // Build 4 consecutive months
-    let cursor = new Date(START_DATE.getFullYear(), START_DATE.getMonth(), 1);
+    block.innerHTML = renderOneMonth(cursor, grouped)
+      .replace(/background:[^;"]+;/g, "")   // remove colours
+      .replace(/color:[^;"]+;/g, "color:#000;");
 
-    for (let m = 0; m < 4; m++) {
-        y = renderMonthPDF(doc, cursor, grouped, y);
-        cursor.setMonth(cursor.getMonth() + 1);
+    tempCalendarContainer.appendChild(block);
+    cursor.setMonth(cursor.getMonth() + 1);
+  }
 
-        if (y > 260) {
-            doc.addPage();
-            y = 20;
-        }
-    }
+  // 3. CONVERT → CANVAS → PDF
+  document.body.appendChild(pdfArea);
+  await new Promise(r => setTimeout(r, 300)); // ensure rendering
 
-    doc.save(`${s.name}_Profile.pdf`);
-};
+  const canvas = await html2canvas(pdfArea, { scale: 2 });
+  const imgData = canvas.toDataURL("image/png");
 
-function formatHumanTime(sec) {
-    if (!sec) return "0h 0m 0s";
-    sec = Math.round(sec);
-    return `${Math.floor(sec / 3600)}h ${Math.floor(sec % 3600 / 60)}m ${sec % 60}s`;
+  const pdf = new jsPDF("p", "pt", "a4");
+  pdf.addImage(imgData, "PNG", 10, 10, 575, 822);
+  pdf.save(`${studentObj.name}_Profile.pdf`);
+
+  pdfArea.remove();
 }
 
-function renderMonthPDF(doc, monthDate, grouped, yStart) {
-    const pageWidth = doc.internal.pageSize.getWidth();
-    let y = yStart;
+// === Add button inside modal dynamically ==========================
+function showDetail(s) {
+  const modal = document.getElementById("modal");
+  const content = document.getElementById("modal-content");
 
-    // Month title
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(13);
-    doc.text(
-        monthDate.toLocaleString("en-IN", { month: "long", year: "numeric" }),
-        pageWidth / 2,
-        y,
-        { align: "center" }
-    );
-    y += 6;
+  // existing content population…
+  // (keep your current showDetail code)
+  
+  // ⬇⬇ ADD THIS BUTTON AFTER CONTENT IS RENDERED ⬇⬇
+  setTimeout(() => {
+    const btn = document.createElement("button");
+    btn.textContent = "📄 Download PDF";
+    btn.style.cssText = `
+      width:100%;
+      padding:10px;
+      margin-top:10px;
+      font-weight:700;
+      border:1px solid #888;
+      background:#fff;
+      color:#000;
+      cursor:pointer;
+      border-radius:6px;
+    `;
+    btn.onclick = () => downloadProfilePDF(s);
+    content.appendChild(btn);
+  }, 50);
 
-    // Build calendar table data
-    const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-    const rows = [days];
-
-    const year = monthDate.getFullYear();
-    const month = monthDate.getMonth();
-    const firstDay = new Date(year, month, 1).getDay();
-    const numDays = new Date(year, month + 1, 0).getDate();
-
-    let row = Array(firstDay).fill("");
-
-    for (let d = 1; d <= numDays; d++) {
-        const date = new Date(year, month, d).toDateString();
-        let cell = "" + d;
-
-        if (grouped[date]) {
-            cell += "\n" + grouped[date].map(i => iconFor(i)).join(" ");
-        }
-
-        row.push(cell);
-
-        if (row.length === 7) {
-            rows.push([...row]);
-            row = [];
-        }
-    }
-    if (row.length > 0) {
-        while (row.length < 7) row.push("");
-        rows.push(row);
-    }
-
-    // Write calendar table
-    doc.autoTable({
-        startY: y,
-        body: rows,
-        theme: "grid",
-        styles: {
-            fontSize: 8,
-            cellPadding: 1.5,
-            valign: "top",
-            halign: "center"
-        },
-        columnStyles: {
-            0: { cellWidth: 26 }, 1: { cellWidth: 26 }, 2: { cellWidth: 26 },
-            3: { cellWidth: 26 }, 4: { cellWidth: 26 }, 5: { cellWidth: 26 },
-            6: { cellWidth: 26 }
-        },
-        margin: { left: (pageWidth - 26 * 7) / 2 }
-    });
-
-    return doc.autoTable.previous.finalY + 12;
+  modal.style.display = "flex";
 }
 
   </script>
@@ -1507,7 +1470,6 @@ function renderMonthPDF(doc, monthDate, grouped, yStart) {
   white-space: nowrap;
 }
   </style>
-
 </head>
 
 <body>

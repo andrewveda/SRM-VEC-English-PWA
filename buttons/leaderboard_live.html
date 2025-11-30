@@ -453,6 +453,24 @@ B = new Date(b.last_test_taken).getTime();
 
       const grouped = groupByDate(quests, videos, stories);
       renderMiniCalendar("mini-calendar", grouped);
+// INSERT THIS INSIDE showDetail(s), at the end:
+
+const pdfBtn = document.createElement("button");
+pdfBtn.textContent = "📄 Download PDF";
+pdfBtn.style.cssText = `
+  width:100%;
+  padding:10px;
+  margin-top:12px;
+  font-weight:700;
+  border:1px solid #888;
+  background:#fff;
+  color:#000;
+  cursor:pointer;
+  border-radius:6px;
+`;
+pdfBtn.onclick = () => downloadProfilePDF(s);
+
+document.getElementById("modal-content").appendChild(pdfBtn);
 
       modal.style.display = "flex";
     }
@@ -547,6 +565,159 @@ B = new Date(b.last_test_taken).getTime();
         closeModal();
       }
     };
+    // === PDF GENERATION ===============================================
+// Requires jsPDF + html2canvas
+// Inject libraries once
+(function injectLibraries() {
+  if (!window.jspdf) {
+    const s1 = document.createElement("script");
+    const s2 = document.createElement("script");
+    s1.src = "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";
+    s2.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
+    document.head.appendChild(s1);
+    document.head.appendChild(s2);
+  }
+})();
+
+async function downloadProfilePDF(studentObj) {
+  const { jsPDF } = window.jspdf;
+
+  // 1) Fetch extra stats (same fields used in index.html miniPowerDeck)
+  let totalTimeSeconds = 0;
+  try {
+    const { data, error } = await supabase
+      .from("report_card_view")
+      .select("total_time")
+      .eq("name", studentObj.name)
+      .maybeSingle();
+
+    if (!error && data && data.total_time) {
+      totalTimeSeconds = Math.round(data.total_time);
+    }
+  } catch (e) {
+    console.error("PDF stats fetch failed:", e);
+  }
+
+  // 2) Count Quests, Videos, Stories
+  const quests = parseItems(studentObj.quest_list);
+  const videos = parseItems(studentObj.video_list);
+  const stories = parseItems(studentObj.story_list);
+
+  const questCount = quests.length;
+  const videoCount = videos.length;
+  const storyCount = stories.length;
+
+  // Format time like index.html toggle
+  const h = Math.floor(totalTimeSeconds / 3600);
+  const m = Math.floor((totalTimeSeconds % 3600) / 60);
+  const s = totalTimeSeconds % 60;
+  const formattedTime = `${h}h ${m}m ${s}s`;
+
+  // 3) Create PDF area
+  const pdfArea = document.createElement("div");
+  pdfArea.style.width = "794px";   // A4 width
+  pdfArea.style.padding = "20px";
+  pdfArea.style.fontFamily = "Arial, sans-serif";
+  pdfArea.style.color = "#000";
+  pdfArea.style.background = "#fff";
+  pdfArea.style.lineHeight = "1.4";
+
+  pdfArea.innerHTML = `
+ <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Cormorant+Garamond:wght@500;600&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet"/>
+
+<h2 style="
+  text-align:center; 
+  margin-bottom:4px; 
+  font-family:'Cinzel', serif;
+">
+  SRM Valliammai Engineering College
+</h2>
+
+<h3 style="
+  text-align:center; 
+  margin-top:0; 
+  font-family:'Cormorant Garamond', serif;
+">
+  Department of English
+</h3>
+
+<hr/>
+
+<h3 style="
+  margin-top:10px; 
+  font-family:'Playfair Display', serif;
+  font-size:22px;
+">
+  ${studentObj.name}
+</h3>
+   <div style="
+      display:flex; 
+      gap:12px; 
+      margin:10px 0 14px 0;
+      font-size:14px;
+      justify-content:space-between;
+    ">
+      <div style="border:1px solid #000; padding:10px; width:22%; text-align:center;">
+        <div style="font-size:22px;">📝</div>
+        <div><b>${questCount}</b> Quests</div>
+      </div>
+      <div style="border:1px solid #000; padding:10px; width:22%; text-align:center;">
+        <div style="font-size:22px;">🎥</div>
+        <div><b>${videoCount}</b> Videos</div>
+      </div>
+      <div style="border:1px solid #000; padding:10px; width:22%; text-align:center;">
+        <div style="font-size:22px;">📚</div>
+        <div><b>${storyCount}</b> Stories</div>
+      </div>
+      <div style="border:1px solid #000; padding:10px; width:22%; text-align:center;">
+        <div style="font-size:22px;">⏱</div>
+        <div><b>${formattedTime}</b></div>
+      </div>
+    </div>
+
+    <hr/>
+
+  
+    <h4>Activity Calendar (2×2 Months)</h4>
+    <div id="pdf-mini-calendar" style="display:flex; flex-wrap:wrap; gap:10px;"></div>
+  `;
+
+  // 4) Render Mini Calendar
+  const tempCalendarContainer = pdfArea.querySelector("#pdf-mini-calendar");
+  const grouped = groupByDate(quests, videos, stories);
+
+  let cursor = new Date(START_DATE.getFullYear(), START_DATE.getMonth(), 1);
+  const today = new Date();
+  const end = new Date(today.getFullYear(), today.getMonth(), 1);
+
+  while (cursor <= end) {
+    const block = document.createElement("div");
+    block.style.width = "48%";
+    block.style.border = "1px solid #000";
+    block.style.padding = "6px";
+
+    block.innerHTML = renderOneMonth(cursor, grouped)
+      .replace(/background:[^;"]+;/g, "")  // remove colour
+      .replace(/color:[^;"]+;/g, "color:#000;");
+
+    tempCalendarContainer.appendChild(block);
+    cursor.setMonth(cursor.getMonth() + 1);
+  }
+
+  // 5) Convert → canvas → PDF
+  document.body.appendChild(pdfArea);
+  await new Promise(r => setTimeout(r, 300));
+
+  const canvas = await html2canvas(pdfArea, { scale: 2 });
+  const imgData = canvas.toDataURL("image/png");
+
+  const pdf = new jsPDF("p", "pt", "a4");
+  pdf.addImage(imgData, "PNG", 10, 10, 575, 822);
+  pdf.save(`${studentObj.name}_Profile.pdf`);
+
+  pdfArea.remove();
+}
+
   </script>
 
   <style>
@@ -1431,4 +1602,3 @@ B = new Date(b.last_test_taken).getTime();
   </div>
 </body>
 </html>
-

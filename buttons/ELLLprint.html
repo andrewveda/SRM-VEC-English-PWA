@@ -156,19 +156,16 @@ async function fetchDirectory() {
 
     if (sErr) throw sErr;
 
-    // 🔥 2) Fetch leaderboard table (score, rank, time, etc.)
-    const { data: leaderboardData, error: lErr } = await supabase
-      .from("leaderboard")
-      .select("*")
-      .ilike("Name", name);
+    // 🔥 2) Fetch from report_card_view (best source for time & scores)
+const { data: reportCard, error: rErr } = await supabase
+  .from("report_card_view")
+  .select("name, total_correct, total_wrong, total_time, total_score, last_test_taken")
+  .ilike("name", name);
 
-    if (lErr) throw lErr;
+if (rErr) throw rErr;
 
-    // --- Process summary_import result ---
-    let summaryUser = summaryData?.[0] || null;
+let profileUser = reportCard?.[0] || null;
 
-    // --- Process leaderboard result ---
-    let profileUser = leaderboardData?.[0] || null;
 
     // ❗ If student NOT found in Supabase → show blank ELLL grid
     if (!summaryUser && !profileUser) {

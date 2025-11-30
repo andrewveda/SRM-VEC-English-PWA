@@ -582,7 +582,38 @@ document.getElementById("modal-content").appendChild(pdfBtn);
 async function downloadProfilePDF(studentObj) {
   const { jsPDF } = window.jspdf;
 
-  // 1. CREATE A TEMPORARY PDF AREA (BLACK & WHITE)
+  // 1) Fetch extra stats (same fields used in index.html miniPowerDeck)
+  let totalTimeSeconds = 0;
+  try {
+    const { data, error } = await supabase
+      .from("report_card_view")
+      .select("total_time")
+      .eq("name", studentObj.name)
+      .maybeSingle();
+
+    if (!error && data && data.total_time) {
+      totalTimeSeconds = Math.round(data.total_time);
+    }
+  } catch (e) {
+    console.error("PDF stats fetch failed:", e);
+  }
+
+  // 2) Count Quests, Videos, Stories
+  const quests = parseItems(studentObj.quest_list);
+  const videos = parseItems(studentObj.video_list);
+  const stories = parseItems(studentObj.story_list);
+
+  const questCount = quests.length;
+  const videoCount = videos.length;
+  const storyCount = stories.length;
+
+  // Format time like index.html toggle
+  const h = Math.floor(totalTimeSeconds / 3600);
+  const m = Math.floor((totalTimeSeconds % 3600) / 60);
+  const s = totalTimeSeconds % 60;
+  const formattedTime = `${h}h ${m}m ${s}s`;
+
+  // 3) Create PDF area
   const pdfArea = document.createElement("div");
   pdfArea.style.width = "794px";   // A4 width
   pdfArea.style.padding = "20px";
@@ -590,38 +621,64 @@ async function downloadProfilePDF(studentObj) {
   pdfArea.style.color = "#000";
   pdfArea.style.background = "#fff";
   pdfArea.style.lineHeight = "1.4";
+
   pdfArea.innerHTML = `
-    <h2 style="text-align:center; margin-bottom:4px;">SRM VEC — English Mission Report</h2>
+    <h2 style="text-align:center; margin-bottom:4px;">
+      SRM VEC — English Mission Report
+    </h2>
     <h3 style="text-align:center; margin-top:0;">${studentObj.name}</h3>
 
     <hr/>
 
-    <h4>Statistics</h4>
-    <table style="width:100%; border-collapse:collapse; font-size:14px;">
+    <!-- ⭐ STAT BUBBLE (Black & White) -->
+    <h3 style="margin-top:10px;">Performance Bubble</h3>
+    <div style="
+      display:flex; 
+      gap:12px; 
+      margin:10px 0 14px 0;
+      font-size:14px;
+      justify-content:space-between;
+    ">
+      <div style="border:1px solid #000; padding:10px; width:22%; text-align:center;">
+        <div style="font-size:22px;">📝</div>
+        <div><b>${questCount}</b> Quests</div>
+      </div>
+      <div style="border:1px solid #000; padding:10px; width:22%; text-align:center;">
+        <div style="font-size:22px;">🎥</div>
+        <div><b>${videoCount}</b> Videos</div>
+      </div>
+      <div style="border:1px solid #000; padding:10px; width:22%; text-align:center;">
+        <div style="font-size:22px;">📚</div>
+        <div><b>${storyCount}</b> Stories</div>
+      </div>
+      <div style="border:1px solid #000; padding:10px; width:22%; text-align:center;">
+        <div style="font-size:22px;">⏱</div>
+        <div><b>${formattedTime}</b></div>
+      </div>
+    </div>
+
+    <hr/>
+
+    <h4>Core Statistics</h4>
+    <table style="width:100%; border-collapse:collapse; font-size:14px; margin-bottom:12px;">
       <tr><td>Score:</td><td>${studentObj.total_score ?? 0}</td></tr>
       <tr><td>Accuracy:</td><td>${Math.round((studentObj.accuracy ?? 0) * 100)}%</td></tr>
       <tr><td>Attempts:</td><td>${studentObj.total_attempts ?? 0}</td></tr>
       <tr><td>Correct:</td><td>${studentObj.total_correct ?? 0}</td></tr>
       <tr><td>Wrong:</td><td>${studentObj.total_wrong ?? 0}</td></tr>
-      <tr><td>Time:</td><td>${Math.round(studentObj.total_time ?? 0)} sec</td></tr>
-      <tr><td>Last Test:</td><td>${studentObj.last_test_taken}</td></tr>
+      <tr><td>Last Test:</td><td>${formatDate(studentObj.last_test_taken)}</td></tr>
     </table>
 
-    <hr style="margin-top:10px;"/>
+    <hr/>
 
     <h4>Activity Calendar (2×2 Months)</h4>
     <div id="pdf-mini-calendar" style="display:flex; flex-wrap:wrap; gap:10px;"></div>
   `;
 
-  // 2. RENDER MINI CAL (Reuse existing functions!)
+  // 4) Render Mini Calendar
   const tempCalendarContainer = pdfArea.querySelector("#pdf-mini-calendar");
-
-  const quests = parseItems(studentObj.quest_list);
-  const videos = parseItems(studentObj.video_list);
-  const stories = parseItems(studentObj.story_list);
   const grouped = groupByDate(quests, videos, stories);
 
-  // Render the same mini-cal used in modal
   let cursor = new Date(START_DATE.getFullYear(), START_DATE.getMonth(), 1);
   const today = new Date();
   const end = new Date(today.getFullYear(), today.getMonth(), 1);
@@ -633,16 +690,16 @@ async function downloadProfilePDF(studentObj) {
     block.style.padding = "6px";
 
     block.innerHTML = renderOneMonth(cursor, grouped)
-      .replace(/background:[^;"]+;/g, "")   // remove colours
+      .replace(/background:[^;"]+;/g, "")  // remove colour
       .replace(/color:[^;"]+;/g, "color:#000;");
 
     tempCalendarContainer.appendChild(block);
     cursor.setMonth(cursor.getMonth() + 1);
   }
 
-  // 3. CONVERT → CANVAS → PDF
+  // 5) Convert → canvas → PDF
   document.body.appendChild(pdfArea);
-  await new Promise(r => setTimeout(r, 300)); // ensure rendering
+  await new Promise(r => setTimeout(r, 300));
 
   const canvas = await html2canvas(pdfArea, { scale: 2 });
   const imgData = canvas.toDataURL("image/png");
@@ -653,7 +710,6 @@ async function downloadProfilePDF(studentObj) {
 
   pdfArea.remove();
 }
-
 
   </script>
 

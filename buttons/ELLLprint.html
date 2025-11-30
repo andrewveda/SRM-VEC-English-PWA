@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ELLL Directory 🎓📜</title>
+<link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+<style>
+  body {
+    font-family: 'Merriweather', serif;
+    margin: 0;
+    padding: 15px;
+    background: #1B1B2F;
+    color: #EDEDED;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  h1 { font-family: 'Playfair Display', serif; font-size: 2.2em; margin: 5px 0; color: #FFD700; text-align: center; }
+  h2 { font-family: 'Merriweather', serif; font-size: 1.1em; margin: 3px 0 10px; color: #D4AF37; font-style: italic; text-align: center; }
+  .subheading { font-size: 0.9em; color: #C9B037; margin-bottom: 15px; text-align: center; }
+  #inputContainer { display: flex; flex-direction: column; align-items: center; margin-bottom: 10px; }
+  input, button {
+    padding: 8px 12px;
+    margin: 4px;
+    border-radius: 6px;
+    border: 1px solid #D4AF37;
+    font-size: 14px;
+    font-family: 'Merriweather', serif;
+    transition: all 0.3s ease;
+  }
+  input { width: 180px; background: #2B2B44; color: #EDEDED; }
+  input:focus { outline: none; border-color: #FFD700; }
+  button {
+    background: #4B3E8C;
+    color: #FFD700;
+    cursor: pointer;
+    font-weight: bold;
+    border: 1px solid #D4AF37;
+  }
+  button:hover { background: #3C2F70; transform: translateY(-2px); }
+  #directoryContainer {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    width: 100%;
+    max-width: 480px;
+    padding:10px;
+  }
+  .record {
+    position: relative;
+    background: #2B2B44;
+    border-radius: 12px;
+    padding: 16px 8px 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s, opacity 0.3s;
+  }
+  .record:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(212, 175, 55, 0.4); }
+  .record > * { position: relative; z-index: 1; }
+  .recordTitle { font-size: 12px; font-weight: 700; margin-top: 8px; text-align: center; word-break: break-word; }
+  .emoji { font-size: 1.4em; }
+  .percentText { font-size: 11px; margin-top: 6px; color: #FFD700; }
+  #loadingQuote { font-size: 12px; margin-bottom: 6px; font-style: italic; }
+  #userName { font-weight: bold; font-size: 16px; color: #FFD700; margin-bottom: 3px; }
+  #progress { font-size: 13px; color: #D4AF37; margin-bottom: 8px; }
+  @media(max-width: 350px) {
+    #directoryContainer { grid-template-columns: repeat(2, 1fr); }
+    .emoji { font-size: 1.2em; }
+    .recordTitle { font-size: 10px; }
+    .percentText { font-size: 9px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="subheading">English Language Learning Laboratory<br>Virtual Record</div>
+
+<div id="inputContainer">
+  <input type="text" id="nameInput" placeholder="Enter Your Name">
+  <button onclick="fetchDirectory()">Show Records</button>
+</div>
+
+<div id="loadingQuote"></div>
+<div id="userName"></div>
+<div id="progress"></div>
+<div id="directoryContainer"></div>
+
+<button id="generatePdfBtn" style="margin-top:15px; padding:10px 15px; font-size:14px; cursor:pointer;">Download Report Card (PDF)</button>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<script>
+const quote = "Fetching your ELLL progress... Please wait 📜🎓";
+const sheetURL = "https://script.google.com/macros/s/AKfycbzPmoVR2sfZFgrh7YGxag018JF3HtIkDq3AG65Tt_psWgWLGvbERINZw7lP9wuupbVd/exec";
+
+const activityNames = [
+  "SWOC","Phonics","Listening","Something Close to My Heart",
+  "Song Decode","Headline Hunt","Creative Rendezvous","Letter","Self Reflection"
+];
+
+const emojisIncomplete = ["🗝️","📚","🎧","💖","🎼","📰","🎨","✉️","🪞"];
+const emojisComplete = ["🏆","📖","🎶","💎","🎹","🏅","🌟","🏵️","🔮"];
+const elllLinks = {
+  1: "https://sites.google.com/view/cys-english/copy-of-swoc",
+  2: "https://andrewveda.github.io/voicequests/",
+  3: "https://andrewveda.github.io/3/",
+  4: "https://sites.google.com/view/cys-english/sctmh",
+  5: "https://sites.google.com/view/cys-english/video-quests",
+  6: "https://andrewveda.github.io/6/",
+  7: "https://andrewveda.github.io/play/",
+  8: "https://andrewveda.github.io/letter/",
+  9: "https://andrewveda.github.io/10/"
+};
+let currentUserData = null;
+
+function typeWriter(text, element, callback=null){
+  let i=0; element.textContent="";
+  const interval=setInterval(()=>{
+    element.textContent+=text.charAt(i);
+    i++;
+    if(i>=text.length){ clearInterval(interval); if(callback) callback(); }
+  },25);
+}
+
+async function fetchDirectory(){
+  const name=document.getElementById('nameInput').value.trim();
+  if(!name) return alert("Please enter your name!");
+  document.getElementById('inputContainer').style.display='none';
+  const quoteEl=document.getElementById('loadingQuote');
+  typeWriter(quote, quoteEl);
+
+  try{
+    const res=await fetch(sheetURL);
+    const data=await res.json();
+    const user=data.find(u=>u.Name.toUpperCase()===name.toUpperCase());
+    if(!user){
+      quoteEl.textContent="Name not found — showing default records.";
+      document.getElementById('userName').textContent=name.toUpperCase();
+      renderDirectory({Name:name,Challenges:[]}); 
+      currentUserData={Name:name,Challenges:[]};
+      return;
+    }
+    document.getElementById('userName').textContent=user.Name.toUpperCase();
+    renderDirectory(user);
+    currentUserData=user;
+    quoteEl.textContent="";
+  }catch(err){
+    console.error(err);
+    document.getElementById('loadingQuote').textContent="Error fetching data!";
+  }
+}
+
+function renderDirectory(user){
+  const container=document.getElementById('directoryContainer');
+  container.innerHTML="";
+  const completed=Array.isArray(user.Challenges)?user.Challenges:(user.Challenges?user.Challenges.split(","):[]);
+  let doneCount=0;
+  for(let i=0;i<9;i++){
+    const recordDiv=document.createElement('div');
+    const title=`ELLL ${i+1}`;
+    recordDiv.className='record';
+    recordDiv.onclick=()=>window.open(elllLinks[i+1],'_blank');
+    const challengesDone=completed.filter(c=>c.trim().toUpperCase().startsWith(title.toUpperCase())).length;
+    let requiredChallenges = 1;
+    if(i+1===2) requiredChallenges=45;
+    if(i+1===5) requiredChallenges=12;
+    const percent=Math.min(Math.round((challengesDone/requiredChallenges)*100),100);
+    const emoji=percent===100?emojisComplete[i]:emojisIncomplete[i];
+    recordDiv.style.opacity=0.5+(percent/100)*0.5;
+    recordDiv.style.background=`linear-gradient(to top, rgba(255,215,0,${0.3 + percent/200}) ${percent}%, #2B2B44 ${percent}%)`;
+    recordDiv.innerHTML=`
+      <div class="emoji">${emoji}</div>
+      <div class="recordTitle">${activityNames[i]}</div>
+      <div class="percentText">${percent}%</div>
+    `;
+    container.appendChild(recordDiv);
+    if(percent===100) doneCount++;
+  }
+  document.getElementById('progress').textContent=`Gems: ${doneCount}/9 collected ${doneCount===9?"📜":""}`;
+}
+
+document.getElementById('generatePdfBtn').addEventListener('click', async () => {
+  if (!currentUserData) return alert("Please fetch a student first!");
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ format: 'a4', unit: 'mm' });
+  const pw = doc.internal.pageSize.getWidth();
+  const ph = doc.internal.pageSize.getHeight();
+
+  // Background
+  doc.setFillColor(27,27,47);
+  doc.rect(0,0,pw,ph,'F');
+
+  // Header
+  doc.setFont('times','bold'); doc.setFontSize(16); doc.setTextColor(255,215,0);
+  doc.text('SRM Valliammai Engineering College (Autonomous)', pw/2, 20, {align:'center'});
+  doc.setFont('times','italic'); doc.setFontSize(14);
+  doc.text('Department of English', pw/2, 28, {align:'center'});
+  doc.setFont('times','italic'); doc.setFontSize(12); doc.setTextColor(230,230,230);
+  doc.text('English Language Learning Laboratory Virtual Record', pw/2, 36, {align:'center'});
+  doc.text('2025-2026', pw/2, 42, {align:'center'});
+  doc.text('Semester - I', pw/2, 48, {align:'center'});
+
+  // Student info
+  const xKey=15, xValue=70;
+  let yPos = 55;
+  const headerMap = {
+    "Name":"Student Name","Rank":"Rank","Score (Correct–Wrong)":"Score",
+    "TotalCorrect":"Total Correct Answers","TotalWrong":"Total Wrong Answers",
+    "Total Time (s)":"Time Spent (s)","Quests":"Total Quests Completed",
+    "LastTest":"Last Test Date"
+  };
+  const keysOrder = ["Name","Rank","Score (Correct–Wrong)"];
+  keysOrder.forEach(key => {
+    if(currentUserData[key] !== undefined){
+      const displayKey = headerMap[key];
+      doc.setFont('times','normal'); doc.setFontSize(11); doc.setTextColor(230,230,230);
+      doc.text(`${displayKey}:`, xKey, yPos); doc.text(`${currentUserData[key]}`, xValue, yPos);
+      yPos += 6;
+    }
+  });
+
+  // Capture PNG
+  const container = document.getElementById('directoryContainer');
+  container.style.filter = 'brightness(0.7)';
+  const canvas = await html2canvas(container, { backgroundColor:'#1B1B2F', scale:2 });
+  const imgData = canvas.toDataURL('image/png');
+  container.style.filter = '';
+
+  // Calculate dynamic space for PNG
+  const footerHeight = 10;
+  const metricsHeight = 6*5; // 5 metrics
+  const declarationHeight = 8*2 + 10 + 6*2; // 2 lines + signature + date
+  const availableHeight = ph - yPos - metricsHeight - declarationHeight - footerHeight - 5;
+
+  const imgProps = doc.getImageProperties(imgData);
+  let pdfWidth = pw * 0.8;
+  let pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+  // Scale to fit available height while preserving aspect ratio
+  if(pdfHeight > availableHeight){
+    pdfHeight = availableHeight;
+    pdfWidth = (imgProps.width * pdfHeight) / imgProps.height;
+  }
+
+  const imgX = (pw - pdfWidth)/2;
+  const imgY = yPos;
+  doc.addImage(imgData, 'PNG', imgX, imgY, pdfWidth, pdfHeight);
+
+  // Metrics below PNG
+  yPos = imgY + pdfHeight + 5;
+  const metricsOrder = ["TotalCorrect","TotalWrong","Total Time (s)","Quests","LastTest"];
+  metricsOrder.forEach(key => {
+    if(currentUserData[key] !== undefined){
+      const displayKey = headerMap[key];
+      doc.text(`${displayKey}:`, xKey, yPos); doc.text(`${currentUserData[key]}`, xValue, yPos);
+      yPos += 6;
+    }
+  });
+
+  // Declaration
+  yPos += 10;
+  doc.setFont('times','italic'); doc.setFontSize(10);
+  const declarationLines = [
+    "I, __________________________ , proudly affirm that this record is a vibrant and honest monument to my personal odyssey in mastering the English language. I personally confirm that the recorded time spent in every activity (including listening, speaking, writing, reading, and critical thinking), every answer, and every reflection contained within is a direct testament to my own dedicated effort."
+  ];
+  declarationLines.forEach(line => {
+    doc.text(line, 15, yPos, { maxWidth: pw-30 });
+    yPos += 8;
+  });
+
+  // Signature & Date
+  yPos += 8;
+  doc.setFont('times','normal');
+  doc.text("Signature of the student: __________________________", 15, yPos);
+  yPos += 6;
+  doc.text("Date: __________________________", 15, yPos);
+
+  // Footer
+  doc.setFont('times','italic'); doc.setFontSize(10); doc.setTextColor(180,180,180);
+  doc.text('Generated from the ELLL Virtual Record | SRM VEC', pw/2, ph-10, {align:'center'});
+
+  doc.save(`ELLL_Report_${currentUserData.Name}.pdf`);
+});
+
+
+</script>
+</body>
+</html>

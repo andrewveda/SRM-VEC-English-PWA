@@ -94,18 +94,9 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
-  <script type="module">
-  import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-  // Make supabase available to normal scripts
-  window.supabase = createClient(
-    "https://ahezssoczvpbkteffcgz.supabase.co",
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoZXpzc29jenZwYmt0ZWZmY2d6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI4NTk1ODUsImV4cCI6MjA3ODQzNTU4NX0.2ZlqXnZxv0opkhynAT7OlK4S-xPygcc7ETUyTXRfGHE"
-  );
-</script>
-
 <script>
 const quote = "Fetching your ELLL progress... Please wait 📜🎓";
+const sheetURL = "https://script.google.com/macros/s/AKfycbzPmoVR2sfZFgrh7YGxag018JF3HtIkDq3AG65Tt_psWgWLGvbERINZw7lP9wuupbVd/exec";
 
 const activityNames = [
   "SWOC","Phonics","Listening","Something Close to My Heart",
@@ -135,132 +126,63 @@ function typeWriter(text, element, callback=null){
     if(i>=text.length){ clearInterval(interval); if(callback) callback(); }
   },25);
 }
-async function fetchDirectory() {
-  const name = document.getElementById('nameInput').value.trim();
-  if (!name) {
-    alert("Please enter your name!");
-    return;
-  }
 
-  // Hide input + show loading text
-  document.getElementById('inputContainer').style.display = 'none';
-  const quoteEl = document.getElementById('loadingQuote');
-  typeWriter("Fetching your ELLL progress... Please wait 📜🎓", quoteEl);
+async function fetchDirectory(){
+  const name=document.getElementById('nameInput').value.trim();
+  if(!name) return alert("Please enter your name!");
+  document.getElementById('inputContainer').style.display='none';
+  const quoteEl=document.getElementById('loadingQuote');
+  typeWriter(quote, quoteEl);
 
-  try {
-    // 🔥 1) Fetch summary table (ELLL is inside quest_list)
-    const { data: summaryData, error: sErr } = await supabase
-      .from("summary_import")
-      .select("student_name, quest_list")
-      .ilike("student_name", name);
-
-    if (sErr) throw sErr;
-
-    // 🔥 2) Fetch from report_card_view (best source for time & scores)
-const { data: reportCard, error: rErr } = await supabase
-  .from("report_card_view")
-  .select("name, total_correct, total_wrong, total_time, total_score, last_test_taken")
-  .ilike("name", name);
-
-if (rErr) throw rErr;
-
-let profileUser = reportCard?.[0] || null;
-
-
-    // ❗ If student NOT found in Supabase → show blank ELLL grid
-    if (!summaryUser && !profileUser) {
-      quoteEl.textContent = "Name not found — showing default records.";
-      document.getElementById('userName').textContent = name.toUpperCase();
-
-      currentUserData = {
-        Name: name,
-        quest_list: "",
-        TotalCorrect: 0,
-        TotalWrong: 0,
-        "Total Time (s)": 0,
-        Quests: 0,
-        Rank: "-"
-      };
-
-      renderDirectory({ Name: name, quest_list: "" });
+  try{
+    const res=await fetch(sheetURL);
+    const data=await res.json();
+    const user=data.find(u=>u.Name.toUpperCase()===name.toUpperCase());
+    if(!user){
+      quoteEl.textContent="Name not found — showing default records.";
+      document.getElementById('userName').textContent=name.toUpperCase();
+      renderDirectory({Name:name,Challenges:[]}); 
+      currentUserData={Name:name,Challenges:[]};
       return;
     }
-
-    // --- Merge both sources ---
-    currentUserData = {
-      Name: (profileUser?.Name || summaryUser?.student_name || name).toUpperCase(),
-      quest_list: summaryUser?.quest_list || "",
-      TotalCorrect: profileUser?.Correct || 0,
-      TotalWrong: profileUser?.Wrong || 0,
-      "Total Time (s)": profileUser?.total_time || 0,
-      Quests: profileUser?.Quests || 0,
-      Rank: profileUser?.Rank || "-"
-    };
-
-    // Update header
-    document.getElementById('userName').textContent = currentUserData.Name;
-
-    // Render ELLL grid
-    renderDirectory(currentUserData);
-
-    // Hide loading text
-    quoteEl.textContent = "";
-
-  } catch (err) {
+    document.getElementById('userName').textContent=user.Name.toUpperCase();
+    renderDirectory(user);
+    currentUserData=user;
+    quoteEl.textContent="";
+  }catch(err){
     console.error(err);
-    document.getElementById('loadingQuote').textContent = "Error fetching data!";
+    document.getElementById('loadingQuote').textContent="Error fetching data!";
   }
 }
 
-function renderDirectory(user) {
-  const container = document.getElementById('directoryContainer');
-  container.innerHTML = "";
-
-  const completed = user.quest_list
-    ? user.quest_list.split(",").map(c => c.trim())
-    : [];
-
-  let doneCount = 0;
-
-  for (let i = 0; i < 9; i++) {
-    const title = `ELLL ${i + 1}`;
-
-    const challengesDone = completed.filter(c =>
-      c.toUpperCase().startsWith(title.toUpperCase())
-    ).length;
-
+function renderDirectory(user){
+  const container=document.getElementById('directoryContainer');
+  container.innerHTML="";
+  const completed=Array.isArray(user.Challenges)?user.Challenges:(user.Challenges?user.Challenges.split(","):[]);
+  let doneCount=0;
+  for(let i=0;i<9;i++){
+    const recordDiv=document.createElement('div');
+    const title=`ELLL ${i+1}`;
+    recordDiv.className='record';
+    recordDiv.onclick=()=>window.open(elllLinks[i+1],'_blank');
+    const challengesDone=completed.filter(c=>c.trim().toUpperCase().startsWith(title.toUpperCase())).length;
     let requiredChallenges = 1;
-    if (i + 1 === 2) requiredChallenges = 1;
-    if (i + 1 === 5) requiredChallenges = 1;
-
-    const percent = Math.min(Math.round((challengesDone / requiredChallenges) * 100), 100);
-
-    const emoji = percent === 100 ? emojisComplete[i] : emojisIncomplete[i];
-
-    const recordDiv = document.createElement('div');
-    recordDiv.className = "record";
-    recordDiv.style.opacity = 0.5 + (percent / 100) * 0.5;
-    recordDiv.style.background =
-      `linear-gradient(to top, rgba(255,215,0,${0.3 + percent/200}) ${percent}%, #2B2B44 ${percent}%)`;
-
-    recordDiv.onclick = () => window.open(elllLinks[i+1], '_blank');
-
-    recordDiv.innerHTML = `
+    if(i+1===2) requiredChallenges=1;
+    if(i+1===5) requiredChallenges=1;
+    const percent=Math.min(Math.round((challengesDone/requiredChallenges)*100),100);
+    const emoji=percent===100?emojisComplete[i]:emojisIncomplete[i];
+    recordDiv.style.opacity=0.5+(percent/100)*0.5;
+    recordDiv.style.background=`linear-gradient(to top, rgba(255,215,0,${0.3 + percent/200}) ${percent}%, #2B2B44 ${percent}%)`;
+    recordDiv.innerHTML=`
       <div class="emoji">${emoji}</div>
       <div class="recordTitle">${activityNames[i]}</div>
       <div class="percentText">${percent}%</div>
     `;
-
     container.appendChild(recordDiv);
-
-    if (percent === 100) doneCount++;
+    if(percent===100) doneCount++;
   }
-
-  document.getElementById('progress').textContent =
-    `Gems: ${doneCount}/9 collected ${doneCount === 9 ? "📜" : ""}`;
+  document.getElementById('progress').textContent=`Gems: ${doneCount}/9 collected ${doneCount===9?"📜":""}`;
 }
-
-
 
 document.getElementById('generatePdfBtn').addEventListener('click', async () => {
   if (!currentUserData) return alert("Please fetch a student first!");
@@ -276,16 +198,16 @@ document.getElementById('generatePdfBtn').addEventListener('click', async () => 
   // Header
   doc.setFont('times','bold'); doc.setFontSize(16); doc.setTextColor(255,215,0);
   doc.text('SRM Valliammai Engineering College (Autonomous)', pw/2, 20, {align:'center'});
-  doc.setFont('times','italic'); doc.setFontSize(16);
+  doc.setFont('times','italic'); doc.setFontSize(14);
   doc.text('Department of English', pw/2, 28, {align:'center'});
-  doc.setFont('times','italic'); doc.setFontSize(14); doc.setTextColor(230,230,230);
+  doc.setFont('times','italic'); doc.setFontSize(12); doc.setTextColor(230,230,230);
   doc.text('English Language Learning Laboratory Virtual Record', pw/2, 36, {align:'center'});
   doc.text('2025-2026', pw/2, 42, {align:'center'});
   doc.text('Semester - I', pw/2, 48, {align:'center'});
 
   // Student info
   const xKey=15, xValue=70;
-  let yPos = 60;
+  let yPos = 55;
   const headerMap = {
     "Name":"Student Name","Rank":"Rank","Score (Correct–Wrong)":"Score",
     "TotalCorrect":"Total Correct Answers","TotalWrong":"Total Wrong Answers",
@@ -296,9 +218,9 @@ document.getElementById('generatePdfBtn').addEventListener('click', async () => 
   keysOrder.forEach(key => {
     if(currentUserData[key] !== undefined){
       const displayKey = headerMap[key];
-      doc.setFont('times','normal'); doc.setFontSize(14); doc.setTextColor(230,230,230);
+      doc.setFont('times','normal'); doc.setFontSize(11); doc.setTextColor(230,230,230);
       doc.text(`${displayKey}:`, xKey, yPos); doc.text(`${currentUserData[key]}`, xValue, yPos);
-      yPos += 8;
+      yPos += 6;
     }
   });
 
@@ -326,7 +248,7 @@ container.style.zoom = '';
   // Calculate dynamic space for PNG
   const footerHeight = 10;
   const metricsHeight = 6*5; // 5 metrics
- const declarationHeight = 8*2 + 25 + 6*2;
+  const declarationHeight = 8*2 + 10 + 6*2; // 2 lines + signature + date
   const availableHeight = ph - yPos - metricsHeight - declarationHeight - footerHeight - 5;
 
   const imgProps = doc.getImageProperties(imgData);
@@ -340,7 +262,7 @@ container.style.zoom = '';
   }
 
   const imgX = (pw - pdfWidth)/2;
-const imgY = yPos + 8; 
+  const imgY = yPos;
   doc.addImage(imgData, 'PNG', imgX, imgY, pdfWidth, pdfHeight);
 
   // Metrics below PNG
@@ -355,21 +277,21 @@ const imgY = yPos + 8;
   });
 
   // Declaration
-  yPos += 15;
-  doc.setFont('times','italic'); doc.setFontSize(14);
+  yPos += 10;
+  doc.setFont('times','italic'); doc.setFontSize(10);
   const declarationLines = [
     "I, __________________________ , proudly affirm that this record is a vibrant and honest monument to my personal odyssey in mastering the English language. I personally confirm that the recorded time spent in every activity (including listening, speaking, writing, reading, and critical thinking), every answer, and every reflection contained within is a direct testament to my own dedicated effort."
   ];
   declarationLines.forEach(line => {
     doc.text(line, 15, yPos, { maxWidth: pw-30 });
-    yPos += 12;
+    yPos += 10;
   });
 
   // Signature & Date
-  yPos += 20;
+  yPos += 10;
   doc.setFont('times','normal');
   doc.text("Signature of the student: __________________________", 15, yPos);
-  yPos += 15;
+  yPos += 9;
   doc.text("Date: __________________________", 15, yPos);
 
   // Footer

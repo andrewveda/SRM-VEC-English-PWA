@@ -307,21 +307,26 @@ async function init() {
     const r = await fetch(CSV_URL);
     const txt = await r.text();
     WORDS = parseCSV(txt);
-    if (!WORDS.length) { hintEl.textContent = 'No valid 5-letter words found.'; return; }
+    if (!WORDS.length) { 
+        hintEl.textContent = 'No valid 5-letter words found.'; 
+        return; 
+    }
+
     chooseDailyWord();
     createBoard();
     renderKeyboard();
 
-    const data = loadProgress();
-    if (data.finished && data.date === new Date().toDateString()) { showScore(data.guesses.includes(ANSWER)); return; }
-    if (data.date === new Date().toDateString() && data.answer === ANSWER) {
-      guesses = data.guesses || [];
-      guesses.forEach(g => evaluateGuess(g));
-      if (guesses.includes(ANSWER)) { showScore(true); return; }
-      else if (guesses.length >= MAX_GUESSES) { showScore(false); return; }
-    }
+    // 🔥 Always start fresh
+    guesses = [];
+    current = "";
+    localStorage.removeItem(STORAGE_KEY);
+
     document.addEventListener('keydown', keydownHandler);
-  } catch (e) { hintEl.textContent = 'Failed to load word list.'; console.error(e); }
+
+  } catch (e) { 
+      hintEl.textContent = 'Failed to load word list.'; 
+      console.error(e); 
+  }
 }
 init();
 

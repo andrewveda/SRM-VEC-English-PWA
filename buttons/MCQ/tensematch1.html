@@ -544,37 +544,49 @@ function createSparkleEffect(element) {
 }
 function createFallingGems(element) {
   const rect = element.getBoundingClientRect();
-  const gemCount = 12; // how many gems rain per correct answer
+  const gemCount = 10;
 
   for (let i = 0; i < gemCount; i++) {
     const gem = document.createElement("div");
     gem.className = "falling-gem";
     gem.innerText = "🪙";
 
-    // Random scatter across full screen
-    const horizontalSpread = (Math.random() - 0.5) * window.innerWidth * 0.9;
+    // Random horizontal scatter
+    const scatterX = (Math.random() - 0.5) * window.innerWidth * 0.8;
 
-    gem.style.left = `${rect.left + rect.width / 2 + horizontalSpread}px`;
-    gem.style.top = `${rect.top + rect.height / 2}px`;
+    // Calculate starting position
+    const startX = rect.left + rect.width / 2 + scatterX;
+    const startY = rect.top + rect.height / 2;
 
+    gem.style.left = `${startX}px`;
+    gem.style.top = `${startY}px`;
+
+    // Append the falling gem to the body
     document.body.appendChild(gem);
 
-    // When animation finishes → turn into a "stacked gem"
-    gem.addEventListener("animationend", () => {
-      gem.remove();
+    // 🔥 Calculate EXACT landing position based on animation
+    const landingX = startX;          // same X ⇒ precise landing
+    const landingYPercent = Math.random() * 25; // small vertical randomness (optional)
 
+    // After animation ends → convert to pile gem at EXACT spot
+    setTimeout(() => {
       const pileGem = document.createElement("div");
       pileGem.className = "piled-gem";
-      pileGem.innerText = "💎";
+      pileGem.innerText = "🪙";
 
-      // Random position inside the bottom pile area
-      pileGem.style.left = `${Math.random() * 100}%`;
-      pileGem.style.bottom = `${Math.random() * 30}vh`;
+      // The falling gem “lands” here visually
+      pileGem.style.left = `${landingX}px`;
+      pileGem.style.bottom = `${landingYPercent}vh`;
+      pileGem.style.animation = "gemLand 0.3s ease-out";
 
       document.getElementById("gemPile").appendChild(pileGem);
-    });
+
+      // Remove the falling gem
+      gem.remove();
+    }, 1100); // matches the fall animation duration
   }
 }
+
 
 const EDGE_FUNCTION_URL =
   "https://ahezssoczvpbkteffcgz.supabase.co/functions/v1/logQuest";

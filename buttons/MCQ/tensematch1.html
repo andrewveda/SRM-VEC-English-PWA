@@ -151,34 +151,6 @@
   text-align: right;
   flex: 1;
 }
-  #gemVault {
-  position: absolute;
-  bottom: 10px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 85%;
-  height: 35px;
-  background: rgba(255,255,255,0.08);
-  border: 2px solid #ffd70055;
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-#gemVaultFill {
-  height: 100%;
-  width: 0%;
-  background: linear-gradient(90deg, #00ffaa, #00ccff);
-  transition: width 0.4s ease-out;
-}
-
-#gemVaultText {
-  position: absolute;
-  top: 7px;
-  width: 100%;
-  text-align: center;
-  font-size: 0.9rem;
-  color: #ffd700;
-}
 
 /* Falling gem animation */
 .falling-gem {
@@ -194,6 +166,46 @@
   100% { transform: translateY(100vh) scale(0.8); opacity: 0; }
 }
 
+#gemPile {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 35vh;  /* Where gems accumulate */
+  pointer-events: none;
+  overflow: visible;
+  z-index: 5;
+}
+/* Falling gems */
+.falling-gem {
+  position: fixed;
+  font-size: 1.6rem;
+  animation: fallToBottom 1.2s ease-in forwards;
+  z-index: 10;
+}
+
+/* Permanent stacked gems */
+.piled-gem {
+  position: absolute;
+  font-size: 1.8rem;
+  user-select: none;
+  transform: translateX(-50%);
+  animation: gemLand 0.4s ease-out;
+}
+
+/* full-screen fall */
+@keyframes fallToBottom {
+  0% { transform: translateY(0) scale(1); opacity: 1; }
+  80% { transform: translateY(70vh) scale(1.4); opacity: 1; }
+  100% { transform: translateY(90vh) scale(0.9); opacity: 0; }
+}
+
+/* small bounce when landing */
+@keyframes gemLand {
+  0% { transform: scale(0.2); opacity: 0; }
+  60% { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
 
 </style>
 </head>
@@ -240,12 +252,10 @@
     <div id="scoreCard"></div>
     <button id="restartBtn" style="display: none;">Restart</button>
   </div>
-  <div id="gemVault">
-  <div id="gemVaultFill"></div>
-  <span id="gemVaultText">Gem Vault: 0</span>
-</div>
+
 
 </div>
+<div id="gemPile"></div>
 
 <script>
 const quizData = [
@@ -467,6 +477,7 @@ function placeOption(dropZone) {
   } else {
     totalWrongGuesses++;
     gemsCount--;
+    removeGemFromPile();
     gemsCounterEl.innerText = `💎 ${gemsCount}`;
     dropZone.classList.add("wrong");
     setTimeout(() => dropZone.classList.remove("wrong"), 600);
@@ -497,6 +508,13 @@ function placeOption(dropZone) {
     }, 800);
   }
 }
+function removeGemFromPile() {
+  const pile = document.querySelectorAll("#gemPile .piled-gem");
+  if (pile.length === 0) return;
+
+  const lastGem = pile[pile.length - 1];
+  lastGem.remove();
+}
 
 function createSparkleEffect(element) {
   const rect = element.getBoundingClientRect();
@@ -526,32 +544,36 @@ function createSparkleEffect(element) {
 }
 function createFallingGems(element) {
   const rect = element.getBoundingClientRect();
-  
-  // Spawn 12–20 gems for a full-screen rain
-  const gemCount = 15;
+  const gemCount = 12; // how many gems rain per correct answer
 
   for (let i = 0; i < gemCount; i++) {
-    const gem = document.createElement('div');
-    gem.className = 'falling-gem';
-    gem.innerText = '💎';
-    
-    // Random horizontal spread across entire screen
-    const randomXSpread = (Math.random() - 0.5) * window.innerWidth * 0.8;
+    const gem = document.createElement("div");
+    gem.className = "falling-gem";
+    gem.innerText = "💎";
 
-    gem.style.left = `${rect.left + rect.width / 2 + randomXSpread}px`;
+    // Random scatter across full screen
+    const horizontalSpread = (Math.random() - 0.5) * window.innerWidth * 0.9;
+
+    gem.style.left = `${rect.left + rect.width / 2 + horizontalSpread}px`;
     gem.style.top = `${rect.top + rect.height / 2}px`;
 
-    // Append to full page, not container
     document.body.appendChild(gem);
 
-    // Remove after animation ends
-    setTimeout(() => gem.remove(), 1200);
-  }
+    // When animation finishes → turn into a "stacked gem"
+    gem.addEventListener("animationend", () => {
+      gem.remove();
 
-  // Update gem vault fill
-  const percentage = Math.min((gemsCount / 20) * 100, 100);
-  document.getElementById("gemVaultFill").style.width = percentage + "%";
-  document.getElementById("gemVaultText").innerText = `Gem Vault: ${gemsCount}`;
+      const pileGem = document.createElement("div");
+      pileGem.className = "piled-gem";
+      pileGem.innerText = "💎";
+
+      // Random position inside the bottom pile area
+      pileGem.style.left = `${Math.random() * 100}%`;
+      pileGem.style.bottom = `${Math.random() * 30}vh`;
+
+      document.getElementById("gemPile").appendChild(pileGem);
+    });
+  }
 }
 
 const EDGE_FUNCTION_URL =

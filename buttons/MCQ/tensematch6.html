@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Tap-to-Match Quiz 🌌</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+
+<style>
+  body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: radial-gradient(ellipse at bottom, #0b0c1b 0%, #000000 100%);
+    color: white;
+    text-align: center;
+  }
+  .container {
+    position: relative;
+    max-width: 900px;
+    margin: 2rem auto;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 2rem;
+    border-radius: 15px;
+    box-shadow: 0 0 30px rgba(255, 255, 255, 0.1);
+  }
+  .question { font-size: 1.5rem; margin-bottom: 1rem; }
+  .drag-options {
+    display: flex; flex-wrap: wrap; gap: 0.8rem;
+    margin-bottom: 2rem; justify-content: center;
+  }
+  .drag-item {
+    padding: 0.6rem 1rem;
+    background: #1f1f2e;
+    border-radius: 10px;
+    cursor: pointer; user-select: none;
+  }
+  .drag-item.selected { border: 2px solid #ffd700; }
+  .drop-container {
+    display: flex; flex-direction: column; gap: 1rem;
+    align-items: center; position: relative;
+  }
+  .drop-zone {
+    border: 2px dashed #ffd700;
+    min-width: 200px; min-height: 40px;
+    padding: 0.6rem; border-radius: 8px;
+    margin: 0.5rem 0; cursor: pointer;
+  }
+  .drop-zone.filled { background-color: #343454; }
+  .correct { background-color: green !important; }
+  .wrong { background-color: red !important; }
+
+  /* Sparkles */
+  @keyframes sparkle {
+    0% { transform: translate(0,0) scale(1); opacity: 1; }
+    100% { transform: translate(var(--random-x,0), -100px) scale(1.5); opacity: 0; }
+  }
+  .gem-spark {
+    position: absolute; pointer-events: none;
+    font-size: 1.5rem; animation: sparkle 1s ease-out forwards;
+  }
+  .gem-counter-pulse { animation: gemPulse 0.4s ease-in-out; }
+
+  @keyframes gemPulse {
+    0%,100% { transform: scale(1); }
+    50% { transform: scale(1.3); }
+  }
+
+  .quiz-header {
+    position: absolute; top: 10px; left: 0; right: 0;
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 0 1rem; font-size: 1rem; color: #ffd700; z-index: 10;
+  }
+
+#motivationBox {
+    margin-top: 2rem;
+    min-height: 120px;
+    padding: 1.5rem;
+    color: #ffd700;
+    font-size: 1.9rem;
+    font-weight: 800;
+    text-align: center;
+
+    font-family: 'Trebuchet MS', 'Segoe UI', sans-serif;
+
+    opacity: 1;  /* Always visible */
+    transition: transform 0.4s ease;
+
+    text-shadow: 0 0 10px rgba(255, 215, 0, 0.7),
+                 0 0 20px rgba(255, 215, 0, 0.5);
+
+    transform: scale(0.9);
+}
+.hero-quote {
+  max-width: 90%;
+  margin: 1rem auto 2rem auto;
+  padding: 2rem 1.5rem;
+  background: rgba(255, 255, 255, 0.8);
+  border: 2px solid #c9ab6d;
+  border-radius: 15px;
+  box-shadow: 0 0 25px rgba(180, 150, 90, 0.45);
+  text-align: center;
+}
+
+/* BIG, BEAUTIFUL, HEROIC TEXT */
+.hero-text {
+  font-family: "Cinzel", Georgia, serif;
+  font-size: 1.65rem;         /* mobile-friendly big */
+  font-weight: 700;
+  line-height: 1.35;
+  color: #4a3315;
+  text-shadow: 
+    0 0 10px rgba(255, 230, 170, 0.7),
+    0 0 20px rgba(255, 210, 120, 0.5);
+  margin-bottom: 0.7rem;
+}
+
+/* AUTHOR */
+.hero-author {
+  font-family: "Cinzel", serif;
+  font-size: 1rem;
+  font-weight: bold;
+  color: #6b4b1b;
+  opacity: 0.9;
+}
+/* Modern Form Card */
+#nameForm {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
+
+  padding: 2rem 1.5rem;
+  border-radius: 18px;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+  max-width: 420px;
+  margin: 2rem auto;
+}
+
+/* Modern Input + Select */
+#nameInput,
+#departmentSelect {
+  width: 100%;
+  padding: 0.9rem 1rem;
+
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.25);
+  border-radius: 10px;
+
+  font-size: 1rem;
+  color: #fff;
+
+  outline: none;
+  transition: 0.25s ease;
+}
+
+#nameInput::placeholder {
+  color: #cccccc;
+}
+
+/* Hover + Focus Glow */
+#nameInput:focus,
+#departmentSelect:focus {
+  border-color: #ffd700;
+  box-shadow: 0 0 10px rgba(255,215,0,0.4);
+}
+
+/* START QUIZ BUTTON */
+#nameForm button {
+  margin-top: 0.5rem;
+  width: 100%;
+  padding: 0.9rem;
+
+  background: linear-gradient(135deg, #ffd700, #e6b800);
+  color: #000;
+  font-size: 1.1rem;
+  font-weight: bold;
+
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: 0.25s ease;
+}
+
+#nameForm button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 15px rgba(255, 215, 0, 0.4);
+}
+
+</style>
+</head>
+
+<body>
+  <div class="container" id="quizContainer">
+  <div id="nameForm">
+
+  <div class="hero-quote">
+    <div class="hero-text">
+      “Ever tried. <br> Ever failed. <br> No matter. <br>
+      Try again. <br> Fail again. <br> Fail better!”
+    </div>
+    <div class="hero-author">— Samuel Beckett</div>
+  </div>
+
+  <input 
+    type="text" 
+    id="nameInput" 
+    placeholder="Enter your name"
+  />
+
+  <select id="departmentSelect">
+    <option value="">-- Select Department --</option>
+    <option value="Cyber Security">Cyber Security</option>
+    <option value="CSE-1">CSE-1</option>
+    <option value="CSE-2">CSE-2</option>
+    <option value="CSE-3">CSE-3</option>
+    <option value="Mechanical Engineering">Mechanical Engineering</option>
+    <option value="ECE-1">ECE-1</option>
+    <option value="ECE-2">ECE-2</option>
+    <option value="ECE-3">ECE-3</option>
+    <option value="AI DS-1">AI DS-1</option>
+    <option value="AI DS-2">AI DS-2</option>
+    <option value="Civil">Civil</option>
+    <option value="Agri">Agri</option>
+    <option value="EEE">EEE</option>
+    <option value="EIE">EIE</option>
+    <option value="Medical Electronics">Medical Electronics</option>
+    <option value="IT-1">IT-1</option>
+    <option value="IT-2">IT-2</option>
+  </select>
+
+  <button onclick="beginQuiz()">Start Quiz</button>
+</div>
+
+  <!-- QUIZ SCREEN -->
+  <div id="quizContent" style="display:none;">
+    <div class="quiz-header">
+      <div id="timer">⏳ 0s</div>
+      <div id="gemsCounter">💎 0</div>
+      <div id="progressTracker">📍 1 of 1</div>
+    </div>
+
+    <div class="question" id="question"></div>
+    <div class="drag-options" id="dragOptions"></div>
+    <div class="drop-container" id="dropContainer"></div>
+
+    <div id="scoreCard"></div>
+    <button id="restartBtn" style="display:none;">Restart</button>
+  </div>
+
+</div>
+
+<!-- MOTIVATION BOX BELOW QUIZ -->
+<div id="motivationBox"></div>
+
+<script>
+/* AUTO-RESTORE NAME + DEPT */
+window.addEventListener("load", () => {
+  const savedName = localStorage.getItem("questPlayerName");
+  const savedDept = localStorage.getItem("questPlayerDept");
+  if (savedName) document.getElementById("nameInput").value = savedName;
+  if (savedDept) document.getElementById("departmentSelect").value = savedDept;
+});
+
+/* MOTIVATION MESSAGES */
+const rightMessages = [
+  "‘name’ is unstoppable!",
+  "‘name’ is awesome because ‘name’ has grit!",
+  "‘name’ has got the right answer because ‘name’ loves trying!",
+  "Nothing can slow ‘name’ down today!",
+  "‘name’ learns fast because ‘name’ never gives up!",
+  "Who is awesome? ‘name’!",
+  "‘name’ proves that effort beats talent every time!",
+  "Every correct answer takes ‘name’ one step closer to greatness!",
+  "‘name’ shines brighter with every question!"
+];
+
+
+const wrongMessages = [
+  "‘name’ loves failures because ‘name’, like Edison, knows failure is the stepping stone to success.",
+  "‘name’’s favourite quote: “Ever tried. Ever failed. No matter. Try again. Fail again. Fail better.”",
+  "Every mistake makes ‘name’ stronger.",
+  "Mistakes guide ‘name’ towards victory!",
+  "Failure is feedback, and ‘name’ takes feedback like a champion.",
+  "Every wrong attempt brings ‘name’ closer to the right one.",
+  "‘name’ believes in trying again and again and again!"
+];
+
+/* SHOW MOTIVATION */
+function showMotivation(isCorrect) {
+  const box = document.getElementById("motivationBox");
+  const list = isCorrect ? rightMessages : wrongMessages;
+
+  let msg = list[Math.floor(Math.random() * list.length)];
+  msg = msg.replace(/‘name’/g, playerName);
+
+  box.innerHTML = msg;
+  box.style.opacity = 1;
+
+}
+
+ const quizData = [
+ {
+  "questionItems": [
+    { "word": "I ___ the assignment.", "answer": "finished" },
+    { "word": "I am trying to ___ the assignment.", "answer": "finish" },
+    { "word": "I have ___ the assignment.", "answer": "to finish" }
+  ],
+  "answers": ["finished", "finish", "to finish"]
+},
+   {
+  "questionItems": [
+    { "word": "The Earth's climate ______ rapidly in the last century.", "answer": "changed" },
+    { "word": "The Earth's climate ______ gradually due to human activities.", "answer": "is changing" },
+    { "word": "The Earth's climate ______ even more if we do not act now.", "answer": "will change" }
+  ],
+  "answers": ["changed", "is changing", "will change"]
+},
+   {
+  "questionItems": [
+    {
+      "word": "She ______ very hard last semester.",
+      "answer": "worked"
+    },
+    {
+      "word": "She ______ very hard this semester.",
+      "answer": "is working"
+    },
+    {
+      "word": "She ______ very hard next semester.",
+      "answer": "will work"
+    }
+  ],
+  "answers": ["worked", "is working", "will work"]
+},
+   {
+  "questionItems": [
+    {
+      "word": "The price of gold usually ______ when the stock market falls.",
+      "answer": "rises"
+    },
+    {
+      "word": "The price of gold ______ sharply last week.",
+      "answer": "rose"
+    },
+    {
+      "word": "The price of gold ______ if global uncertainty increases.",
+      "answer": "will rise"
+    }
+  ],
+  "answers": ["rises", "rose", "will rise"]
+},
+   {
+  "questionItems": [
+    {
+      "word": "She __________ a novel last night.",
+      "answer": "read"
+    },
+    {
+      "word": "She __________ a novel right now.",
+      "answer": "is reading"
+    },
+    {
+      "word": "She __________ a novel this weekend.",
+      "answer": "will read"
+    }
+  ],
+  "answers": ["read", "is reading", "will read"]
+},
+   {
+  "questionItems": [
+    {
+      "word": "He rarely made mistakes, but when he ______, he corrected them immediately.",
+      "answer": "did"
+    },
+    {
+      "word": "He rarely makes mistakes, but when he ______, he quickly corrects them.",
+      "answer": "does"
+    },
+    {
+      "word": "He will rarely make mistakes, but when he ______, he will correct them quickly.",
+      "answer": "does"
+    }
+  ],
+  "answers": ["did", "does", "does"]
+},
+   {
+  "questionItems": [
+    {
+      "word": "The children _____________ in the park yesterday.",
+      "answer": "played"
+    },
+    {
+      "word": "The children _____________ in the park today.",
+      "answer": "are playing"
+    },
+    {
+      "word": "The children _____________ in the park tomorrow.",
+      "answer": "will play"
+    }
+  ],
+  "answers": ["played", "are playing", "will play"]
+},
+   {
+  "questionItems": [
+    {
+      "word": "She took an online course because she ______ to upskill herself.",
+      "answer": "wanted"
+    },
+    {
+      "word": "She is taking an online course because she ______ to upskill herself.",
+      "answer": "wants"
+    },
+    {
+      "word": "She will take an online course because she ______ to upskill herself.",
+      "answer": "wants"
+    }
+  ],
+  "answers": ["wanted", "wants", "wants"]
+},
+   {
+  "questionItems": [
+    {
+      "word": "Whenever someone arrived late last year, the supervisor ______ a warning.",
+      "answer": "issued"
+    },
+    {
+      "word": "Whenever someone arrives late, the supervisor ______ a warning.",
+      "answer": "issues"
+    },
+    {
+      "word": "If someone arrives late next month, the supervisor ______ a warning.",
+      "answer": "will issue"
+    }
+  ],
+  "answers": ["issued", "issues", "will issue"]
+},
+   {
+  "questionItems": [
+    {
+      "word": "The kids ______ a movie yesterday evening.",
+      "answer": "watched"
+    },
+    {
+      "word": "The kids ______ a movie at the moment.",
+      "answer": "are watching"
+    },
+    {
+      "word": "The kids ______ a movie tomorrow night.",
+      "answer": "will watch"
+    }
+  ],
+  "answers": ["watched", "are watching", "will watch"]
+}
+
+];
+
+let current = 0;
+let wrongQuestions = [];
+let correctCount = 0;
+let totalWrongGuesses = 0;
+let gemsCount = 0;
+let startTime;
+let timerInterval;
+let playerName = "";
+let playerDept = "";
+let selectedOption = null;
+
+const questionEl = document.getElementById("question");
+const dragOptionsEl = document.getElementById("dragOptions");
+const dropContainerEl = document.getElementById("dropContainer");
+const timerEl = document.getElementById("timer");
+const gemsCounterEl = document.getElementById("gemsCounter");
+const progressTracker = document.getElementById("progressTracker");
+const scoreCard = document.getElementById("scoreCard");
+const restartBtn = document.getElementById("restartBtn");
+
+/* START QUIZ */
+function beginQuiz() {
+  const nameField = document.getElementById("nameInput");
+  const deptField = document.getElementById("departmentSelect");
+
+  if (!nameField.value.trim()) { alert("Please enter your name!"); return; }
+  if (!deptField.value) { alert("Please select your department!"); return; }
+
+  playerName = nameField.value.trim();
+  playerDept = deptField.value;
+
+  // save
+  localStorage.setItem("questPlayerName", playerName);
+  localStorage.setItem("questPlayerDept", playerDept);
+
+  document.getElementById("nameForm").style.display = "none";
+  document.getElementById("quizContent").style.display = "block";
+
+  startQuiz();
+}
+
+function startQuiz() {
+  current = 0;
+  correctCount = 0;
+  totalWrongGuesses = 0;
+  gemsCount = 0;
+  startTime = Date.now();
+
+  gemsCounterEl.innerText = "💎 0";
+  scoreCard.innerHTML = "";
+  restartBtn.style.display = "none";
+  loadQuestion();
+  startTimer();
+}
+
+function loadQuestion() {
+  if (current >= quizData.length) return showScore();
+
+  selectedOption = null;
+  const data = quizData[current];
+  progressTracker.innerText = `📍 ${current + 1} of ${quizData.length}`;
+
+  dragOptionsEl.innerHTML = "";
+  dropContainerEl.innerHTML = "";
+
+  const shuffled = [...data.answers].sort(() => Math.random() - 0.5);
+
+  shuffled.forEach((ans) => {
+    const div = document.createElement("div");
+    div.classList.add("drag-item");
+    div.innerText = ans;
+    div.onclick = () => selectOption(div);
+    dragOptionsEl.appendChild(div);
+  });
+
+  data.questionItems.forEach((item) => {
+    const drop = document.createElement("div");
+    drop.classList.add("drop-zone");
+    drop.innerText = item.word;
+    drop.dataset.answer = item.answer;
+    drop.onclick = () => placeOption(drop);
+    dropContainerEl.appendChild(drop);
+  });
+}
+
+function selectOption(div) {
+  if (selectedOption) selectedOption.classList.remove("selected");
+  selectedOption = div;
+  div.classList.add("selected");
+}
+
+function placeOption(dropZone) {
+  if (!selectedOption) return;
+
+  const answer = selectedOption.innerText;
+  const correctAnswer = dropZone.dataset.answer;
+
+  if (answer === correctAnswer) {
+    correctCount++;
+    gemsCount++;
+    gemsCounterEl.innerText = `💎 ${gemsCount}`;
+    showMotivation(true);
+
+    dropZone.innerHTML = dropZone.innerText.replace("___", `<strong>${answer}</strong>`);
+    dropZone.classList.add("correct", "filled");
+    selectedOption.style.display = "none";
+
+  } else {
+    totalWrongGuesses++;
+    gemsCount--;
+    gemsCounterEl.innerText = `💎 ${gemsCount}`;
+    showMotivation(false);
+
+    dropZone.classList.add("wrong");
+    setTimeout(() => dropZone.classList.remove("wrong"), 600);
+
+    const currentQ = quizData[current];
+    if (!wrongQuestions.includes(currentQ)) wrongQuestions.push(currentQ);
+  }
+
+  selectedOption.classList.remove("selected");
+  selectedOption = null;
+
+  if (document.querySelectorAll(".drop-zone:not(.filled)").length === 0) {
+    setTimeout(() => {
+      current++;
+      if (current >= quizData.length && wrongQuestions.length > 0) {
+        quizData.push(...wrongQuestions);
+        wrongQuestions = [];
+      }
+      loadQuestion();
+    }, 800);
+  }
+}
+
+/* TIMER */
+function startTimer() {
+  timerInterval = setInterval(() => {
+    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+    timerEl.innerText = `⏳ ${elapsed}s`;
+  }, 1000);
+}
+
+/* SCORE SCREEN */
+const EDGE_FUNCTION_URL =
+  "https://ahezssoczvpbkteffcgz.supabase.co/functions/v1/logQuest";
+
+function showScore() {
+  clearInterval(timerInterval);
+  const totalTime = Math.floor((Date.now() - startTime) / 1000);
+
+  questionEl.innerText = "🎉 Quiz Completed!";
+  dragOptionsEl.innerHTML = "";
+  dropContainerEl.innerHTML = "";
+  progressTracker.innerText = "";
+
+  scoreCard.innerHTML = `
+    <p>👤 Player: ${playerName}</p>
+        <button onclick="downloadPDFReport()" 
+      style="margin-top: 1rem; padding: 0.7rem 2rem; background-color: #4CAF50; 
+      border: none; border-radius: 10px; cursor: pointer; color: white; 
+      font-size: 1rem;">
+      📥 Download PDF Report
+    </button>
+    <p>Correct: ${correctCount}</p>
+    <p>Wrong: ${totalWrongGuesses}</p>
+    <p>Gems: ${gemsCount}</p>
+    <p>Time: ${totalTime} seconds</p>
+  `;
+
+  restartBtn.style.display = "inline-block";
+
+  sendViaEdgeFunction({
+    student_name: playerName,
+    department: playerDept,
+    correct: correctCount,
+    wrong: totalWrongGuesses,
+    time_spent: totalTime,
+    quest_id: "Quest 125"
+  });
+}
+
+async function sendViaEdgeFunction(payload) {
+  try {
+    const response = await fetch(EDGE_FUNCTION_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      console.error("❌ Edge Function Error:", await response.text());
+      return;
+    }
+    console.log("✅ Saved to Supabase");
+  } catch (err) {
+    console.error("⚠️ Edge Function Error:", err);
+  }
+}
+
+
+function downloadPDFReport() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+
+  const totalTime = Math.floor((Date.now() - startTime) / 1000);
+  const reportDate = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+
+  // --- HEADER ---
+  doc.setFillColor(25, 25, 60);
+  doc.rect(0, 0, 210, 45, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFont('times', 'bold');
+  doc.setFontSize(18);
+  doc.text('SRM VALLIAMMAI ENGINEERING COLLEGE', 105, 16, { align: 'center' });
+  doc.setFontSize(12);
+  doc.setFont('times', 'italic');
+  doc.text('(Autonomous)', 105, 23, { align: 'center' });
+  doc.setFontSize(15);
+  doc.setFont('times', 'normal');
+  doc.text('Department of English', 105, 31, { align: 'center' });
+  doc.setFontSize(14);
+  doc.setFont('times', 'bold');
+  doc.setTextColor(212, 175, 55);
+  doc.text('Quest Performance Report', 105, 39, { align: 'center' });
+
+  // --- STUDENT INFO ---
+  doc.setTextColor(0, 0, 0);
+  doc.setFontSize(11);
+  doc.text('CANDIDATE INFORMATION', 20, 55);
+  doc.autoTable({
+    startY: 58,
+    body: [
+      ['Student Name', playerName],
+      ['Department', playerDept],
+      ['Quest ID', 'Quest 20'],
+      ['Completed On', reportDate]
+    ],
+    theme: 'plain',
+    styles: { fontSize: 10, font: 'times', cellPadding: 3 },
+    columnStyles: {
+      0: { fontStyle: 'bold', cellWidth: 60, textColor: [70, 70, 70] },
+      1: { cellWidth: 120 }
+    },
+    margin: { left: 20, right: 20 }
+  });
+
+  // --- PERFORMANCE SUMMARY ---
+  let y = doc.lastAutoTable.finalY + 10;
+  doc.setFont('times', 'bold');
+  doc.text('PERFORMANCE SUMMARY', 20, y);
+  y += 4;
+  doc.autoTable({
+    startY: y + 3,
+    body: [
+      ['Total Questions', quizData.length.toString()],
+      ['Correct Answers', correctCount.toString()],
+      ['Wrong Attempts', totalWrongGuesses.toString()],
+      ['Final Gems Earned', gemsCount.toString()],
+      ['Total Time', `${Math.floor(totalTime / 60)}m ${totalTime % 60}s`]
+    ],
+    theme: 'grid',
+    styles: { fontSize: 10, font: 'times', cellPadding: 3 },
+    margin: { left: 20, right: 20 }
+  });
+
+  // --- QUESTION BANK SECTION ---
+  y = doc.lastAutoTable.finalY + 12;
+  if (y > 250) { doc.addPage(); y = 20; }
+  doc.setFont('times', 'bold');
+  doc.text('QUESTION BANK WITH CORRECT ANSWERS', 20, y);
+  y += 6;
+
+  quizData.forEach((item, i) => {
+    if (y > 260) { doc.addPage(); y = 20; }
+    doc.setFontSize(11);
+    doc.setFont('times', 'bold');
+    doc.setTextColor(25, 25, 60);
+    doc.text(`Question ${i + 1}:`, 20, y);
+    y += 6;
+    doc.setTextColor(0, 0, 0);
+    doc.setFont('times', 'normal');
+    item.questionItems.forEach((qItem, j) => {
+      const questionText = `${j + 1}. ${qItem.word.replace('___', '____')} `;
+      const answerText = `Answer: ${qItem.answer}`;
+      const lines = doc.splitTextToSize(questionText, 160);
+      doc.text(lines, 25, y);
+      y += lines.length * 5;
+      doc.setTextColor(0, 128, 0);
+      doc.text(answerText, 30, y);
+      doc.setTextColor(0, 0, 0);
+      y += 7;
+    });
+    y += 3;
+    doc.setDrawColor(230, 230, 230);
+    doc.setLineWidth(0.3);
+    doc.line(20, y, 190, y);
+    y += 5;
+  });
+
+  // --- FOOTER ---
+  doc.setDrawColor(184, 134, 11);
+  doc.setLineWidth(0.5);
+  doc.line(20, 280, 190, 280);
+  doc.setFontSize(8);
+  doc.setTextColor(128, 128, 128);
+  doc.setFont('times', 'italic');
+  doc.text('This is a system-generated report', 105, 287, { align: 'center' });
+
+  const cleanName = playerName.replace(/[^a-zA-Z0-9]/g, '_');
+  doc.save(`${cleanName}_Quest20_Report.pdf`);
+}
+
+restartBtn.onclick = () => {
+  document.getElementById("quizContent").style.display = "none";
+  document.getElementById("nameForm").style.display = "block";
+  document.getElementById("nameInput").value = "";
+};
+</script>
+</body>
+</html>

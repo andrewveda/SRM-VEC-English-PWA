@@ -279,14 +279,15 @@ Blog </h1>
   </div>
 </div>
 
-<script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script>
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-const supabase = window.supabase.createClient(
-  "https://ahezssoczvpbkteffcgz.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoZXpzc29jenZwYmt0ZWZmY2d6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI4NTk1ODUsImV4cCI6MjA3ODQzNTU4NX0.2ZlqXnZxv0opkhynAT7OlK4S-xPygcc7ETUyTXRfGHE"
+const supabase = createClient(
+  'https://ahezssoczvpbkteffcgz.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoZXpzc29jenZwYmt0ZWZmY2d6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI4NTk1ODUsImV4cCI6MjA3ODQzNTU4NX0.2ZlqXnZxv0opkhynAT7OlK4S-xPygcc7ETUyTXRfGHE'
 );
 
+// --- HELPER FUNCTIONS ---
 function autoGenerateBlanks(passage, frequency = 7) {
   const words = passage.split(/(\s+)/);
   const answers = [];
@@ -305,15 +306,15 @@ function autoGenerateBlanks(passage, frequency = 7) {
 
 // --- QUIZ DATA ---
 const quizDataStore = (() => {
-  const fullPassage = ` In the ever-evolving world of technology, gadgets have become an indispensable part of our daily lives, shaping how we communicate, work, and relax. Among the myriad of options available today, my favorite gadget is undeniably the smartphone. It is much more than a piece of technology, it is a tool that enables connection, creativity, and convenience, all at the touch of a screen. From staying in touch with loved ones to organizing my day or exploring new interests, the smartphone is central to how I navigate life. As Gandalf once said, "All we have to decide is what to do with the time that is given us." For me, the smartphone represents this choice. It is a device that allows me to spend my time more efficiently and meaningfully. 
+const fullPassage = `In the ever-evolving world of technology, gadgets have become an indispensable part of our daily lives, shaping how we communicate, work, and relax. Among the myriad of options available today, my favorite gadget is undeniably the smartphone. It is much more than a piece of technology, it is a tool that enables connection, creativity, and convenience, all at the touch of a screen. From staying in touch with loved ones to organizing my day or exploring new interests, the smartphone is central to how I navigate life. As Gandalf once said, "All we have to decide is what to do with the time that is given us." For me, the smartphone represents this choice. It is a device that allows me to spend my time more efficiently and meaningfully. 
  `;
-  
+    
   const result = autoGenerateBlanks(fullPassage, 8);
   return [result];
 })();
 
 // FIX: Define Quest ID for PDF report
-const currentQuestID = " Quest 81 (Cloze)";
+const currentQuestID = " Quest 81";
 
 // --- STATE VARIABLES ---
 let quizData = [];          // flattened pages
@@ -584,25 +585,6 @@ function createSparkleEffect(element) {
 async function showScore() {
   clearInterval(timerInterval);
   const totalTime = Math.floor((Date.now() - startTime) / 1000);
-  let saveError = null;
-  try {
-    const { error } = await supabase
-      .from('Quests')
-      .insert([
-        {
-          student_name: playerName,
-          department: playerDept,
-          correct: correctCount,
-          wrong: totalWrongGuesses,
-          time_spent: totalTime,
-          quest_id: "Quest 81"
-        }
-      ]);
-    saveError = error;
-  } catch (e) {
-    saveError = e;
-  }
-  // ⭐⭐⭐ BELOW: JS block ends here (do not put inside HTML)
 
   dragOptionsEl.innerHTML = "";
   dropContainerEl.innerHTML = "<h2 style='text-align:center;'>🎉 Quiz Completed!</h2>";
@@ -614,27 +596,35 @@ async function showScore() {
     : `<p>✅ Correct Answers (total): ${correctCount}</p>
        <p>❌ Wrong Attempts (total): ${totalWrongGuesses}</p>`;
 
-  // ⭐⭐⭐ ABOVE: build status line OUTSIDE scoreCard HTML
-  const statusLine = saveError
-    ? `<p style="color:red;">⚠️ Could not save to server. Please take a screenshot.</p>`
-    : `<p style="color:green;">✔ Saved to server</p>`;
-  // ⭐⭐⭐ BELOW: statusLine inserted inside template
-
   scoreCard.innerHTML = `
     <p>👤 Player: <strong>${playerName}</strong> (${playerDept})</p>
     ${successMessage}
     <p>💎 Final Gems: ${gemsCount}</p>
     <p>⏱️ Time Taken: ${totalTime} seconds</p>
-    ${statusLine}
-    <button onclick="downloadPDFReport()" 
-      style="margin-top: 1rem; padding: 0.7rem 2rem; background-color: #4CAF50; border: none; border-radius: 10px; cursor: pointer; color: white; font-size: 1rem;">
-      📥 Download PDF Report
-    </button>
+    <button onclick="downloadPDFReport()" style="margin-top: 1rem; padding: 0.7rem 2rem; background-color: #4CAF50; border: none; border-radius: 10px; cursor: pointer; color: white; font-size: 1rem;">📥 Download PDF Report</button>
   `;
-
   restartBtn.style.display = "inline-block";
-}
 
+  // save to Supabase
+  try {
+    const { error } = await supabase
+      .from('Quests')
+      .insert([
+        {
+          student_name: playerName,
+          department: playerDept,
+          correct: correctCount,
+          wrong: totalWrongGuesses,
+          time_spent: totalTime,
+          quest_id: "Quest 80" 
+        }
+      ]);
+    if (error) console.error('Supabase insert error:', error);
+    else console.log('✅ Quest saved to Supabase');
+  } catch (err) {
+    console.error('Error inserting into Supabase:', err);
+  }
+}
 
 // FIX: Moved startTimer to the top-level scope
 function startTimer() {

@@ -672,7 +672,6 @@ function startTimer() {
 }
 
 /* --------------- PDF REPORT --------------- */
-// FIX: Moved downloadPDFReport to the top-level scope
 function downloadPDFReport() {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ unit: "mm", format: "a4" });
@@ -680,24 +679,27 @@ function downloadPDFReport() {
   const pageHeight = doc.internal.pageSize.height;
   const marginLeft = 20;
   const usableWidth = 170;
+  const topMargin = 20;
+  const bottomSafeMargin = 30;
 
   const totalTime = Math.floor((Date.now() - startTime) / 1000);
   const reportDate = new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
+  const questID = currentQuestID;
 
-  // ✅ Uses the questID variable defined at the top
-  const questID = currentQuestID; 
-
-  /* ---------------- HEADER ---------------- */
+  /* ================= HEADER ================= */
 
   doc.setFillColor(25, 25, 60);
   doc.rect(0, 0, 210, 45, "F");
+
   doc.setTextColor(255, 255, 255);
   doc.setFont("times", "bold");
   doc.setFontSize(18);
   doc.text("SRM VALLIAMMAI ENGINEERING COLLEGE", 105, 16, { align: "center" });
+
   doc.setFontSize(12);
   doc.setFont("times", "italic");
   doc.text("(Autonomous)", 105, 23, { align: "center" });
+
   doc.setFontSize(15);
   doc.setFont("times", "normal");
   doc.text("Department of English", 105, 31, { align: "center" });
@@ -707,7 +709,7 @@ function downloadPDFReport() {
   doc.setTextColor(212, 175, 55);
   doc.text(`${questID} — Performance Report`, 105, 39, { align: "center" });
 
-  /* ---------------- STUDENT INFO ---------------- */
+  /* ================= STUDENT INFO ================= */
 
   doc.setTextColor(0, 0, 0);
   doc.setFontSize(11);
@@ -730,21 +732,22 @@ function downloadPDFReport() {
     margin: { left: marginLeft, right: marginLeft },
   });
 
-  /* ---------------- PERFORMANCE SUMMARY ---------------- */
+  /* ================= PERFORMANCE SUMMARY ================= */
 
   let y = doc.lastAutoTable.finalY + 10;
 
-  if (y > pageHeight - 30) {
+  if (y > pageHeight - bottomSafeMargin) {
     doc.addPage();
-    y = 20;
+    y = topMargin;
   }
 
   doc.setFont("times", "bold");
+  doc.setFontSize(11);
   doc.text("PERFORMANCE SUMMARY", marginLeft, y);
-  y += 3;
+  y += 6;
 
   doc.autoTable({
-    startY: y + 3,
+    startY: y,
     body: [
       ["Total Question Pages", quizData.length.toString()],
       ["Correct Answers (Total)", correctCount.toString()],
@@ -755,82 +758,78 @@ function downloadPDFReport() {
     theme: "grid",
     styles: { fontSize: 10, font: "times", cellPadding: 3 },
     margin: { left: marginLeft, right: marginLeft },
-    pageBreak: "auto",
   });
 
   y = doc.lastAutoTable.finalY + 12;
 
-  /* ---------------- QUESTION BANK ---------------- */
+  /* ================= QUESTION BANK ================= */
 
-  if (y > pageHeight - 30) {
+  if (y > pageHeight - bottomSafeMargin) {
     doc.addPage();
-    y = 20;
+    y = topMargin;
   }
 
   doc.setFont("times", "bold");
+  doc.setFontSize(11);
   doc.text("QUESTION BANK WITH CORRECT ANSWERS", marginLeft, y);
-  y += 6;
+  y += 8;
 
   quizDataStore.forEach((item, i) => {
-    /* Predict text block height BEFORE writing */
     let fullPassage = item.passage;
 
     item.answers.forEach(ans => {
       fullPassage = fullPassage.replace("___", ` [${ans}] `);
     });
 
+    doc.setFont("times", "normal");
+    doc.setFontSize(10);
+    doc.setLineHeightFactor(1.15);
+
     const lines = doc.splitTextToSize(fullPassage, usableWidth);
+    const lineHeight = doc.getFontSize() * 1.15;
+    const blockHeight = lines.length * lineHeight + 10;
 
-// jsPDF-safe line height (fontSize × 1.15)
-const lineHeight = doc.getFontSize() * 1.15;
-const blockHeight = lines.length * lineHeight;
+    if (y + blockHeight > pageHeight - bottomSafeMargin) {
+      doc.addPage();
+      y = topMargin;
+    }
 
-if (y + blockHeight > pageHeight - 25) {
-  doc.addPage();
-  y = 20;
-}
-
-    // Question heading
     doc.setFont("times", "bold");
-    doc.setFontSize(11);
     doc.setTextColor(25, 25, 60);
     doc.text(`Question ${i + 1}:`, marginLeft, y);
     y += 6;
 
-    // Passage
     doc.setFont("times", "normal");
     doc.setTextColor(0, 0, 0);
-    doc.setLineHeightFactor(1.15);
-    y += lines.length * 5 + 3;
+    doc.text(lines, marginLeft + 5, y, { align: "left" });
+    y += lines.length * lineHeight + 5;
 
-    // Divider line
     doc.setDrawColor(230, 230, 230);
     doc.setLineWidth(0.3);
     doc.line(marginLeft, y, 190, y);
-    y += 5;
+    y += 6;
   });
 
-  /* ---------------- FOOTER ON LAST PAGE ---------------- */
+  /* ================= FOOTER (LAST PAGE ONLY) ================= */
 
-  doc.setDrawColor(184, 134, 11);
-  doc.setLineWidth(0.5);
-  doc.line(marginLeft, pageHeight - 17, 190, pageHeight - 17);
+  if (doc.internal.getCurrentPageInfo().pageNumber === doc.getNumberOfPages()) {
+    doc.setDrawColor(184, 134, 11);
+    doc.setLineWidth(0.5);
+    doc.line(marginLeft, pageHeight - 17, 190, pageHeight - 17);
 
-  doc.setFontSize(8);
-  doc.setTextColor(128, 128, 128);
-  doc.setFont("times", "italic");
-  doc.text("This is a system-generated report", 105, pageHeight - 10, { align: "center" });
+    doc.setFontSize(8);
+    doc.setTextColor(128, 128, 128);
+    doc.setFont("times", "italic");
+    doc.text("This is a system-generated report", 105, pageHeight - 10, { align: "center" });
+  }
 
-  /* ---------------- SAVE FILE ---------------- */
+  /* ================= SAVE FILE ================= */
 
   const cleanName = playerName.replace(/[^a-zA-Z0-9]/g, "_");
   const cleanQuest = questID.replace(/[^a-zA-Z0-9]/g, "_");
 
   doc.save(`${cleanName}_${cleanQuest}_Report.pdf`);
 }
-
-// FIX: Expose downloadPDFReport to the global scope for the inline onclick
-window.downloadPDFReport = downloadPDFReport;
 
 
 /* --------------- EVENT LISTENERS --------------- */

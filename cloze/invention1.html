@@ -672,9 +672,20 @@ function startTimer() {
 }
 
 /* --------------- PDF REPORT --------------- */
+
+
 function downloadPDFReport() {
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({ unit: "mm", format: "a4" });
+  if (!window.jspdf || !window.jspdf.jsPDF) {
+    alert("PDF library not loaded yet. Please try again.");
+    return;
+  }
+
+  const doc = new window.jspdf.jsPDF({ unit: "mm", format: "a4" });
+
+  if (typeof doc.autoTable !== "function") {
+    alert("AutoTable plugin not loaded.");
+    return;
+  }
 
   const pageHeight = doc.internal.pageSize.height;
   const marginLeft = 20;
@@ -810,28 +821,24 @@ function downloadPDFReport() {
     y += 6;
   });
 
-  /* ================= FOOTER (LAST PAGE ONLY) ================= */
+  /* ================= FOOTER ================= */
 
-  if (doc.internal.getCurrentPageInfo().pageNumber === doc.getNumberOfPages()) {
-    doc.setDrawColor(184, 134, 11);
-    doc.setLineWidth(0.5);
-    doc.line(marginLeft, pageHeight - 17, 190, pageHeight - 17);
-
+  const totalPages = doc.getNumberOfPages();
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i);
     doc.setFontSize(8);
     doc.setTextColor(128, 128, 128);
     doc.setFont("times", "italic");
-    doc.text("This is a system-generated report", 105, pageHeight - 10, { align: "center" });
+    doc.text(`Page ${i} of ${totalPages}`, 105, pageHeight - 10, { align: "center" });
   }
 
-  /* ================= SAVE FILE ================= */
+  /* ================= SAVE ================= */
 
   const cleanName = playerName.replace(/[^a-zA-Z0-9]/g, "_");
   const cleanQuest = questID.replace(/[^a-zA-Z0-9]/g, "_");
 
   doc.save(`${cleanName}_${cleanQuest}_Report.pdf`);
 }
-
-
 /* --------------- EVENT LISTENERS --------------- */
 
 // Call auto-fill when page loads

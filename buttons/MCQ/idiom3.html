@@ -7,441 +7,209 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
   <style>
-   body {
-      margin: 0;
-      padding: 0;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: radial-gradient(ellipse at bottom, #0b0c1b 0%, #000000 100%);
-      color: white;
-      text-align: center;
-      overflow-x: hidden;
-    }
-    
-    /* --- HEADER BAR STYLES --- */
-    .quiz-header-bar {
-      width: 100%;
-      background-color: #1a1a2e;
-      border-bottom: 1px solid #343454;
-      padding: 10px 0;
-      box-sizing: border-box;
-      /* Will be hidden/shown by JS */
-    }
-    
-    .quiz-header-content {
-      display: flex;
-      flex-direction: row;
-      flex-wrap: wrap; 
-      justify-content: space-between;
-      align-items: center;
-      
-      max-width: 800px; 
-      margin: 0 auto;
-      padding: 0 1rem; 
-      box-sizing: border-box;
-    }
-    
-    .stat-item {
-      margin: 5px 10px; 
-      font-size: 1.2rem;
-      font-weight: bold;
-      color: white;
-      position: relative; /* Needed for animation */
-    }
-    
-    /* Specific colors for icons/text */
-    #timer { color: #00e0ff; }
-    #gemCounter { color: #20f090; } /* Gem counter color */
-    #streakCounter { color: #ffd700; }
-    #progressTracker { color: #9a9aff; }
-
-    /* --- GEM ANIMATION STYLES --- */
-
-    /* Animation for the counter pulsing green */
-    .gem-gain {
-      animation: gemGainPulse 0.5s ease-out;
-    }
-    @keyframes gemGainPulse {
-      0%, 100% { transform: scale(1); }
-      50% { 
-        transform: scale(1.2);
-        text-shadow: 0 0 15px #20f090, 0 0 25px #20f090;
-      }
-    }
-
-    /* Animation for the counter shaking red */
-    .gem-lose {
-      animation: gemLoseShake 0.5s ease-out;
-    }
-    @keyframes gemLoseShake {
-      0%, 100% { transform: translateX(0); }
-      25% { transform: translateX(-8px); }
-      75% { transform: translateX(8px); }
-    }
-
-    /* Class for the flying "+1" or "-1" text */
-    .flying-gem-text {
-      position: fixed; /* Use fixed to overlay everything */
-      font-weight: bold;
-      font-size: 1.5rem;
-      z-index: 2000;
-      pointer-events: none;
-      animation: flyUpFadeOut 1s ease-out forwards;
-      text-shadow: 0 0 5px rgba(0,0,0,0.5);
-    }
-    .flying-gem-text.plus {
-      color: #20f090; /* Bright green */
-    }
-    .flying-gem-text.minus {
-      color: #ff6b6b; /* Bright red */
-    }
-    
-    @keyframes flyUpFadeOut {
-      0% {
-        transform: translateY(0) scale(1);
-        opacity: 1;
-      }
-      100% {
-        transform: translateY(-60px) scale(1.2);
-        opacity: 0;
-      }
-    }
-    /* --- END OF NEW STYLES --- */
-
-
-    .container {
-      max-width: 800px;
-      margin: 1.5rem auto 2rem auto; 
-      background: rgba(255, 255, 255, 0.05);
-      padding: 2rem;
-      border-radius: 15px;
-      box-shadow: 0 0 30px rgba(255, 255, 255, 0.1);
-      transition: background 0.5s ease;
-      position: relative;
-    }
-    .container.retry-mode {
-      background: rgba(255, 100, 100, 0.15);
-      box-shadow: 0 0 40px rgba(255, 100, 100, 0.3);
-      border: 2px solid rgba(255, 100, 100, 0.4);
-    }
-    
-    .question {
-      font-size: 1.5rem;
-      margin-bottom: 1rem;
-    }
-    .options {
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-    }
-    button {
-      padding: 1rem;
-      border: none;
-      border-radius: 10px;
-      font-size: 1rem;
-      cursor: pointer;
-      background-color: #1f1f2e;
-      color: white;
-      transition: all 0.3s ease;
-      position: relative;
-      overflow: visible;
-    }
-    button:hover {
-      background-color: #343454;
-      transform: scale(1.02);
-    }
-    .correct {
-      background-color: green !important;
-      animation: correctPulse 0.6s ease-out;
-    }
-    .wrong {
-      background-color: red !important;
-      animation: wrongShake 0.5s ease-out;
-    }
-    
-    @keyframes correctPulse {
-      0% { transform: scale(1); }
-      50% { transform: scale(1.1); box-shadow: 0 0 30px rgba(0, 255, 0, 0.8); }
-      100% { transform: scale(1); }
-    }
-    
-    @keyframes wrongShake {
-      0%, 100% { transform: translateX(0); }
-      25% { transform: translateX(-10px); }
-      75% { transform: translateX(10px); }
-    }
-
-    @keyframes neonGlow {
-  0% { text-shadow: 0 0 5px #fff, 0 0 10px #0ff, 0 0 20px #0ff; color: #0ff; }
-  50% { text-shadow: 0 0 10px #fff, 0 0 20px #0ff, 0 0 40px #0ff; color: #fff; }
-  100% { text-shadow: 0 0 5px #fff, 0 0 10px #0ff, 0 0 20px #0ff; color: #0ff; }
-}
-
-.neon-typewriter {
-  display: inline-block;
-  white-space: pre-wrap;
-  overflow: hidden;
-  border-right: .15em solid #0ff;
-  animation: typing 1.5s steps(40, end), blink-caret .75s step-end infinite, neonGlow 2s ease-in-out infinite;
-}
-
-@keyframes typing {
-  from { width: 0 }
-  to { width: 100% }
-}
-
-@keyframes blink-caret {
-  50% { border-color: transparent }
-}
-    .flying-answer {
-      position: fixed;
-      color: #ffd700;
-      font-weight: bold;
-      font-size: 1.2rem;
-      pointer-events: none;
-      z-index: 1000;
-      text-shadow: 0 0 10px rgba(255, 215, 0, 0.8);
-    }
-    .focused-question {
+  <style>
+/* =========================================================
+   GLOBAL / BODY
+   ========================================================= */
+body {
+  margin: 0;
+  padding: 0;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  background: radial-gradient(circle at top, #fff8e6 0%, #f3e4c7 60%, #e8d3a2 100%);
+  color: #4a3315;
   text-align: center;
-  font-size: 1.3rem;
-  color: #00e0ff;
-  text-shadow: 0 0 10px #00e0ff, 0 0 20px #0080ff;
+  overflow-x: hidden;
 }
 
-@keyframes neon-type {
-  from { opacity: 0; filter: blur(3px); }
-  to { opacity: 1; filter: blur(0); }
+/* =========================================================
+   HEADER BAR
+   ========================================================= */
+.quiz-header-bar {
+  width: 100%;
+  background: linear-gradient(90deg, #e6d2a2, #f3e4c7);
+  border-bottom: 1px solid #c9ab6d;
+  padding: 10px 0;
 }
 
-.neon-typewriter {
-  display: inline-block;
-  animation: neon-type 1.5s ease forwards;
+.quiz-header-content {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 0 1rem;
 }
 
-    @keyframes flyToQuestion {
-      0% {
-        opacity: 1;
-        transform: translate(0, 0) scale(1);
-      }
-      50% {
-        opacity: 1;
-        transform: translate(var(--dx), var(--dy)) scale(1.2);
-      }
-      100% {
-        opacity: 0;
-        transform: translate(var(--dx), var(--dy)) scale(0.8);
-      }
-    }
-    
-    .question-highlight {
-      display: inline-block;
-      color: #ffd700;
-      font-weight: bold;
-      animation: highlightPulse 0.5s ease-in-out;
-    }
-    
-    @keyframes highlightPulse {
-      0%, 100% { transform: scale(1); }
-      50% { transform: scale(1.15); text-shadow: 0 0 20px rgba(255, 215, 0, 1); }
-    }
-    
-    .star-particle {
-      position: fixed;
-      width: 6px;
-      height: 6px;
-      background: white;
-      border-radius: 50%;
-      pointer-events: none;
-      animation: starFloat 1s ease-out forwards;
-      box-shadow: 0 0 6px rgba(255, 255, 255, 0.8);
-    }
-    
-    @keyframes starFloat {
-      0% {
-        opacity: 1;
-        transform: translate(0, 0) scale(1);
-      }
-      100% {
-        opacity: 0;
-        transform: translate(var(--tx), var(--ty)) scale(0);
-      }
-    }
-    
-    .confetti {
-      position: absolute;
-      width: 8px;
-      height: 8px;
-      pointer-events: none;
-      animation: confettiFall 1.5s ease-out forwards;
-    }
-    
-    @keyframes confettiFall {
-      0% {
-        opacity: 1;
-        transform: translateY(0) rotate(0deg);
-      }
-      100% {
-        opacity: 0;
-        transform: translateY(300px) rotate(720deg);
-      }
-    }
-
-    .next-btn {
-  margin-top: 1rem;
-  padding: 0.5rem 1rem;
-  background-color: #6c63ff;
-  color: white;
-  border: none;
-  border-radius: 0.3rem;
-  cursor: pointer;
+.stat-item {
+  margin: 5px 10px;
+  font-size: 1.2rem;
   font-weight: bold;
-  transition: background 0.3s;
+  color: #4a3315;
 }
 
-.next-btn:hover {
-  background-color: #5750d6;
+#timer { color: #6b4b1b; }
+#gemCounter { color: #2f7d32; }
+#streakCounter { color: #b08900; }
+#progressTracker { color: #5a5a9a; }
+
+/* =========================================================
+   GEM ANIMATIONS
+   ========================================================= */
+.gem-gain { animation: gemGainPulse 0.5s ease-out; }
+@keyframes gemGainPulse {
+  0%,100% { transform: scale(1); }
+  50% { transform: scale(1.2); text-shadow: 0 0 15px #2f7d32; }
 }
 
-.next-btn.hidden {
-  display: none;
+.gem-lose { animation: gemLoseShake 0.5s ease-out; }
+@keyframes gemLoseShake {
+  0%,100% { transform: translateX(0); }
+  25% { transform: translateX(-6px); }
+  75% { transform: translateX(6px); }
 }
 
-    .streak-glow {
-      animation: streakGlow 0.8s ease-out;
-    }
-    
-    @keyframes streakGlow {
-      0%, 100% { box-shadow: 0 0 10px rgba(255, 215, 0, 0.5); }
-      50% { box-shadow: 0 0 40px rgba(255, 215, 0, 1), 0 0 60px rgba(255, 165, 0, 0.8); }
-    }
-    
-    #scoreCard {
-      margin-top: 2rem;
-      font-size: 1.2rem;
-    }
+.flying-gem-text {
+  position: fixed;
+  font-size: 1.5rem;
+  font-weight: bold;
+  z-index: 2000;
+  pointer-events: none;
+  animation: flyUpFadeOut 1s ease-out forwards;
+}
 
-    #restartBtn {
-      margin-top: 2rem;
-      padding: 0.7rem 2rem;
-      font-size: 1.1rem;
-      background-color: #444466;
-      border: none;
-      border-radius: 10px;
-      cursor: pointer;
-      color: white;
-    }
-    #nameForm {
-      margin-bottom: 1.5rem;
-    }
-    #nameInput {
-      display: block;
-      width: 90%;
-      max-width: 300px;
-      margin: 0.5rem auto; 
-      padding: 0.7rem;
-      font-size: 1rem;
-      border-radius: 5px;
-      border: none;
-    }
-    
-    .stars {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
-      z-index: -1;
-    }
-    
-    .star {
-      position: absolute;
-      width: 2px;
-      height: 2px;
-      background: white;
-      border-radius: 50%;
-      animation: twinkle 3s infinite;
-    }
-    
-    @keyframes twinkle {
-      0%, 100% { opacity: 0.3; }
-      50% { opacity: 1; }
-    }
-/* --- Huge Hero Quote Styling --- */
+.flying-gem-text.plus { color: #2f7d32; }
+.flying-gem-text.minus { color: #a33; }
 
+@keyframes flyUpFadeOut {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to { opacity: 0; transform: translateY(-60px) scale(1.2); }
+}
+
+/* =========================================================
+   MAIN CONTAINER (PARCHMENT CARD)
+   ========================================================= */
+.container {
+  max-width: 800px;
+  margin: 1.5rem auto 2rem;
+  background: rgba(255,248,230,0.95);
+  padding: 2rem;
+  border-radius: 15px;
+  box-shadow:
+    0 0 0 1px rgba(140,110,60,0.25),
+    0 20px 45px rgba(90,70,40,0.25);
+  transition: background 0.5s ease;
+}
+
+.container.retry-mode {
+  background: rgba(255,220,220,0.8);
+  border: 2px solid rgba(180,80,80,0.4);
+}
+
+/* =========================================================
+   QUESTIONS & OPTIONS
+   ========================================================= */
+.question {
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.options {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+button {
+  padding: 1rem;
+  font-size: 1rem;
+  cursor: pointer;
+  border-radius: 10px;
+  border: 1px solid #c9ab6d;
+  background: linear-gradient(#fdf4dc, #e8d3a2);
+  color: #4a3315;
+  transition: all 0.3s ease;
+}
+
+button:hover {
+  background: linear-gradient(#fff1cc, #e0c48c);
+  transform: scale(1.02);
+}
+
+.correct {
+  background: linear-gradient(#c8e6c9, #a5d6a7) !important;
+}
+
+.wrong {
+  background: linear-gradient(#ffcdd2, #ef9a9a) !important;
+}
+
+/* =========================================================
+   TYPEWRITER / HIGHLIGHT
+   ========================================================= */
+.neon-typewriter {
+  animation: fadeInk 1.5s ease forwards;
+}
+
+@keyframes fadeInk {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.focused-question {
+  color: #6b4b1b;
+  text-shadow: 0 0 12px rgba(201,171,109,0.8);
+}
+
+/* =========================================================
+   PARTICLES & CONFETTI (SOFTENED)
+   ========================================================= */
+.star-particle {
+  background: #c9ab6d;
+  box-shadow: 0 0 6px rgba(201,171,109,0.6);
+}
+
+.confetti {
+  animation: confettiFall 1.5s ease-out forwards;
+}
+
+/* =========================================================
+   HERO QUOTE
+   ========================================================= */
 .hero-quote {
-  max-width: 90%;
-  margin: 1rem auto 2rem auto;
-  padding: 2rem 1.5rem;
-  background: rgba(255, 255, 255, 0.8);
+  background: rgba(255,255,255,0.85);
   border: 2px solid #c9ab6d;
   border-radius: 15px;
-  box-shadow: 0 0 25px rgba(180, 150, 90, 0.45);
-  text-align: center;
+  padding: 2rem;
+  box-shadow: 0 0 25px rgba(180,150,90,0.45);
 }
 
-/* BIG, BEAUTIFUL, HEROIC TEXT */
 .hero-text {
-  font-family: "Cinzel", Georgia, serif;
-  font-size: 1.65rem;         /* mobile-friendly big */
-  font-weight: 700;
-  line-height: 1.35;
+  font-family: "Cinzel", serif;
+  font-size: 1.6rem;
+  font-weight: bold;
   color: #4a3315;
-  text-shadow: 
-    0 0 10px rgba(255, 230, 170, 0.7),
-    0 0 20px rgba(255, 210, 120, 0.5);
-  margin-bottom: 0.7rem;
 }
 
-/* AUTHOR */
 .hero-author {
-  font-family: "Cinzel", serif;
   font-size: 1rem;
   font-weight: bold;
   color: #6b4b1b;
-  opacity: 0.9;
 }
 
-/* --- QUEST TRANSITION SCORECARD --- */
+.stars { display: none; }
+
 .score-portal {
-  margin-top: 2rem;
-  padding: 1.5rem;
-  border-radius: 15px;
-  background: linear-gradient(135deg, rgba(30,30,60,0.9), rgba(10,10,30,0.9));
-  box-shadow: 0 0 35px rgba(108,99,255,0.4);
-  animation: portalGlow 2s ease-in-out infinite;
-}
-
-@keyframes portalGlow {
-  0%,100% { box-shadow: 0 0 25px rgba(108,99,255,0.4); }
-  50% { box-shadow: 0 0 50px rgba(108,99,255,0.8); }
+  background: linear-gradient(135deg, #f3e4c7, #e8d3a2);
+  box-shadow: 0 0 35px rgba(140,110,60,0.4);
 }
 
 .next-quest-btn {
-  margin-top: 1.5rem;
-  padding: 1rem 2.5rem;
-  font-size: 1.2rem;
-  font-weight: bold;
-  border-radius: 12px;
-  border: none;
-  cursor: pointer;
-  background: linear-gradient(135deg, #6c63ff, #9a94ff);
-  color: white;
-  box-shadow: 0 0 25px rgba(108,99,255,0.8);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  background: linear-gradient(135deg, #d4af37, #f5d76e);
+  color: #4a3315;
 }
+</style>
 
-.next-quest-btn:hover {
-  transform: scale(1.08);
-  box-shadow: 0 0 45px rgba(154,148,255,1);
-}
-
-.quest-hint {
-  margin-top: 0.8rem;
-  font-size: 0.95rem;
-  opacity: 0.85;
-  letter-spacing: 0.5px;
-}
 
   </style>
 </head>

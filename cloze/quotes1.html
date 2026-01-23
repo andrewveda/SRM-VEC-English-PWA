@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Tap-to-Match Quiz 🌌</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+
+<style>
+:root {
+  --bg-main: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
+  --card-bg: #ffffff;
+
+  --accent-main: #ff9800;
+  --accent-soft: #ffcc80;
+
+  --blue-main: #2979ff;
+  --green-main: #00c853;
+  --red-main: #e53935;
+
+  --text-main: #1f2933;
+  --text-muted: #6b7280;
+}
+
+/* ---------- BASE ---------- */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: var(--bg-main);
+  color: var(--text-main);
+  text-align: center;
+}
+
+/* ---------- KEYFRAME ANIMATIONS ---------- */
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(100px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes timerPulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+@keyframes correctFill {
+  from {
+    background-position: -100% 0;
+  }
+  to {
+    background-position: 100% 0;
+  }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-10px); }
+  75% { transform: translateX(10px); }
+}
+
+@keyframes wrongFlash {
+  0% { opacity: 1; }
+  50% { opacity: 0.3; }
+  100% { opacity: 1; }
+}
+
+@keyframes gemBounce {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.3) rotate(10deg); }
+  100% { transform: scale(1); }
+}
+
+@keyframes gemShake {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  25% { transform: scale(0.9) rotate(-5deg); }
+  75% { transform: scale(0.9) rotate(5deg); }
+}
+
+@keyframes buttonSquish {
+  0% { transform: scale(1); }
+  50% { transform: scale(0.95); }
+  100% { transform: scale(1); }
+}
+
+@keyframes confetti {
+  0% {
+    transform: translateY(0) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-100vh) rotate(720deg);
+    opacity: 0;
+  }
+}
+
+@keyframes scoreCountUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ---------- MAIN CONTAINER ---------- */
+.container {
+  position: relative;
+  max-width: 900px;
+  margin: 2rem auto;
+  background: var(--card-bg);
+  padding: 2rem;
+  border-radius: 18px;
+  box-shadow: 0 15px 35px rgba(0,0,0,0.12);
+}
+
+/* ---------- QUIZ HEADER / HUD ---------- */
+.quiz-header {
+  position: absolute;
+  top: 10px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 1rem;
+  font-size: 1rem;
+  font-weight: bold;
+  color: var(--blue-main);
+}
+
+#timer {
+  animation: timerPulse 1s ease-in-out infinite;
+}
+
+/* ---------- QUESTION ---------- */
+.question {
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin-bottom: 1.2rem;
+  animation: slideInRight 0.5s ease-out;
+}
+
+/* ---------- OPTIONS ---------- */
+.drag-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+  margin-bottom: 2rem;
+  justify-content: center;
+}
+
+.drag-item {
+  padding: 0.7rem 1.2rem;
+  background: #f1f5f9;
+  border-radius: 14px;
+  cursor: pointer;
+  user-select: none;
+  font-weight: 600;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.drag-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(0,0,0,0.15);
+}
+
+.drag-item.selected {
+  background: var(--accent-main);
+  color: #fff;
+}
+
+/* ---------- DROP ZONES ---------- */
+.drop-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  align-items: center;
+}
+
+.drop-zone {
+  width: 100%;
+  max-width: 520px;
+  min-height: 44px;
+  padding: 0.7rem 1rem;
+  border-radius: 12px;
+  border: 2px dashed var(--blue-main);
+  cursor: pointer;
+  font-weight: 600;
+  background: #f8fafc;
+}
+
+.drop-zone.filled {
+  border-style: solid;
+  background: #e3f2fd;
+}
+
+/* ---------- FEEDBACK ---------- */
+.correct {
+  background: linear-gradient(90deg, #e8f5e9 0%, #c8e6c9 50%, #e8f5e9 100%) !important;
+  background-size: 200% 100% !important;
+  animation: correctFill 0.6s ease-out !important;
+  border-color: var(--green-main) !important;
+  color: var(--green-main);
+}
+
+.wrong {
+  background-color: #ffebee !important;
+  border-color: var(--red-main) !important;
+  color: var(--red-main);
+  animation: shake 0.4s ease-in-out, wrongFlash 0.6s ease-in-out !important;
+}
+
+/* ---------- MOTIVATION BOX ---------- */
+#motivationBox {
+  margin-top: 2rem;
+  min-height: 120px;
+  padding: 1.5rem;
+  font-size: 1.9rem;
+  font-weight: 800;
+  color: var(--accent-main);
+  background: linear-gradient(135deg, #fff3e0, #ffe0b2);
+  border-radius: 18px;
+  box-shadow: 0 10px 25px rgba(255,152,0,0.35);
+}
+
+/* ---------- HERO QUOTE ---------- */
+.hero-quote {
+  max-width: 90%;
+  margin: 1rem auto 2rem auto;
+  padding: 2rem 1.5rem;
+  background: linear-gradient(135deg, #e3f2fd, #ffffff);
+  border-left: 6px solid var(--blue-main);
+  border-radius: 14px;
+}
+
+.hero-text {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #0d47a1;
+  line-height: 1.35;
+}
+
+.hero-author {
+  margin-top: 0.5rem;
+  font-weight: bold;
+  color: #1565c0;
+}
+
+/* ---------- FORM CARD ---------- */
+#nameForm {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  background: linear-gradient(135deg, #ffffff, #f1f5f9);
+  padding: 2rem 1.5rem;
+  border-radius: 20px;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.18);
+  max-width: 420px;
+  margin: 2rem auto;
+}
+
+/* ---------- INPUTS ---------- */
+#nameInput,
+#departmentSelect {
+  width: 100%;
+  padding: 0.9rem 1rem;
+  background: #ffffff;
+  border: 2px solid #cbd5e1;
+  border-radius: 12px;
+  font-size: 1rem;
+  outline: none;
+}
+
+#nameInput:focus,
+#departmentSelect:focus {
+  border-color: var(--blue-main);
+  box-shadow: 0 0 0 3px rgba(41,121,255,0.25);
+}
+
+/* ---------- BUTTON ---------- */
+#nameForm button {
+  width: 100%;
+  padding: 1rem;
+  background: linear-gradient(135deg, var(--accent-main), #ffb300);
+  color: #000;
+  font-size: 1.1rem;
+  font-weight: bold;
+  border: none;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+#nameForm button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 25px rgba(255,152,0,0.45);
+}
+
+#nameForm button:active {
+  animation: buttonSquish 0.2s ease-out;
+}
+
+/* ---------- RESTART BUTTON ---------- */
+#restartBtn {
+  margin-top: 1.5rem;
+  padding: 0.8rem 2.2rem;
+  background: linear-gradient(135deg, #2979ff, #00b0ff);
+  color: #fff;
+  border: none;
+  border-radius: 14px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+/* ---------- RESPONSIVE ---------- */
+@media (max-width: 600px) {
+  .question { font-size: 1.3rem; }
+  .hero-text { font-size: 1.4rem; }
+}
+
+/* ---------- GEM ANIMATION CLASSES ---------- */
+.gem-gain {
+  animation: gemBounce 0.5s ease-out;
+}
+
+.gem-loss {
+  animation: gemShake 0.5s ease-out;
+}
+
+/* ---------- CONFETTI PARTICLE ---------- */
+.confetti-piece {
+  position: fixed;
+  width: 10px;
+  height: 10px;
+  z-index: 9999;
+  pointer-events: none;
+  animation: confetti 3s ease-out forwards;
+}
+
+/* ---------- SCORE CARD ANIMATION ---------- */
+#scoreCard p {
+  animation: scoreCountUp 0.5s ease-out backwards;
+}
+
+#scoreCard p:nth-child(1) { animation-delay: 0.1s; }
+#scoreCard p:nth-child(2) { animation-delay: 0.2s; }
+#scoreCard p:nth-child(3) { animation-delay: 0.3s; }
+#scoreCard p:nth-child(4) { animation-delay: 0.4s; }
+#scoreCard p:nth-child(5) { animation-delay: 0.5s; }
+
+</style>
+</head>
+
+<body>
+  <div class="container" id="quizContainer">
+  <div id="nameForm">
+
+  <div class="hero-quote">
+    <div class="hero-text">
+      "Quotes are shortcuts to sounding smart! So, use a LOT of quotes in your essays and letters."
+    </div>
+    <div class="hero-author">— Oscar Wilde. Nobody verifies it as long as it appears true and witty. You should verify all the quotes in this quest! </div>
+  </div>
+
+  <input 
+    type="text" 
+    id="nameInput" 
+    placeholder="Enter your name"
+  />
+
+  <select id="departmentSelect">
+    <option value="">-- Select Department --</option>
+    <option value="Cyber Security">Cyber Security</option>
+    <option value="CSE-1">CSE-1</option>
+    <option value="CSE-2">CSE-2</option>
+    <option value="CSE-3">CSE-3</option>
+    <option value="Mechanical Engineering">Mechanical Engineering</option>
+    <option value="ECE-1">ECE-1</option>
+    <option value="ECE-2">ECE-2</option>
+    <option value="ECE-3">ECE-3</option>
+    <option value="AI DS-1">AI DS-1</option>
+    <option value="AI DS-2">AI DS-2</option>
+    <option value="Civil">Civil</option>
+    <option value="Agri">Agri</option>
+    <option value="EEE">EEE</option>
+    <option value="EIE">EIE</option>
+    <option value="Medical Electronics">Medical Electronics</option>
+    <option value="IT-1">IT-1</option>
+    <option value="IT-2">IT-2</option>
+  </select>
+
+  <button onclick="beginQuiz()">Start Quiz</button>
+</div>
+
+  <!-- QUIZ SCREEN -->
+  <div id="quizContent" style="display:none;">
+    <div class="quiz-header">
+      <div id="timer">⏳ 0s</div>
+      <div id="gemsCounter">💎 0</div>
+      <div id="progressTracker">📍 1 of 1</div>
+    </div>
+
+    <div class="question" id="question"></div>
+    <div class="drag-options" id="dragOptions"></div>
+    <div class="drop-container" id="dropContainer"></div>
+
+    <div id="scoreCard"></div>
+    <button id="restartBtn" style="display:none;">Restart</button>
+  </div>
+
+</div>
+
+<!-- MOTIVATION BOX BELOW QUIZ -->
+<div id="motivationBox"></div>
+
+<script>
+/* AUTO-RESTORE NAME + DEPT */
+window.addEventListener("load", () => {
+  const savedName = localStorage.getItem("questPlayerName");
+  const savedDept = localStorage.getItem("questPlayerDept");
+  if (savedName) document.getElementById("nameInput").value = savedName;
+  if (savedDept) document.getElementById("departmentSelect").value = savedDept;
+});
+
+/* MOTIVATION MESSAGES */
+const rightMessages = [
+  "'name' is unstoppable!",
+  "'name' is awesome because 'name' has grit!",
+  "'name' has got the right answer because 'name' loves trying!",
+  "Nothing can slow 'name' down today!",
+  "'name' learns fast because 'name' never gives up!",
+  "Who is awesome? 'name'!",
+  "'name' proves that effort beats talent every time!",
+  "Every correct answer takes 'name' one step closer to greatness!",
+  "'name' shines brighter with every question!"
+];
+
+
+const wrongMessages = [
+  "'name' loves failures because 'name', like Edison, knows failure is the stepping stone to success.",
+  "'name''s favourite quote: "Ever tried. Ever failed. No matter. Try again. Fail again. Fail better."",
+  "Every mistake makes 'name' stronger.",
+  "Mistakes guide 'name' towards victory!",
+  "Failure is feedback, and 'name' takes feedback like a champion.",
+  "Every wrong attempt brings 'name' closer to the right one.",
+  "'name' believes in trying again and again and again!"
+];
+
+/* SHOW MOTIVATION */
+function showMotivation(isCorrect) {
+  const box = document.getElementById("motivationBox");
+  const list = isCorrect ? rightMessages : wrongMessages;
+
+  let msg = list[Math.floor(Math.random() * list.length)];
+  msg = msg.replace(/'name'/g, playerName);
+
+  box.innerHTML = msg;
+  box.style.opacity = 1;
+
+}
+
+  const quizData = [
+{
+  "questionItems": [
+    { "word": "It is not that I'm so smart. But I stay with the questions much longer. - Albert Einstein", "answer": "I don't give up when things take time" },
+    { "word": "Anyone who has never made a mistake has never tried anything new. - Albert Einstein", "answer": "Making mistakes means I am trying" },
+    { "word": "Change is the end result of all true learning. - Leo Buscaglia", "answer": "If I learn properly, I will not remain the same person" }
+  ],
+  "answers": [
+    "I don't give up when things take time",
+    "Making mistakes means I am trying",
+    "If I learn properly, I will not remain the same person"
+  ]
+},
+{
+  "questionItems": [
+    { "word": "Success is not final, failure is not fatal. - Winston Churchill", "answer": "One result does not define my life" },
+    { "word": "Fall seven times and stand up eight. - Japanese Proverb", "answer": "I will get back up no matter how many times I fall" },
+    { "word": "Energy and persistence conquer all things. - Benjamin Franklin", "answer": "Putting in effort matters more than talent" }
+  ],
+  "answers": [
+    "One result does not define my life",
+    "I will get back up no matter how many times I fall",
+    "Putting in effort matters more than talent"
+  ]
+},
+{
+  "questionItems": [
+    { "word": "He who has a why to live can bear almost any how. - Friedrich Nietzsche", "answer": "Having a reason makes hardships bearable" },
+    { "word": "Action is the foundational key to all success. - Pablo Picasso", "answer": "Nothing changes unless I actually do something" },
+    { "word": "Don't watch the clock; do what it does. Keep going. - Sam Levenson", "answer": "I should keep moving instead of worrying about time" }
+  ],
+  "answers": [
+    "Having a reason makes hardships bearable",
+    "Nothing changes unless I actually do something",
+    "I should keep moving instead of worrying about time"
+  ]
+},
+{
+  "questionItems": [
+    { "word": "Every moment is a fresh beginning. - T.S. Eliot", "answer": "I can start again at any moment" },
+    { "word": "And now we welcome the new year, full of things that have never been. - Rainer Maria Rilke", "answer": "The future can be different from the past" },
+    { "word": "The beginning is the most important part of the work. - Plato", "answer": "How I start will shape everything that follows" }
+  ],
+  "answers": [
+    "I can start again at any moment",
+    "The future can be different from the past",
+    "How I start will shape everything that follows"
+  ]
+},
+{
+  "questionItems": [
+    { "word": "Rock bottom became the solid foundation on which I rebuilt my life. - J.K. Rowling", "answer": "My lowest point can become my turning point" },
+    { "word": "Out of difficulties grow miracles. - Jean de La Bruyère", "answer": "Good things can come from hard situations" },
+    { "word": "Turn your wounds into wisdom. - Oprah Winfrey", "answer": "Pain can teach me something valuable" }
+  ],
+  "answers": [
+    "My lowest point can become my turning point",
+    "Good things can come from hard situations",
+    "Pain can teach me something valuable"
+  ]
+},
+{
+  "questionItems": [
+    { "word": "Believe you can and you're halfway there. - Theodore Roosevelt", "answer": "Confidence helps me move forward" },
+    { "word": "Act as if what you do makes a difference. It does. - William James", "answer": "My actions have real impact" },
+    { "word": "You are never too old to set another goal. - C.S. Lewis", "answer": "It is never too late to aim for something new" }
+  ],
+  "answers": [
+    "Confidence helps me move forward",
+    "My actions have real impact",
+    "It is never too late to aim for something new"
+  ]
+},
+{
+  "questionItems": [
+    { "word": "We do not learn from experience. We learn from reflecting on experience. - John Dewey", "answer": "Thinking about what happened helps me learn" },
+    { "word": "Knowing yourself is the beginning of all wisdom. - Aristotle", "answer": "Understanding myself matters before judging others" },
+    { "word": "Do the best you can until you know better. Then do better. - Maya Angelou", "answer": "I should improve when I gain new understanding" }
+  ],
+  "answers": [
+    "Thinking about what happened helps me learn",
+    "Understanding myself matters before judging others",
+    "I should improve when I gain new understanding"
+  ]
+},
+{
+  "questionItems": [
+    { "word": "Small disciplines repeated daily lead to great achievements. - John C. Maxwell", "answer": "Small daily actions add up over time" },
+    { "word": "Motivation gets you going, discipline keeps you growing. - John C. Maxwell", "answer": "Consistency matters more than mood" },
+    { "word": "Excellence is not an act, but a habit. - Aristotle", "answer": "Doing things regularly shapes who I become" }
+  ],
+  "answers": [
+    "Small daily actions add up over time",
+    "Consistency matters more than mood",
+    "Doing things regularly shapes who I become"
+  ]
+},
+    {
+  "questionItems": [
+    { "word": "Success is stumbling from failure to failure with no loss of enthusiasm. - Winston Churchill", "answer": "I can fail repeatedly without losing my mood" },
+    { "word": "The road to success is dotted with many tempting parking spaces. - Will Rogers", "answer": "Giving up often looks comfortable but delays progress" },
+    { "word": "Motivation is what gets you started. Habit is what keeps you going. - Jim Ryun", "answer": "I can't rely on excitement every single day" }
+  ],
+  "answers": [
+    "I can fail repeatedly without losing my mood",
+    "Giving up often looks comfortable but delays progress",
+    "I can't rely on excitement every single day"
+  ]
+},
+    {
+  "questionItems": [
+    { "word": "I never lose. I either win or learn. - Nelson Mandela", "answer": "Even bad outcomes are not completely wasted" },
+    { "word": "The elevator to success is out of order. You'll have to use the stairs. - Joe Girard", "answer": "Progress usually takes longer than I want" },
+    { "word": "You don't have to be great to start, but you have to start to be great. - Zig Ziglar", "answer": "Waiting to feel ready only delays improvement" }
+  ],
+  "answers": [
+    "Even bad outcomes are not completely wasted",
+    "Progress usually takes longer than I want",
+    "Waiting to feel ready only delays improvement"
+  ]
+}
+
+
+];
+
+let current = 0;
+let wrongQuestions = [];
+let correctCount = 0;
+let totalWrongGuesses = 0;
+let gemsCount = 0;
+let startTime;
+let timerInterval;
+let playerName = "";
+let playerDept = "";
+let selectedOption = null;
+
+const questionEl = document.getElementById("question");
+const dragOptionsEl = document.getElementById("dragOptions");
+const dropContainerEl = document.getElementById("dropContainer");
+const timerEl = document.getElementById("timer");
+const gemsCounterEl = document.getElementById("gemsCounter");
+const progressTracker = document.getElementById("progressTracker");
+const scoreCard = document.getElementById("scoreCard");
+const restartBtn = document.getElementById("restartBtn");
+
+/* START QUIZ */
+function beginQuiz() {
+  const nameField = document.getElementById("nameInput");
+  const deptField = document.getElementById("departmentSelect");
+
+  if (!nameField.value.trim()) { alert("Please enter your name!"); return; }
+  if (!deptField.value) { alert("Please select your department!"); return; }
+
+  playerName = nameField.value.trim();
+  playerDept = deptField.value;
+
+  // save
+  localStorage.setItem("questPlayerName", playerName);
+  localStorage.setItem("questPlayerDept", playerDept);
+
+  document.getElementById("nameForm").style.display = "none";
+  document.getElementById("quizContent").style.display = "block";
+
+  startQuiz();
+}
+
+function startQuiz() {
+  current = 0;
+  correctCount = 0;
+  totalWrongGuesses = 0;
+  gemsCount = 0;
+  startTime = Date.now();
+
+  gemsCounterEl.innerText = "💎 0";
+  scoreCard.innerHTML = "";
+  restartBtn.style.display = "none";
+  loadQuestion();
+  startTimer();
+}
+
+function loadQuestion() {
+  if (current >= quizData.length) return showScore();
+
+  selectedOption = null;
+  const data = quizData[current];
+  progressTracker.innerText = `📍 ${current + 1} of ${quizData.length}`;
+
+  dragOptionsEl.innerHTML = "";
+  dropContainerEl.innerHTML = "";
+
+  const shuffled = [...data.answers].sort(() => Math.random() - 0.5);
+
+  shuffled.forEach((ans) => {
+    const div = document.createElement("div");
+    div.classList.add("drag-item");
+    div.innerText = ans;
+    div.onclick = () => selectOption(div);
+    dragOptionsEl.appendChild(div);
+  });
+
+  data.questionItems.forEach((item) => {
+    const drop = document.createElement("div");
+    drop.classList.add("drop-zone");
+    drop.innerText = item.word;
+    drop.dataset.answer = item.answer;
+    drop.onclick = () => placeOption(drop);
+    dropContainerEl.appendChild(drop);
+  });
+}
+
+function selectOption(div) {
+  if (selectedOption) selectedOption.classList.remove("selected");
+  selectedOption = div;
+  div.classList.add("selected");
+}
+
+function placeOption(dropZone) {
+  if (!selectedOption) return;
+
+  const answer = selectedOption.innerText;
+  const correctAnswer = dropZone.dataset.answer;
+
+  if (answer === correctAnswer) {
+    correctCount++;
+    gemsCount++;
+    
+    // Animate gem counter
+    gemsCounterEl.classList.add('gem-gain');
+    setTimeout(() => gemsCounterEl.classList.remove('gem-gain'), 500);
+    gemsCounterEl.innerText = `💎 ${gemsCount}`;
+    
+    showMotivation(true);
+
+    dropZone.innerHTML = dropZone.innerText.replace("___", `<strong>${answer}</strong>`);
+    dropZone.classList.add("correct", "filled");
+    selectedOption.style.display = "none";
+
+  } else {
+    totalWrongGuesses++;
+    gemsCount--;
+    
+    // Animate gem counter loss
+    gemsCounterEl.classList.add('gem-loss');
+    setTimeout(() => gemsCounterEl.classList.remove('gem-loss'), 500);
+    gemsCounterEl.innerText = `💎 ${gemsCount}`;
+    
+    showMotivation(false);
+
+    dropZone.classList.add("wrong");
+    setTimeout(() => dropZone.classList.remove("wrong"), 600);
+
+    const currentQ = quizData[current];
+    if (!wrongQuestions.includes(currentQ)) wrongQuestions.push(currentQ);
+  }
+
+  selectedOption.classList.remove("selected");
+  selectedOption = null;
+
+  if (document.querySelectorAll(".drop-zone:not(.filled)").length === 0) {
+    setTimeout(() => {
+      current++;
+      if (current >= quizData.length && wrongQuestions.length > 0) {
+        quizData.push(...wrongQuestions);
+        wrongQuestions = [];
+      }
+      loadQuestion();
+    }, 800);
+  }
+}
+
+/* TIMER */
+function startTimer() {
+  timerInterval = setInterval(() => {
+    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+    timerEl.innerText = `⏳ ${elapsed}s`;
+  }, 1000);
+}
+
+/* SCORE SCREEN */
+const EDGE_FUNCTION_URL =
+  "https://ahezssoczvpbkteffcgz.supabase.co/functions/v1/logQuest";
+
+function createConfetti() {
+  const colors = ['#ff9800', '#2979ff', '#00c853', '#e53935', '#9c27b0', '#ffeb3b'];
+  const confettiCount = 50;
+  
+  for (let i = 0; i < confettiCount; i++) {
+    const confetti = document.createElement('div');
+    confetti.classList.add('confetti-piece');
+    confetti.style.left = Math.random() * 100 + 'vw';
+    confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+    confetti.style.animationDelay = Math.random() * 0.5 + 's';
+    confetti.style.animationDuration = (Math.random() * 2 + 2) + 's';
+    document.body.appendChild(confetti);
+    
+    setTimeout(() => confetti.remove(), 3500);
+  }
+}
+
+function showScore() {
+  clearInterval(timerInterval);
+  const totalTime = Math.floor((Date.now() - startTime) / 1000);
+
+  // Launch confetti celebration
+  createConfetti();
+
+  questionEl.innerText = "🎉 Quiz Completed!";
+  dragOptionsEl.innerHTML = "";
+  dropContainerEl.innerHTML = "";
+  progressTracker.innerText = "";
+
+  scoreCard.innerHTML = `
+    <p>👤 Player: ${playerName}</p>
+        <button onclick="downloadPDFReport()" 
+      style="margin-top: 1rem; padding: 0.7rem 2rem; background-color: #4CAF50; 
+      border: none; border-radius: 10px; cursor: pointer; color: white; 
+      font-size: 1rem;">
+      📥 Download PDF Report
+    </button>
+    <p>Correct: ${correctCount}</p>
+    <p>Wrong: ${totalWrongGuesses}</p>
+    <p>Gems: ${gemsCount}</p>
+    <p>Time: ${totalTime} seconds</p>
+  `;
+
+  restartBtn.style.display = "inline-block";
+
+  sendViaEdgeFunction({
+    student_name: playerName,
+    department: playerDept,
+    correct: correctCount,
+    wrong: totalWrongGuesses,
+    time_spent: totalTime,
+    quest_id: "Quest 130"
+  });
+}
+
+async function sendViaEdgeFunction(payload) {
+  try {
+    const response = await fetch(EDGE_FUNCTION_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      console.error("❌ Edge Function Error:", await response.text());
+      return;
+    }
+    console.log("✅ Saved to Supabase");
+  } catch (err) {
+    console.error("⚠️ Edge Function Error:", err);
+  }
+}
+
+
+function downloadPDFReport() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+
+  const totalTime = Math.floor((Date.now() - startTime) / 1000);
+  const reportDate = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+
+  // --- HEADER ---
+  doc.setFillColor(25, 25, 60);
+  doc.rect(0, 0, 210, 45, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFont('times', 'bold');
+  doc.setFontSize(18);
+  doc.text('SRM VALLIAMMAI ENGINEERING COLLEGE', 105, 16, { align: 'center' });
+  doc.setFontSize(12);
+  doc.setFont('times', 'italic');
+  doc.text('(Autonomous)', 105, 23, { align: 'center' });
+  doc.setFontSize(15);
+  doc.setFont('times', 'normal');
+  doc.text('Department of English', 105, 31, { align: 'center' });
+  doc.setFontSize(14);
+  doc.setFont('times', 'bold');
+  doc.setTextColor(212, 175, 55);
+  doc.text('Quest Performance Report', 105, 39, { align: 'center' });
+
+  // --- STUDENT INFO ---
+  doc.setTextColor(0, 0, 0);
+  doc.setFontSize(11);
+  doc.text('CANDIDATE INFORMATION', 20, 55);
+  doc.autoTable({
+    startY: 58,
+    body: [
+      ['Student Name', playerName],
+      ['Department', playerDept],
+      ['Quest ID', 'Quest 115'],
+      ['Completed On', reportDate]
+    ],
+    theme: 'plain',
+    styles: { fontSize: 10, font: 'times', cellPadding: 3 },
+    columnStyles: {
+      0: { fontStyle: 'bold', cellWidth: 60, textColor: [70, 70, 70] },
+      1: { cellWidth: 120 }
+    },
+    margin: { left: 20, right: 20 }
+  });
+
+  // --- PERFORMANCE SUMMARY ---
+  let y = doc.lastAutoTable.finalY + 10;
+  doc.setFont('times', 'bold');
+  doc.text('PERFORMANCE SUMMARY', 20, y);
+  y += 4;
+  doc.autoTable({
+    startY: y + 3,
+    body: [
+      ['Total Questions', quizData.length.toString()],
+      ['Correct Answers', correctCount.toString()],
+      ['Wrong Attempts', totalWrongGuesses.toString()],
+      ['Final Gems Earned', gemsCount.toString()],
+      ['Total Time', `${Math.floor(totalTime / 60)}m ${totalTime % 60}s`]
+    ],
+    theme: 'grid',
+    styles: { fontSize: 10, font: 'times', cellPadding: 3 },
+    margin: { left: 20, right: 20 }
+  });
+
+  // --- QUESTION BANK SECTION ---
+  y = doc.lastAutoTable.finalY + 12;
+  if (y > 250) { doc.addPage(); y = 20; }
+  doc.setFont('times', 'bold');
+  doc.text('QUESTION BANK WITH CORRECT ANSWERS', 20, y);
+  y += 6;
+
+  quizData.forEach((item, i) => {
+    if (y > 260) { doc.addPage(); y = 20; }
+    doc.setFontSize(11);
+    doc.setFont('times', 'bold');
+    doc.setTextColor(25, 25, 60);
+    doc.text(`Question ${i + 1}:`, 20, y);
+    y += 6;
+    doc.setTextColor(0, 0, 0);
+    doc.setFont('times', 'normal');
+    item.questionItems.forEach((qItem, j) => {
+      const questionText = `${j + 1}. ${qItem.word.replace('___', '____')} `;
+      const answerText = `Answer: ${qItem.answer}`;
+      const lines = doc.splitTextToSize(questionText, 160);
+      doc.text(lines, 25, y);
+      y += lines.length * 5;
+      doc.setTextColor(0, 128, 0);
+      doc.text(answerText, 30, y);
+      doc.setTextColor(0, 0, 0);
+      y += 7;
+    });
+    y += 3;
+    doc.setDrawColor(230, 230, 230);
+    doc.setLineWidth(0.3);
+    doc.line(20, y, 190, y);
+    y += 5;
+  });
+
+  // --- FOOTER ---
+  doc.setDrawColor(184, 134, 11);
+  doc.setLineWidth(0.5);
+  doc.line(20, 280, 190, 280);
+  doc.setFontSize(8);
+  doc.setTextColor(128, 128, 128);
+  doc.setFont('times', 'italic');
+  doc.text('This is a system-generated report', 105, 287, { align: 'center' });
+
+  const cleanName = playerName.replace(/[^a-zA-Z0-9]/g, '_');
+  doc.save(`${cleanName}_Quest20_Report.pdf`);
+}
+
+restartBtn.onclick = () => {
+  document.getElementById("quizContent").style.display = "none";
+  document.getElementById("nameForm").style.display = "block";
+  document.getElementById("nameInput").value = "";
+};
+</script>
+</body>
+</html>

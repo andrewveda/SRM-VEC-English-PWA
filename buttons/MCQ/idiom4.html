@@ -135,7 +135,7 @@ body{
     <option>Cyber Security</option>
     <option>CSE-1</option>
     <option>CSE-2</option>
-    <option>ECE</option>
+    <option>EIE</option>
   </select>
   <input type="text" id="nameInput" placeholder="Enter your name">
   <button id="startQuizBtn">🚀 Launch Mission</button>
@@ -156,6 +156,36 @@ body{
 </div>
 
 <script>
+/* ========= LOCAL STORAGE AUTOFILL ========= */
+function autoFillFromStorage(){
+  try{
+    const storedName=localStorage.getItem("playerName");
+    const storedDept=localStorage.getItem("playerDept");
+    if(storedName) nameInput.value=storedName;
+    if(storedDept) departmentSelect.value=storedDept;
+  }catch(e){
+    console.log("LocalStorage unavailable");
+  }
+}
+window.addEventListener("DOMContentLoaded",autoFillFromStorage);
+
+/* ========= SUPABASE EDGE ========= */
+const EDGE_FUNCTION_URL =
+  "https://ahezssoczvpbkteffcgz.supabase.co/functions/v1/logQuest";
+
+async function sendViaEdgeFunction(payload){
+  try{
+    await fetch(EDGE_FUNCTION_URL,{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify(payload)
+    });
+  }catch(err){
+    console.error("Edge function error:",err);
+  }
+}
+
+/* ========= QUIZ DATA ========= */
 const quizData=[
   {q:"He ___ happy today.",options:["is","are"],correct:[0]},
   {q:"They ___ my friends.",options:["is","are"],correct:[1]},
@@ -164,35 +194,30 @@ const quizData=[
   {q:"She ___ absent.",options:["is","are"],correct:[0]},
   {q:"The students ___ here.",options:["is","are"],correct:[1]},
   {q:"My brother ___ tall.",options:["is","are"],correct:[0]},
-{q:"My pens ___ made of solid gold.",options:["is","are"],correct:[1]},
-{q:"My friends ___ upset.",options:["is","are"],correct:[1]},
-{q:"My cats ___ sad.",options:["is","are"],correct:[1]},
+  {q:"My pens ___ made of solid gold.",options:["is","are"],correct:[1]},
+  {q:"My friends ___ upset.",options:["is","are"],correct:[1]},
+  {q:"My cats ___ sad.",options:["is","are"],correct:[1]},
   {q:"My parents ___ proud.",options:["is","are"],correct:[1]}
 ];
 
-let current=0;
-let currentGems=0;
-let currentStreak=0;
-let highestStreak=0;
-let questionLocked=false;
-let startTime,timerInterval;
+let current=0,currentGems=0,currentStreak=0,highestStreak=0;
+let questionLocked=false,startTime,timerInterval;
 let playerName="",playerDepartment="";
 
-const sentenceFlash=document.getElementById("sentenceFlash");
-const gemValue=document.getElementById("gem-value");
-const streakValue=document.getElementById("streak-value");
-const currentQ=document.getElementById("current-question");
-const totalQ=document.getElementById("total-questions");
-const headerBar=document.getElementById("quizHeaderBar");
-
-document.getElementById("startQuizBtn").onclick=()=>{
+/* ========= START ========= */
+startQuizBtn.onclick=()=>{
   playerName=nameInput.value.trim();
   playerDepartment=departmentSelect.value;
   if(!playerName||!playerDepartment)return alert("Enter name & department");
+
+  localStorage.setItem("playerName",playerName);
+  localStorage.setItem("playerDept",playerDepartment);
+
   nameForm.style.display="none";
   quizContent.style.display="block";
-  headerBar.style.display="block";
+  quizHeaderBar.style.display="block";
   totalQ.innerText=quizData.length;
+
   startTime=Date.now();
   startTimer();
   loadQuestion();
@@ -218,12 +243,14 @@ function handleAnswer(idx,correct,word){
   if(questionLocked)return;
   if(correct.includes(idx)){
     questionLocked=true;
-    sentenceFlash.innerHTML=quizData[current].q.replace(
-      "___",`<span style="color:#00ff88;font-weight:bold">${word}</span>`
-    );
+    sentenceFlash.innerHTML=
+      quizData[current].q.replace("___",
+        `<span style="color:#00ff88;font-weight:bold">${word}</span>`);
+
     currentGems++; gemValue.innerText=currentGems;
     currentStreak++; streakValue.innerText=currentStreak;
     highestStreak=Math.max(highestStreak,currentStreak);
+
     setTimeout(()=>{current++;loadQuestion();},700);
   }else{
     currentGems--; gemValue.innerText=currentGems;
@@ -239,14 +266,22 @@ function startTimer(){
 
 function showScore(){
   clearInterval(timerInterval);
-  headerBar.style.display="none";
+  quizHeaderBar.style.display="none";
+
+  sendViaEdgeFunction({
+    student_name:playerName,
+    department:playerDepartment,
+    score:currentGems,
+    streak:highestStreak,
+    quest_id:"IS-ARE-SNIPER"
+  });
+
   sentenceFlash.innerText="🎉 Mission Complete!";
   scoreCard.innerHTML=`
     <p>👤 ${playerName}</p>
     <p>🏢 ${playerDepartment}</p>
     <p>💎 Gems: ${currentGems}</p>
-    <p>🔥 Best Streak: ${highestStreak}</p>
-  `;
+    <p>🔥 Best Streak: ${highestStreak}</p>`;
   restartBtn.style.display="block";
 }
 

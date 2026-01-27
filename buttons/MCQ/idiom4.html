@@ -9,7 +9,6 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
 
 <style>
-/* ===== GLOBAL ===== */
 body{
   margin:0;
   font-family:'Segoe UI',Tahoma,Verdana,sans-serif;
@@ -26,10 +25,8 @@ body{
   background:rgba(255,255,255,0.05);
   border-radius:18px;
   box-shadow:0 0 40px rgba(0,255,255,0.15);
-  position:relative;
 }
 
-/* ===== HEADER BAR ===== */
 .quiz-header-bar{
   display:none;
   background:#0b1025;
@@ -44,7 +41,6 @@ body{
   color:#ffd700;
 }
 
-/* ===== SENTENCE FLASH ===== */
 #sentenceFlash{
   font-size:1.8rem;
   margin:2.5rem 0;
@@ -60,7 +56,6 @@ body{
   50%{box-shadow:0 0 40px rgba(0,224,255,0.9);}
 }
 
-/* ===== SNIPERS ===== */
 .sniper-zone{
   display:flex;
   justify-content:space-between;
@@ -76,17 +71,12 @@ body{
   cursor:pointer;
   user-select:none;
   transition:.2s;
-  position:relative;
 }
 
 .sniper:active{transform:scale(.92);}
 
-.sniper.is{
-  background:linear-gradient(135deg,#0077ff,#00e0ff);
-}
-.sniper.are{
-  background:linear-gradient(135deg,#ff0066,#ff5aa5);
-}
+.sniper.is{background:linear-gradient(135deg,#0077ff,#00e0ff);}
+.sniper.are{background:linear-gradient(135deg,#ff0066,#ff5aa5);}
 
 .sniper span{
   display:block;
@@ -94,26 +84,17 @@ body{
   opacity:.8;
 }
 
-/* ===== FEEDBACK ===== */
-.hit{
-  animation:hitFlash .4s;
-}
+.hit{animation:hitFlash .4s;}
 @keyframes hitFlash{
-  0%{box-shadow:0 0 0}
   50%{box-shadow:0 0 40px #00ff88}
-  100%{box-shadow:0 0 0}
 }
 
-.miss{
-  animation:missShake .4s;
-}
+.miss{animation:missShake .4s;}
 @keyframes missShake{
-  0%,100%{transform:translateX(0)}
   25%{transform:translateX(-12px)}
   75%{transform:translateX(12px)}
 }
 
-/* ===== START SCREEN ===== */
 #nameForm select,#nameForm input,#nameForm button{
   width:90%;
   max-width:320px;
@@ -130,25 +111,7 @@ body{
   cursor:pointer;
 }
 
-/* ===== SCORE ===== */
-#scoreCard{
-  margin-top:2rem;
-  font-size:1.1rem;
-}
-
-/* ===== STARS ===== */
-.star{
-  position:fixed;
-  width:2px;
-  height:2px;
-  background:#fff;
-  border-radius:50%;
-  animation:twinkle 3s infinite;
-}
-@keyframes twinkle{
-  0%,100%{opacity:.3}
-  50%{opacity:1}
-}
+#scoreCard{margin-top:2rem;}
 </style>
 </head>
 
@@ -163,15 +126,10 @@ body{
   </div>
 </div>
 
-<div class="container" id="quizContainer">
+<div class="container">
 
-<!-- ===== START ===== -->
 <div id="nameForm">
-  <p style="color:#ffd700">
-    Grammar Duel Mission 🚀<br>
-    Shoot the correct word before the sentence escapes.
-  </p>
-
+  <p style="color:#ffd700">Grammar Duel Mission 🚀</p>
   <select id="departmentSelect">
     <option value="">-- Select Department --</option>
     <option>Cyber Security</option>
@@ -179,14 +137,11 @@ body{
     <option>CSE-2</option>
     <option>ECE</option>
   </select>
-
   <input type="text" id="nameInput" placeholder="Enter your name">
   <button id="startQuizBtn">🚀 Launch Mission</button>
 </div>
 
-<!-- ===== GAME ===== -->
 <div id="quizContent" style="display:none">
-
   <div id="sentenceFlash">Loading…</div>
 
   <div class="sniper-zone">
@@ -196,32 +151,11 @@ body{
 
   <div id="scoreCard"></div>
   <button id="restartBtn" style="display:none">Restart</button>
-
 </div>
+
 </div>
 
 <script>
-/* ===========================
-   STARFIELD
-=========================== */
-for(let i=0;i<80;i++){
-  const s=document.createElement("div");
-  s.className="star";
-  s.style.left=Math.random()*100+"%";
-  s.style.top=Math.random()*100+"%";
-  s.style.animationDelay=Math.random()*3+"s";
-  document.body.appendChild(s);
-}
-
-/* ===========================
-   AUDIO (UNCHANGED)
-=========================== */
-const audioContext=new (window.AudioContext||window.webkitAudioContext)();
-let isMuted=false;
-
-/* ===========================
-   DATA (IS / ARE QUEST)
-=========================== */
 const quizData=[
   {q:"He ___ happy today.",options:["is","are"],correct:[0]},
   {q:"They ___ my friends.",options:["is","are"],correct:[1]},
@@ -233,218 +167,87 @@ const quizData=[
   {q:"My parents ___ proud.",options:["is","are"],correct:[1]}
 ];
 
-/* ===========================
-   STATE VARIABLES (UNCHANGED)
-=========================== */
 let current=0;
-let correctCount=0;
-let totalWrongClicks=0;
 let currentGems=0;
-let startTime;
-let timerInterval;
-let playerName="";
-let playerDepartment="";
 let currentStreak=0;
 let highestStreak=0;
-let firstAttemptCorrect=[];
-let globalQuestionCounter=1;
-let totalQuestionsToAnswer=quizData.length;
-let currentQuestionFirstAttempt=true;
+let questionLocked=false;
+let startTime,timerInterval;
+let playerName="",playerDepartment="";
 
-/* ===========================
-   ELEMENTS
-=========================== */
 const sentenceFlash=document.getElementById("sentenceFlash");
-const scoreCard=document.getElementById("scoreCard");
-const restartBtn=document.getElementById("restartBtn");
-const headerBar=document.getElementById("quizHeaderBar");
-
-const timeValue=document.getElementById("time-value");
 const gemValue=document.getElementById("gem-value");
 const streakValue=document.getElementById("streak-value");
 const currentQ=document.getElementById("current-question");
 const totalQ=document.getElementById("total-questions");
+const headerBar=document.getElementById("quizHeaderBar");
 
-/* ===========================
-   START
-=========================== */
-document.getElementById("startQuizBtn").onclick=beginQuiz;
-
-function beginQuiz(){
-  const n=document.getElementById("nameInput").value.trim();
-  const d=document.getElementById("departmentSelect").value;
-  if(!n||!d){alert("Enter name & department");return;}
-
-  playerName=n;
-  playerDepartment=d;
-
-  document.getElementById("nameForm").style.display="none";
-  document.getElementById("quizContent").style.display="block";
+document.getElementById("startQuizBtn").onclick=()=>{
+  playerName=nameInput.value.trim();
+  playerDepartment=departmentSelect.value;
+  if(!playerName||!playerDepartment)return alert("Enter name & department");
+  nameForm.style.display="none";
+  quizContent.style.display="block";
   headerBar.style.display="block";
-
-  startQuiz();
-}
-
-function startQuiz(){
-  current=0;
-  correctCount=0;
-  totalWrongClicks=0;
-  currentGems=0;
-  currentStreak=0;
-  highestStreak=0;
-  firstAttemptCorrect=new Array(quizData.length).fill(null);
-  globalQuestionCounter=1;
-
-  gemValue.innerText=0;
-  streakValue.innerText=0;
   totalQ.innerText=quizData.length;
-  currentQ.innerText=1;
-
   startTime=Date.now();
   startTimer();
   loadQuestion();
-}
+};
 
-/* ===========================
-   LOAD QUESTION
-=========================== */
 function loadQuestion(){
-  if(current>=quizData.length){
-    return showScore();
-  }
-
-  const data=quizData[current];
-  sentenceFlash.innerHTML=data.q;
-  currentQuestionFirstAttempt=true;
+  if(current>=quizData.length)return showScore();
+  questionLocked=false;
+  sentenceFlash.innerHTML=quizData[current].q;
+  currentQ.innerText=current+1;
 }
 
-/* ===========================
-   SNIPER FIRE
-=========================== */
-document.getElementById("sniperIs").onclick=()=>fireSniper("is");
-document.getElementById("sniperAre").onclick=()=>fireSniper("are");
+sniperIs.onclick=()=>fire("is");
+sniperAre.onclick=()=>fire("are");
 
-function fireSniper(word){
+function fire(word){
+  if(questionLocked)return;
   const data=quizData[current];
-  const idx=data.options.indexOf(word);
-  const dummyBtn={dataset:{index:idx},innerText:word,classList:{add(){}}};
-  handleAnswer(dummyBtn,data.correct,current);
+  handleAnswer(data.options.indexOf(word),data.correct,word);
 }
 
-/* ===========================
-   ANSWER HANDLER (CORE PRESERVED)
-=========================== */
-function handleAnswer(btn,correctIndexes,questionIndex){
-  const idx=parseInt(btn.dataset.index);
-  const isCorrect=correctIndexes.includes(idx);
-
-  if(isCorrect){
-    sentenceFlash.innerHTML=
-      quizData[questionIndex].q.replace(
-        "___",
-        `<span style="color:#00ff88;font-weight:bold">${btn.innerText}</span>`
-      );
-
-    currentGems++;
-    gemValue.innerText=currentGems;
-    currentStreak++;
-    streakValue.innerText=currentStreak;
+function handleAnswer(idx,correct,word){
+  if(questionLocked)return;
+  if(correct.includes(idx)){
+    questionLocked=true;
+    sentenceFlash.innerHTML=quizData[current].q.replace(
+      "___",`<span style="color:#00ff88;font-weight:bold">${word}</span>`
+    );
+    currentGems++; gemValue.innerText=currentGems;
+    currentStreak++; streakValue.innerText=currentStreak;
     highestStreak=Math.max(highestStreak,currentStreak);
-    firstAttemptCorrect[questionIndex]=true;
-
-    document.getElementById("sniper"+btn.innerText.charAt(0).toUpperCase()+btn.innerText.slice(1))
-      .classList.add("hit");
-
-    setTimeout(()=>{
-      document.querySelectorAll(".sniper").forEach(s=>s.classList.remove("hit"));
-      current++;
-      globalQuestionCounter++;
-      currentQ.innerText=globalQuestionCounter;
-      loadQuestion();
-    },700);
-
+    setTimeout(()=>{current++;loadQuestion();},700);
   }else{
-    totalWrongClicks++;
-    currentGems--;
-    gemValue.innerText=currentGems;
-    currentStreak=0;
-    streakValue.innerText=0;
-
-    document.querySelectorAll(".sniper").forEach(s=>s.classList.add("miss"));
-    setTimeout(()=>document.querySelectorAll(".sniper").forEach(s=>s.classList.remove("miss")),400);
-
-    if(currentQuestionFirstAttempt){
-      firstAttemptCorrect[questionIndex]=false;
-      currentQuestionFirstAttempt=false;
-    }
+    currentGems--; gemValue.innerText=currentGems;
+    currentStreak=0; streakValue.innerText=0;
   }
 }
 
-/* ===========================
-   SCORE
-=========================== */
-function showScore(){
-  clearInterval(timerInterval);
-  headerBar.style.display="none";
-
-  const totalTime=Math.floor((Date.now()-startTime)/1000);
-  sentenceFlash.innerText="🎉 Mission Complete!";
-
-  scoreCard.innerHTML=`
-    <p>👤 ${playerName}</p>
-    <p>🏢 ${playerDepartment}</p>
-    <p>💎 Gems: ${currentGems}</p>
-    <p>🔥 Best Streak: ${highestStreak}</p>
-    <p>⏱️ Time: ${totalTime}s</p>
-    <button onclick="downloadPDFReport()">📄 Download Report</button>
-  `;
-  restartBtn.style.display="block";
-
-  fetch("https://script.google.com/macros/s/AKfycbxA0lRkERWFt2cYfmm04IQioaG4-21k5VFF5CFKP30zyVaJXM5_27PL3v8JIZEweK3u/exec",{
-    method:"POST",
-    mode:"no-cors",
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({
-      name:playerName,
-      department:playerDepartment,
-      score:currentGems,
-      wrong:totalWrongClicks,
-      time:totalTime,
-      questId:"IS-ARE-SNIPER"
-    })
-  });
-}
-
-/* ===========================
-   TIMER
-=========================== */
 function startTimer(){
   timerInterval=setInterval(()=>{
     timeValue.innerText=Math.floor((Date.now()-startTime)/1000);
   },1000);
 }
 
-/* ===========================
-   PDF (UNCHANGED CORE)
-=========================== */
-function downloadPDFReport(){
-  const {jsPDF}=window.jspdf;
-  const doc=new jsPDF();
-  doc.text("SNIPER DUEL REPORT",105,20,{align:"center"});
-  doc.text(`Name: ${playerName}`,20,40);
-  doc.text(`Department: ${playerDepartment}`,20,50);
-  doc.text(`Gems: ${currentGems}`,20,60);
-  doc.text(`Best Streak: ${highestStreak}`,20,70);
-  doc.save(`${playerName}_Sniper_Report.pdf`);
+function showScore(){
+  clearInterval(timerInterval);
+  headerBar.style.display="none";
+  sentenceFlash.innerText="🎉 Mission Complete!";
+  scoreCard.innerHTML=`
+    <p>👤 ${playerName}</p>
+    <p>🏢 ${playerDepartment}</p>
+    <p>💎 Gems: ${currentGems}</p>
+    <p>🔥 Best Streak: ${highestStreak}</p>
+  `;
+  restartBtn.style.display="block";
 }
 
-/* ===========================
-   RESTART
-=========================== */
-restartBtn.onclick=()=>{
-  location.reload();
-};
+restartBtn.onclick=()=>location.reload();
 </script>
 </body>
 </html>
-

@@ -1,0 +1,1268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title> Idioms! 🌌</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: radial-gradient(ellipse at bottom, #0b0c1b 0%, #000000 100%);
+      color: white;
+      text-align: center;
+      overflow-x: hidden;
+    }
+    
+    /* --- HEADER BAR STYLES --- */
+    .quiz-header-bar {
+      width: 100%;
+      background-color: #1a1a2e;
+      border-bottom: 1px solid #343454;
+      padding: 10px 0;
+      box-sizing: border-box;
+      /* Will be hidden/shown by JS */
+    }
+    
+    .quiz-header-content {
+      display: flex;
+      flex-direction: row;
+      flex-wrap: wrap; 
+      justify-content: space-between;
+      align-items: center;
+      
+      max-width: 800px; 
+      margin: 0 auto;
+      padding: 0 1rem; 
+      box-sizing: border-box;
+    }
+    
+    .stat-item {
+      margin: 5px 10px; 
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: white;
+      position: relative; /* Needed for animation */
+    }
+    
+    /* Specific colors for icons/text */
+    #timer { color: #00e0ff; }
+    #gemCounter { color: #20f090; } /* Gem counter color */
+    #streakCounter { color: #ffd700; }
+    #progressTracker { color: #9a9aff; }
+
+    /* --- GEM ANIMATION STYLES --- */
+
+    /* Animation for the counter pulsing green */
+    .gem-gain {
+      animation: gemGainPulse 0.5s ease-out;
+    }
+    @keyframes gemGainPulse {
+      0%, 100% { transform: scale(1); }
+      50% { 
+        transform: scale(1.2);
+        text-shadow: 0 0 15px #20f090, 0 0 25px #20f090;
+      }
+    }
+
+    /* Animation for the counter shaking red */
+    .gem-lose {
+      animation: gemLoseShake 0.5s ease-out;
+    }
+    @keyframes gemLoseShake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-8px); }
+      75% { transform: translateX(8px); }
+    }
+
+    /* Class for the flying "+1" or "-1" text */
+    .flying-gem-text {
+      position: fixed; /* Use fixed to overlay everything */
+      font-weight: bold;
+      font-size: 1.5rem;
+      z-index: 2000;
+      pointer-events: none;
+      animation: flyUpFadeOut 1s ease-out forwards;
+      text-shadow: 0 0 5px rgba(0,0,0,0.5);
+    }
+    .flying-gem-text.plus {
+      color: #20f090; /* Bright green */
+    }
+    .flying-gem-text.minus {
+      color: #ff6b6b; /* Bright red */
+    }
+    
+    @keyframes flyUpFadeOut {
+      0% {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+      }
+      100% {
+        transform: translateY(-60px) scale(1.2);
+        opacity: 0;
+      }
+    }
+    /* --- END OF NEW STYLES --- */
+
+
+    .container {
+      max-width: 800px;
+      margin: 1.5rem auto 2rem auto; 
+      background: rgba(255, 255, 255, 0.05);
+      padding: 2rem;
+      border-radius: 15px;
+      box-shadow: 0 0 30px rgba(255, 255, 255, 0.1);
+      transition: background 0.5s ease;
+      position: relative;
+    }
+    .container.retry-mode {
+      background: rgba(255, 100, 100, 0.15);
+      box-shadow: 0 0 40px rgba(255, 100, 100, 0.3);
+      border: 2px solid rgba(255, 100, 100, 0.4);
+    }
+    
+    .question {
+      font-size: 1.5rem;
+      margin-bottom: 1rem;
+    }
+    .options {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    button {
+      padding: 1rem;
+      border: none;
+      border-radius: 10px;
+      font-size: 1rem;
+      cursor: pointer;
+      background-color: #1f1f2e;
+      color: white;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: visible;
+    }
+    button:hover {
+      background-color: #343454;
+      transform: scale(1.02);
+    }
+    .correct {
+      background-color: green !important;
+      animation: correctPulse 0.6s ease-out;
+    }
+    .wrong {
+      background-color: red !important;
+      animation: wrongShake 0.5s ease-out;
+    }
+    
+    @keyframes correctPulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.1); box-shadow: 0 0 30px rgba(0, 255, 0, 0.8); }
+      100% { transform: scale(1); }
+    }
+    
+    @keyframes wrongShake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-10px); }
+      75% { transform: translateX(10px); }
+    }
+
+    @keyframes neonGlow {
+  0% { text-shadow: 0 0 5px #fff, 0 0 10px #0ff, 0 0 20px #0ff; color: #0ff; }
+  50% { text-shadow: 0 0 10px #fff, 0 0 20px #0ff, 0 0 40px #0ff; color: #fff; }
+  100% { text-shadow: 0 0 5px #fff, 0 0 10px #0ff, 0 0 20px #0ff; color: #0ff; }
+}
+
+.neon-typewriter {
+  display: inline-block;
+  white-space: pre-wrap;
+  overflow: hidden;
+  border-right: .15em solid #0ff;
+  animation: typing 1.5s steps(40, end), blink-caret .75s step-end infinite, neonGlow 2s ease-in-out infinite;
+}
+
+@keyframes typing {
+  from { width: 0 }
+  to { width: 100% }
+}
+
+@keyframes blink-caret {
+  50% { border-color: transparent }
+}
+    .flying-answer {
+      position: fixed;
+      color: #ffd700;
+      font-weight: bold;
+      font-size: 1.2rem;
+      pointer-events: none;
+      z-index: 1000;
+      text-shadow: 0 0 10px rgba(255, 215, 0, 0.8);
+    }
+    .focused-question {
+  text-align: center;
+  font-size: 1.3rem;
+  color: #00e0ff;
+  text-shadow: 0 0 10px #00e0ff, 0 0 20px #0080ff;
+}
+
+@keyframes neon-type {
+  from { opacity: 0; filter: blur(3px); }
+  to { opacity: 1; filter: blur(0); }
+}
+
+.neon-typewriter {
+  display: inline-block;
+  animation: neon-type 1.5s ease forwards;
+}
+
+    @keyframes flyToQuestion {
+      0% {
+        opacity: 1;
+        transform: translate(0, 0) scale(1);
+      }
+      50% {
+        opacity: 1;
+        transform: translate(var(--dx), var(--dy)) scale(1.2);
+      }
+      100% {
+        opacity: 0;
+        transform: translate(var(--dx), var(--dy)) scale(0.8);
+      }
+    }
+    
+    .question-highlight {
+      display: inline-block;
+      color: #ffd700;
+      font-weight: bold;
+      animation: highlightPulse 0.5s ease-in-out;
+    }
+    
+    @keyframes highlightPulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.15); text-shadow: 0 0 20px rgba(255, 215, 0, 1); }
+    }
+    
+    .star-particle {
+      position: fixed;
+      width: 6px;
+      height: 6px;
+      background: white;
+      border-radius: 50%;
+      pointer-events: none;
+      animation: starFloat 1s ease-out forwards;
+      box-shadow: 0 0 6px rgba(255, 255, 255, 0.8);
+    }
+    
+    @keyframes starFloat {
+      0% {
+        opacity: 1;
+        transform: translate(0, 0) scale(1);
+      }
+      100% {
+        opacity: 0;
+        transform: translate(var(--tx), var(--ty)) scale(0);
+      }
+    }
+    
+    .confetti {
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      pointer-events: none;
+      animation: confettiFall 1.5s ease-out forwards;
+    }
+    
+    @keyframes confettiFall {
+      0% {
+        opacity: 1;
+        transform: translateY(0) rotate(0deg);
+      }
+      100% {
+        opacity: 0;
+        transform: translateY(300px) rotate(720deg);
+      }
+    }
+
+    .next-btn {
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+  background-color: #6c63ff;
+  color: white;
+  border: none;
+  border-radius: 0.3rem;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background 0.3s;
+}
+
+.next-btn:hover {
+  background-color: #5750d6;
+}
+
+.next-btn.hidden {
+  display: none;
+}
+
+    .streak-glow {
+      animation: streakGlow 0.8s ease-out;
+    }
+    
+    @keyframes streakGlow {
+      0%, 100% { box-shadow: 0 0 10px rgba(255, 215, 0, 0.5); }
+      50% { box-shadow: 0 0 40px rgba(255, 215, 0, 1), 0 0 60px rgba(255, 165, 0, 0.8); }
+    }
+    
+    #scoreCard {
+      margin-top: 2rem;
+      font-size: 1.2rem;
+    }
+
+    #restartBtn {
+      margin-top: 2rem;
+      padding: 0.7rem 2rem;
+      font-size: 1.1rem;
+      background-color: #444466;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      color: white;
+    }
+    #nameForm {
+      margin-bottom: 1.5rem;
+    }
+    #nameInput {
+      display: block;
+      width: 90%;
+      max-width: 300px;
+      margin: 0.5rem auto; 
+      padding: 0.7rem;
+      font-size: 1rem;
+      border-radius: 5px;
+      border: none;
+    }
+    
+    .stars {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: -1;
+    }
+    
+    .star {
+      position: absolute;
+      width: 2px;
+      height: 2px;
+      background: white;
+      border-radius: 50%;
+      animation: twinkle 3s infinite;
+    }
+    
+    @keyframes twinkle {
+      0%, 100% { opacity: 0.3; }
+      50% { opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <div class="stars" id="starsContainer"></div>
+
+  <!-- HEADER BAR -->
+  <div class="quiz-header-bar" id="quizHeaderBar" style="display: none;">
+    <div class="quiz-header-content">
+      <div id="timer" class="stat-item">⏳ <span id="time-value">0</span>s</div>
+      <div id="gemCounter" class="stat-item">💎 <span id="gem-value">0</span></div>
+      <div id="streakCounter" class="stat-item">🔥 <span id="streak-value">0</span></div>
+      <div id="progressTracker" class="stat-item">📝 <span id="current-question">1</span> / <span id="total-questions">10</span></div>
+    </div>
+  </div>
+  
+  <div class="container" id="quizContainer">
+   <div id="nameForm">
+  <p style="color: #ffd700; font-size: 1rem; margin-bottom: 0.5rem;">
+ <br>
+   "Ever tried. Ever failed. No matter. Try again. Fail again. Fail better." Samuel Beckett <br> "Try not. Do. Or, do not. There is no Try." Yoda. <br> "The Opposite of a Good Idea is another Good Idea." Neils Bohr <br>
+  </p>
+
+  <select id="departmentSelect" style="display: block; width: 90%; max-width: 300px; margin: 0.5rem auto; padding: 0.7rem; font-size: 1rem; border-radius: 5px; border: none;">
+    <option value="">-- Select Department --</option>
+    <option value="Cyber Security">Cyber Security</option>
+    <option value="CSE-1">CSE-1</option>
+    <option value="CSE-2">CSE-2</option>
+    <option value="CSE-3">CSE-3</option>
+    <option value="Mechanical Engineering">Mechanical Engineering</option>
+    <option value="ECE-1">ECE-1</option>
+    <option value="ECE-2">ECE-2</option>
+    <option value="ECE-3">ECE-3</option>
+    <option value="AI DS-1">AI DS-1</option>
+    <option value="AI DS-2">AI DS-2</option>
+    <option value="Civil">Civil</option>
+    <option value="Agri">Agri</option>
+    <option value="EEE">EEE</option>
+    <option value="EIE">EIE</option>
+    <option value="Medical Electronics">Medical Electronics</option>
+    <option value="IT-1">IT-1</option>
+    <option value="IT-2">IT-2</option>
+  </select>
+
+  <input type="text" id="nameInput" placeholder="Enter your name" />
+  <button id="startQuizBtn">Start Quiz</button>
+</div>
+
+    <div id="quizContent" style="display:none;">
+      <div class="question" id="question">Loading...</div>
+      <div class="options" id="options"></div>
+<button id="muteBtn">🔊 Mute</button>
+      <div id="scoreCard"></div>
+      <button id="restartBtn" style="display: none;">Restart</button>
+    </div>
+  </div>
+
+  <script>
+    function createStarfield() {
+      const container = document.getElementById('starsContainer');
+      for (let i = 0; i < 100; i++) {
+        const star = document.createElement('div');
+        star.className = 'star';
+        star.style.left = Math.random() * 100 + '%';
+        star.style.top = Math.random() * 100 + '%';
+        star.style.animationDelay = Math.random() * 3 + 's';
+        container.appendChild(star);
+      }
+    }
+    createStarfield();
+    
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    
+let isMuted = false;
+const muteBtn = document.getElementById('muteBtn');
+
+muteBtn.addEventListener('click', () => {
+  isMuted = !isMuted;
+  muteBtn.textContent = isMuted ? '🔇 Muted' : '🔊 Mute';
+});
+
+function playCorrectSound() {
+ if (isMuted) return;
+  const oscillator = audioContext.createOscillator();
+  const gainNode = audioContext.createGain();
+  oscillator.connect(gainNode);
+  gainNode.connect(audioContext.destination);
+
+  oscillator.type = 'sine'; // Changed from triangle
+  oscillator.frequency.setValueAtTime(523.25, audioContext.currentTime); // Lowered from 659.25
+  gainNode.gain.setValueAtTime(0.15, audioContext.currentTime); // Lowered from 0.3
+  gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+
+  oscillator.start(audioContext.currentTime);
+  oscillator.stop(audioContext.currentTime + 0.5);
+}
+
+function playWrongSound() {
+ if (isMuted) return;
+  const oscillator = audioContext.createOscillator();
+  const gainNode = audioContext.createGain();
+  oscillator.connect(gainNode);
+  gainNode.connect(audioContext.destination);
+
+  oscillator.type = 'sine'; // Changed from triangle
+  oscillator.frequency.setValueAtTime(261.63, audioContext.currentTime); // Lowered from 293.66
+  gainNode.gain.setValueAtTime(0.1, audioContext.currentTime); // Lowered from 0.2
+  gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+
+  oscillator.start(audioContext.currentTime);
+  oscillator.stop(audioContext.currentTime + 0.5);
+}
+
+function playStreakSound() {
+ if (isMuted) return;
+  const oscillator = audioContext.createOscillator();
+  const gainNode = audioContext.createGain();
+  oscillator.connect(gainNode);
+  gainNode.connect(audioContext.destination);
+
+  oscillator.type = 'sine'; // Changed from triangle
+  const notes = [523.25, 587.33, 659.25]; // Lowered frequencies
+  const startTimes = [0, 0.1, 0.2];
+
+  gainNode.gain.setValueAtTime(0.15, audioContext.currentTime); // Lowered from 0.25
+  gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+
+  notes.forEach((freq, i) => {
+    oscillator.frequency.setValueAtTime(freq, audioContext.currentTime + startTimes[i]);
+  });
+
+  oscillator.start(audioContext.currentTime);
+  oscillator.stop(audioContext.currentTime + 0.5);
+}
+   
+    function playVictorySound() {
+ if (isMuted) return;
+      const notes = [440.00, 523.25, 587.33, 659.25]; // Lowered frequencies
+      notes.forEach((freq, index) => {
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        oscillator.frequency.setValueAtTime(freq, audioContext.currentTime + index * 0.15);
+        oscillator.type = 'sine';
+        gainNode.gain.setValueAtTime(0.15, audioContext.currentTime + index * 0.15); // Lowered from 0.3
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + index * 0.15 + 0.4);
+        oscillator.start(audioContext.currentTime + index * 0.15);
+        oscillator.stop(audioContext.currentTime + index * 0.15 + 0.4);
+      });
+    }
+    
+    function playRetrySound() {
+ if (isMuted) return;
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      oscillator.frequency.setValueAtTime(349.23, audioContext.currentTime); // Lowered from 400
+      oscillator.frequency.setValueAtTime(329.63, audioContext.currentTime + 0.2); // Lowered from 350
+      oscillator.type = 'sine'; // Changed from triangle
+      gainNode.gain.setValueAtTime(0.1, audioContext.currentTime); // Lowered from 0.2
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.4);
+    }
+    
+    function createFlyingAnswer(button, answerText, questionEl, isRetryRound, questionsToRetry, current, quizData) {
+      const buttonRect = button.getBoundingClientRect();
+      const questionRect = questionEl.getBoundingClientRect();
+      
+      const startX = buttonRect.left + buttonRect.width / 2;
+      const startY = buttonRect.top + buttonRect.height / 2;
+      const endX = questionRect.left + questionRect.width / 2;
+      const endY = questionRect.top + questionRect.height / 2;
+      const deltaX = endX - startX;
+      const deltaY = endY - startY;
+      
+      const flyingText = document.createElement('div');
+      flyingText.className = 'flying-answer';
+      flyingText.textContent = answerText;
+      flyingText.style.left = startX + 'px';
+      flyingText.style.top = startY + 'px';
+      flyingText.style.setProperty('--dx', deltaX + 'px');
+      flyingText.style.setProperty('--dy', deltaY + 'px');
+      flyingText.style.animation = 'flyToQuestion 1s ease-out forwards';
+      document.body.appendChild(flyingText);
+      
+      setTimeout(() => {
+        const questionIndex = isRetryRound ? questionsToRetry[current] : current;
+        const data = quizData[questionIndex];
+        const questionText = data.q.replace('___', `<span class="question-highlight">${answerText}</span>`);
+        const examples = Array.isArray(data.example) ? data.example : [data.example];
+        questionEl.innerHTML = `${questionText}<br><br><em>Example:<br>${examples.join("<br>")}</em>`;
+      }, 500);
+      
+      setTimeout(() => flyingText.remove(), 1000);
+    }
+    
+    function createGoldenSparks(button) {
+      const rect = button.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      
+      for (let i = 0; i < 20; i++) {
+        const particle = document.createElement('div');
+        particle.className = 'star-particle';
+        particle.style.left = centerX + 'px';
+        particle.style.top = centerY + 'px';
+        particle.style.background = `linear-gradient(45deg, #ffd700, #ffed4e)`;
+        particle.style.width = '6px';
+        particle.style.height = '6px';
+        particle.style.boxShadow = '0 0 10px #ffd700';
+        
+        const angle = (Math.PI * 2 * i) / 20;
+        const velocity = 80 + Math.random() * 40;
+        const tx = Math.cos(angle) * velocity;
+        const ty = Math.sin(angle) * velocity;
+        
+        particle.style.setProperty('--tx', tx + 'px');
+        particle.style.setProperty('--ty', ty + 'px');
+        document.body.appendChild(particle);
+        setTimeout(() => particle.remove(), 1000);
+      }
+    }
+    
+    function createConfetti(element) {
+      const rect = element.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      const colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff'];
+      
+      for (let i = 0; i < 30; i++) {
+        const confetti = document.createElement('div');
+        confetti.className = 'confetti';
+        confetti.style.left = centerX + (Math.random() - 0.5) * 100 + 'px';
+        confetti.style.top = centerY + 'px';
+        confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+        confetti.style.animationDelay = Math.random() * 0.3 + 's';
+        document.body.appendChild(confetti);
+        setTimeout(() => confetti.remove(), 1500);
+      }
+    }
+   
+    const quizData = [
+  {
+    "q": "What does 'Across the universe' mean? ___",
+    "options": ["In every place or situation", "Travelling through galaxies", "Working abroad", "Writing a song"],
+    "correct": [0],
+    "example": ["Her ideas are admired across the universe of literature."]
+  },
+  {
+    "q": "What does 'Over the stars' mean? ___",
+    "options": ["Flying in space", "Beyond normal limits", "Falling asleep", "Looking at the sky"],
+    "correct": [1],
+    "example": ["His ambition goes over the stars—he never settles for less."]
+  },
+  {
+    "q": "What does 'Black hole' mean? ___",
+    "options": ["Something that consumes all resources", "A mysterious region in space", "A deep lake", "A broken window"],
+    "correct": [0],
+    "example": ["That project became a black hole for time and money."]
+  },
+  {
+    "q": "What does 'Lost in space' mean? ___",
+    "options": ["Travelling to Mars", "In a science class", "Unable to focus or confused", "Lost on a road trip"],
+    "correct": [2],
+    "example": ["He looked lost in space during the team discussion."]
+  },
+  {
+    "q": "What does 'Space out' mean? ___",
+    "options": ["Think deeply", "Lose concentration or daydream", "Sit quietly", "Travel far"],
+    "correct": [1],
+    "example": ["She spaced out halfway through the lecture."]
+  },
+  {
+    "q": "What does 'Rocket ahead' mean? ___",
+    "options": ["To run quickly", "To progress or improve rapidly", "To fly high", "To build rockets"],
+    "correct": [1],
+    "example": ["Their company rocketed ahead after launching the new app."]
+  },
+  {
+    "q": "What does 'Over the horizon' mean? ___",
+    "options": ["In the past", "Behind the clouds", "Out of sight forever", "In the near future"],
+    "correct": [3],
+    "example": ["Exciting opportunities are just over the horizon."]
+  },
+  {
+    "q": "What does 'Reach for the moon' mean? ___",
+    "options": ["Try too hard", "Aim for something great", "Be disappointed", "Go to space"],
+    "correct": [1],
+    "example": ["Always reach for the moon, even if it seems impossible."]
+  },
+  {
+    "q": "What does 'Under the stars' mean? ___",
+    "options": ["In a dark room", "Outdoors at night", "Under a ceiling light", "In a dream"],
+    "correct": [1],
+    "example": ["We camped under the stars last weekend."]
+  },
+  {
+    "q": "What does 'Sunshine after the storm' mean? ___",
+    "options": ["Happiness after difficulties", "A weather report", "Hot weather", "Calm before trouble"],
+    "correct": [0],
+    "example": ["Her recovery was like sunshine after the storm."]
+  },
+  {
+    "q": "What does 'Over the sun and moon' mean? ___",
+    "options": ["Too tired", "Extremely delighted", "Very confused", "Traveling far away"],
+    "correct": [1],
+    "example": ["He was over the sun and moon when his design won first prize."]
+  },
+  {
+    "q": "What does 'Out of orbit' mean? ___",
+    "options": ["In outer space", "Out of control or off track", "In a circular motion", "At a distance"],
+    "correct": [1],
+    "example": ["Their plan went out of orbit after the funding was cut."]
+  }
+    ];
+
+    let current = 0; // Index for quizData
+    let correctCount = 0;
+    let totalWrongClicks = 0; 
+    let currentGems = 0; 
+    let timePerQuestion = [];
+    let guessesPerQuestion = [];
+    let startTime;
+    let timerInterval;
+    let playerName = "";
+    let playerDepartment = "";
+    let currentStreak = 0;
+    let highestStreak = 0;
+    let streakHistory = [];
+    let questionsToRetry = [];
+    let firstAttemptCorrect = [];
+    let isRetryRound = false;
+    let currentQuestionFirstAttempt = true;
+    let questionTimers = {};
+
+    // --- NEW: Trackers for the "live total" feature ---
+    let globalQuestionCounter = 1; // This will be the "current" question number (e.g., 1, 2, 3... 11, 12)
+    let totalQuestionsToAnswer = quizData.length; // Starts at 10, will grow if answers are wrong
+
+    const questionEl = document.getElementById("question");
+    const optionsEl = document.getElementById("options");
+    const scoreCard = document.getElementById("scoreCard");
+    const restartBtn = document.getElementById("restartBtn");
+
+    // Element References for header
+    const timeValueEl = document.getElementById("time-value");
+    const gemCounterEl = document.getElementById("gemCounter"); 
+    const gemValueEl = document.getElementById("gem-value"); 
+    const streakValueEl = document.getElementById("streak-value");
+    const currentQuestionEl = document.getElementById("current-question");
+    const totalQuestionsEl = document.getElementById("total-questions");
+    const progressTrackerEl = document.getElementById("progressTracker"); 
+    const headerBarEl = document.getElementById("quizHeaderBar");
+
+
+    function beginQuiz() {
+      const nameField = document.getElementById("nameInput");
+      const deptField = document.getElementById("departmentSelect");
+      const nameVal = nameField.value.trim();
+      const deptVal = deptField.value;
+
+      if (!deptVal) {
+        alert("Please select your department!");
+        return;
+      }
+      if (!nameVal) {
+        alert("Please enter your name!");
+        return;
+      }
+
+      playerName = nameVal;
+      playerDepartment = deptVal;
+      document.getElementById("nameForm").style.display = "none";
+      document.getElementById("quizContent").style.display = "block";
+      headerBarEl.style.display = 'block'; 
+      startQuiz();
+    }
+
+    document.getElementById('startQuizBtn').addEventListener('click', beginQuiz);
+
+    function startQuiz() {
+      current = 0;
+      correctCount = 0;
+      totalWrongClicks = 0; 
+      currentGems = 0; 
+      timePerQuestion = [];
+      guessesPerQuestion = [];
+      currentStreak = 0;
+      highestStreak = 0;
+      streakHistory = [];
+      questionsToRetry = [];
+      firstAttemptCorrect = new Array(quizData.length).fill(null);
+      isRetryRound = false;
+      questionTimers = {};
+      startTime = Date.now();
+      
+      // --- Reset trackers ---
+      globalQuestionCounter = 1; 
+      totalQuestionsToAnswer = quizData.length;
+
+      // Reset header values
+      headerBarEl.style.display = 'block';
+      timeValueEl.innerText = "0";
+      gemValueEl.innerText = "0"; 
+      streakValueEl.innerText = "0";
+      totalQuestionsEl.innerText = totalQuestionsToAnswer; // Resets to 10
+      currentQuestionEl.innerText = globalQuestionCounter; // Resets to 1
+      progressTrackerEl.childNodes[0].nodeValue = '📝 '; 
+
+      scoreCard.innerHTML = "";
+      restartBtn.style.display = "none";
+
+      loadQuestion();
+      startTimer();
+    }
+
+function loadQuestion() {
+  // Check if main quiz is done
+  if (current >= quizData.length && !isRetryRound) {
+    questionsToRetry = [];
+    for (let i = 0; i < quizData.length; i++) {
+      if (firstAttemptCorrect[i] === false) questionsToRetry.push(i);
+    }
+
+    // If there are questions to retry, start retry round
+    if (questionsToRetry.length > 0) {
+      isRetryRound = true;
+      current = 0; // Reset index for retry array
+      document.getElementById("quizContainer").classList.add("retry-mode");
+      playRetrySound();
+      questionEl.innerHTML = `<h3 style="color: #ff6b6b;">⚠️ Retry Round!</h3>
+        <p>You must answer these ${questionsToRetry.length} question(s) correctly on the first attempt.</p>`;
+      optionsEl.innerHTML = "";
+      
+      // Update header for retry round
+      progressTrackerEl.childNodes[0].nodeValue = '🔄 ';
+      currentQuestionEl.innerText = globalQuestionCounter; // e.g., 11
+      totalQuestionsEl.innerText = totalQuestionsToAnswer; // e.g., 12
+      
+      setTimeout(() => loadQuestion(), 2500);
+      return;
+    } else {
+      // No retries needed, end quiz
+      return showScore();
+    }
+  }
+
+  // Check if retry round is done
+  if (isRetryRound && current >= questionsToRetry.length) {
+    let stillNeedRetry = [];
+    for (let idx of questionsToRetry) {
+      if (firstAttemptCorrect[idx] === false) stillNeedRetry.push(idx);
+    }
+
+    // If still more retries needed, loop retry round
+    if (stillNeedRetry.length > 0) {
+      questionsToRetry = stillNeedRetry;
+      current = 0;
+      playRetrySound();
+      questionEl.innerHTML = `<h3 style="color: #ff6b6b;">⚠️ Try Again!</h3>
+        <p>You still need to answer ${stillNeedRetry.length} question(s) correctly on first attempt.</p>`;
+      optionsEl.innerHTML = "";
+
+      // Update header for new retry loop
+      progressTrackerEl.childNodes[0].nodeValue = '🔄 ';
+      currentQuestionEl.innerText = globalQuestionCounter;
+      totalQuestionsEl.innerText = totalQuestionsToAnswer;
+      
+      setTimeout(() => loadQuestion(), 2500);
+      return;
+    } else {
+      // All retries passed, end quiz
+      return showScore();
+    }
+  }
+
+  // --- Load the question ---
+  // Determine the correct index (from main array or retry array)
+  const questionIndex = isRetryRound ? questionsToRetry[current] : current;
+  const data = quizData[questionIndex];
+  
+  // Start timer and reset guess trackers for this specific question
+  questionTimers[questionIndex] = Date.now();
+  if (!guessesPerQuestion[questionIndex]) guessesPerQuestion[questionIndex] = 0;
+  currentQuestionFirstAttempt = true; // Reset for this question
+
+  optionsEl.innerHTML = "";
+
+  questionEl.innerHTML = `${data.q}`;
+
+  // Create option buttons
+  data.options.forEach((option, index) => {
+    const btn = document.createElement("button");
+    btn.innerText = option;
+    btn.dataset.index = index;
+    btn.dataset.questionIndex = questionIndex; // IMPORTANT: Store original index
+    btn.onclick = () => handleAnswer(btn, data.correct, questionIndex);
+    optionsEl.appendChild(btn);
+  });
+
+  // Add examples
+  const examples = Array.isArray(data.example) ? data.example : [data.example];
+  const exampleDiv = document.createElement("div");
+  exampleDiv.classList.add("example-container");
+  exampleDiv.innerHTML = `<br><em>Example:<br>${examples.join("<br>")}</em>`;
+  optionsEl.appendChild(exampleDiv);
+
+  // --- Update Header ---
+  // This now just displays the global trackers
+  if (isRetryRound) {
+    progressTrackerEl.childNodes[0].nodeValue = '🔄 '; 
+  } else {
+    progressTrackerEl.childNodes[0].nodeValue = '📝 '; 
+  }
+  currentQuestionEl.innerText = globalQuestionCounter;
+  totalQuestionsEl.innerText = totalQuestionsToAnswer;
+}
+
+// --- NEW Animation Function ---
+function showGemAnimation(amount, isGain) {
+  const rect = gemCounterEl.getBoundingClientRect();
+  const startX = rect.left + (rect.width / 2);
+  const startY = rect.top + (rect.height / 2);
+
+  const textEl = document.createElement('span');
+  textEl.className = 'flying-gem-text';
+  textEl.style.left = startX + 'px';
+  textEl.style.top = startY + 'px';
+
+  if (isGain) {
+    textEl.textContent = `+${amount}`; // Will show +1
+    textEl.classList.add('plus');
+    gemCounterEl.classList.add('gem-gain');
+  } else {
+    textEl.textContent = `-${amount}`; // Will show -1
+    textEl.classList.add('minus');
+    gemCounterEl.classList.add('gem-lose');
+  }
+
+  document.body.appendChild(textEl);
+
+  // Clean up animations
+  setTimeout(() => {
+    textEl.remove();
+  }, 1000);
+
+  setTimeout(() => {
+    gemCounterEl.classList.remove('gem-gain', 'gem-lose');
+  }, 500);
+}
+
+
+function handleAnswer(button, correctIndexes, questionIndex) {
+  // Log the guess for this question
+  if (guessesPerQuestion[questionIndex] === undefined) {
+    guessesPerQuestion[questionIndex] = 1;
+  } else {
+    guessesPerQuestion[questionIndex]++;
+  }
+
+  const idx = parseInt(button.dataset.index);
+  const isCorrect = correctIndexes.includes(idx);
+  const selectedOption = button.innerText;
+  const data = quizData[questionIndex];
+
+  if (isCorrect) {
+    button.classList.add("correct");
+    button.disabled = true;
+
+    // Capture total time taken from question start to correct answer
+    if (questionTimers[questionIndex] !== undefined) {
+      const timeTaken = Math.floor((Date.now() - questionTimers[questionIndex]) / 1000);
+      timePerQuestion[questionIndex] = timeTaken;
+    }
+
+    playCorrectSound();
+    createGoldenSparks(button);
+    createFlyingAnswer(button, selectedOption, questionEl, isRetryRound, questionsToRetry, current, quizData);
+
+    if (currentQuestionFirstAttempt) {
+        firstAttemptCorrect[questionIndex] = true;
+        currentGems += 1; // +1 Gem
+        showGemAnimation(1, true); // Show +1 animation
+    }
+    // Note: No gems are awarded if it's not the first attempt
+
+    currentStreak++;
+    if (currentStreak > highestStreak) highestStreak = currentStreak;
+    streakHistory.push(currentStreak);
+    streakValueEl.innerText = currentStreak; 
+    gemValueEl.innerText = currentGems; // Update gem text
+    if (currentStreak >= 3) {
+      // playStreakSound(); // Removed as requested
+      document.getElementById('streakCounter').classList.add('streak-glow');
+      setTimeout(() => document.getElementById('streakCounter').classList.remove('streak-glow'), 800);
+    }
+
+    // Check if all correct options are selected (for potential future multiple-choice)
+    const allClicked = correctIndexes.every(i =>
+      document.querySelector(`button[data-index="${i}"]`)?.classList.contains("correct")
+    );
+
+    if (allClicked) {
+      correctCount++; // This counter is now a bit redundant, but good for PDF
+      if (currentStreak >= 3) createConfetti(button);
+
+      // --- Show "Next" button ---
+      setTimeout(() => {
+        const exampleEl = document.querySelector(".example-container");
+        if (exampleEl) exampleEl.style.opacity = "0";
+
+        const allOptionButtons = optionsEl.querySelectorAll("button");
+        allOptionButtons.forEach(b => b.style.opacity = 0);
+
+        const filledQuestion = data.q.replace(
+          "___",
+          `<span class="question-highlight">${selectedOption}</span>`
+        );
+        questionEl.innerHTML = `<div class="neon-typewriter">${filledQuestion}</div>`;
+        questionEl.classList.add("focused-question");
+
+        const nextBtn = document.createElement("button");
+        nextBtn.innerText = "➡️ Next";
+        nextBtn.classList.add("next-btn");
+        nextBtn.onclick = () => {
+          if (exampleEl) exampleEl.style.opacity = "1";
+          allOptionButtons.forEach(b => b.style.opacity = "1");
+          
+          current++; // Move to next question index (in either main or retry array)
+          globalQuestionCounter++; // <-- INCREMENT GLOBAL COUNTER
+          
+          loadQuestion();
+          nextBtn.remove();
+        };
+
+        questionEl.appendChild(nextBtn);
+
+      }, 1200);
+    }
+
+  } else {
+    // --- WRONG ANSWER ---
+    if (currentQuestionFirstAttempt) {
+      firstAttemptCorrect[questionIndex] = false; // Mark for retry
+      currentQuestionFirstAttempt = false; // Don't penalize for more clicks on this question
+      
+      totalQuestionsToAnswer++; // <-- HERE: Increment total
+      totalQuestionsEl.innerText = totalQuestionsToAnswer; // <-- HERE: Update header
+    }
+
+    playWrongSound();
+    totalWrongClicks++; 
+    
+    currentGems -= 1; // -1 Gem
+    gemValueEl.innerText = currentGems;
+    showGemAnimation(1, false); // Show -1 animation
+
+    button.classList.add("wrong");
+    setTimeout(() => button.classList.remove("wrong"), 500);
+
+    currentStreak = 0;
+    streakValueEl.innerText = 0; 
+  }
+}
+
+    function showScore() {
+      clearInterval(timerInterval);
+      const totalTime = Math.floor((Date.now() - startTime) / 1000);
+      
+      document.getElementById("quizContainer").classList.remove("retry-mode");
+      playVictorySound();
+      
+      headerBarEl.style.display = 'none'; 
+      questionEl.innerText = "🎉 Quiz Completed!";
+      optionsEl.innerHTML = "";
+      
+      let allCorrect = firstAttemptCorrect.every(val => val === true);
+      let scoreMessage = allCorrect 
+        ? '<p>✅ All Questions: Answered Correctly on First Attempt!</p>'
+        : '<p>🔄 You had to retry some questions, but you got there!</p>';
+
+      scoreCard.innerHTML = `
+        <p>👤 Player: ${playerName} </p>
+        <p>🏢 Department: ${playerDepartment}</p>
+         <button onclick="downloadPDFReport()" style="margin-top: 1rem; padding: 0.7rem 2rem; background-color: #4CAF50; border: none; border-radius: 10px; cursor: pointer; color: white; font-size: 1rem;">📥 Download PDF Report</button>
+        ${scoreMessage}
+        <p>💎 Final Gems: ${currentGems}</p>
+        <p>🔥 Highest Streak: ${highestStreak}</p>
+        <p>⏱️ Time Taken: ${totalTime} seconds</p>
+        <p>📊 Guesses per Question: ${guessesPerQuestion.join(", ")}</p>
+      `;
+      restartBtn.style.display = "inline-block";
+      createConfetti(scoreCard);
+
+      // Send data to Google Sheet
+      fetch("https://script.google.com/macros/s/AKfycbxA0lRkERWFt2cYfmm04IQioaG4-21k5VFF5CFKP30zyVaJXM5_27PL3v8JIZEweK3u/exec", {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: playerName,
+          correct: allCorrect ? quizData.length : correctCount, // A bit ambiguous, but shows 'all' if they finished
+          wrong: totalWrongClicks, // This is the total number of wrong *clicks*
+          score: currentGems, // This is the final gem score
+          time: totalTime,
+          department: playerDepartment,
+          questId: "Idioms 71",
+          guesses: guessesPerQuestion
+        })
+      });
+    }
+
+    function startTimer() {
+      timerInterval = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - startTime) / 1000);
+        timeValueEl.innerText = elapsed; 
+      }, 1000);
+    }
+
+function downloadPDFReport(previousScore = 0) {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  
+  const totalTime = Math.floor((Date.now() - startTime) / 1000);
+  const reportDate = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+
+  if (!Array.isArray(timePerQuestion)) timePerQuestion = [];
+  if (!Array.isArray(guessesPerQuestion)) guessesPerQuestion = [];
+
+  // --- PDF Header ---
+  doc.setFillColor(25, 25, 60);
+  doc.rect(0, 0, 210, 50, 'F');
+  doc.setDrawColor(184, 134, 11);
+  doc.setLineWidth(1);
+  doc.line(20, 48, 190, 48);
+  doc.setLineWidth(0.5);
+  doc.line(20, 50, 190, 50);
+
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(18);
+  doc.setFont('times', 'bold');
+  doc.text('SRM VALLIAMMAI ENGINEERING COLLEGE', 105, 18, { align: 'center' });
+  doc.setFontSize(11);
+  doc.setFont('times', 'italic');
+  doc.text('(Autonomous)', 105, 26, { align: 'center' });
+  doc.setFontSize(16);
+  doc.setFont('times', 'normal');
+  doc.text('Department of English', 105, 34, { align: 'center' });
+
+  doc.setFontSize(14);
+  doc.setFont('times', 'bold');
+  doc.setTextColor(212, 175, 55);
+  doc.text('Quest Performance Report', 105, 43, { align: 'center' });
+
+  doc.setTextColor(0, 0, 0);
+
+  // --- Candidate Info Table ---
+  doc.setFontSize(11);
+  doc.setFont('times', 'bold');
+  doc.text('CANDIDATE INFORMATION', 20, 58);
+  doc.setDrawColor(184, 134, 11);
+  doc.setLineWidth(0.5);
+  doc.line(20, 60, 190, 60);
+
+  const studentInfo = [
+    ['Student Name', playerName],
+    ['Department', playerDepartment],
+    ['Time of Quest', reportDate]
+  ];
+
+  doc.autoTable({
+    startY: 64,
+    body: studentInfo,
+    theme: 'plain',
+    styles: { fontSize: 14, font: 'times', cellPadding: 3 }, // Changed from 10
+    columnStyles: {
+      0: { fontStyle: 'bold', cellWidth: 50, textColor: [70, 70, 70] },
+      1: { cellWidth: 130 }
+    },
+    margin: { left: 30, right: 30 } // Changed from 20
+  });
+
+  // --- Performance Metrics Table ---
+  let yPosition = doc.lastAutoTable.finalY + 12;
+  doc.setFontSize(16); // Changed from 11
+  doc.setFont('times', 'bold');
+  doc.text('PERFORMANCE METRICS', 20, yPosition);
+  doc.setDrawColor(184, 134, 11);
+  doc.line(20, yPosition + 2, 190, yPosition + 2);
+  yPosition += 8;
+  
+  let allCorrect = firstAttemptCorrect.every(val => val === true);
+  let finalStatus = allCorrect ? "Passed - First Attempt" : "Passed - With Retries";
+
+  const metricsInfo = [
+    ['Final Status', finalStatus],
+    ['Total Questions Answered', totalQuestionsToAnswer.toString()],
+    ['Total Gem Score', `💎 ${currentGems}`], 
+    ['Total Wrong Clicks', totalWrongClicks.toString()],
+    ['Longest Correct Streak', highestStreak.toString()],
+    ['Total Time', `${Math.floor(totalTime / 60)}m ${totalTime % 60}s`],
+    ['Attempts per Question', guessesPerQuestion.join(', ')]
+  ];
+
+  doc.autoTable({
+    startY: yPosition,
+    body: metricsInfo,
+    theme: 'striped',
+    styles: { fontSize: 12, font: 'times', cellPadding: 3 }, // Changed from 9
+    columnStyles: { 
+      0: { fontStyle: 'bold', cellWidth: 70, textColor: [70, 70, 70] },
+      1: { cellWidth: 110}
+    },
+    margin: { left: 30, right: 30 } // Changed from 20
+  });
+
+  // --- Question Breakdown ---
+  yPosition = doc.lastAutoTable.finalY + 15;
+  if (yPosition > 250) { doc.addPage(); yPosition = 20; }
+  doc.setFontSize(16); // Changed from 11
+  doc.setFont('times', 'bold');
+  doc.text('QUESTION BANK WITH CORRECT RESPONSES', 20, yPosition);
+  doc.setDrawColor(184, 134, 11);
+  doc.line(20, yPosition + 2, 190, yPosition + 2);
+  yPosition += 10;
+
+  quizData.forEach((item, idx) => {
+    if (yPosition > 245) { doc.addPage(); yPosition = 25; }
+
+    doc.setFontSize(14); // Changed from 10
+    doc.setFont('times', 'bold');
+    doc.setTextColor(25, 25, 60);
+    doc.text(`Question ${idx + 1}:`, 20, yPosition);
+
+    doc.setTextColor(0, 0, 0);
+    doc.setFont('times', 'normal');
+    const questionLines = doc.splitTextToSize(item.q, 145); // Narrowed from 165
+    doc.text(questionLines, 20, yPosition + 5);
+    yPosition += 5 + (5 * questionLines.length);
+
+    doc.setFont('times', 'bold');
+    doc.setTextColor(0, 100, 0);
+    const correctAnswers = item.correct.map(i => item.options[i]).join(', ');
+    doc.text('Correct Answer:', 20, yPosition);
+    doc.setFont('times', 'normal');
+    const answerLines = doc.splitTextToSize(correctAnswers, 125); // Narrowed from 145
+    doc.text(answerLines, 55, yPosition);
+    yPosition += 5 + (4 * (answerLines.length - 1));
+
+    doc.setTextColor(150, 0, 0);
+    const attemptsText = guessesPerQuestion[idx] !== undefined ? guessesPerQuestion[idx].toString() : 'N/A';
+    doc.text(`Number of Attempts: ${attemptsText}`, 20, yPosition);
+    yPosition += 6;
+
+    doc.setTextColor(70, 70, 70);
+    doc.setFont('times', 'italic');
+    doc.setFontSize(11); // Changed from 9
+    doc.text('Examples:', 20, yPosition);
+    yPosition += 5;
+    item.example.forEach((ex, exIdx) => {
+      const exLines = doc.splitTextToSize(`${exIdx + 1}. ${ex}`, 145); // Narrowed from 165
+      doc.text(exLines, 25, yPosition);
+      yPosition += 4 * exLines.length;
+    });
+
+    yPosition += 6;
+    doc.setDrawColor(230, 230, 230);
+    doc.setLineWidth(0.3);
+    doc.line(20, yPosition, 190, yPosition);
+    yPosition += 8;
+  });
+
+  // --- PDF Footer ---
+  doc.setDrawColor(184, 134, 11);
+  doc.setLineWidth(0.5);
+  doc.line(20, 280, 190, 280);
+  doc.setFontSize(8);
+  doc.setTextColor(128, 128, 128);
+  doc.setFont('times', 'italic');
+  doc.text('This is a system-generated report', 105, 287, { align: 'center' });
+
+  const cleanName = playerName.replace(/[^a-zA-Z0-9]/g, '_');
+  doc.save(`${cleanName}_Quest_Report.pdf`);
+}
+
+    restartBtn.onclick = () => {
+      document.getElementById("quizContainer").classList.remove("retry-mode");
+      document.getElementById("quizContent").style.display = "none";
+      headerBarEl.style.display = 'none'; 
+      document.getElementById("nameForm").style.display = "block";
+      document.getElementById("nameInput").value = "";
+      // Reset department dropdown
+      document.getElementById("departmentSelect").selectedIndex = 0;
+    };
+  </script>
+</body>
+</html>

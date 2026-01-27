@@ -5,9 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Sniper Duel: IS vs ARE 🎯</title>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
-
 <style>
 body{
   margin:0;
@@ -30,7 +27,6 @@ body{
 .quiz-header-bar{
   display:none;
   background:#0b1025;
-  border-bottom:1px solid #222;
   padding:.6rem 1rem;
 }
 
@@ -47,13 +43,6 @@ body{
   padding:1.5rem;
   border-radius:12px;
   background:rgba(0,0,0,0.4);
-  box-shadow:0 0 30px rgba(0,224,255,0.3);
-  animation:pulseGlow 1.5s infinite;
-}
-
-@keyframes pulseGlow{
-  0%,100%{box-shadow:0 0 20px rgba(0,224,255,0.4);}
-  50%{box-shadow:0 0 40px rgba(0,224,255,0.9);}
 }
 
 .sniper-zone{
@@ -69,31 +58,11 @@ body{
   font-size:2rem;
   border-radius:16px;
   cursor:pointer;
-  user-select:none;
   transition:.2s;
 }
 
-.sniper:active{transform:scale(.92);}
-
-.sniper.is{background:linear-gradient(135deg,#0077ff,#00e0ff);}
-.sniper.are{background:linear-gradient(135deg,#ff0066,#ff5aa5);}
-
-.sniper span{
-  display:block;
-  font-size:1rem;
-  opacity:.8;
-}
-
-.hit{animation:hitFlash .4s;}
-@keyframes hitFlash{
-  50%{box-shadow:0 0 40px #00ff88}
-}
-
-.miss{animation:missShake .4s;}
-@keyframes missShake{
-  25%{transform:translateX(-12px)}
-  75%{transform:translateX(12px)}
-}
+.sniper.is{background:#0077ff;}
+.sniper.are{background:#ff0066;}
 
 #nameForm select,#nameForm input,#nameForm button{
   width:90%;
@@ -102,16 +71,12 @@ body{
   margin:.6rem auto;
   border-radius:8px;
   border:none;
-  font-size:1rem;
 }
 
 #nameForm button{
   background:#ffd700;
   font-weight:bold;
-  cursor:pointer;
 }
-
-#scoreCard{margin-top:2rem;}
 </style>
 </head>
 
@@ -135,7 +100,8 @@ body{
     <option>Cyber Security</option>
     <option>CSE-1</option>
     <option>CSE-2</option>
-    <option>EIE</option>
+    <option>CSE-3</option>
+option>EIE</option
   </select>
   <input type="text" id="nameInput" placeholder="Enter your name">
   <button id="startQuizBtn">🚀 Launch Mission</button>
@@ -145,8 +111,8 @@ body{
   <div id="sentenceFlash">Loading…</div>
 
   <div class="sniper-zone">
-    <div class="sniper is" id="sniperIs">IS<span>Singular</span></div>
-    <div class="sniper are" id="sniperAre">ARE<span>Plural</span></div>
+    <div class="sniper is" id="sniperIs">IS</div>
+    <div class="sniper are" id="sniperAre">ARE</div>
   </div>
 
   <div id="scoreCard"></div>
@@ -156,68 +122,61 @@ body{
 </div>
 
 <script>
+"use strict";
 
-
-/* ========= LOCAL STORAGE AUTOFILL ========= */
-function autoFillFromStorage(){
-  try{
-    const storedName=localStorage.getItem("playerName");
-    const storedDept=localStorage.getItem("playerDept");
-    if(storedName) nameInput.value=storedName;
-    if(storedDept) departmentSelect.value=storedDept;
-  }catch(e){
-    console.log("LocalStorage unavailable");
-  }
-}
-window.addEventListener("DOMContentLoaded",autoFillFromStorage);
-
-/* ========= SUPABASE EDGE ========= */
-const EDGE_FUNCTION_URL =
-  "https://ahezssoczvpbkteffcgz.supabase.co/functions/v1/logQuest";
-
-async function sendViaEdgeFunction(payload){
-  try{
-    await fetch(EDGE_FUNCTION_URL,{
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify(payload)
-    });
-  }catch(err){
-    console.error("Edge function error:",err);
-  }
-}
-// ===== DOM REFERENCES (MISSING FIX) =====
+/* ===== DOM REFERENCES ===== */
 const nameForm = document.getElementById("nameForm");
 const quizContent = document.getElementById("quizContent");
 const quizHeaderBar = document.getElementById("quizHeaderBar");
 
-const totalQ = document.getElementById("total-questions");
+const sentenceFlash = document.getElementById("sentenceFlash");
+const gemValue = document.getElementById("gem-value");
+const streakValue = document.getElementById("streak-value");
 const currentQ = document.getElementById("current-question");
+const totalQ = document.getElementById("total-questions");
 const timeValue = document.getElementById("time-value");
-/* ========= QUIZ DATA ========= */
+const scoreCard = document.getElementById("scoreCard");
+const restartBtn = document.getElementById("restartBtn");
+
+/* ===== LOCAL STORAGE AUTOFILL ===== */
+(function(){
+  const n = localStorage.getItem("playerName");
+  const d = localStorage.getItem("playerDept");
+  if(n) nameInput.value = n;
+  if(d) departmentSelect.value = d;
+})();
+
+/* ===== SUPABASE EDGE ===== */
+const EDGE_FUNCTION_URL =
+  "https://ahezssoczvpbkteffcgz.supabase.co/functions/v1/logQuest";
+
+function sendViaEdgeFunction(payload){
+  fetch(EDGE_FUNCTION_URL,{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify(payload)
+  }).catch(()=>{});
+}
+
+/* ===== DATA ===== */
 const quizData=[
-  {q:"He ___ happy today.",options:["is","are"],correct:[0]},
-  {q:"They ___ my friends.",options:["is","are"],correct:[1]},
-  {q:"He ___ ready.",options:["is","are"],correct:[0]},
-  {q:"We ___ late.",options:["is","are"],correct:[1]},
-  {q:"She ___ absent.",options:["is","are"],correct:[0]},
-  {q:"The students ___ here.",options:["is","are"],correct:[1]},
-  {q:"My brother ___ tall.",options:["is","are"],correct:[0]},
-  {q:"My pens ___ made of solid gold.",options:["is","are"],correct:[1]},
-  {q:"My friends ___ upset.",options:["is","are"],correct:[1]},
-  {q:"My cats ___ sad.",options:["is","are"],correct:[1]},
-  {q:"My parents ___ proud.",options:["is","are"],correct:[1]}
+  {q:"He ___ happy today.",correct:"is"},
+  {q:"They ___ my friends.",correct:"are"},
+  {q:"She ___ absent.",correct:"is"},
+  {q:"We ___ late.",correct:"are"},
+  {q:"My parents ___ proud.",correct:"are"}
 ];
 
-let current=0,currentGems=0,currentStreak=0,highestStreak=0;
-let questionLocked=false,startTime,timerInterval;
-let playerName="",playerDepartment="";
+let current=0, gems=0, streak=0, bestStreak=0;
+let questionLocked=false;
+let startTime, timer;
+let playerName="", playerDepartment="";
 
-/* ========= START ========= */
+/* ===== START ===== */
 startQuizBtn.onclick=()=>{
   playerName=nameInput.value.trim();
   playerDepartment=departmentSelect.value;
-  if(!playerName||!playerDepartment)return alert("Enter name & department");
+  if(!playerName||!playerDepartment) return alert("Enter name & department");
 
   localStorage.setItem("playerName",playerName);
   localStorage.setItem("playerDept",playerDepartment);
@@ -225,63 +184,53 @@ startQuizBtn.onclick=()=>{
   nameForm.style.display="none";
   quizContent.style.display="block";
   quizHeaderBar.style.display="block";
-  totalQ.innerText=quizData.length;
 
+  totalQ.innerText=quizData.length;
   startTime=Date.now();
-  startTimer();
+  timer=setInterval(()=>timeValue.innerText=Math.floor((Date.now()-startTime)/1000),1000);
+
   loadQuestion();
 };
 
 function loadQuestion(){
-  if(current>=quizData.length)return showScore();
+  if(current>=quizData.length) return showScore();
   questionLocked=false;
-  sentenceFlash.innerHTML=quizData[current].q;
+  sentenceFlash.innerText=quizData[current].q;
   currentQ.innerText=current+1;
 }
 
-sniperIs.onclick=()=>fire("is");
-sniperAre.onclick=()=>fire("are");
+sniperIs.onclick=()=>answer("is");
+sniperAre.onclick=()=>answer("are");
 
-function fire(word){
-  if(questionLocked)return;
-  const data=quizData[current];
-  handleAnswer(data.options.indexOf(word),data.correct,word);
-}
+function answer(choice){
+  if(questionLocked) return;
+  questionLocked=true;
 
-function handleAnswer(idx,correct,word){
-  if(questionLocked)return;
-  if(correct.includes(idx)){
-    questionLocked=true;
-    sentenceFlash.innerHTML=
-      quizData[current].q.replace("___",
-        `<span style="color:#00ff88;font-weight:bold">${word}</span>`);
-
-    currentGems++; gemValue.innerText=currentGems;
-    currentStreak++; streakValue.innerText=currentStreak;
-    highestStreak=Math.max(highestStreak,currentStreak);
-
-    setTimeout(()=>{current++;loadQuestion();},700);
+  const correct=quizData[current].correct;
+  if(choice===correct){
+    gems++; streak++;
+    bestStreak=Math.max(bestStreak,streak);
+    sentenceFlash.innerHTML=quizData[current].q.replace("___",`<b>${choice}</b>`);
+    gemValue.innerText=gems;
+    streakValue.innerText=streak;
+    setTimeout(()=>{current++; loadQuestion();},700);
   }else{
-    currentGems--; gemValue.innerText=currentGems;
-    currentStreak=0; streakValue.innerText=0;
+    gems--; streak=0;
+    gemValue.innerText=gems;
+    streakValue.innerText=0;
+    questionLocked=false;
   }
 }
 
-function startTimer(){
-  timerInterval=setInterval(()=>{
-    timeValue.innerText=Math.floor((Date.now()-startTime)/1000);
-  },1000);
-}
-
 function showScore(){
-  clearInterval(timerInterval);
+  clearInterval(timer);
   quizHeaderBar.style.display="none";
 
   sendViaEdgeFunction({
     student_name:playerName,
     department:playerDepartment,
-    score:currentGems,
-    streak:highestStreak,
+    score:gems,
+    streak:bestStreak,
     quest_id:"IS-ARE-SNIPER"
   });
 
@@ -289,8 +238,9 @@ function showScore(){
   scoreCard.innerHTML=`
     <p>👤 ${playerName}</p>
     <p>🏢 ${playerDepartment}</p>
-    <p>💎 Gems: ${currentGems}</p>
-    <p>🔥 Best Streak: ${highestStreak}</p>`;
+    <p>💎 Gems: ${gems}</p>
+    <p>🔥 Best Streak: ${bestStreak}</p>
+  `;
   restartBtn.style.display="block";
 }
 

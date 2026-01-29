@@ -7,6 +7,7 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
 <style>
 :root {
@@ -130,12 +131,36 @@ body {
   background-color: #e8f5e9 !important;
   border-color: var(--green-main) !important;
   color: var(--green-main);
+  animation: correctPulse 0.6s ease;
+}
+
+@keyframes correctPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
 }
 
 .wrong {
   background-color: #ffebee !important;
   border-color: var(--red-main) !important;
   color: var(--red-main);
+  animation: wrongShake 0.5s ease;
+}
+
+@keyframes wrongShake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-10px); }
+  75% { transform: translateX(10px); }
+}
+
+/* ---------- GEMS ANIMATION ---------- */
+@keyframes gemPop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.3) rotate(10deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+
+.gem-pop {
+  animation: gemPop 0.5s ease;
 }
 
 /* ---------- MOTIVATION BOX ---------- */
@@ -310,40 +335,98 @@ Thank you all for being a part of this journey!
 <div id="motivationBox"></div>
 
 <script>
-/* ========== AUDIO SETUP ========== */
-// Create audio elements for sound effects using data URIs for simple sounds
-// Or use working CDN URLs
+/* ========== CONFETTI FUNCTIONS ========== */
+function triggerConfetti() {
+  // Main confetti burst from center
+  confetti({
+    particleCount: 100,
+    spread: 70,
+    origin: { y: 0.6 }
+  });
+}
 
-// Simple applause/success sound - using a short celebratory tone
+function triggerConfettiSides() {
+  // Confetti from both sides
+  const duration = 1000;
+  const end = Date.now() + duration;
+
+  (function frame() {
+    confetti({
+      particleCount: 2,
+      angle: 60,
+      spread: 55,
+      origin: { x: 0 },
+      colors: ['#ff9800', '#2979ff', '#00c853', '#FFD700']
+    });
+    confetti({
+      particleCount: 2,
+      angle: 120,
+      spread: 55,
+      origin: { x: 1 },
+      colors: ['#ff9800', '#2979ff', '#00c853', '#FFD700']
+    });
+
+    if (Date.now() < end) {
+      requestAnimationFrame(frame);
+    }
+  }());
+}
+
+function triggerMegaConfetti() {
+  // Epic confetti for quiz completion
+  const duration = 3000;
+  const animationEnd = Date.now() + duration;
+  const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
+
+  function randomInRange(min, max) {
+    return Math.random() * (max - min) + min;
+  }
+
+  const interval = setInterval(function() {
+    const timeLeft = animationEnd - Date.now();
+
+    if (timeLeft <= 0) {
+      return clearInterval(interval);
+    }
+
+    const particleCount = 50 * (timeLeft / duration);
+    
+    confetti(Object.assign({}, defaults, { 
+      particleCount, 
+      origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } 
+    }));
+    confetti(Object.assign({}, defaults, { 
+      particleCount, 
+      origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } 
+    }));
+  }, 250);
+}
+
+/* ========== AUDIO SETUP ========== */
 const applauseSound = new Audio();
 applauseSound.src = 'https://andrewveda.github.io/SRM-VEC-English-PWA/sounds/crowd.mp3';
 
-// Wrong answer sound - error buzz
 const wrongSound = new Audio();
 wrongSound.src = 'https://assets.mixkit.co/active_storage/sfx/2955/2955-preview.mp3';
 
-// Set volume levels
 applauseSound.volume = 0.4;
 wrongSound.volume = 0.3;
 
-// Preload
 applauseSound.load();
 wrongSound.load();
 
-// Function to play applause sound
 function playApplauseSound() {
   try {
-    applauseSound.currentTime = 0; // Reset to start
+    applauseSound.currentTime = 0;
     applauseSound.play().catch(err => console.log('Audio play failed:', err));
   } catch (error) {
     console.log('Audio error:', error);
   }
 }
 
-// Function to play wrong answer sound
 function playWrongSound() {
   try {
-    wrongSound.currentTime = 0; // Reset to start
+    wrongSound.currentTime = 0;
     wrongSound.play().catch(err => console.log('Audio play failed:', err));
   } catch (error) {
     console.log('Audio error:', error);
@@ -371,7 +454,6 @@ const rightMessages = [
   "'name' shines brighter with every question!"
 ];
 
-
 const wrongMessages = [
   "'name' loves failures because 'name', like Edison, knows failure is the stepping stone to success.",
   "'name''s favourite quote: 'Ever tried. Ever failed. No matter. Try again. Fail again. Fail better.'",
@@ -392,7 +474,6 @@ function showMotivation(isCorrect) {
 
   box.innerHTML = msg;
   box.style.opacity = 1;
-
 }
 
   const quizData = [
@@ -551,7 +632,6 @@ function beginQuiz() {
   playerName = nameField.value.trim();
   playerDept = deptField.value;
 
-  // save
   localStorage.setItem("questPlayerName", playerName);
   localStorage.setItem("questPlayerDept", playerDept);
 
@@ -618,12 +698,16 @@ function placeOption(dropZone) {
   const correctAnswer = dropZone.dataset.answer;
 
   if (answer === correctAnswer) {
-    // PLAY APPLAUSE SOUND! 👏
+    // 🎉 CORRECT ANSWER - TRIGGER CONFETTI!
+    triggerConfetti();
     playApplauseSound();
     
     correctCount++;
     gemsCount++;
     gemsCounterEl.innerText = `💎 ${gemsCount}`;
+    gemsCounterEl.classList.add('gem-pop');
+    setTimeout(() => gemsCounterEl.classList.remove('gem-pop'), 500);
+    
     showMotivation(true);
 
     dropZone.innerHTML = dropZone.innerText.replace("___", `<strong>${answer}</strong>`);
@@ -631,7 +715,7 @@ function placeOption(dropZone) {
     selectedOption.style.display = "none";
 
   } else {
-    // Play wrong sound
+    // ❌ WRONG ANSWER
     playWrongSound();
     
     totalWrongGuesses++;
@@ -676,6 +760,9 @@ const EDGE_FUNCTION_URL =
 function showScore() {
   clearInterval(timerInterval);
   const totalTime = Math.floor((Date.now() - startTime) / 1000);
+
+  // 🎊 MEGA CONFETTI FOR COMPLETION!
+  triggerMegaConfetti();
 
   questionEl.innerText = "🎉 Quiz Completed!";
   dragOptionsEl.innerHTML = "";
@@ -726,7 +813,6 @@ async function sendViaEdgeFunction(payload) {
   }
 }
 
-
 function downloadPDFReport() {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
@@ -761,7 +847,7 @@ function downloadPDFReport() {
     body: [
       ['Student Name', playerName],
       ['Department', playerDept],
-      ['Quest ID', 'Quest 115'],
+      ['Quest ID', 'Quest 130'],
       ['Completed On', reportDate]
     ],
     theme: 'plain',
@@ -836,7 +922,7 @@ function downloadPDFReport() {
   doc.text('This is a system-generated report', 105, 287, { align: 'center' });
 
   const cleanName = playerName.replace(/[^a-zA-Z0-9]/g, '_');
-  doc.save(`${cleanName}_Quest20_Report.pdf`);
+  doc.save(`${cleanName}_Quest130_Report.pdf`);
 }
 
 restartBtn.onclick = () => {

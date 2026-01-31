@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Cosmic Grammar Quests 🌌</title>
+
+<style>
+/* ================= RESET ================= */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: system-ui, -apple-system, Segoe UI, sans-serif;
+}
+
+body {
+  height: 100vh;
+  overflow: hidden;
+  background: radial-gradient(circle at bottom, #0b102e, #000);
+  color: #fff;
+}
+
+/* ================= STARFIELD ================= */
+.stars {
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(1px 1px at 10% 20%, white, transparent),
+    radial-gradient(1px 1px at 30% 80%, white, transparent),
+    radial-gradient(1px 1px at 70% 30%, white, transparent),
+    radial-gradient(1px 1px at 90% 60%, white, transparent);
+  animation: twinkle 6s infinite alternate;
+  z-index: 0;
+}
+
+@keyframes twinkle {
+  from { opacity: 0.4; }
+  to { opacity: 0.9; }
+}
+
+/* ================= NEBULA ================= */
+.nebula {
+  position: fixed;
+  inset: -50%;
+  background: conic-gradient(
+    from 0deg,
+    #4b0082,
+    #001f3f,
+    #2a004f,
+    #000
+  );
+  opacity: 0.25;
+  animation: drift 60s linear infinite;
+  z-index: 0;
+}
+
+@keyframes drift {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ================= TITLE ================= */
+.header {
+  position: absolute;
+  top: 4%;
+  width: 100%;
+  text-align: center;
+  z-index: 2;
+}
+
+.header h1 {
+  font-size: 2.2rem;
+  letter-spacing: 3px;
+}
+
+.header p {
+  opacity: 0.8;
+  margin-top: 6px;
+  font-size: 1rem;
+}
+
+/* ================= QUEST FIELD ================= */
+.universe {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+/* ================= QUEST BUTTON ================= */
+.quest {
+  position: absolute;
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: 0.85rem;
+  letter-spacing: 1px;
+  cursor: pointer;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.35);
+  backdrop-filter: blur(6px);
+  animation: float 6s ease-in-out infinite;
+  transition: transform 0.3s, box-shadow 0.3s, opacity 0.3s;
+}
+
+.quest::before {
+  content: "";
+  position: absolute;
+  inset: -10px;
+  border-radius: 50%;
+  box-shadow: 0 0 20px currentColor;
+  opacity: 0.35;
+}
+
+.quest:hover {
+  transform: scale(1.2);
+  box-shadow: 0 0 30px currentColor;
+}
+
+@keyframes float {
+  0% { transform: translateY(0); }
+  50% { transform: translateY(-15px); }
+  100% { transform: translateY(0); }
+}
+
+/* ================= LOCKED ================= */
+.locked {
+  opacity: 0.35;
+  filter: grayscale(1);
+  pointer-events: none;
+}
+
+/* ================= POSITIONS ================= */
+.isare { top: 35%; left: 18%; color: #6cf; }
+.tenses { top: 55%; left: 40%; color: #f6c; animation-delay: 1s; }
+.articles { top: 28%; left: 60%; color: #fc6; animation-delay: 2s; }
+.prep { top: 62%; left: 72%; color: #6f6; animation-delay: 3s; }
+.sent { top: 52%; left: 14%; color: #c9f; animation-delay: 1.5s; }
+.errors { top: 72%; left: 30%; color: #f66; animation-delay: 2.5s; }
+
+/* ================= PARTICLES ================= */
+.particle {
+  position: fixed;
+  width: 6px;
+  height: 6px;
+  background: white;
+  border-radius: 50%;
+  pointer-events: none;
+  animation: burst 0.8s ease-out forwards;
+}
+
+@keyframes burst {
+  to {
+    transform: translate(var(--x), var(--y));
+    opacity: 0;
+  }
+}
+
+/* ================= WARP OVERLAY ================= */
+.warp {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(circle, white, black);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 999;
+}
+
+.warp.active {
+  animation: warp 1s ease-in forwards;
+}
+
+@keyframes warp {
+  0% { opacity: 0; }
+  50% { opacity: 1; }
+  100% { opacity: 0; }
+}
+</style>
+</head>
+
+<body>
+
+<div class="stars"></div>
+<div class="nebula"></div>
+<div class="warp" id="warp"></div>
+
+<div class="header">
+  <h1>WELCOME, SPACE TRAVELLER</h1>
+  <p>Choose a quest. Fix the universe.</p>
+</div>
+
+<div class="universe">
+
+  <div class="quest isare" onclick="launch(event,'is-are')">IS / ARE</div>
+  <div class="quest tenses" onclick="launch(event,'tenses')">TENSES</div>
+  <div class="quest articles" onclick="launch(event,'articles')">ARTICLES</div>
+  <div class="quest prep locked">PREPOSITIONS</div>
+  <div class="quest sent locked">SENTENCES</div>
+  <div class="quest errors locked">ERRORS</div>
+
+</div>
+
+<!-- AUDIO -->
+<audio id="hoverSound" src="sounds/hover.mp3"></audio>
+<audio id="warpSound" src="sounds/warp.mp3"></audio>
+
+<script>
+/* ================= PARTICLES ================= */
+function particles(x, y) {
+  for (let i = 0; i < 10; i++) {
+    const p = document.createElement("div");
+    p.className = "particle";
+    p.style.left = x + "px";
+    p.style.top = y + "px";
+    p.style.setProperty("--x", (Math.random()*120-60)+"px");
+    p.style.setProperty("--y", (Math.random()*120-60)+"px");
+    document.body.appendChild(p);
+    setTimeout(() => p.remove(), 800);
+  }
+}
+
+/* ================= LAUNCH ================= */
+function launch(e, quest) {
+  const warp = document.getElementById("warp");
+  document.getElementById("warpSound").play();
+  particles(e.clientX, e.clientY);
+  warp.classList.add("active");
+
+  setTimeout(() => {
+    // replace with navigation
+    alert("Warping to " + quest);
+    warp.classList.remove("active");
+  }, 900);
+}
+
+/* ================= HOVER SOUND ================= */
+document.querySelectorAll(".quest:not(.locked)").forEach(btn => {
+  btn.addEventListener("mouseenter", () => {
+    document.getElementById("hoverSound").play();
+  });
+});
+</script>
+
+</body>
+</html>

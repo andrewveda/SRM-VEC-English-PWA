@@ -1,0 +1,1022 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Tap-to-Match Quiz 🌌</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+<style>
+:root {
+  --bg-main: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
+  --card-bg: #ffffff;
+
+  --accent-main: #ff9800;
+  --accent-soft: #ffcc80;
+
+  --blue-main: #2979ff;
+  --green-main: #00c853;
+  --red-main: #e53935;
+
+  --text-main: #1f2933;
+  --text-muted: #6b7280;
+}
+
+/* ---------- BASE ---------- */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: var(--bg-main);
+  color: var(--text-main);
+  text-align: center;
+}
+
+/* ---------- MAIN CONTAINER ---------- */
+.container {
+  position: relative;
+  max-width: 900px;
+  margin: 2rem auto;
+  background: var(--card-bg);
+  padding: 2rem;
+  border-radius: 18px;
+  box-shadow: 0 15px 35px rgba(0,0,0,0.12);
+}
+
+/* ---------- QUIZ HEADER / HUD ---------- */
+.quiz-header {
+  position: absolute;
+  top: 10px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 1rem;
+  font-size: 1rem;
+  font-weight: bold;
+  color: var(--blue-main);
+}
+
+/* ---------- MUTE BUTTON ---------- */
+#muteBtn {
+  position: absolute;
+  top: 50px;
+  left: 10px;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  border: none;
+  border-radius: 50%;
+  width: 45px;
+  height: 45px;
+  cursor: pointer;
+  font-size: 1.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  z-index: 1000;
+}
+
+#muteBtn:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+}
+
+#muteBtn:active {
+  transform: scale(0.95);
+}
+
+/* ---------- QUESTION ---------- */
+.question {
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin-bottom: 1.2rem;
+}
+
+/* ---------- OPTIONS ---------- */
+.drag-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+  margin-bottom: 2rem;
+  justify-content: center;
+}
+
+.drag-item {
+  padding: 0.7rem 1.2rem;
+  background: #f1f5f9;
+  border-radius: 14px;
+  cursor: pointer;
+  user-select: none;
+  font-weight: 600;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.drag-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(0,0,0,0.15);
+}
+
+.drag-item.selected {
+  background: var(--accent-main);
+  color: #fff;
+}
+
+/* ---------- DROP ZONES ---------- */
+.drop-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  align-items: center;
+}
+
+.drop-zone {
+  width: 100%;
+  max-width: 520px;
+  min-height: 44px;
+  padding: 0.7rem 1rem;
+  border-radius: 12px;
+  border: 2px dashed var(--blue-main);
+  cursor: pointer;
+  font-weight: 600;
+  background: #f8fafc;
+}
+
+.drop-zone.filled {
+  border-style: solid;
+  background: #e3f2fd;
+}
+
+/* ---------- FEEDBACK ---------- */
+.correct {
+  background-color: #e8f5e9 !important;
+  border-color: var(--green-main) !important;
+  color: var(--green-main);
+  animation: correctPulse 0.6s ease;
+}
+
+@keyframes correctPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+.wrong {
+  background-color: #ffebee !important;
+  border-color: var(--red-main) !important;
+  color: var(--red-main);
+  animation: wrongShake 0.5s ease;
+}
+
+@keyframes wrongShake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-10px); }
+  75% { transform: translateX(10px); }
+}
+
+/* ---------- GEMS ANIMATION ---------- */
+@keyframes gemPop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.3) rotate(10deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+
+.gem-pop {
+  animation: gemPop 0.5s ease;
+}
+
+/* ---------- MOTIVATION BOX ---------- */
+#motivationBox {
+  margin-top: 2rem;
+  min-height: 120px;
+  padding: 1.5rem;
+  font-size: 1.9rem;
+  font-weight: 800;
+  color: var(--accent-main);
+  background: linear-gradient(135deg, #fff3e0, #ffe0b2);
+  border-radius: 18px;
+  box-shadow: 0 10px 25px rgba(255,152,0,0.35);
+}
+
+.hero-quote {
+  max-width: 94%;
+  margin: 0.6rem auto 1.2rem auto;
+  padding: 1rem 1rem;
+  background: linear-gradient(135deg, #000000, #1a1a1a);
+  border-radius: 10px;
+}
+
+.hero-text {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #FFD700;
+  line-height: 1.3;
+}
+
+.hero-author {
+  margin-top: 0.3rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #d4af37;
+}
+
+  #nameForm {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  background: linear-gradient(135deg, #ffffff, #f1f5f9);
+  padding: 2rem 1.5rem;
+  border-radius: 20px;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.18);
+  max-width: 420px;
+  margin: 2rem auto;
+}
+
+/* ---------- INPUTS ---------- */
+#nameInput,
+#departmentSelect {
+  width: 100%;
+  padding: 0.9rem 1rem;
+  background: #ffffff;
+  border: 2px solid #cbd5e1;
+  border-radius: 12px;
+  font-size: 1rem;
+  outline: none;
+}
+
+#nameInput:focus,
+#departmentSelect:focus {
+  border-color: var(--blue-main);
+  box-shadow: 0 0 0 3px rgba(41,121,255,0.25);
+}
+
+/* ---------- BUTTON ---------- */
+#nameForm button {
+  width: 100%;
+  padding: 1rem;
+  background: linear-gradient(135deg, var(--accent-main), #ffb300);
+  color: #000;
+  font-size: 1.1rem;
+  font-weight: bold;
+  border: none;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+#nameForm button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 25px rgba(255,152,0,0.45);
+}
+
+/* ---------- RESTART BUTTON ---------- */
+#restartBtn {
+  margin-top: 1.5rem;
+  padding: 0.8rem 2.2rem;
+  background: linear-gradient(135deg, #2979ff, #00b0ff);
+  color: #fff;
+  border: none;
+  border-radius: 14px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+/* ---------- NEXT BUTTON ---------- */
+#nextBtn {
+  margin-top: 2rem;
+  padding: 1rem 3rem;
+  background: linear-gradient(135deg, #00c853, #00e676);
+  color: #fff;
+  border: none;
+  border-radius: 14px;
+  font-size: 1.1rem;
+  font-weight: bold;
+  cursor: pointer;
+  display: none;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 4px 15px rgba(0, 200, 83, 0.4);
+}
+
+#nextBtn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(0, 200, 83, 0.6);
+}
+
+#nextBtn:active {
+  transform: translateY(-1px);
+}
+
+/* ---------- RESPONSIVE ---------- */
+@media (max-width: 600px) {
+  .question { font-size: 1.3rem; }
+  .hero-text { font-size: 1.4rem; }
+}
+
+</style>
+</head>
+
+<body>
+  <div class="container" id="quizContainer">
+  <div id="nameForm">
+
+  <div class="hero-quote">
+    <div class="hero-text">
+      This app did not grow because of vibe coding (Claude, ChatGPT and Gemini). 
+It grew because of our vibrant people (Sweet, encouraging and supportive)!
+Thank you all for being a part of this journey!
+    </div>
+    <div class="hero-author"> 🤗♥️✨ </div>
+  </div>
+
+  <input 
+    type="text" 
+    id="nameInput" 
+    placeholder="Enter your name"
+  />
+
+  <select id="departmentSelect">
+    <option value="">-- Select Department --</option>
+    <option value="Cyber Security">English</option>
+    <option value="Cyber Security">Cyber Security</option>
+    <option value="CSE-1">CSE-1</option>
+    <option value="CSE-2">CSE-2</option>
+    <option value="CSE-3">CSE-3</option>
+    <option value="Mechanical Engineering">Mechanical Engineering</option>
+    <option value="ECE-1">ECE-1</option>
+    <option value="ECE-2">ECE-2</option>
+    <option value="ECE-3">ECE-3</option>
+    <option value="AI DS-1">AI DS-1</option>
+    <option value="AI DS-2">AI DS-2</option>
+    <option value="Civil">Civil</option>
+    <option value="Agri">Agri</option>
+    <option value="EEE">EEE</option>
+    <option value="EIE">EIE</option>
+    <option value="Medical Electronics">Medical Electronics</option>
+    <option value="IT-1">IT-1</option>
+    <option value="IT-2">IT-2</option>
+  </select>
+
+  <button onclick="beginQuiz()">Start Quiz</button>
+</div>
+
+  <!-- QUIZ SCREEN -->
+  <div id="quizContent" style="display:none;">
+    <button id="muteBtn" onclick="toggleMute()" title="Toggle Sound">🔊</button>
+    
+    <div class="quiz-header">
+      <div id="timer">⏳ 0s</div>
+      <div id="gemsCounter">💎 0</div>
+      <div id="progressTracker">📍 1 of 1</div>
+    </div>
+
+    <div class="question" id="question"></div>
+    <div class="drag-options" id="dragOptions"></div>
+    <div class="drop-container" id="dropContainer"></div>
+
+    <button id="nextBtn" onclick="goToNextQuestion()">Next Question →</button>
+
+    <div id="scoreCard"></div>
+    <button id="restartBtn" style="display:none;">Restart</button>
+  </div>
+
+</div>
+
+<!-- MOTIVATION BOX BELOW QUIZ -->
+<div id="motivationBox"></div>
+
+<script>
+/* ========== CONFETTI FUNCTIONS ========== */
+function triggerConfetti() {
+  // Main confetti burst from center
+  confetti({
+    particleCount: 100,
+    spread: 70,
+    origin: { y: 0.6 }
+  });
+}
+
+function triggerConfettiSides() {
+  // Confetti from both sides
+  const duration = 1000;
+  const end = Date.now() + duration;
+
+  (function frame() {
+    confetti({
+      particleCount: 2,
+      angle: 60,
+      spread: 55,
+      origin: { x: 0 },
+      colors: ['#ff9800', '#2979ff', '#00c853', '#FFD700']
+    });
+    confetti({
+      particleCount: 2,
+      angle: 120,
+      spread: 55,
+      origin: { x: 1 },
+      colors: ['#ff9800', '#2979ff', '#00c853', '#FFD700']
+    });
+
+    if (Date.now() < end) {
+      requestAnimationFrame(frame);
+    }
+  }());
+}
+
+function triggerMegaConfetti() {
+  // Epic confetti for quiz completion
+  const duration = 3000;
+  const animationEnd = Date.now() + duration;
+  const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
+
+  function randomInRange(min, max) {
+    return Math.random() * (max - min) + min;
+  }
+
+  const interval = setInterval(function() {
+    const timeLeft = animationEnd - Date.now();
+
+    if (timeLeft <= 0) {
+      return clearInterval(interval);
+    }
+
+    const particleCount = 50 * (timeLeft / duration);
+    
+    confetti(Object.assign({}, defaults, { 
+      particleCount, 
+      origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } 
+    }));
+    confetti(Object.assign({}, defaults, { 
+      particleCount, 
+      origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } 
+    }));
+  }, 250);
+}
+
+/* ========== AUDIO SETUP ========== */
+const applauseSound = new Audio();
+// Classical triangle sound for correct answers
+applauseSound.src = 'https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3';
+
+const wrongSound = new Audio();
+// Classical buzz sound for wrong answers
+wrongSound.src = 'https://assets.mixkit.co/active_storage/sfx/2003/2003-preview.mp3';
+
+applauseSound.volume = 0.5;
+wrongSound.volume = 0.4;
+
+applauseSound.load();
+wrongSound.load();
+
+// Mute state
+let isMuted = false;
+
+function toggleMute() {
+  isMuted = !isMuted;
+  const muteBtn = document.getElementById('muteBtn');
+  
+  if (isMuted) {
+    muteBtn.innerText = '🔇';
+    muteBtn.title = 'Unmute Sound';
+    applauseSound.muted = true;
+    wrongSound.muted = true;
+  } else {
+    muteBtn.innerText = '🔊';
+    muteBtn.title = 'Mute Sound';
+    applauseSound.muted = false;
+    wrongSound.muted = false;
+  }
+  
+  // Save preference
+  localStorage.setItem('questSoundMuted', isMuted);
+}
+
+function playApplauseSound() {
+  if (isMuted) return;
+  try {
+    applauseSound.currentTime = 0;
+    applauseSound.play().catch(err => console.log('Audio play failed:', err));
+  } catch (error) {
+    console.log('Audio error:', error);
+  }
+}
+
+function playWrongSound() {
+  if (isMuted) return;
+  try {
+    wrongSound.currentTime = 0;
+    wrongSound.play().catch(err => console.log('Audio play failed:', err));
+  } catch (error) {
+    console.log('Audio error:', error);
+  }
+}
+
+/* AUTO-RESTORE NAME + DEPT */
+window.addEventListener("load", () => {
+  const savedName = localStorage.getItem("questPlayerName");
+  const savedDept = localStorage.getItem("questPlayerDept");
+  if (savedName) document.getElementById("nameInput").value = savedName;
+  if (savedDept) document.getElementById("departmentSelect").value = savedDept;
+  
+  // Restore mute state
+  const savedMuteState = localStorage.getItem('questSoundMuted');
+  if (savedMuteState === 'true') {
+    isMuted = true;
+    applauseSound.muted = true;
+    wrongSound.muted = true;
+    setTimeout(() => {
+      const muteBtn = document.getElementById('muteBtn');
+      if (muteBtn) {
+        muteBtn.innerText = '🔇';
+        muteBtn.title = 'Unmute Sound';
+      }
+    }, 100);
+  }
+});
+
+/* MOTIVATION MESSAGES */
+const rightMessages = [
+  "'name' is unstoppable!",
+  "'name' is awesome because 'name' has grit!",
+  "'name' has got the right answer because 'name' loves trying!",
+  "Nothing can slow 'name' down today!",
+  "'name' learns fast because 'name' never gives up!",
+  "Who is awesome? 'name'!",
+  "'name' proves that effort beats talent every time!",
+  "Every correct answer takes 'name' one step closer to greatness!",
+  "'name' shines brighter with every question!"
+];
+
+const wrongMessages = [
+  "'name' loves failures because 'name', like Edison, knows failure is the stepping stone to success.",
+  "'name''s favourite quote: 'Ever tried. Ever failed. No matter. Try again. Fail again. Fail better.'",
+  "Every mistake makes 'name' stronger.",
+  "Mistakes guide 'name' towards victory!",
+  "Failure is feedback, and 'name' takes feedback like a champion.",
+  "Every wrong attempt brings 'name' closer to the right one.",
+  "'name' believes in trying again and again and again!"
+];
+
+/* SHOW MOTIVATION */
+function showMotivation(isCorrect) {
+  const box = document.getElementById("motivationBox");
+  const list = isCorrect ? rightMessages : wrongMessages;
+
+  let msg = list[Math.floor(Math.random() * list.length)];
+  msg = msg.replace(/'name'/g, playerName);
+
+  box.innerHTML = msg;
+  box.style.opacity = 1;
+}
+
+  const quizData = [
+{
+  "questionItems": [
+    { "word": "The website ___ showing only the questions.", "answer": "is" },
+    { "word": "The questions ___ shown after login.", "answer": "are" }
+  ],
+  "answers": [
+    "is",
+    "are"
+  ]
+},
+{
+  "questionItems": [
+    { "word": "The teacher ___ checking the submissions now.", "answer": "is" },
+    { "word": "The students ___ waiting for feedback.", "answer": "are" }
+  ],
+  "answers": [
+    "is",
+    "are"
+  ]
+},
+{
+  "questionItems": [
+    { "word": "The server ___ running slowly today.", "answer": "is" },
+    { "word": "The pages ___ loading very slowly.", "answer": "are" }
+  ],
+  "answers": [
+    "is",
+    "are"
+  ]
+},
+{
+  "questionItems": [
+    { "word": "The class ___ ready to start the activity.", "answer": "is" },
+    { "word": "The students ___ ready with their notebooks.", "answer": "are" }
+  ],
+  "answers": [
+    "is",
+    "are"
+  ]
+},
+{
+  "questionItems": [
+    { "word": "The app ___ working properly now.", "answer": "is" },
+    { "word": "The features ___ available after update.", "answer": "are" }
+  ],
+  "answers": [
+    "is",
+    "are"
+  ]
+},
+{
+  "questionItems": [
+    { "word": "The result page ___ open now.", "answer": "is" },
+    { "word": "The results ___ visible to students.", "answer": "are" }
+  ],
+  "answers": [
+    "is",
+    "are"
+  ]
+},
+{
+  "questionItems": [
+    { "word": "The quiz ___ starting in a minute.", "answer": "is" },
+    { "word": "The students ___ entering the room.", "answer": "are" }
+  ],
+  "answers": [
+    "is",
+    "are"
+  ]
+},
+{
+  "questionItems": [
+    { "word": "The teacher ___ explaining the rules.", "answer": "is" },
+    { "word": "The rules ___ easy to understand.", "answer": "are" }
+  ],
+  "answers": [
+    "is",
+    "are"
+  ]
+},
+{
+  "questionItems": [
+    { "word": "The system ___ updating right now.", "answer": "is" },
+    { "word": "The files ___ being uploaded.", "answer": "are" }
+  ],
+  "answers": [
+    "is",
+    "are"
+  ]
+},
+{
+  "questionItems": [
+    { "word": "The classroom ___ quiet now.", "answer": "is" },
+    { "word": "The students ___ listening carefully.", "answer": "are" }
+  ],
+  "answers": [
+    "is",
+    "are"
+  ]
+}
+
+];
+
+let current = 0;
+let wrongQuestions = [];
+let correctCount = 0;
+let totalWrongGuesses = 0;
+let gemsCount = 0;
+let startTime;
+let timerInterval;
+let playerName = "";
+let playerDept = "";
+let selectedOption = null;
+
+const questionEl = document.getElementById("question");
+const dragOptionsEl = document.getElementById("dragOptions");
+const dropContainerEl = document.getElementById("dropContainer");
+const timerEl = document.getElementById("timer");
+const gemsCounterEl = document.getElementById("gemsCounter");
+const progressTracker = document.getElementById("progressTracker");
+const scoreCard = document.getElementById("scoreCard");
+const restartBtn = document.getElementById("restartBtn");
+const nextBtn = document.getElementById("nextBtn");
+
+/* START QUIZ */
+function beginQuiz() {
+  const nameField = document.getElementById("nameInput");
+  const deptField = document.getElementById("departmentSelect");
+
+  if (!nameField.value.trim()) { alert("Please enter your name!"); return; }
+  if (!deptField.value) { alert("Please select your department!"); return; }
+
+  playerName = nameField.value.trim();
+  playerDept = deptField.value;
+
+  localStorage.setItem("questPlayerName", playerName);
+  localStorage.setItem("questPlayerDept", playerDept);
+
+  document.getElementById("nameForm").style.display = "none";
+  document.getElementById("quizContent").style.display = "block";
+
+  startQuiz();
+}
+
+function startQuiz() {
+  current = 0;
+  correctCount = 0;
+  totalWrongGuesses = 0;
+  gemsCount = 0;
+  startTime = Date.now();
+
+  gemsCounterEl.innerText = "💎 0";
+  scoreCard.innerHTML = "";
+  restartBtn.style.display = "none";
+  loadQuestion();
+  startTimer();
+}
+
+function loadQuestion() {
+  if (current >= quizData.length) return showScore();
+
+  selectedOption = null;
+  nextBtn.style.display = "none"; // Hide next button for new question
+  const data = quizData[current];
+  progressTracker.innerText = `📍 ${current + 1} of ${quizData.length}`;
+
+  dragOptionsEl.innerHTML = "";
+  dropContainerEl.innerHTML = "";
+
+  const shuffled = [...data.answers].sort(() => Math.random() - 0.5);
+
+  shuffled.forEach((ans) => {
+    const div = document.createElement("div");
+    div.classList.add("drag-item");
+    div.innerText = ans;
+    div.onclick = () => selectOption(div);
+    dragOptionsEl.appendChild(div);
+  });
+
+  data.questionItems.forEach((item) => {
+    const drop = document.createElement("div");
+    drop.classList.add("drop-zone");
+    drop.innerText = item.word;
+    drop.dataset.answer = item.answer;
+    drop.onclick = () => placeOption(drop);
+    dropContainerEl.appendChild(drop);
+  });
+}
+
+function selectOption(div) {
+  if (selectedOption) selectedOption.classList.remove("selected");
+  selectedOption = div;
+  div.classList.add("selected");
+}
+
+function placeOption(dropZone) {
+  if (!selectedOption) return;
+
+  const answer = selectedOption.innerText;
+  const correctAnswer = dropZone.dataset.answer;
+
+  if (answer === correctAnswer) {
+    // 🎉 CORRECT ANSWER - TRIGGER CONFETTI!
+    triggerConfetti();
+    playApplauseSound();
+    
+    correctCount++;
+    gemsCount++;
+    gemsCounterEl.innerText = `💎 ${gemsCount}`;
+    gemsCounterEl.classList.add('gem-pop');
+    setTimeout(() => gemsCounterEl.classList.remove('gem-pop'), 500);
+    
+    showMotivation(true);
+
+    dropZone.innerHTML = dropZone.innerText.replace("___", `<strong>${answer}</strong>`);
+    dropZone.classList.add("correct", "filled");
+    selectedOption.style.display = "none";
+
+  } else {
+    // ❌ WRONG ANSWER
+    playWrongSound();
+    
+    totalWrongGuesses++;
+    gemsCount--;
+    gemsCounterEl.innerText = `💎 ${gemsCount}`;
+    showMotivation(false);
+
+    dropZone.classList.add("wrong");
+    setTimeout(() => dropZone.classList.remove("wrong"), 600);
+
+    const currentQ = quizData[current];
+    if (!wrongQuestions.includes(currentQ)) wrongQuestions.push(currentQ);
+  }
+
+  selectedOption.classList.remove("selected");
+  selectedOption = null;
+
+  // Check if all drop zones are filled
+  if (document.querySelectorAll(".drop-zone:not(.filled)").length === 0) {
+    // Show the Next button instead of auto-advancing
+    nextBtn.style.display = "block";
+  }
+}
+
+// New function to handle next question
+function goToNextQuestion() {
+  nextBtn.style.display = "none";
+  current++;
+  if (current >= quizData.length && wrongQuestions.length > 0) {
+    quizData.push(...wrongQuestions);
+    wrongQuestions = [];
+  }
+  loadQuestion();
+}
+
+/* TIMER */
+function startTimer() {
+  timerInterval = setInterval(() => {
+    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+    timerEl.innerText = `⏳ ${elapsed}s`;
+  }, 1000);
+}
+
+/* SCORE SCREEN */
+const EDGE_FUNCTION_URL =
+  "https://ahezssoczvpbkteffcgz.supabase.co/functions/v1/logQuest";
+
+function showScore() {
+  clearInterval(timerInterval);
+  const totalTime = Math.floor((Date.now() - startTime) / 1000);
+
+  // 🎊 MEGA CONFETTI FOR COMPLETION!
+  triggerMegaConfetti();
+
+  questionEl.innerText = "🎉 Quiz Completed!";
+  dragOptionsEl.innerHTML = "";
+  dropContainerEl.innerHTML = "";
+  progressTracker.innerText = "";
+
+  scoreCard.innerHTML = `
+    <p>👤 Player: ${playerName}</p>
+        <button onclick="downloadPDFReport()" 
+      style="margin-top: 1rem; padding: 0.7rem 2rem; background-color: #4CAF50; 
+      border: none; border-radius: 10px; cursor: pointer; color: white; 
+      font-size: 1rem;">
+      📥 Download PDF Report
+    </button>
+    <p>Correct: ${correctCount}</p>
+    <p>Wrong: ${totalWrongGuesses}</p>
+    <p>Gems: ${gemsCount}</p>
+    <p>Time: ${totalTime} seconds</p>
+  `;
+
+  restartBtn.style.display = "inline-block";
+
+  sendViaEdgeFunction({
+    student_name: playerName,
+    department: playerDept,
+    correct: correctCount,
+    wrong: totalWrongGuesses,
+    time_spent: totalTime,
+    quest_id: "Quest 130"
+  });
+}
+
+async function sendViaEdgeFunction(payload) {
+  try {
+    const response = await fetch(EDGE_FUNCTION_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      console.error("❌ Edge Function Error:", await response.text());
+      return;
+    }
+    console.log("✅ Saved to Supabase");
+  } catch (err) {
+    console.error("⚠️ Edge Function Error:", err);
+  }
+}
+
+function downloadPDFReport() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+
+  const totalTime = Math.floor((Date.now() - startTime) / 1000);
+  const reportDate = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+
+  // --- HEADER ---
+  doc.setFillColor(25, 25, 60);
+  doc.rect(0, 0, 210, 45, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFont('times', 'bold');
+  doc.setFontSize(18);
+  doc.text('SRM VALLIAMMAI ENGINEERING COLLEGE', 105, 16, { align: 'center' });
+  doc.setFontSize(12);
+  doc.setFont('times', 'italic');
+  doc.text('(Autonomous)', 105, 23, { align: 'center' });
+  doc.setFontSize(15);
+  doc.setFont('times', 'normal');
+  doc.text('Department of English', 105, 31, { align: 'center' });
+  doc.setFontSize(14);
+  doc.setFont('times', 'bold');
+  doc.setTextColor(212, 175, 55);
+  doc.text('Quest Performance Report', 105, 39, { align: 'center' });
+
+  // --- STUDENT INFO ---
+  doc.setTextColor(0, 0, 0);
+  doc.setFontSize(11);
+  doc.text('CANDIDATE INFORMATION', 20, 55);
+  doc.autoTable({
+    startY: 58,
+    body: [
+      ['Student Name', playerName],
+      ['Department', playerDept],
+      ['Quest ID', 'Quest 130'],
+      ['Completed On', reportDate]
+    ],
+    theme: 'plain',
+    styles: { fontSize: 10, font: 'times', cellPadding: 3 },
+    columnStyles: {
+      0: { fontStyle: 'bold', cellWidth: 60, textColor: [70, 70, 70] },
+      1: { cellWidth: 120 }
+    },
+    margin: { left: 20, right: 20 }
+  });
+
+  // --- PERFORMANCE SUMMARY ---
+  let y = doc.lastAutoTable.finalY + 10;
+  doc.setFont('times', 'bold');
+  doc.text('PERFORMANCE SUMMARY', 20, y);
+  y += 4;
+  doc.autoTable({
+    startY: y + 3,
+    body: [
+      ['Total Questions', quizData.length.toString()],
+      ['Correct Answers', correctCount.toString()],
+      ['Wrong Attempts', totalWrongGuesses.toString()],
+      ['Final Gems Earned', gemsCount.toString()],
+      ['Total Time', `${Math.floor(totalTime / 60)}m ${totalTime % 60}s`]
+    ],
+    theme: 'grid',
+    styles: { fontSize: 10, font: 'times', cellPadding: 3 },
+    margin: { left: 20, right: 20 }
+  });
+
+  // --- QUESTION BANK SECTION ---
+  y = doc.lastAutoTable.finalY + 12;
+  if (y > 250) { doc.addPage(); y = 20; }
+  doc.setFont('times', 'bold');
+  doc.text('QUESTION BANK WITH CORRECT ANSWERS', 20, y);
+  y += 6;
+
+  quizData.forEach((item, i) => {
+    if (y > 260) { doc.addPage(); y = 20; }
+    doc.setFontSize(11);
+    doc.setFont('times', 'bold');
+    doc.setTextColor(25, 25, 60);
+    doc.text(`Question ${i + 1}:`, 20, y);
+    y += 6;
+    doc.setTextColor(0, 0, 0);
+    doc.setFont('times', 'normal');
+    item.questionItems.forEach((qItem, j) => {
+      const questionText = `${j + 1}. ${qItem.word.replace('___', '____')} `;
+      const answerText = `Answer: ${qItem.answer}`;
+      const lines = doc.splitTextToSize(questionText, 160);
+      doc.text(lines, 25, y);
+      y += lines.length * 5;
+      doc.setTextColor(0, 128, 0);
+      doc.text(answerText, 30, y);
+      doc.setTextColor(0, 0, 0);
+      y += 7;
+    });
+    y += 3;
+    doc.setDrawColor(230, 230, 230);
+    doc.setLineWidth(0.3);
+    doc.line(20, y, 190, y);
+    y += 5;
+  });
+
+  // --- FOOTER ---
+  doc.setDrawColor(184, 134, 11);
+  doc.setLineWidth(0.5);
+  doc.line(20, 280, 190, 280);
+  doc.setFontSize(8);
+  doc.setTextColor(128, 128, 128);
+  doc.setFont('times', 'italic');
+  doc.text('This is a system-generated report', 105, 287, { align: 'center' });
+
+  const cleanName = playerName.replace(/[^a-zA-Z0-9]/g, '_');
+  doc.save(`${cleanName}_Quest130_Report.pdf`);
+}
+
+restartBtn.onclick = () => {
+  document.getElementById("quizContent").style.display = "none";
+  document.getElementById("nameForm").style.display = "block";
+  document.getElementById("nameInput").value = "";
+};
+</script>
+</body>
+</html>

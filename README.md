@@ -1,6 +1,6 @@
 # SRM VEC English PWA
 
-An interactive gamified PWA that turns English learning into a daily mission, strengthening skills and helping students at SRM Valliammai Engineering College fall in love with consistent learning.
+An interactive gamified PWA that turns English learning into a daily mission, strengthening skills and helping students of SRM Valliammai Engineering College fall in love with consistent learning.
 
 Students complete short quests every day, earn streaks, and track progress through a visual dashboard.
 

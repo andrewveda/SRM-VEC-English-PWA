@@ -3,3 +3,6 @@
 
 > "Ever tried. Ever failed. No matter. Try again. Fail again. Fail better." — Samuel Beckett
 > — added by Andrew Veda (English) | about: This quote has destroyed my fear of failure! 
+
+> "As long as i live, There are infinite chances" — Luffy
+> — added by Meenz | about: Life itself gives endless opportunities 

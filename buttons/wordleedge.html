@@ -255,69 +255,106 @@ quest_id: "Wordle",
 answer: ANSWER
 });
 }
-function showScore(win){
-scorecard.style.display='block';
-createSparkles();
+function showScore(win) {
+  scorecard.style.display = 'block';
+  createSparkles();
 
-localStorage.removeItem(STORAGE_KEY);
+  // Clear daily progress
+  localStorage.removeItem(STORAGE_KEY);
 
-const nameInput = document.getElementById('playerName');    
-const leaderboardText = document.getElementById('leaderboardText');    
-const leaderboardBtn = document.getElementById('leaderboardBtn');
+  const nameInput = document.getElementById('playerName');
+  const leaderboardText = document.getElementById('leaderboardText');
+  const leaderboardBtn = document.getElementById('leaderboardBtn');
 
-const savedName = localStorage.getItem(NAME_KEY);
+  const savedName = localStorage.getItem(NAME_KEY);
 
-if (savedName) {
-nameInput.value = savedName;
-leaderboardText.textContent = Welcome back, ${savedName}! 🎉;
-fetchToSheet(savedName);
-} else {
-leaderboardText.textContent = "Join the leaderboard!";
+  // 1️⃣ Always log Guest first
+  fetchToSheet("Guest");
+
+  // 2️⃣ If name exists, auto-fill and log again
+  if (savedName) {
+    nameInput.value = savedName;
+    leaderboardText.textContent = `Welcome back, ${savedName}! 🎉`;
+    fetchToSheet(savedName);
+  } else {
+    leaderboardText.textContent = "Join the leaderboard!";
+  }
+
+  // 3️⃣ Leaderboard button
+  leaderboardBtn.style.display = "inline-block";
+  leaderboardBtn.onclick = () => {
+    window.open(
+      "https://sites.google.com/view/srm-vec-english/department-quest-leaderboard",
+      "_blank"
+    );
+  };
+
+  // 4️⃣ When user enters/changes name
+  nameInput.addEventListener('change', () => {
+    const name = nameInput.value.trim() || 'Guest';
+    localStorage.setItem(NAME_KEY, name);
+    fetchToSheet(name);
+    leaderboardText.textContent = `Thanks ${name}, your score is recorded!`;
+  });
+
+  // 5️⃣ Result message
+  if (win) {
+    const tries = guesses.length;
+    if (tries === 1) {
+      scoreTitle.textContent = '🎉 Genius!';
+      scoreMsg.textContent = `You got it in one try! The word was ${ANSWER.toUpperCase()}!`;
+    } else if (tries === 2) {
+      scoreTitle.textContent = '✨ Excellent!';
+      scoreMsg.textContent = `Got it in 2 tries! The word was ${ANSWER.toUpperCase()}!`;
+    } else if (tries <= 4) {
+      scoreTitle.textContent = '🌟 Great!';
+      scoreMsg.textContent = `Solved in ${tries} tries! The word was ${ANSWER.toUpperCase()}!`;
+    } else {
+      scoreTitle.textContent = '👍 Good!';
+      scoreMsg.textContent = `You solved it in ${tries} tries! The word was ${ANSWER.toUpperCase()}!`;
+    }
+  } else {
+    scoreTitle.textContent = '💔 Hard Luck';
+    scoreMsg.textContent =
+      `Hard luck. I could not crack today's Wordle. ` +
+      `The word was ${ANSWER.toUpperCase()}! 😎 ` +
+      `Check it out: https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/wordle`;
+  }
+
+  // 6️⃣ WhatsApp share
+  shareBtn.onclick = () => {
+    let grid = guesses.map((guess) => {
+      const answerArr = ANSWER.split('');
+      const guessArr = guess.split('');
+      const result = Array(5).fill('⬜');
+      const answerFreq = {};
+
+      answerArr.forEach(ch => answerFreq[ch] = (answerFreq[ch] || 0) + 1);
+
+      for (let i = 0; i < 5; i++) {
+        if (guessArr[i] === answerArr[i]) {
+          result[i] = '🟩';
+          answerFreq[guessArr[i]]--;
+        }
+      }
+
+      for (let i = 0; i < 5; i++) {
+        if (result[i] === '⬜' && answerFreq[guessArr[i]] > 0) {
+          result[i] = '🟨';
+          answerFreq[guessArr[i]]--;
+        }
+      }
+
+      return result.join('');
+    }).join('\n');
+
+    const msg = win
+      ? `I solved today's Wordle in ${guesses.length} tries! 🎉\n${grid}\n😎 Check it out: https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/wordle`
+      : `Hard luck. I could not crack today's Wordle. 😢\n${grid}\nLet us see if you can get it! 😎 Check it out: https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/wordle`;
+
+    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+  };
 }
-leaderboardBtn.style.display = "inline-block";
-
-// Send Guest immediately    
-fetchToSheet("Guest");
-
-nameInput.addEventListener('change', () => {
-const name = nameInput.value.trim() || 'Guest';
-localStorage.setItem(NAME_KEY, name);
-fetchToSheet(name);
-leaderboardText.textContent = Thanks ${name}, your score is recorded!;
-});
-
-leaderboardBtn.onclick = () => { window.open("https://sites.google.com/view/srm-vec-english/department-quest-leaderboard","_blank"); };    
-
-if(win){    
-    const tries = guesses.length;    
-    if(tries===1){ scoreTitle.textContent='🎉 Genius!'; scoreMsg.textContent=`You got it in one try! The word was ${ANSWER.toUpperCase()}!`; }    
-    else if(tries===2){ scoreTitle.textContent='✨ Excellent!'; scoreMsg.textContent=`Got it in 2 tries! The word was ${ANSWER.toUpperCase()}!`; }    
-    else if(tries<=4){ scoreTitle.textContent='🌟 Great!'; scoreMsg.textContent=`Solved in ${tries} tries! The word was ${ANSWER.toUpperCase()}!`; }    
-    else { scoreTitle.textContent='👍 Good!'; scoreMsg.textContent=`You solved it in ${tries} tries! The word was ${ANSWER.toUpperCase()}!`; }    
-} else {    
-    scoreTitle.textContent='💔 Hard Luck';    
-    scoreMsg.textContent=`Hard luck. I could not crack today's Wordle. The word was ${ANSWER.toUpperCase()}! 😎 Check it out: https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/wordle`;    
-}    
-
-shareBtn.onclick = () => {    
-    let grid = guesses.map((guess) => {    
-        const answerArr = ANSWER.split('');    
-        const guessArr = guess.split('');    
-        const result = Array(5).fill('⬜');    
-        const answerFreq = {};    
-        answerArr.forEach(ch => answerFreq[ch] = (answerFreq[ch] || 0) + 1);    
-        for (let j = 0; j < 5; j++){ if(guessArr[j]===answerArr[j]){result[j]='🟩';answerFreq[guessArr[j]]--;}}    
-        for (let j = 0; j < 5; j++){ if(result[j]==='⬜' && answerFreq[guessArr[j]]>0){result[j]='🟨';answerFreq[guessArr[j]]--;}}    
-        return result.join('');    
-    }).join('\n');    
-    const msg = win    
-        ? `I solved today's Wordle in ${guesses.length} tries! 🎉\n${grid}\n😎 Check it out: https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/wordle`    
-        : `Hard luck. I could not crack today's Wordle. 😢\n${grid}\nLet us see if you can get it! 😎 Check it out: https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/wordle`;    
-    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');    
-};
-
-}
-
 function chooseDailyWord() {
 const today = new Date();
 const start = new Date(today.getFullYear(), 0, 1);

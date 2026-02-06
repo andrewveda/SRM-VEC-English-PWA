@@ -26,72 +26,55 @@ let currentSort = "last_test_taken";
     let lastTestInfo = { name: "", date: "" };
     let showSecondsOnly = false;
 
-    async function loadData() {
-      reportData = data || [];
-filteredData = [...reportData];
-populateDepartmentDropdown(reportData);
-function populateDepartmentDropdown(data) {
-  const select = document.getElementById("departmentSelect");
-  if (!select) return;
+   async function loadData() {
+  const loader = document.getElementById("loader");
+  loader.style.display = "flex";
 
-  const departments = [...new Set(
-    data.map(s => s.department).filter(Boolean)
-  )].sort();
+  const { data, error } = await supabase
+    .from("report_card_view")
+    .select("*");
 
-  departments.forEach(dept => {
-    const opt = document.createElement("option");
-    opt.value = dept;
-    opt.textContent = dept;
-    select.appendChild(opt);
-  });
-}
+  loader.style.display = "none";
 
-      const loader = document.getElementById("loader");
-      loader.style.display = "flex";
-      
-      const { data, error } = await supabase.from("report_card_view").select("*");
-      
-      loader.style.display = "none";
-      
-      if (error) {
-        console.error(error);
-        document.getElementById("error").textContent = "⚠️ Telemetry link lost: unable to load data.";
-        return;
-      }
-      
-      reportData = data || [];
-      
-      // Find most recent test
-      if (reportData.length > 0) {
-        const sorted = [...reportData].sort((a, b) => 
-          new Date(b.last_test_taken) - new Date(a.last_test_taken)
-        );
-        lastTestInfo = {
-          name: sorted[0].name,
-          date: formatDate(sorted[0].last_test_taken)
-        };
-        document.getElementById("last-test-info").textContent = 
-          `⏱ ✨${lastTestInfo.name} at ${lastTestInfo.date}`;
-      } else {
-        document.getElementById("last-test-info").textContent = "Awaiting first mission log...";
-      }
-      
- 
-sortData(currentSort);
-
-
-    }
-function applyDepartmentFilter(dept) {
-  currentDepartment = dept;
-
-  if (dept === "ALL") {
-    filteredData = [...reportData];
-  } else {
-    filteredData = reportData.filter(s => s.department === dept);
+  if (error) {
+    console.error(error);
+    document.getElementById("error").textContent =
+      "⚠️ Telemetry link lost: unable to load data.";
+    return;
   }
 
-  // Reset ranking within department
-  sortAscending = false;
+  reportData = data || [];
+  filteredData = [...reportData];
+
+  populateDepartmentDropdown(reportData);
+
+  if (reportData.length > 0) {
+    const sorted = [...reportData].sort(
+      (a, b) => new Date(b.last_test_taken) - new Date(a.last_test_taken)
+    );
+
+    lastTestInfo = {
+      name: sorted[0].name,
+      date: formatDate(sorted[0].last_test_taken)
+    };
+
+    document.getElementById("last-test-info").textContent =
+      `⏱ ✨${lastTestInfo.name} at ${lastTestInfo.date}`;
+  } else {
+    document.getElementById("last-test-info").textContent =
+      "Awaiting first mission log...";
+  }
+
+  const savedDept = localStorage.getItem("leaderboard_department");
+  if (savedDept) {
+    const sel = document.getElementById("departmentSelect");
+    if (sel) {
+      sel.value = savedDept;
+      applyDepartmentFilter(savedDept);
+      return;
+    }
+  }
+
   sortData(currentSort);
 }
 
@@ -145,6 +128,38 @@ function applyDepartmentFilter(dept) {
         </span>
       `;
     }
+function populateDepartmentDropdown(data) {
+  const select = document.getElementById("departmentSelect");
+  if (!select) return;
+
+  select.innerHTML = `<option value="ALL">All Departments</option>`;
+
+  const departments = [...new Set(
+    data.map(s => s.department).filter(Boolean)
+  )].sort();
+
+  departments.forEach(dept => {
+    const opt = document.createElement("option");
+    opt.value = dept;
+    opt.textContent = dept;
+    select.appendChild(opt);
+  });
+}
+function applyDepartmentFilter(dept) {
+  currentDepartment = dept;
+  localStorage.setItem("leaderboard_department", dept);
+
+  if (dept === "ALL") {
+    filteredData = [...reportData];
+  } else {
+    filteredData = reportData.filter(
+      s => s.department === dept
+    );
+  }
+
+  sortAscending = false;
+  sortData(currentSort);
+}
 
     function sortData(key) {
 if (currentSort === key && reportData.length > 0 && document.getElementById("leaderboard").children.length > 1) {
@@ -601,8 +616,7 @@ document.getElementById("modal-content").appendChild(pdfBtn);
       }
     };
     // === PDF GENERATION ===============================================
-// Requires jsPDF + html2canvas
-// Inject libraries once
+
 (function injectLibraries() {
   if (!window.jspdf) {
     const s1 = document.createElement("script");
@@ -987,13 +1001,6 @@ async function downloadProfilePDF(studentObj) {
   background: #020617;
   color: #E5F2FF;
 }
-
-<div class="department-filter">
-  <select id="departmentSelect" onchange="applyDepartmentFilter(this.value)">
-    <option value="ALL">All Departments</option>
-  </select>
-</div>
-
     .sort-panel {
       flex: 1;
       display: flex;

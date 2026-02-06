@@ -1,18 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Mission: Veni, Vidi, Vici! — Command Deck Leaderboard</title>
-  <script src="emoji.js"></script>
-
+  
   <!-- Import Google Font: Inter -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+
   <script type="module">
     import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -20,6 +17,8 @@
       "https://ahezssoczvpbkteffcgz.supabase.co",
       "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoZXpzc29jenZwYmt0ZWZmY2d6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI4NTk1ODUsImV4cCI6MjA3ODQzNTU4NX0.2ZlqXnZxv0opkhynAT7OlK4S-xPygcc7ETUyTXRfGHE"
     );
+let filteredData = [];
+let currentDepartment = "ALL";
 
     let reportData = [];
 let currentSort = "last_test_taken";
@@ -28,6 +27,25 @@ let currentSort = "last_test_taken";
     let showSecondsOnly = false;
 
     async function loadData() {
+      reportData = data || [];
+filteredData = [...reportData];
+populateDepartmentDropdown(reportData);
+function populateDepartmentDropdown(data) {
+  const select = document.getElementById("departmentSelect");
+  if (!select) return;
+
+  const departments = [...new Set(
+    data.map(s => s.department).filter(Boolean)
+  )].sort();
+
+  departments.forEach(dept => {
+    const opt = document.createElement("option");
+    opt.value = dept;
+    opt.textContent = dept;
+    select.appendChild(opt);
+  });
+}
+
       const loader = document.getElementById("loader");
       loader.style.display = "flex";
       
@@ -63,6 +81,19 @@ sortData(currentSort);
 
 
     }
+function applyDepartmentFilter(dept) {
+  currentDepartment = dept;
+
+  if (dept === "ALL") {
+    filteredData = [...reportData];
+  } else {
+    filteredData = reportData.filter(s => s.department === dept);
+  }
+
+  // Reset ranking within department
+  sortAscending = false;
+  sortData(currentSort);
+}
 
     function formatDate(dateStr) {
       if (!dateStr) return "N/A";
@@ -126,7 +157,8 @@ if (currentSort === key && reportData.length > 0 && document.getElementById("lea
 }
 
       
-      reportData.sort((a, b) => {
+    filteredData.sort((a, b) => {
+
         let A = a[key];
         let B = b[key];
 
@@ -181,7 +213,7 @@ B = new Date(b.last_test_taken).getTime();
       const container = document.getElementById("leaderboard");
       container.innerHTML = "";
 
-      reportData.forEach((s, idx) => {
+      filteredData.forEach((s, idx) => {
         const row = document.createElement("div");
         row.className = "leaderboard-row";
         
@@ -333,12 +365,6 @@ B = new Date(b.last_test_taken).getTime();
 
       return map;
     }
-window.drawEmoji = function (doc, type, x, y, size = 3.2) {
-  const img = window.emojiImages[type];
-  if (!img) return;
-
-  doc.addImage(img, "PNG", x, y, size, size);
-};
 
     function renderOneMonth(baseDate, grouped) {
       const year = baseDate.getFullYear();
@@ -397,24 +423,17 @@ window.drawEmoji = function (doc, type, x, y, size = 3.2) {
         cursor.setMonth(cursor.getMonth() + 1);
       }
     }
-let activeProfile = null;
 
     function showDetail(s) {
-activeProfile = s;
-      window.activeProfile = s;
       const modal = document.getElementById("modal");
       const content = document.getElementById("modal-content");
       
       content.innerHTML = `
-     <div class="modal-header">
-  <div class="modal-id-tag">Pilot Profile</div>
-  <h2>${s.name}</h2>
-  <div style="display:flex; gap:6px;">
-  <button class="close-btn" onclick="generateProfilePDF(activeProfile)">⤵️</button>
-    <button class="close-btn" onclick="closeModal()">×</button>
-  </div>
-</div>
-
+        <div class="modal-header">
+          <div class="modal-id-tag">Pilot Profile</div>
+          <h2>${s.name}</h2>
+          <button class="close-btn" onclick="closeModal()">×</button>
+        </div>
         
         <div class="stats-grid">
           <div class="stat-box">
@@ -469,6 +488,24 @@ activeProfile = s;
 
       const grouped = groupByDate(quests, videos, stories);
       renderMiniCalendar("mini-calendar", grouped);
+// INSERT THIS INSIDE showDetail(s), at the end:
+
+const pdfBtn = document.createElement("button");
+pdfBtn.textContent = "📄 Download PDF";
+pdfBtn.style.cssText = `
+  width:100%;
+  padding:10px;
+  margin-top:12px;
+  font-weight:700;
+  border:1px solid #888;
+  background:#fff;
+  color:#000;
+  cursor:pointer;
+  border-radius:6px;
+`;
+pdfBtn.onclick = () => downloadProfilePDF(s);
+
+document.getElementById("modal-content").appendChild(pdfBtn);
 
       modal.style.display = "flex";
     }
@@ -563,284 +600,159 @@ activeProfile = s;
         closeModal();
       }
     };
-window.iconFor = iconFor;
+    // === PDF GENERATION ===============================================
+// Requires jsPDF + html2canvas
+// Inject libraries once
+(function injectLibraries() {
+  if (!window.jspdf) {
+    const s1 = document.createElement("script");
+    const s2 = document.createElement("script");
+    s1.src = "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";
+    s2.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
+    document.head.appendChild(s1);
+    document.head.appendChild(s2);
+  }
+})();
 
-window.iconFor = iconFor;
+async function downloadProfilePDF(studentObj) {
+  const { jsPDF } = window.jspdf;
 
-// ========== FULL-COLOR EMOJIS (PNG BASE64) ==========
-// Twemoji 72x72, resized by jsPDF
-window.emojiImages = {
-  "Quest": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABQklEQVQ4T7WTTUoDQRCGv7mESyqJH4gkNha2tZIWYuNkMZFYJroGZmHawNLoFWsrKwvbYGwpYq8QuYkE4mJl4WcqNcyZ4r33HPPe+455/whvQfTXpQ1MM9TfA06y5ExlhuKcgwu4pE9NRjRM5Qv9lPCA7zyJcEDEpE8vop4x0Zuu0xVQRNOS7G7lCSxN3uM8jJvS1tmiQedLWtt+5lMs64n5KKcnlZ5+xH0JmwAVk6snb8G5CMk29b70N0yT9trjzH5q9Ktgg6Td8Pq3QBiCqHdSX0x1HIEMoxBFxVF2qFfTmcT9u+b5GJtI3sVbnM0mAfXUm7iYWPxTBjJwDzlEm7lyq+sDX1z8QeAOJ/zJgZyuIcVmrW4Ab5tT30CeO0I2ScV7Z0rEZkdEjfwC/0aw7eEV24Yi6Lxph2xw2C9W7mKOjAE+7+Ef3AGVa09LhZcCdVysZ2j+kc+Z6H2YgT5xJ9TAgAAAABJRU5ErkJggg==",
-  "Video": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABZUlEQVQ4T6WTv0oDQRDHf7uJpVQpWgiCjVhYW1iIp4ia6GLiImhoYmuwsrC3kFtZWFmLkIiIgouLi6CggqyEglPdeZvM7sxk0zh3Jg/fee+45339BYpJ0M2oa8g4n8CspwQPqZbZvxBwz8wxDAnBHqSg4z8iE4zkUY0zscB6xoU0Ldh3gGZMBdWM3p5lr8Yx8C8xuKye6T7hi1Gm4V2pQDEekRk1yW+XCl6iN9F9L4u2pVkXpNOJ0p4z0DEY5+gltFndbqW9mly52z9UFMfSYwAtTm4GB9Gm3Qq9o8QdkGgEX4GfY67Zu4yZ9q2oJe8EHFs7AMYwgkibKO6M4DqI/5GjAw9cJ0L1oxZ0I2kFWGb2Kw8C9MGx2wZbSgZ9Jd0rC8qxDUXgzUDU1bMKip2onA3tKrTM8AvsI43iMap2z8FHsoN5w/S98JL9vQH83f7PeuSofzQEdvRJbM2kYJ+G6ALIKN2t9DDnGK/UOqLE7lIj3/4BxKcJ7bGZT0cAAAAASUVORK5CYII=",
-  "Story": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABb0lEQVQ4T6WTv0oDQRDHf7uJpVQpWgiCjVhYW1iIp4ia6GLiImhoYmuwsrC3kFtZWFmLkIiIgouLi6CggqyEglPdeZvM7sxk0zh3Jg/fee+45339BZpF0MGZp7iBZ8iQh8l0vwFQzszwWwwIgziUY8TkUc4Tz/BhQwuEHLahbwuEJzDyF44YulcZ6oL1G07UMw+soPoJRJ6QkFuH5YifpEdbYk6pukFkYVgRyV0J3Lwlg7be9F3dzqVy2tVxNw+gLZ+g0JoCuBd1G01OJ6sbXxXBYGh7UiFFrJ95Fqmu7H9gF8CjJb5KkO6Y2k5m804BtY6ncwBscgU9J0M3fJLZb5u0AMgTWCKHF7+H2s9xl2pYf63odZMA4n0HGeobdJEq9uoo87Av8DFxkhyEbrMO6d0lJxq2AcTaK60k8c0vW2UhNHn4CBe8Cfxjs8fAf9H8n5VgkP9Edd6X5DXCrjGMAAAAASUVORK5CYII="
-};
+  // 1) Fetch extra stats (same fields used in index.html miniPowerDeck)
+  let totalTimeSeconds = 0;
+  try {
+    const { data, error } = await supabase
+      .from("report_card_view")
+      .select("total_time")
+      .eq("name", studentObj.name)
+      .maybeSingle();
 
-window.generateProfilePDF = function (s) {
-
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({ unit: "mm", format: "a4" });
-
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const pageHeight = doc.internal.pageSize.getHeight();
-    
-    // Helper function for time formatting
-    function formatHumanTime(sec) {
-        if (!sec) return "0h 0m 0s";
-        sec = Math.round(sec);
-        const h = Math.floor(sec / 3600);
-        const m = Math.floor((sec % 3600) / 60);
-        const s = sec % 60;
-        return `${h}h ${m}m ${s}s`;
+    if (!error && data && data.total_time) {
+      totalTimeSeconds = Math.round(data.total_time);
     }
-    
-    // ========== BACKGROUND GRADIENT ==========
-    for (let i = 0; i < pageHeight; i += 2) {
-        const alpha = 240 + (i / pageHeight) * 15;
-        doc.setFillColor(alpha, 248, 255);
-        doc.rect(0, i, pageWidth, 2, 'F');
-    }
-    
-    // Top decorative banner
-    doc.setFillColor(20, 184, 166);
-    doc.rect(0, 0, pageWidth, 35, 'F');
-    
-    // Accent line
-    doc.setFillColor(251, 191, 36);
-    doc.rect(0, 35, pageWidth, 2, 'F');
-    
-    let y = 15;
+  } catch (e) {
+    console.error("PDF stats fetch failed:", e);
+  }
 
-    // ========== HEADER ==========
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(24);
-    doc.setTextColor(255, 255, 255);
-    doc.text("PILOT PROFILE", pageWidth / 2, y, { align: "center" });
+  // 2) Count Quests, Videos, Stories
+  const quests = parseItems(studentObj.quest_list);
+  const videos = parseItems(studentObj.video_list);
+  const stories = parseItems(studentObj.story_list);
 
-    y += 10;
-    doc.setFontSize(18);
-    doc.text(s.name.toUpperCase(), pageWidth / 2, y, { align: "center" });
-    
-    y += 3;
-    doc.setFontSize(8);
-    doc.setFont("helvetica", "normal");
-    doc.text("Mission: Veni, Vidi, Vici!", pageWidth / 2, y, { align: "center" });
+  const questCount = quests.length;
+  const videoCount = videos.length;
+  const storyCount = stories.length;
 
-    y = 45;
-    doc.setTextColor(0, 0, 0);
+  // Format time like index.html toggle
+  const h = Math.floor(totalTimeSeconds / 3600);
+  const m = Math.floor((totalTimeSeconds % 3600) / 60);
+  const s = totalTimeSeconds % 60;
+  const formattedTime = `${h}h ${m}m ${s}s`;
 
-    // ========== STATS GRID ==========
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(14);
-    doc.setTextColor(20, 184, 166);
-    doc.text("PERFORMANCE METRICS", pageWidth / 2, y, { align: "center" });
-    
-    y += 8;
-    
-    const boxWidth = 31;
-    const boxHeight = 22;
-    const gap = 2.5;
-    const startX = (pageWidth - (boxWidth * 6 + gap * 5)) / 2;
+  // 3) Create PDF area
+  const pdfArea = document.createElement("div");
+  pdfArea.style.width = "794px";   // A4 width
+  pdfArea.style.padding = "20px";
+  pdfArea.style.fontFamily = "Arial, sans-serif";
+  pdfArea.style.color = "#000";
+  pdfArea.style.background = "#fff";
+  pdfArea.style.lineHeight = "1.4";
 
-    const statsData = [
-        { label: "SCORE", value: s.total_score ?? 0, color: [251, 191, 36] },
-        { label: "ACCURACY", value: Math.round((s.accuracy ?? 0) * 100) + "%", color: [34, 197, 94] },
-        { label: "ATTEMPTS", value: s.total_attempts ?? 0, color: [59, 130, 246] },
-        { label: "CORRECT", value: s.total_correct ?? 0, color: [16, 185, 129] },
-        { label: "WRONG", value: s.total_wrong ?? 0, color: [239, 68, 68] },
-        { label: "TIME", value: formatHumanTime(s.total_time), color: [168, 85, 247] }
-    ];
+  pdfArea.innerHTML = `
+ <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Cormorant+Garamond:wght@500;600&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet"/>
 
-    statsData.forEach((stat, idx) => {
-        const col = idx % 6;
-        const xPos = startX + col * (boxWidth + gap);
-        
-        doc.setFillColor(...stat.color);
-        doc.roundedRect(xPos, y, boxWidth, boxHeight, 2, 2, 'F');
-        
-        doc.setFillColor(255, 255, 255, 0.2);
-        doc.roundedRect(xPos, y, boxWidth, boxHeight / 3, 2, 2, 'F');
-        
-        doc.setDrawColor(255, 255, 255);
-        doc.setLineWidth(0.8);
-        doc.roundedRect(xPos, y, boxWidth, boxHeight, 2, 2, 'S');
-        
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(7);
-        doc.setTextColor(255, 255, 255);
-        doc.text(stat.label, xPos + boxWidth/2, y + 5.5, { align: "center" });
-        
-        doc.setFontSize(13);
-        doc.text(String(stat.value), xPos + boxWidth/2, y + 15, { align: "center" });
-    });
+<h2 style="
+  text-align:center; 
+  margin-bottom:4px; 
+  font-family:'Cinzel', serif;
+">
+  SRM Valliammai Engineering College
+</h2>
 
-    y += boxHeight + 12;
+<h3 style="
+  text-align:center; 
+  margin-top:0; 
+  font-family:'Cormorant Garamond', serif;
+">
+  Department of English
+</h3>
 
-    // ========== CALENDAR TITLE ==========
-    doc.setFillColor(99, 102, 241);
-    doc.rect(0, y, pageWidth, 12, 'F');
-    
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(16);
-    doc.setTextColor(255, 255, 255);
-    doc.text("MISSION COMPLETION CALENDAR", pageWidth / 2, y + 8, { align: "center" });
+<hr/>
 
-    y += 16;
-    doc.setTextColor(60, 60, 60);
+<h3 style="
+  margin-top:10px; 
+  font-family:'Playfair Display', serif;
+  font-size:22px;
+">
+  ${studentObj.name}
+</h3>
+   <div style="
+      display:flex; 
+      gap:12px; 
+      margin:10px 0 14px 0;
+      font-size:14px;
+      justify-content:space-between;
+    ">
+      <div style="border:1px solid #000; padding:10px; width:22%; text-align:center;">
+        <div style="font-size:22px;">📝</div>
+        <div><b>${questCount}</b> Quests</div>
+      </div>
+      <div style="border:1px solid #000; padding:10px; width:22%; text-align:center;">
+        <div style="font-size:22px;">🎥</div>
+        <div><b>${videoCount}</b> Videos</div>
+      </div>
+      <div style="border:1px solid #000; padding:10px; width:22%; text-align:center;">
+        <div style="font-size:22px;">📚</div>
+        <div><b>${storyCount}</b> Stories</div>
+      </div>
+      <div style="border:1px solid #000; padding:10px; width:22%; text-align:center;">
+        <div style="font-size:22px;">⏱</div>
+        <div><b>${formattedTime}</b></div>
+      </div>
+    </div>
 
-    // Legend
-    doc.setFontSize(9);
-    doc.setFont("helvetica", "bold");
-    const legendX = pageWidth / 2 - 30;
-    
-    doc.setFillColor(239, 68, 68);
-    doc.rect(legendX, y - 3, 3, 3, 'F');
-    doc.setTextColor(0, 0, 0);
-    doc.text("Quest", legendX + 5, y);
-    
-    doc.setFillColor(251, 191, 36);
-    doc.rect(legendX + 22, y - 3, 3, 3, 'F');
-    doc.text("Video", legendX + 27, y);
-    
-    doc.setFillColor(59, 130, 246);
-    doc.rect(legendX + 44, y - 3, 3, 3, 'F');
-    doc.text("Story", legendX + 49, y);
-    
-    y += 8;
+    <hr/>
 
-    // ========== 4 MONTHS ==========
-    const START_DATE = new Date("2025-08-25");
-    const quests = parseItems(s.quest_list);
-    const videos = parseItems(s.video_list);
-    const stories = parseItems(s.story_list);
-    const grouped = groupByDate(quests, videos, stories);
+  
+    <h4>Activity Calendar</h4>
+    <div id="pdf-mini-calendar" style="display:flex; flex-wrap:wrap; gap:10px;"></div>
+  `;
 
-    let cursor = new Date(START_DATE.getFullYear(), START_DATE.getMonth(), 1);
-    
-    const calWidth = 80;
-    const calHeight = 60;
-    const calGap = 5;
-    const gridStartX = (pageWidth - (calWidth * 2 + calGap)) / 2;
-    const gridStartY = y;
+  // 4) Render Mini Calendar
+  const tempCalendarContainer = pdfArea.querySelector("#pdf-mini-calendar");
+  const grouped = groupByDate(quests, videos, stories);
 
-    for (let m = 0; m < 4; m++) {
-        const row = Math.floor(m / 2);
-        const col = m % 2;
-        const xPos = gridStartX + col * (calWidth + calGap);
-        const yPos = gridStartY + row * (calHeight + calGap);
-        
-        renderMonthPDFCompact(doc, cursor, grouped, xPos, yPos, calWidth);
-        cursor.setMonth(cursor.getMonth() + 1);
-    }
+  let cursor = new Date(START_DATE.getFullYear(), START_DATE.getMonth(), 1);
+  const today = new Date();
+  const end = new Date(today.getFullYear(), today.getMonth(), 1);
 
-    // Footer
-    y = pageHeight - 20;
-    doc.setFillColor(20, 184, 166);
-    doc.rect(0, y, pageWidth, 20, 'F');
-    
-    doc.setFillColor(251, 191, 36);
-    doc.rect(0, y, pageWidth, 2, 'F');
-    
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(12);
-    doc.setTextColor(255, 255, 255);
-    doc.text("KEEP SOARING, PILOT!", pageWidth / 2, y + 12, { align: "center" });
+  while (cursor <= end) {
+    const block = document.createElement("div");
+    block.style.width = "48%";
+    block.style.border = "1px solid #000";
+    block.style.padding = "6px";
 
-    doc.save(`${s.name}_Profile.pdf`);
-};
+    block.innerHTML = renderOneMonth(cursor, grouped)
+      .replace(/background:[^;"]+;/g, "")  // remove colour
+      .replace(/color:[^;"]+;/g, "color:#000;");
 
-function renderMonthPDFCompact(doc, monthDate, grouped, x, y, width) {
-    const cellSize = width / 7;
-    
-    // Month title bar
-    doc.setFillColor(20, 184, 166);
-    doc.roundedRect(x, y, width, 9, 1.5, 1.5, 'F');
-    
-    doc.setFillColor(251, 191, 36);
-    doc.rect(x, y + 8, width, 1, 'F');
-    
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
-    doc.setTextColor(255, 255, 255);
-    const monthName = monthDate.toLocaleString("en-US", { month: "long", year: "numeric" }).toUpperCase();
-    doc.text(monthName, x + width / 2, y + 6, { align: "center" });
-    
-    y += 11;
+    tempCalendarContainer.appendChild(block);
+    cursor.setMonth(cursor.getMonth() + 1);
+  }
 
-    // Day headers
-    const days = ["S", "M", "T", "W", "T", "F", "S"];
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(6);
-    doc.setTextColor(80, 80, 80);
-    
-    days.forEach((day, idx) => {
-        doc.text(day, x + idx * cellSize + cellSize/2, y + 2.5, { align: "center" });
-    });
-    
-    y += 4;
+  // 5) Convert → canvas → PDF
+  document.body.appendChild(pdfArea);
+  await new Promise(r => setTimeout(r, 300));
 
-    const year = monthDate.getFullYear();
-    const month = monthDate.getMonth();
-    const firstDay = new Date(year, month, 1).getDay();
-    const numDays = new Date(year, month + 1, 0).getDate();
+  const canvas = await html2canvas(pdfArea, { scale: 2 });
+  const imgData = canvas.toDataURL("image/png");
 
-    let dayNum = 1;
-    
-    // Draw all grid cells first
-    for (let r = 0; r < 6; r++) {
-        for (let c = 0; c < 7; c++) {
-            const cellX = x + c * cellSize;
-            const cellY = y + r * cellSize;
-            
-            doc.setFillColor(255, 255, 255);
-            doc.setDrawColor(200, 200, 200);
-            doc.setLineWidth(0.2);
-            doc.rect(cellX, cellY, cellSize, cellSize, 'FD');
-        }
-    }
+  const pdf = new jsPDF("p", "pt", "a4");
+  pdf.addImage(imgData, "PNG", 10, 10, 575, 822);
+  pdf.save(`${studentObj.name}_Profile.pdf`);
 
-    // Fill in the days with content
-    dayNum = 1;
-    for (let r = 0; r < 6; r++) {
-        for (let c = 0; c < 7; c++) {
-            if (r === 0 && c < firstDay) continue;
-            if (dayNum > numDays) break;
-            
-            const cellX = x + c * cellSize;
-            const cellY = y + r * cellSize;
-            
-            const date = new Date(year, month, dayNum).toDateString();
-            const items = grouped[date];
-           // Activity indicators — full-color emojis
-if (items && items.length > 0) {
-
-    let emojiX = cellX + 1;      
-    let emojiY = cellY + cellSize - 4;
-
-    items.forEach(item => {
-        const type =
-          item.startsWith("Quest") ? "Quest" :
-          item.startsWith("Video") ? "Video" :
-          item.startsWith("Story") ? "Story" : null;
-
-        if (type) {
-            drawEmoji(doc, type, emojiX, emojiY, 3.2);
-            emojiX += 4; 
-        }
-    });
+  pdfArea.remove();
 }
 
-
-            
-            dayNum++;
-        }
-        if (dayNum > numDays) break;
-    }
-    
-    // Outer border
-    doc.setDrawColor(150, 150, 150);
-    doc.setLineWidth(0.5);
-    doc.rect(x, y, width, cellSize * 6, 'S');
-}
   </script>
 
   <style>
@@ -1007,8 +919,6 @@ if (items && items.length > 0) {
       color: var(--text-secondary);
       min-height: 1.2em;
     }
-
-    /* TOP CONTROLS ================================= */
     .top-controls {
       display: flex;
       gap: 10px;
@@ -1057,6 +967,32 @@ if (items && items.length > 0) {
         0 20px 40px rgba(15, 23, 42, 0.9);
       border-color: rgba(56, 189, 248, 0.9);
     }
+    .department-filter select {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at 0 0, rgba(56,189,248,0.25), transparent 55%),
+    rgba(15,23,42,0.95);
+  color: var(--text-primary);
+  border: 1px solid rgba(148,163,184,0.6);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.department-filter select option {
+  background: #020617;
+  color: #E5F2FF;
+}
+
+<div class="department-filter">
+  <select id="departmentSelect" onchange="applyDepartmentFilter(this.value)">
+    <option value="ALL">All Departments</option>
+  </select>
+</div>
 
     .sort-panel {
       flex: 1;
@@ -1644,70 +1580,7 @@ if (items && items.length > 0) {
   color: var(--text-secondary);
   white-space: nowrap;
 }
-/* === MONOCHROME OVERRIDE PATCH === */
-:root {
-  --bg-deep:#000; --bg-surface:#111; --bg-surface-strong:#121212; --bg-muted:#1a1a1a;
-  --border-color:#555; --text-primary:#fff; --text-secondary:#ccc;
-  --accent-primary:#fff; --accent-secondary:#bbb; --accent-warm:#999;
-  --gold:#fff; --silver:#ccc; --bronze:#888;
-  --danger:#fff; --success:#ccc;
-}
-
-/* Remove colour gradients everywhere */
-body, .command-frame, .header, .top-controls, #leaderboard,
-.sort-btn, #time-toggle, .leaderboard-row, .modal-header, #modal-content,
-.detail-box, .stat-box, .mission-calendar, .mini-cal-day {
-  background:#000 !important;
-  box-shadow:none !important;
-}
-
-/* Borders → neutral grey */
-.command-frame, .leaderboard-row, .detail-box, .stat-box, #modal-content,
-.mini-cal-day, .sort-btn, #time-toggle {
-  border:1px solid #555 !important;
-}
-
-/* Text forced to grayscale */
-*, .title, .subtitle, .metric-tag, .stat-value, .stat-label, .stat-foot {
-  color:#fff !important;
-}
-
-/* Remove neon hover */
-.leaderboard-row:hover, .sort-btn:hover, .badge-live:hover {
-  background:#111 !important;
-  box-shadow:none !important;
-}
-
-/* Ranks in grayscale */
-.leaderboard-row.gold { border-left:3px solid #fff !important; }
-.leaderboard-row.silver { border-left:3px solid #ccc !important; }
-.leaderboard-row.bronze { border-left:3px solid #888 !important; }
-
-/* Sort button active state: invert */
-.sort-btn.active {
-  background:#fff !important;
-  color:#000 !important;
-  border-color:#000 !important;
-}
-
-/* Time units neutral */
-.time-unit, .t-unit {
-  color:#aaa !important;
-}
-
-/* Mini-calendar: marked days in white */
-.mini-cal-day.marked {
-  background:#fff !important;
-  color:#000 !important;
-  border-color:#000 !important;
-}
-
-/* Remove any leftover gradient pseudo-elements */
-body::before, body::after, .stat-box::after, .leaderboard-row::after {
-  background:none !important;
-}
   </style>
-
 </head>
 
 <body>
@@ -1727,6 +1600,13 @@ body::before, body::after, .stat-box::after, .leaderboard-row::after {
     </div>
 
     <div class="top-controls">
+      <!-- Department Filter Dropdown -->
+<div class="department-filter">
+  <select id="departmentSelect" onchange="applyDepartmentFilter(this.value)">
+    <option value="ALL">All Departments</option>
+  </select>
+</div>
+
            <div class="sort-panel">
         <div class="sort-label-row">
         </div>

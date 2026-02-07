@@ -1309,7 +1309,98 @@ margin: 50px auto;
     transform: translateY(-50px) scale(1);
   }
 }
+/* ═══════════════════════════════════════════════════════════
+   PROFILE DRAWER (Slides from right)
+   ═══════════════════════════════════════════════════════════ */
 
+.profile-drawer {
+  position: fixed;
+  top: 0;
+  right: -350px;
+  width: 350px;
+  height: 100%;
+  background: linear-gradient(180deg, #0c1236, #05081f);
+  box-shadow: -5px 0 25px rgba(0,0,0,0.3);
+  z-index: 5001;
+  transition: right 0.3s ease;
+  overflow-y: auto;
+  padding: 80px 20px 20px;
+  color: white;
+}
+
+.profile-drawer.open {
+  right: 0;
+}
+
+.profile-drawer h3 {
+  color: #ffe082;
+  margin-bottom: 20px;
+  font-size: 1.3rem;
+  text-align: center;
+  letter-spacing: 0.5px;
+}
+
+.drawer-item {
+  padding: 15px;
+  margin-bottom: 10px;
+  background: #0d143f;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.25s;
+  box-shadow: inset 0 0 12px rgba(255,255,255,0.05);
+}
+
+.drawer-item:hover {
+  background: #1a2150;
+  transform: translateX(6px);
+  box-shadow: 0 0 15px rgba(120,160,255,0.6);
+}
+
+.drawer-item a {
+  text-decoration: none;
+  color: white;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 500;
+}
+
+.close-drawer {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  font-size: 2rem;
+  cursor: pointer;
+  color: rgba(255,255,255,0.7);
+  transition: color 0.3s;
+}
+
+.close-drawer:hover {
+  color: white;
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(5,10,30,0.6);
+  backdrop-filter: blur(4px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s;
+  z-index: 5000;
+}
+
+.overlay.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+@media (max-width: 768px) {
+  .profile-drawer {
+    width: 100%;
+    right: -100%;
+  }
+}
 </style>
 </head>
 <body>
@@ -1369,7 +1460,6 @@ margin: 50px auto;
   </a>
 </div>
 
-<!-- Add this HTML before closing </body> tag, REPLACE your existing profile-icon/drawer setup -->
 
 <div class="command-hub">
   <div class="sphere-container" id="sphereContainer">
@@ -1405,7 +1495,7 @@ margin: 50px auto;
       <span class="sphere-label">STORIES</span>
     </div>
     
-    <div class="command-sphere" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);" onclick="toggleDrawer()">
+    <div class="command-sphere" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);" onclick="toggleProfileDrawer()">
       👤
       <span class="sphere-label">PROFILE</span>
     </div>
@@ -1414,6 +1504,38 @@ margin: 50px auto;
     <div class="master-sphere" id="masterSphere">
       🚀
     </div>
+    
+  </div>
+</div>
+
+<!-- Profile Drawer (slides from right) -->
+<div class="overlay" id="overlay"></div>
+
+<div class="profile-drawer" id="profileDrawer">
+  <span class="close-drawer" id="closeDrawer">&times;</span>
+  <h3 id="drawerUserName">Loading...</h3>
+  
+  <div class="drawer-item">
+    <a href="https://andrewveda.github.io/V">📚 Daily Vocabulary</a>
+  </div>
+  <div class="drawer-item">
+    <a href="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/brochure1">🎯 Mystic Summit</a>
+  </div>
+  <div class="drawer-item">
+    <a href="https://andrewveda.github.io/videoquest">🎥 Video Quests</a>
+  </div>
+  <div class="drawer-item">
+    <a href="https://andrewveda.github.io/SRM-VEC-English-PWA/directory">📝 Quests</a>
+  </div>
+  <div class="drawer-item">
+    <a href="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/leaderboard">😎 Leaderboard</a>
+  </div>
+  <div class="drawer-item">
+    <a href="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/ELLL.html">📋 ELLL Record</a>
+  </div>
+
+  <button class="logout-btn" onclick="logout()">🚪 Logout</button>
+</div>
     
   </div>
 </div>
@@ -1794,9 +1916,37 @@ console.log("Loaded userProfileData (refreshData):", userProfileData);
 
 
 function setupEventListeners() {
-  document.getElementById('profileIcon').addEventListener('click', toggleDrawer);
-  document.getElementById('closeDrawer').addEventListener('click', toggleDrawer);
-  document.getElementById('overlay').addEventListener('click', toggleDrawer);
+  // Master sphere toggle
+  const masterSphere = document.getElementById('masterSphere');
+  const sphereContainer = document.getElementById('sphereContainer');
+  
+  if (masterSphere && sphereContainer) {
+    masterSphere.addEventListener('click', function(e) {
+      e.stopPropagation();
+      sphereContainer.classList.toggle('spheres-active');
+      masterSphere.classList.toggle('active');
+      
+      // Haptic feedback
+      if (navigator.vibrate) {
+        navigator.vibrate(50);
+      }
+    });
+    
+    // Close spheres on outside click
+    document.addEventListener('click', function(e) {
+      if (!sphereContainer.contains(e.target)) {
+        sphereContainer.classList.remove('spheres-active');
+        masterSphere.classList.remove('active');
+      }
+    });
+  }
+
+  // Profile drawer controls
+  const closeDrawer = document.getElementById('closeDrawer');
+  const overlay = document.getElementById('overlay');
+  
+  if (closeDrawer) closeDrawer.addEventListener('click', toggleProfileDrawer);
+  if (overlay) overlay.addEventListener('click', toggleProfileDrawer);
  
   window.addEventListener('beforeunload', syncData);
   window.addEventListener('online', handleOnline);
@@ -1807,15 +1957,12 @@ function setupEventListeners() {
       syncData();
     } else {
       sessionStartTime = Date.now();
-      // Refresh data when user returns to tab
       const savedName = localStorage.getItem("userName");
       if (savedName) {
         refreshData(savedName); 
       }
     }
   });
-  
-  // Removed session time tracking interval, handled by syncData on close
 
   document.getElementById('modalConfirm').addEventListener('click', () => {
     if (window.confirmCallback) {
@@ -1829,7 +1976,7 @@ function setupEventListeners() {
     document.getElementById('customModal').classList.remove('show');
     window.confirmCallback = null;
   });
-
+}
   document.getElementById("leaderboardIcon").onclick = () => {
     window.location.href = "https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/leaderboard_live";
   };

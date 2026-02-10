@@ -918,14 +918,7 @@ margin: 50px auto;
 .wordle-book .tile.correct { background: #538d4e; }
 .wordle-book .tile.present { background: #b59f3b; }
 .wordle-book .tile.absent  { background: #3a3a3c; }
-
-.wordle-label {
-  margin-top: 6px;
-  font-size: 0.65rem;
-  letter-spacing: 1.4px;
-  font-weight: 700;
-  color: #d7dadc;
-}
+  
 
 /* =========================================================
    CRYPTIC BOOK
@@ -1041,6 +1034,43 @@ margin: 50px auto;
   height: 120px;
 }
 
+/* =========================
+   QUOTE-A-DAY BOOK COVER
+   ========================= */
+
+.book-cover.quote-day-book {
+  background:
+    linear-gradient(180deg,
+      rgba(255,255,255,0.06),
+      rgba(32,32,32,0.65)
+    ),
+    #3a3a3a; /* neutral slate */
+  border: 1px solid #555;
+  color: #fff;
+}
+
+.book-cover.quote-day-book .quote-day-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  text-align: center;
+}
+
+.quote-day-icon {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #ffe082; /* amber/gold accent */
+  text-shadow: 0 1px 2px rgba(0,0,0,0.6);
+}
+
+.quote-day-label {
+  font-size: 0.65rem;
+  letter-spacing: 1.2px;
+  font-weight: 600;
+  color: white;
+}
 
 </style>
 </head>
@@ -1067,6 +1097,7 @@ margin: 50px auto;
 </div>
 
 
+
 <div class="loading-screen" id="loadingScreen">
   <h1>Loading your Quest Calendar...</h1>
   <div class="spinner"></div>
@@ -1083,6 +1114,34 @@ margin: 50px auto;
   <h1>SRM Valliammai Engineering College (Autonomous)</h1>
   <h2>Department of English</h2>
   <input type="text" id="nameInput" placeholder="Enter Your Name">
+  <select id="deptInput" style="
+  width:100%;
+  padding:15px;
+  font-size:1rem;
+  border:2px solid #ddd;
+  border-radius:10px;
+  margin-bottom:15px;
+">
+  <option value="">Select Department</option>
+ <option value="Cyber Security">Cyber Security</option>
+     <option value="EIE">EIE</option>
+    <option value="CSE-1">CSE-1</option>
+    <option value="CSE-2">CSE-2</option>
+    <option value="CSE-3">CSE-3</option>
+    <option value="Mechanical Engineering">Mechanical Engineering</option>
+    <option value="ECE-1">ECE-1</option>
+    <option value="ECE-2">ECE-2</option>
+    <option value="ECE-3">ECE-3</option>
+    <option value="AI DS-1">AI DS-1</option>
+    <option value="AI DS-2">AI DS-2</option>
+    <option value="Civil">Civil</option>
+    <option value="Agri">Agri</option>
+    <option value="EEE">EEE</option>
+    <option value="Medical Electronics">Medical Electronics</option>
+    <option value="IT-1">IT-1</option>
+    <option value="IT-2">IT-2</option>
+</select>
+
   <button class="btn-primary" onclick="saveAndLogin()">Get Started</button>
   <a href="https://sites.google.com/view/srm-vec-english/daily-vocabulary">
     <button class="btn-vocab">📚 Daily Vocabulary</button>
@@ -1371,7 +1430,9 @@ const storyLinks = { 69: "https://andrewveda.github.io/SRM-VEC-English-PWA/cloze
 
 async function init() {
   const savedName = localStorage.getItem('userName');
-  
+  const savedDept = localStorage.getItem('userDepartment');
+await fetchInitialData(savedName, savedDept);
+
   if (savedName) {
     const cachedUser = localStorage.getItem('cachedUserData');
     const cachedProfile = localStorage.getItem('cachedProfileData');
@@ -1416,19 +1477,30 @@ async function fetchInitialData(name) {
     if (summaryResult.error) throw summaryResult.error;
     if (leaderboardResult.error) throw leaderboardResult.error;
 
-    // Find user in summary data
-   // Find user in summary data
-userData = summaryResult.data.find(u => 
-  u.student_name && u.student_name.toUpperCase().includes(name.toUpperCase())
-) || { student_name: name.toUpperCase(), quest_list: "", video_list: "", story_list: "" }; // Default object
+  userData = summaryResult.data.find(u =>
+  u.student_name &&
+  u.department &&
+  u.student_name.trim().toUpperCase() === name.trim().toUpperCase() &&
+  u.department.trim().toUpperCase() === department.trim().toUpperCase()
+) || {
+  student_name: name,
+  department: department,
+  quest_list: "",
+  video_list: "",
+  story_list: ""
+};
+
 
 // 🔍 NEW LOG HERE
 console.log("🔍 INITIAL quest_list received:", userData.quest_list);
-// Strict EXACT match — no normalization
+
 const profileUser = leaderboardResult.data.find(u =>
   u.Name &&
-  u.Name.trim().toLowerCase() === name.trim().toLowerCase()
+  u.Department &&
+  u.Name.trim().toLowerCase() === name.trim().toLowerCase() &&
+  u.Department.trim().toLowerCase() === department.trim().toLowerCase()
 );
+
 
 userProfileData = profileUser || {
   Name: name,
@@ -1456,7 +1528,8 @@ console.log("Loaded userProfileData (fetchInitialData):", userProfileData);
 /**
  * Refreshes data in the background without a loading screen.
  */
-async function refreshData(name) {
+async function refreshData(name, department) {
+
   if (!name) return;
   console.log("Refreshing data in background for:", name);
   try {
@@ -1560,27 +1633,31 @@ function toggleDrawer() {
   }
 }
 
-
 async function saveAndLogin() {
   const name = document.getElementById('nameInput').value.trim();
-  if (!name) {
-    showModal('Please enter your name!', () => {});
+  const dept = document.getElementById('deptInput').value.trim();
+
+  if (!name || !dept) {
+    showModal('Please enter your name and select your department!', () => {});
     return;
   }
- 
+
   const upperCaseName = name.toUpperCase();
+  const upperDept = dept.toUpperCase();
+
   localStorage.setItem('userName', upperCaseName);
- 
+  localStorage.setItem('userDepartment', upperDept);
+
   document.getElementById('nameInputContainer').classList.remove('show');
   document.getElementById('loadingScreen').classList.add('show');
 
-  // Perform the first-time data fetch
-  await fetchInitialData(upperCaseName);
-  
+ async function fetchInitialData(name, department) {
+
+
   showCalendar();
-  
   document.getElementById('loadingScreen').classList.remove('show');
 }
+
 
 
 function showCalendar() {
@@ -2077,28 +2154,27 @@ setInterval(() => {
           <span class="subtitle">LEADERBOARD</span>
         </button>
 
-        <!-- WORDLE -->
+  
         <button class="book-cover wordle-book"
-          onclick="location.href='https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/fun'">
-
+          onclick="location.href='https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/wordle'">
           <div class="wordle-board">
             <div class="row">
               <span class="tile correct">G</span>
-              <span class="tile present">R</span>
+              <span class="tile absent">R</span>
               <span class="tile absent">E</span>
-              <span class="tile absent">A</span>
-              <span class="tile correct">T</span>
+              <span class="tile present">A</span>
+              <span class="tile absent">T</span>
             </div>
             <div class="row">
               <span class="tile absent">W</span>
               <span class="tile correct">O</span>
               <span class="tile absent">R</span>
               <span class="tile absent">D</span>
-              <span class="tile absent">S</span>
+              <span class="tile correct">S</span>
             </div>
             <div class="row">
               <span class="tile absent">B</span>
-              <span class="tile present">R</span>
+              <span class="tile absent">R</span>
               <span class="tile absent">I</span>
               <span class="tile absent">N</span>
               <span class="tile absent">G</span>
@@ -2106,9 +2182,9 @@ setInterval(() => {
             <div class="row">
               <span class="tile correct">G</span>
               <span class="tile absent">R</span>
-              <span class="tile present">E</span>
-              <span class="tile absent">A</span>
-              <span class="tile correct">T</span>
+              <span class="tile absent">E</span>
+              <span class="tile present">A</span>
+              <span class="tile absent">T</span>
             </div>
             <div class="row">
               <span class="tile absent">P</span>
@@ -2118,15 +2194,14 @@ setInterval(() => {
               <span class="tile absent">R</span>
             </div>
             <div class="row">
-              <span class="tile present">T</span>
-              <span class="tile absent">O</span>
+              <span class="tile absent">T</span>
+              <span class="tile correct">O</span>
               <span class="tile absent">Y</span>
               <span class="tile absent">O</span>
               <span class="tile absent">U</span>
             </div>
           </div>
 
-          <div class="wordle-label">WORDLE</div>
         </button>
 
         <!-- CRYPTIC -->
@@ -2155,13 +2230,23 @@ setInterval(() => {
           </div>
         </button>
 
+        <button class="book-cover quote-day-book"
+  onclick="location.href='https://andrewveda.github.io/a-quote-a-day/'">
+
+  <div class="quote-day-content">
+    <div class="quote-day-icon">“A Quote”</div>
+    <div class="quote-day-label">A DAY</div>
+  </div>
+
+</button>
+
         <!-- PROFILE & QUICK LINKS -->
-        <button class="book-cover profile-links-book" onclick="toggleDrawer()">
+         <button class="book-cover profile-links-book" onclick="toggleDrawer()">
           <div class="pl-content">
-            <div class="pl-title">PROFILE</div>
+            <div class="pl-title">My PROFILE</div>
             <div class="pl-amp">&</div>
-            <div class="pl-title">QUICK LINKS</div>
-            <div class="pl-sub">YOU • TOOLS • PATHS</div>
+            <div class="pl-title">Base Camp</div>
+            <div class="pl-sub">I love trying!</div>
           </div>
         </button>
 
@@ -2178,25 +2263,25 @@ setInterval(() => {
         </button>
 
         <button class="book-cover wordle-book"
-          onclick="location.href='https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/fun'">
+          onclick="location.href='https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/wordle'">
           <div class="wordle-board">
             <div class="row">
               <span class="tile correct">G</span>
-              <span class="tile present">R</span>
+              <span class="tile absent">R</span>
               <span class="tile absent">E</span>
-              <span class="tile absent">A</span>
-              <span class="tile correct">T</span>
+              <span class="tile present">A</span>
+              <span class="tile absent">T</span>
             </div>
             <div class="row">
               <span class="tile absent">W</span>
               <span class="tile correct">O</span>
               <span class="tile absent">R</span>
               <span class="tile absent">D</span>
-              <span class="tile absent">S</span>
+              <span class="tile correct">S</span>
             </div>
             <div class="row">
               <span class="tile absent">B</span>
-              <span class="tile present">R</span>
+              <span class="tile absent">R</span>
               <span class="tile absent">I</span>
               <span class="tile absent">N</span>
               <span class="tile absent">G</span>
@@ -2204,9 +2289,9 @@ setInterval(() => {
             <div class="row">
               <span class="tile correct">G</span>
               <span class="tile absent">R</span>
-              <span class="tile present">E</span>
-              <span class="tile absent">A</span>
-              <span class="tile correct">T</span>
+              <span class="tile absent">E</span>
+              <span class="tile present">A</span>
+              <span class="tile absent">T</span>
             </div>
             <div class="row">
               <span class="tile absent">P</span>
@@ -2216,14 +2301,14 @@ setInterval(() => {
               <span class="tile absent">R</span>
             </div>
             <div class="row">
-              <span class="tile present">T</span>
-              <span class="tile absent">O</span>
+              <span class="tile absent">T</span>
+              <span class="tile correct">O</span>
               <span class="tile absent">Y</span>
               <span class="tile absent">O</span>
               <span class="tile absent">U</span>
             </div>
           </div>
-          <div class="wordle-label">WORDLE</div>
+
         </button>
 
         <button class="book-cover cryptic-book"
@@ -2249,12 +2334,22 @@ setInterval(() => {
           </div>
         </button>
 
+        <button class="book-cover quote-day-book"
+  onclick="location.href='https://andrewveda.github.io/a-quote-a-day/'">
+
+  <div class="quote-day-content">
+    <div class="quote-day-icon">“A Quote”</div>
+    <div class="quote-day-label">A DAY</div>
+  </div>
+
+</button>
+
         <button class="book-cover profile-links-book" onclick="toggleDrawer()">
           <div class="pl-content">
-            <div class="pl-title">PROFILE</div>
+            <div class="pl-title">My PROFILE</div>
             <div class="pl-amp">&</div>
-            <div class="pl-title">QUICK LINKS</div>
-            <div class="pl-sub">YOU • TOOLS • PATHS</div>
+            <div class="pl-title">Base Camp</div>
+            <div class="pl-sub">I love trying!</div>
           </div>
         </button>
 

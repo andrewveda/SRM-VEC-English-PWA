@@ -1248,6 +1248,7 @@ margin: 50px auto;
       localStorage.removeItem("cachedProfileData");
       localStorage.removeItem("cachedUserData");
       localStorage.removeItem("userName");
+    localStorage.removeItem("userDepartment");
       localStorage.removeItem("pendingSync");
 
       // Mark reset done
@@ -1659,11 +1660,13 @@ async function saveAndLogin() {
 }
 
   
-async function loadTotalTime(name) {
+async function loadTotalTime(name, department) {
   const { data, error } = await supabase
     .from('report_card_view')
     .select('*')
-    .ilike('name', `${name}%`);  
+    .ilike('name', `${name}%`)
+.eq('department', department);
+
 
   if (error) {
     console.error("Error loading total_time:", error);
@@ -1688,7 +1691,10 @@ window.toggleTimeMode = toggleTimeMode;
   console.log("MiniDeck profile data:", userProfileData);
   console.log("total_time field value:", userProfileData?.total_time);
   // ⭐ The correct field from your Supabase report_card_view
- const totalTimeSeconds = await loadTotalTime(userProfileData.Name);
+ const totalTimeSeconds = await loadTotalTime(
+  userProfileData.Name,
+  userProfileData.Department
+);
   // Convert to human-friendly m/s
   const minutes = Math.floor(totalTimeSeconds / 60);
   const seconds = totalTimeSeconds % 60;

@@ -1431,42 +1431,34 @@ const storyLinks = { 69: "https://andrewveda.github.io/SRM-VEC-English-PWA/cloze
 async function init() {
   const savedName = localStorage.getItem('userName');
   const savedDept = localStorage.getItem('userDepartment');
-await fetchInitialData(savedName, savedDept);
 
-  if (savedName) {
+  if (savedName && savedDept) {
     const cachedUser = localStorage.getItem('cachedUserData');
     const cachedProfile = localStorage.getItem('cachedProfileData');
-    
+
     if (cachedUser && cachedProfile) {
-      // Load from cache for instant startup
       userData = JSON.parse(cachedUser);
       userProfileData = JSON.parse(cachedProfile);
-      showCalendar(); // Show UI immediately
-      
-      // Refresh data in the background
-      refreshData(savedName); 
+      showCalendar();
+
+      refreshData(savedName, savedDept);
     } else {
-      // No cache, show loading screen and fetch
       document.getElementById('loadingScreen').classList.add('show');
-      await fetchInitialData(savedName);
+      await fetchInitialData(savedName, savedDept);
       showCalendar();
       document.getElementById('loadingScreen').classList.remove('show');
     }
   } else {
-    // New user
     document.getElementById('nameInputContainer').classList.add('show');
   }
-  
+
   setupEventListeners();
   checkOnlineStatus();
   trackInstall();
 }
 
-/**
- * Fetches all necessary data from Supabase. Used for initial login.
- * Shows loading screen.
- */
-async function fetchInitialData(name) {
+async function fetchInitialData(name, department) {
+
   console.log("Fetching initial data for:", name);
   try {
     const [summaryResult, leaderboardResult] = await Promise.all([
@@ -1542,9 +1534,13 @@ async function refreshData(name, department) {
     if (leaderboardResult.error) throw leaderboardResult.error;
 
     // Find user in summary data
-    const summaryUser = summaryResult.data.find(u => 
-      u.student_name && u.student_name.toUpperCase().includes(name.toUpperCase())
-    );
+   const summaryUser = summaryResult.data.find(u =>
+  u.student_name &&
+  u.department &&
+  u.student_name.trim().toUpperCase() === name.trim().toUpperCase() &&
+  u.department.trim().toUpperCase() === department.trim().toUpperCase()
+);
+
     if (summaryUser) {
       userData = summaryUser;
        console.log("🔍 SUMMARY quest_list received:", summaryUser.quest_list);
@@ -1555,7 +1551,9 @@ async function refreshData(name, department) {
 // Strict EXACT match — no uppercase, no startsWith
 const profileUser = leaderboardResult.data.find(u =>
   u.Name &&
-  u.Name.trim().toLowerCase() === name.trim().toLowerCase()
+  u.Department &&
+  u.Name.trim().toLowerCase() === name.trim().toLowerCase() &&
+  u.Department.trim().toLowerCase() === department.trim().toLowerCase()
 );
 
 if (profileUser) {
@@ -1591,7 +1589,7 @@ function setupEventListeners() {
       // Refresh data when user returns to tab
       const savedName = localStorage.getItem("userName");
       if (savedName) {
-        refreshData(savedName); 
+        const savedDept = localStorage.getItem('userDepartment'); refreshData(savedName, savedDept); 
       }
     }
   });
@@ -1632,6 +1630,10 @@ function toggleDrawer() {
     updateProfileDrawer();
   }
 }
+function showCalendar() {
+  document.getElementById('calendarContainer').classList.add('show');
+  updateAllUI();
+}
 
 async function saveAndLogin() {
   const name = document.getElementById('nameInput').value.trim();
@@ -1650,21 +1652,12 @@ async function saveAndLogin() {
 
   document.getElementById('nameInputContainer').classList.remove('show');
   document.getElementById('loadingScreen').classList.add('show');
-
- async function fetchInitialData(name, department) {
-
+  await fetchInitialData(upperCaseName, upperDept);
 
   showCalendar();
   document.getElementById('loadingScreen').classList.remove('show');
 }
 
-
-
-function showCalendar() {
-  document.getElementById('calendarContainer').classList.add('show');
-  
-  updateAllUI();
-}
   
 async function loadTotalTime(name) {
   const { data, error } = await supabase
@@ -1979,10 +1972,12 @@ async function handleOnline() {
     localStorage.removeItem('pendingSync');
   }
  
-  // Refresh all data now that we are online
-  const savedName = localStorage.getItem('userName');
-  if (savedName) refreshData(savedName);
+   const savedName = localStorage.getItem('userName');
+if (savedName) {
+  const savedDept = localStorage.getItem('userDepartment');
+  refreshData(savedName, savedDept);
 }
+
 
 function handleOffline() {
   document.getElementById('offlineBanner').classList.add('show');
@@ -2047,12 +2042,12 @@ supabase
   .on('postgres_changes', { event: '*', schema: 'public', table: 'leaderboard' }, payload => {
     console.log('Leaderboard updated via realtime:', payload);
     const savedName = localStorage.getItem('userName');
-    if (savedName) refreshData(savedName); // Refresh data on any change
+    if (savedName) {   const savedDept = localStorage.getItem('userDepartment');   refreshData(savedName, savedDept); } // Refresh data on any change
   })
   .on('postgres_changes', { event: '*', schema: 'public', table: 'summary_import' }, payload => {
     console.log('Summary data updated via realtime:', payload);
     const savedName = localStorage.getItem('userName');
-    if (savedName) refreshData(savedName); // Refresh data on any change
+    if (savedName) {   const savedDept = localStorage.getItem('userDepartment');   refreshData(savedName, savedDept); } // Refresh data on any change
   })
   .subscribe();
 

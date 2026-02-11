@@ -314,6 +314,10 @@ body {
     <div class="quiz-header">
       <div id="timer">⏳ 0s</div>
       <div id="gemsCounter">💎 0</div>
+       <button id="muteBtn" title="Mute / Unmute"
+    style="background:none;border:none;font-size:1.2rem;cursor:pointer;">
+    🔊
+  </button>
       <div id="progressTracker">📍 1 of 1</div>
     </div>
 
@@ -399,7 +403,8 @@ function triggerMegaConfetti() {
 }
 
 /* ========== AUDIO SETUP ========== */
-const applauseSound = new Audio();
+let isMuted = localStorage.getItem("questMuted") === "true"; 
+  const applauseSound = new Audio();
 applauseSound.src = 'https://andrewveda.github.io/SRM-VEC-English-PWA/sounds/crowd.mp3';
 
 const wrongSound = new Audio();
@@ -410,8 +415,23 @@ wrongSound.volume = 0.3;
 
 applauseSound.load();
 wrongSound.load();
+  applauseSound.muted = isMuted;
+wrongSound.muted = isMuted;
+const muteBtn = document.getElementById("muteBtn");
+  muteBtn.innerText = isMuted ? "🔇" : "🔊";
 
+
+muteBtn.onclick = () => {
+  isMuted = !isMuted;
+localStorage.setItem("questMuted", isMuted);
+
+  applauseSound.muted = isMuted;
+  wrongSound.muted = isMuted;
+
+  muteBtn.innerText = isMuted ? "🔇" : "🔊";
+}; 
 function playApplauseSound() {
+  if (isMuted) return;
   try {
     applauseSound.currentTime = 0;
     applauseSound.play().catch(err => console.log('Audio play failed:', err));
@@ -421,6 +441,7 @@ function playApplauseSound() {
 }
 
 function playWrongSound() {
+  if (isMuted) return;
   try {
     wrongSound.currentTime = 0;
     wrongSound.play().catch(err => console.log('Audio play failed:', err));

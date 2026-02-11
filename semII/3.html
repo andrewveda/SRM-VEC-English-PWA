@@ -1,0 +1,1270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title> I for Idiom! 🌌</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+  <style>
+  <style>
+/* =========================================================
+   GLOBAL / BODY
+   ========================================================= */
+body {
+  margin: 0;
+  padding: 0;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  background: radial-gradient(circle at top, #fff8e6 0%, #f3e4c7 60%, #e8d3a2 100%);
+  color: #4a3315;
+  text-align: center;
+  overflow-x: hidden;
+}
+
+/* =========================================================
+   HEADER BAR
+   ========================================================= */
+.quiz-header-bar {
+  width: 100%;
+  background: linear-gradient(90deg, #e6d2a2, #f3e4c7);
+  border-bottom: 1px solid #c9ab6d;
+  padding: 10px 0;
+}
+
+.quiz-header-content {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.stat-item {
+  margin: 5px 10px;
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #4a3315;
+}
+
+#timer { color: #6b4b1b; }
+#gemCounter { color: #2f7d32; }
+#streakCounter { color: #b08900; }
+#progressTracker { color: #5a5a9a; }
+
+/* =========================================================
+   GEM ANIMATIONS
+   ========================================================= */
+.gem-gain { animation: gemGainPulse 0.5s ease-out; }
+@keyframes gemGainPulse {
+  0%,100% { transform: scale(1); }
+  50% { transform: scale(1.2); text-shadow: 0 0 15px #2f7d32; }
+}
+
+.gem-lose { animation: gemLoseShake 0.5s ease-out; }
+@keyframes gemLoseShake {
+  0%,100% { transform: translateX(0); }
+  25% { transform: translateX(-6px); }
+  75% { transform: translateX(6px); }
+}
+
+.flying-gem-text {
+  position: fixed;
+  font-size: 1.5rem;
+  font-weight: bold;
+  z-index: 2000;
+  pointer-events: none;
+  animation: flyUpFadeOut 1s ease-out forwards;
+}
+
+.flying-gem-text.plus { color: #2f7d32; }
+.flying-gem-text.minus { color: #a33; }
+
+@keyframes flyUpFadeOut {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to { opacity: 0; transform: translateY(-60px) scale(1.2); }
+}
+
+/* =========================================================
+   MAIN CONTAINER (PARCHMENT CARD)
+   ========================================================= */
+.container {
+  max-width: 800px;
+  margin: 1.5rem auto 2rem;
+  background: rgba(255,248,230,0.95);
+  padding: 2rem;
+  border-radius: 15px;
+  box-shadow:
+    0 0 0 1px rgba(140,110,60,0.25),
+    0 20px 45px rgba(90,70,40,0.25);
+  transition: background 0.5s ease;
+}
+
+.container.retry-mode {
+  background: rgba(255,220,220,0.8);
+  border: 2px solid rgba(180,80,80,0.4);
+}
+
+/* =========================================================
+   QUESTIONS & OPTIONS
+   ========================================================= */
+.question {
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.options {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+button {
+  padding: 1rem;
+  font-size: 1rem;
+  cursor: pointer;
+  border-radius: 10px;
+  border: 1px solid #c9ab6d;
+  background: linear-gradient(#fdf4dc, #e8d3a2);
+  color: #4a3315;
+  transition: all 0.3s ease;
+}
+
+button:hover {
+  background: linear-gradient(#fff1cc, #e0c48c);
+  transform: scale(1.02);
+}
+
+.correct {
+  background: linear-gradient(#c8e6c9, #a5d6a7) !important;
+}
+
+.wrong {
+  background: linear-gradient(#ffcdd2, #ef9a9a) !important;
+}
+
+/* =========================================================
+   TYPEWRITER / HIGHLIGHT
+   ========================================================= */
+.neon-typewriter {
+  animation: fadeInk 1.5s ease forwards;
+}
+
+@keyframes fadeInk {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.focused-question {
+  color: #6b4b1b;
+  text-shadow: 0 0 12px rgba(201,171,109,0.8);
+}
+
+/* =========================================================
+   PARTICLES & CONFETTI (SOFTENED)
+   ========================================================= */
+.star-particle {
+  background: #c9ab6d;
+  box-shadow: 0 0 6px rgba(201,171,109,0.6);
+}
+
+.confetti {
+  animation: confettiFall 1.5s ease-out forwards;
+}
+
+/* =========================================================
+   HERO QUOTE
+   ========================================================= */
+.hero-quote {
+  background: rgba(255,255,255,0.85);
+  border: 2px solid #c9ab6d;
+  border-radius: 15px;
+  padding: 2rem;
+  box-shadow: 0 0 25px rgba(180,150,90,0.45);
+}
+
+.hero-text {
+  font-family: "Cinzel", serif;
+  font-size: 1.6rem;
+  font-weight: bold;
+  color: #4a3315;
+}
+
+.hero-author {
+  font-size: 1rem;
+  font-weight: bold;
+  color: #6b4b1b;
+}
+
+.stars { display: none; }
+
+.score-portal {
+  background: linear-gradient(135deg, #f3e4c7, #e8d3a2);
+  box-shadow: 0 0 35px rgba(140,110,60,0.4);
+}
+
+.next-quest-btn {
+  background: linear-gradient(135deg, #d4af37, #f5d76e);
+  color: #4a3315;
+}
+</style>
+
+
+  </style>
+</head>
+<body>
+  <div class="stars" id="starsContainer"></div>
+
+  <!-- HEADER BAR -->
+  <div class="quiz-header-bar" id="quizHeaderBar" style="display: none;">
+    <div class="quiz-header-content">
+      <div id="timer" class="stat-item">⏳ <span id="time-value">0</span>s</div>
+      <div id="gemCounter" class="stat-item">💎 <span id="gem-value">0</span></div>
+      <div id="streakCounter" class="stat-item">🔥 <span id="streak-value">0</span></div>
+      <div id="progressTracker" class="stat-item">📝 <span id="current-question">1</span> / <span id="total-questions">10</span></div>
+    </div>
+  </div>
+  
+  <div class="container" id="quizContainer">
+   <div id="nameForm">
+<div class="hero-quote">
+  <div class="hero-text">
+    “Ever tried. <br> Ever failed. <br> No matter. <br>
+    Try again. <br> Fail again. <br> Fail better!”
+  </div>
+  <div class="hero-author">— Samuel Beckett</div>
+</div>
+
+  <select id="departmentSelect" style="display: block; width: 90%; max-width: 300px; margin: 0.5rem auto; padding: 0.7rem; font-size: 1rem; border-radius: 5px; border: none;">
+    <option value="">-- Select Department --</option>
+    <option value="Cyber Security">Cyber Security</option>
+    <option value="CSE-1">CSE-1</option>
+    <option value="CSE-2">CSE-2</option>
+    <option value="CSE-3">CSE-3</option>
+    <option value="Mechanical Engineering">Mechanical Engineering</option>
+    <option value="ECE-1">ECE-1</option>
+    <option value="ECE-2">ECE-2</option>
+    <option value="ECE-3">ECE-3</option>
+    <option value="AI DS-1">AI DS-1</option>
+    <option value="AI DS-2">AI DS-2</option>
+    <option value="Civil">Civil</option>
+    <option value="Agri">Agri</option>
+    <option value="EEE">EEE</option>
+    <option value="EIE">EIE</option>
+    <option value="Medical Electronics">Medical Electronics</option>
+    <option value="IT-1">IT-1</option>
+    <option value="IT-2">IT-2</option>
+  </select>
+
+  <input type="text" id="nameInput" placeholder="Enter your name" />
+  <button id="startQuizBtn">Start Quiz</button>
+</div>
+
+    <div id="quizContent" style="display:none;">
+      <div class="question" id="question">Loading...</div>
+      <div class="options" id="options"></div>
+<button id="muteBtn">🔊 Mute</button>
+      <div id="scoreCard"></div>
+      <button id="restartBtn" style="display: none;">Restart</button>
+    </div>
+  </div>
+
+  <script>
+    function createStarfield() {
+      const container = document.getElementById('starsContainer');
+      for (let i = 0; i < 100; i++) {
+        const star = document.createElement('div');
+        star.className = 'star';
+        star.style.left = Math.random() * 100 + '%';
+        star.style.top = Math.random() * 100 + '%';
+        star.style.animationDelay = Math.random() * 3 + 's';
+        container.appendChild(star);
+      }
+    }
+    createStarfield();
+    
+     audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    
+let isMuted = false;
+const muteBtn = document.getElementById('muteBtn');
+
+muteBtn.addEventListener('click', () => {
+  isMuted = !isMuted;
+  muteBtn.textContent = isMuted ? '🔇 Muted' : '🔊 Mute';
+});
+
+function playCorrectSound() {
+ if (isMuted) return;
+  const oscillator = audioContext.createOscillator();
+  const gainNode = audioContext.createGain();
+  oscillator.connect(gainNode);
+  gainNode.connect(audioContext.destination);
+
+  oscillator.type = 'sine'; // Changed from triangle
+  oscillator.frequency.setValueAtTime(523.25, audioContext.currentTime); // Lowered from 659.25
+  gainNode.gain.setValueAtTime(0.15, audioContext.currentTime); // Lowered from 0.3
+  gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+
+  oscillator.start(audioContext.currentTime);
+  oscillator.stop(audioContext.currentTime + 0.5);
+}
+
+function playWrongSound() {
+ if (isMuted) return;
+  const oscillator = audioContext.createOscillator();
+  const gainNode = audioContext.createGain();
+  oscillator.connect(gainNode);
+  gainNode.connect(audioContext.destination);
+
+  oscillator.type = 'sine'; // Changed from triangle
+  oscillator.frequency.setValueAtTime(261.63, audioContext.currentTime); // Lowered from 293.66
+  gainNode.gain.setValueAtTime(0.1, audioContext.currentTime); // Lowered from 0.2
+  gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+
+  oscillator.start(audioContext.currentTime);
+  oscillator.stop(audioContext.currentTime + 0.5);
+}
+
+function playStreakSound() {
+ if (isMuted) return;
+  const oscillator = audioContext.createOscillator();
+  const gainNode = audioContext.createGain();
+  oscillator.connect(gainNode);
+  gainNode.connect(audioContext.destination);
+
+  oscillator.type = 'sine'; // Changed from triangle
+  const notes = [523.25, 587.33, 659.25]; // Lowered frequencies
+  const startTimes = [0, 0.1, 0.2];
+
+  gainNode.gain.setValueAtTime(0.15, audioContext.currentTime); // Lowered from 0.25
+  gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+
+  notes.forEach((freq, i) => {
+    oscillator.frequency.setValueAtTime(freq, audioContext.currentTime + startTimes[i]);
+  });
+
+  oscillator.start(audioContext.currentTime);
+  oscillator.stop(audioContext.currentTime + 0.5);
+}
+   
+    function playVictorySound() {
+ if (isMuted) return;
+      const notes = [440.00, 523.25, 587.33, 659.25]; // Lowered frequencies
+      notes.forEach((freq, index) => {
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        oscillator.frequency.setValueAtTime(freq, audioContext.currentTime + index * 0.15);
+        oscillator.type = 'sine';
+        gainNode.gain.setValueAtTime(0.15, audioContext.currentTime + index * 0.15); // Lowered from 0.3
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + index * 0.15 + 0.4);
+        oscillator.start(audioContext.currentTime + index * 0.15);
+        oscillator.stop(audioContext.currentTime + index * 0.15 + 0.4);
+      });
+    }
+    
+    function playRetrySound() {
+ if (isMuted) return;
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      oscillator.frequency.setValueAtTime(349.23, audioContext.currentTime); // Lowered from 400
+      oscillator.frequency.setValueAtTime(329.63, audioContext.currentTime + 0.2); // Lowered from 350
+      oscillator.type = 'sine'; // Changed from triangle
+      gainNode.gain.setValueAtTime(0.1, audioContext.currentTime); // Lowered from 0.2
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.4);
+    }
+    
+    function createFlyingAnswer(button, answerText, questionEl, isRetryRound, questionsToRetry, current, quizData) {
+      const buttonRect = button.getBoundingClientRect();
+      const questionRect = questionEl.getBoundingClientRect();
+      
+      const startX = buttonRect.left + buttonRect.width / 2;
+      const startY = buttonRect.top + buttonRect.height / 2;
+      const endX = questionRect.left + questionRect.width / 2;
+      const endY = questionRect.top + questionRect.height / 2;
+      const deltaX = endX - startX;
+      const deltaY = endY - startY;
+      
+      const flyingText = document.createElement('div');
+      flyingText.className = 'flying-answer';
+      flyingText.textContent = answerText;
+      flyingText.style.left = startX + 'px';
+      flyingText.style.top = startY + 'px';
+      flyingText.style.setProperty('--dx', deltaX + 'px');
+      flyingText.style.setProperty('--dy', deltaY + 'px');
+      flyingText.style.animation = 'flyToQuestion 1s ease-out forwards';
+      document.body.appendChild(flyingText);
+      
+      setTimeout(() => {
+        const questionIndex = isRetryRound ? questionsToRetry[current] : current;
+        const data = quizData[questionIndex];
+        const questionText = data.q.replace('___', `<span class="question-highlight">${answerText}</span>`);
+        const examples = Array.isArray(data.example) ? data.example : [data.example];
+        questionEl.innerHTML = `${questionText}<br><br><em>Example:<br>${examples.join("<br>")}</em>`;
+      }, 500);
+      
+      setTimeout(() => flyingText.remove(), 1000);
+    }
+    
+    function createGoldenSparks(button) {
+      const rect = button.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      
+      for (let i = 0; i < 20; i++) {
+        const particle = document.createElement('div');
+        particle.className = 'star-particle';
+        particle.style.left = centerX + 'px';
+        particle.style.top = centerY + 'px';
+        particle.style.background = `linear-gradient(45deg, #ffd700, #ffed4e)`;
+        particle.style.width = '6px';
+        particle.style.height = '6px';
+        particle.style.boxShadow = '0 0 10px #ffd700';
+        
+        const angle = (Math.PI * 2 * i) / 20;
+        const velocity = 80 + Math.random() * 40;
+        const tx = Math.cos(angle) * velocity;
+        const ty = Math.sin(angle) * velocity;
+        
+        particle.style.setProperty('--tx', tx + 'px');
+        particle.style.setProperty('--ty', ty + 'px');
+        document.body.appendChild(particle);
+        setTimeout(() => particle.remove(), 1000);
+      }
+    }
+    
+    function createConfetti(element) {
+      const rect = element.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      const colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff'];
+      
+      for (let i = 0; i < 30; i++) {
+        const confetti = document.createElement('div');
+        confetti.className = 'confetti';
+        confetti.style.left = centerX + (Math.random() - 0.5) * 100 + 'px';
+        confetti.style.top = centerY + 'px';
+        confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+        confetti.style.animationDelay = Math.random() * 0.3 + 's';
+        document.body.appendChild(confetti);
+        setTimeout(() => confetti.remove(), 1500);
+      }
+    }
+   // --- LOCAL STORAGE AUTOFILL ---
+function autoFillFromStorage() {
+  try {
+    const storedName = localStorage.getItem('playerName');
+    const storedDept = localStorage.getItem('playerDept');
+
+    if (storedName) document.getElementById('nameInput').value = storedName;
+    if (storedDept) document.getElementById('departmentSelect').value = storedDept;
+  } catch (e) {
+    console.log("LocalStorage unavailable:", e);
+  }
+}
+
+window.addEventListener('DOMContentLoaded', autoFillFromStorage);
+
+    const quizData = [
+{
+"q": "The fragile glass broke easily when it fell. In this sentence, what does the word ‘fragile’ mean?",
+"options": ["Strong", "Delicate", "Heavy", "Flexible"],
+"correct": [1],
+"example": [
+"The fragile glass statue cracked when it fell from the shelf.",
+"The strong rock statue has been standing there for centuries",
+"The statue could be lifted only with two cranes as it was very heavy.",
+"The new statue is made of a new type of plastic and it is flexible"
+]
+},
+  {
+    "q": "Sentence: The fragile glass broke easily when it fell. In the sentence, what does the word ‘fragile’ mean?",
+    "options": ["Strong", "Delicate", "Heavy", "Flexible"],
+    "correct": [1],
+    "example": [
+      "Fragile → Delicate",
+      "Strong – The strong bridge withstood the storm.",
+      "Heavy – The heavy box was difficult to lift.",
+      "Flexible – The flexible material bent without breaking."
+    ]
+  },
+  {
+    "q": "Sentence: Despite many setbacks, she remained resilient. What does ‘resilient’ mean in this context?",
+    "options": ["Weak", "Careless", "Able to recover quickly", "Fearful"],
+    "correct": [2],
+    "example": [
+      "Resilient → Able to recover quickly",
+      "Weak – The weak structure collapsed easily.",
+      "Careless – The careless mistake caused confusion.",
+      "Fearful – The fearful child avoided the dark room."
+    ]
+  },
+  {
+    "q": "Sentence: He gave a vivid description of his journey. In the sentence, what does ‘vivid’ mean?",
+    "options": ["Dull", "Clear and detailed", "Confusing", "Silent"],
+    "correct": [1],
+    "example": [
+      "Vivid → Clear and detailed",
+      "Dull – The dull colours made the painting lifeless.",
+      "Confusing – The confusing instructions delayed the task.",
+      "Silent – The silent hall felt eerie."
+    ]
+  },
+  {
+    "q": "Sentence: Typewriters have become obsolete due to computers. What does ‘obsolete’ mean in this sentence?",
+    "options": ["Modern", "Popular", "No longer in use", "Expensive"],
+    "correct": [2],
+    "example": [
+      "Obsolete → No longer in use",
+      "Modern – The modern device uses advanced technology.",
+      "Popular – The popular café is always crowded.",
+      "Expensive – The expensive watch was beyond his budget."
+    ]
+  },
+  {
+    "q": "Sentence: She is meticulous in her research work. In the given sentence, what does ‘meticulous’ mean?",
+    "options": ["Careless", "Extremely careful", "Lazy", "Quick"],
+    "correct": [1],
+    "example": [
+      "Meticulous → Extremely careful",
+      "Careless – His careless work led to many errors.",
+      "Lazy – The lazy afternoon passed slowly.",
+      "Quick – She made a quick decision."
+    ]
+  },
+  {
+    "q": "Sentence: The region has abundant natural resources. What does ‘abundant’ mean in this context?",
+    "options": ["Scarce", "Limited", "Plentiful", "Expensive"],
+    "correct": [2],
+    "example": [
+      "Abundant → Plentiful",
+      "Scarce – Water became scarce during the drought.",
+      "Limited – The limited supply sold out quickly.",
+      "Expensive – Fresh imports are often expensive."
+    ]
+  },
+  {
+    "q": "Sentence: He was reluctant to accept the offer. In the sentence, what does ‘reluctant’ mean?",
+    "options": ["Willing", "Eager", "Unwilling", "Excited"],
+    "correct": [2],
+    "example": [
+      "Reluctant → Unwilling",
+      "Willing – She was willing to help everyone.",
+      "Eager – The eager students asked many questions.",
+      "Excited – The excited crowd cheered loudly."
+    ]
+  },
+  {
+    "q": "Sentence: Change is inevitable in a growing society. What does ‘inevitable’ mean here?",
+    "options": ["Avoidable", "Uncertain", "Certain to happen", "Rare"],
+    "correct": [2],
+    "example": [
+      "Inevitable → Certain to happen",
+      "Avoidable – The accident was avoidable with caution.",
+      "Uncertain – The outcome remains uncertain.",
+      "Rare – Such events are rare."
+    ]
+  },
+  {
+    "q": "Sentence: The professor gave a lucid explanation. In the sentence, what does ‘lucid’ mean?",
+    "options": ["Confusing", "Clear", "Long", "Boring"],
+    "correct": [1],
+    "example": [
+      "Lucid → Clear",
+      "Confusing – The confusing map misled travellers.",
+      "Long – The long lecture tired the audience.",
+      "Boring – The boring speech lost attention."
+    ]
+  },
+  {
+    "q": "Sentence: The soldiers entered hostile territory. What does ‘hostile’ mean in this context?",
+    "options": ["Friendly", "Dangerous", "Peaceful", "Calm"],
+    "correct": [1],
+    "example": [
+      "Hostile → Dangerous",
+      "Friendly – The friendly neighbour greeted us warmly.",
+      "Peaceful – The peaceful village felt safe.",
+      "Calm – The calm sea reflected the sky."
+    ]
+  },
+  {
+    "q": "Sentence: The medicine helped alleviate the pain. Explain the meaning of ‘alleviate’.",
+    "options": ["Increase", "Remove completely", "Reduce or relieve", "Ignore"],
+    "correct": [2],
+    "example": [
+      "Alleviate → Reduce or relieve",
+      "Increase – The policy increased the burden.",
+      "Remove completely – The treatment removed the stain completely.",
+      "Ignore – He chose to ignore the warning."
+    ]
+  },
+  {
+    "q": "Sentence: Politicians are often criticized for their tendency to equivocate. Explain the meaning of ‘equivocate’.",
+    "options": [
+      "Speak assertively",
+      "Provide clear explanations",
+      "Use ambiguous or vague language to deceive",
+      "Communicate openly and honestly"
+    ],
+    "correct": [2],
+    "example": [
+      "Equivocate → Use ambiguous or vague language to deceive",
+      "Speak assertively – She spoke assertively during the debate.",
+      "Provide clear explanations – The guide provided clear explanations.",
+      "Communicate openly and honestly – He communicated openly and honestly."
+    ]
+  },
+  {
+    "q": "Sentence: As the sun set, a sense of melancholy settled over the abandoned mansion. Determine the connotation of ‘melancholy’.",
+    "options": ["Joyful", "Somber and reflective", "Energetic", "Upbeat"],
+    "correct": [1],
+    "example": [
+      "Melancholy → Somber and reflective",
+      "Joyful – The joyful celebration lasted all night.",
+      "Energetic – The energetic crowd applauded loudly.",
+      "Upbeat – The upbeat song lifted spirits."
+    ]
+  },
+  {
+    "q": "Sentence: After several failed attempts, he threw in the towel. In the phrase ‘throwing in the towel’, what does ‘throwing in’ signify?",
+    "options": ["Initiating", "Retreating", "Giving up or surrendering", "Starting anew"],
+    "correct": [2],
+    "example": [
+      "Throwing in → Giving up or surrendering",
+      "Initiating – She initiated the discussion.",
+      "Retreating – The army was retreating slowly.",
+      "Starting anew – They started anew after the setback."
+    ]
+  }
+      
+];
+
+    let current = 0; // Index for quizData
+    let correctCount = 0;
+    let totalWrongClicks = 0; 
+    let currentGems = 0; 
+    let timePerQuestion = [];
+    let guessesPerQuestion = [];
+    let startTime;
+    let timerInterval;
+    let playerName = "";
+    let playerDepartment = "";
+    let currentStreak = 0;
+    let highestStreak = 0;
+    let streakHistory = [];
+    let questionsToRetry = [];
+    let firstAttemptCorrect = [];
+    let isRetryRound = false;
+    let currentQuestionFirstAttempt = true;
+    let questionTimers = {};
+
+    // --- NEW: Trackers for the "live total" feature ---
+    let globalQuestionCounter = 1; // This will be the "current" question number (e.g., 1, 2, 3... 11, 12)
+    let totalQuestionsToAnswer = quizData.length; // Starts at 10, will grow if answers are wrong
+
+    const questionEl = document.getElementById("question");
+    const optionsEl = document.getElementById("options");
+    const scoreCard = document.getElementById("scoreCard");
+    const restartBtn = document.getElementById("restartBtn");
+    const NEXT_QUEST_URL = "https://andrewveda.github.io/SRM-VEC-English-PWA/semII/4";
+
+
+    // Element References for header
+    const timeValueEl = document.getElementById("time-value");
+    const gemCounterEl = document.getElementById("gemCounter"); 
+    const gemValueEl = document.getElementById("gem-value"); 
+    const streakValueEl = document.getElementById("streak-value");
+    const currentQuestionEl = document.getElementById("current-question");
+    const totalQuestionsEl = document.getElementById("total-questions");
+    const progressTrackerEl = document.getElementById("progressTracker"); 
+    const headerBarEl = document.getElementById("quizHeaderBar");
+
+
+    function beginQuiz() {
+      const nameField = document.getElementById("nameInput");
+      const deptField = document.getElementById("departmentSelect");
+      const nameVal = nameField.value.trim();
+      const deptVal = deptField.value;
+
+      if (!deptVal) {
+        alert("Please select your department!");
+        return;
+      }
+      if (!nameVal) {
+        alert("Please enter your name!");
+        return;
+      }
+
+      playerName = nameVal;
+      playerDepartment = deptVal;
+      try {
+  localStorage.setItem('playerName', playerName);
+  localStorage.setItem('playerDept', playerDepartment);
+} catch (e) {
+  console.log("LocalStorage save error:", e);
+}
+      document.getElementById("nameForm").style.display = "none";
+      document.getElementById("quizContent").style.display = "block";
+      headerBarEl.style.display = 'block'; 
+      startQuiz();
+    }
+
+    document.getElementById('startQuizBtn').addEventListener('click', beginQuiz);
+
+    function startQuiz() {
+      current = 0;
+      correctCount = 0;
+      totalWrongClicks = 0; 
+      currentGems = 0; 
+      timePerQuestion = [];
+      guessesPerQuestion = [];
+      currentStreak = 0;
+      highestStreak = 0;
+      streakHistory = [];
+      questionsToRetry = [];
+      firstAttemptCorrect = new Array(quizData.length).fill(null);
+      isRetryRound = false;
+      questionTimers = {};
+      startTime = Date.now();
+      
+      // --- Reset trackers ---
+      globalQuestionCounter = 1; 
+      totalQuestionsToAnswer = quizData.length;
+
+      // Reset header values
+      headerBarEl.style.display = 'block';
+      timeValueEl.innerText = "0";
+      gemValueEl.innerText = "0"; 
+      streakValueEl.innerText = "0";
+      totalQuestionsEl.innerText = totalQuestionsToAnswer; // Resets to 10
+      currentQuestionEl.innerText = globalQuestionCounter; // Resets to 1
+      progressTrackerEl.childNodes[0].nodeValue = '📝 '; 
+
+      scoreCard.innerHTML = "";
+      restartBtn.style.display = "none";
+
+      loadQuestion();
+      startTimer();
+    }
+
+function loadQuestion() {
+  // Check if main quiz is done
+  if (current >= quizData.length && !isRetryRound) {
+    questionsToRetry = [];
+    for (let i = 0; i < quizData.length; i++) {
+      if (firstAttemptCorrect[i] === false) questionsToRetry.push(i);
+    }
+
+    // If there are questions to retry, start retry round
+    if (questionsToRetry.length > 0) {
+      isRetryRound = true;
+      current = 0; // Reset index for retry array
+      document.getElementById("quizContainer").classList.add("retry-mode");
+      playRetrySound();
+      questionEl.innerHTML = `<h3 style="color: #ff6b6b;">⚠️ Retry Round!</h3>
+        <p>You must answer these ${questionsToRetry.length} question(s) correctly on the first attempt.</p>`;
+      optionsEl.innerHTML = "";
+      
+      // Update header for retry round
+      progressTrackerEl.childNodes[0].nodeValue = '🔄 ';
+      currentQuestionEl.innerText = globalQuestionCounter; // e.g., 11
+      totalQuestionsEl.innerText = totalQuestionsToAnswer; // e.g., 12
+      
+      setTimeout(() => loadQuestion(), 2500);
+      return;
+    } else {
+      // No retries needed, end quiz
+      return showScore();
+    }
+  }
+
+  // Check if retry round is done
+  if (isRetryRound && current >= questionsToRetry.length) {
+    let stillNeedRetry = [];
+    for (let idx of questionsToRetry) {
+      if (firstAttemptCorrect[idx] === false) stillNeedRetry.push(idx);
+    }
+
+    // If still more retries needed, loop retry round
+    if (stillNeedRetry.length > 0) {
+      questionsToRetry = stillNeedRetry;
+      current = 0;
+      playRetrySound();
+      questionEl.innerHTML = `<h3 style="color: #ff6b6b;">⚠️ Try Again!</h3>
+        <p>You still need to answer ${stillNeedRetry.length} question(s) correctly on first attempt.</p>`;
+      optionsEl.innerHTML = "";
+
+      // Update header for new retry loop
+      progressTrackerEl.childNodes[0].nodeValue = '🔄 ';
+      currentQuestionEl.innerText = globalQuestionCounter;
+      totalQuestionsEl.innerText = totalQuestionsToAnswer;
+      
+      setTimeout(() => loadQuestion(), 2500);
+      return;
+    } else {
+      // All retries passed, end quiz
+      return showScore();
+    }
+  }
+
+  // --- Load the question ---
+  // Determine the correct index (from main array or retry array)
+  const questionIndex = isRetryRound ? questionsToRetry[current] : current;
+  const data = quizData[questionIndex];
+  
+  // Start timer and reset guess trackers for this specific question
+  questionTimers[questionIndex] = Date.now();
+  if (!guessesPerQuestion[questionIndex]) guessesPerQuestion[questionIndex] = 0;
+  currentQuestionFirstAttempt = true; // Reset for this question
+
+  optionsEl.innerHTML = "";
+
+  questionEl.innerHTML = `${data.q}`;
+
+  // Create option buttons
+  data.options.forEach((option, index) => {
+    const btn = document.createElement("button");
+    btn.innerText = option;
+    btn.dataset.index = index;
+    btn.dataset.questionIndex = questionIndex; // IMPORTANT: Store original index
+    btn.onclick = () => handleAnswer(btn, data.correct, questionIndex);
+    optionsEl.appendChild(btn);
+  });
+
+  // Add examples
+  const examples = Array.isArray(data.example) ? data.example : [data.example];
+  const exampleDiv = document.createElement("div");
+  exampleDiv.classList.add("example-container");
+  exampleDiv.innerHTML = `<br><em>Example:<br>${examples.join("<br>")}</em>`;
+  optionsEl.appendChild(exampleDiv);
+
+  // --- Update Header ---
+  // This now just displays the global trackers
+  if (isRetryRound) {
+    progressTrackerEl.childNodes[0].nodeValue = '🔄 '; 
+  } else {
+    progressTrackerEl.childNodes[0].nodeValue = '📝 '; 
+  }
+  currentQuestionEl.innerText = globalQuestionCounter;
+  totalQuestionsEl.innerText = totalQuestionsToAnswer;
+}
+
+// --- NEW Animation Function ---
+function showGemAnimation(amount, isGain) {
+  const rect = gemCounterEl.getBoundingClientRect();
+  const startX = rect.left + (rect.width / 2);
+  const startY = rect.top + (rect.height / 2);
+
+  const textEl = document.createElement('span');
+  textEl.className = 'flying-gem-text';
+  textEl.style.left = startX + 'px';
+  textEl.style.top = startY + 'px';
+
+  if (isGain) {
+    textEl.textContent = `+${amount}`; // Will show +1
+    textEl.classList.add('plus');
+    gemCounterEl.classList.add('gem-gain');
+  } else {
+    textEl.textContent = `-${amount}`; // Will show -1
+    textEl.classList.add('minus');
+    gemCounterEl.classList.add('gem-lose');
+  }
+
+  document.body.appendChild(textEl);
+
+  // Clean up animations
+  setTimeout(() => {
+    textEl.remove();
+  }, 1000);
+
+  setTimeout(() => {
+    gemCounterEl.classList.remove('gem-gain', 'gem-lose');
+  }, 500);
+}
+
+
+function handleAnswer(button, correctIndexes, questionIndex) {
+  // Log the guess for this question
+  if (guessesPerQuestion[questionIndex] === undefined) {
+    guessesPerQuestion[questionIndex] = 1;
+  } else {
+    guessesPerQuestion[questionIndex]++;
+  }
+
+  const idx = parseInt(button.dataset.index);
+  const isCorrect = correctIndexes.includes(idx);
+  const selectedOption = button.innerText;
+  const data = quizData[questionIndex];
+
+  if (isCorrect) {
+    button.classList.add("correct");
+    button.disabled = true;
+
+    // Capture total time taken from question start to correct answer
+    if (questionTimers[questionIndex] !== undefined) {
+      const timeTaken = Math.floor((Date.now() - questionTimers[questionIndex]) / 1000);
+      timePerQuestion[questionIndex] = timeTaken;
+    }
+
+    playCorrectSound();
+    createGoldenSparks(button);
+    createFlyingAnswer(button, selectedOption, questionEl, isRetryRound, questionsToRetry, current, quizData);
+
+    if (currentQuestionFirstAttempt) {
+        firstAttemptCorrect[questionIndex] = true;
+        currentGems += 1; // +1 Gem
+        showGemAnimation(1, true); // Show +1 animation
+    }
+    // Note: No gems are awarded if it's not the first attempt
+
+    currentStreak++;
+    if (currentStreak > highestStreak) highestStreak = currentStreak;
+    streakHistory.push(currentStreak);
+    streakValueEl.innerText = currentStreak; 
+    gemValueEl.innerText = currentGems; // Update gem text
+    if (currentStreak >= 3) {
+      // playStreakSound(); // Removed as requested
+      document.getElementById('streakCounter').classList.add('streak-glow');
+      setTimeout(() => document.getElementById('streakCounter').classList.remove('streak-glow'), 800);
+    }
+
+    // Check if all correct options are selected (for potential future multiple-choice)
+    const allClicked = correctIndexes.every(i =>
+      document.querySelector(`button[data-index="${i}"]`)?.classList.contains("correct")
+    );
+
+    if (allClicked) {
+      correctCount++; // This counter is now a bit redundant, but good for PDF
+      if (currentStreak >= 3) createConfetti(button);
+
+      // --- Show "Next" button ---
+      setTimeout(() => {
+        const exampleEl = document.querySelector(".example-container");
+        if (exampleEl) exampleEl.style.opacity = "1";
+
+        const allOptionButtons = optionsEl.querySelectorAll("button");
+        allOptionButtons.forEach(b => b.style.opacity = 0);
+
+        const filledQuestion = data.q.replace(
+          "___",
+          `<span class="question-highlight">${selectedOption}</span>`
+        );
+        questionEl.innerHTML = `<div class="neon-typewriter">${filledQuestion}</div>`;
+        questionEl.classList.add("focused-question");
+
+        const nextBtn = document.createElement("button");
+        nextBtn.innerText = "➡️ Next";
+        nextBtn.classList.add("next-btn");
+        nextBtn.onclick = () => {
+          if (exampleEl) exampleEl.style.opacity = "1";
+          allOptionButtons.forEach(b => b.style.opacity = "1");
+          
+          current++; // Move to next question index (in either main or retry array)
+          globalQuestionCounter++; // <-- INCREMENT GLOBAL COUNTER
+          
+          loadQuestion();
+          nextBtn.remove();
+        };
+
+        questionEl.appendChild(nextBtn);
+
+      }, 1200);
+    }
+
+  } else {
+    // --- WRONG ANSWER ---
+    if (currentQuestionFirstAttempt) {
+      firstAttemptCorrect[questionIndex] = false; // Mark for retry
+      currentQuestionFirstAttempt = false; // Don't penalize for more clicks on this question
+      
+      totalQuestionsToAnswer++; // <-- HERE: Increment total
+      totalQuestionsEl.innerText = totalQuestionsToAnswer; // <-- HERE: Update header
+    }
+
+    playWrongSound();
+    totalWrongClicks++; 
+    
+    currentGems -= 1; // -1 Gem
+    gemValueEl.innerText = currentGems;
+    showGemAnimation(1, false); // Show -1 animation
+
+    button.classList.add("wrong");
+    setTimeout(() => button.classList.remove("wrong"), 500);
+
+    currentStreak = 0;
+    streakValueEl.innerText = 0; 
+  }
+}
+const EDGE_FUNCTION_URL =
+  "https://ahezssoczvpbkteffcgz.supabase.co/functions/v1/logQuest";
+
+async function sendViaEdgeFunction(payload) {
+  try {
+    const response = await fetch(EDGE_FUNCTION_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      console.error("❌ Edge function error:", await response.text());
+      return false;
+    }
+
+    const data = await response.json().catch(() => ({}));
+    console.log("✅ Saved to Supabase:", data);
+    return true;
+  } catch (err) {
+    console.error("⚠️ Error calling edge function:", err);
+    return false;
+  }
+}
+function goToNextQuest() {
+  window.location.href = NEXT_QUEST_URL;
+}
+
+    function showScore() {
+      clearInterval(timerInterval);
+      const totalTime = Math.floor((Date.now() - startTime) / 1000);
+      
+      document.getElementById("quizContainer").classList.remove("retry-mode");
+      playVictorySound();
+      
+      headerBarEl.style.display = 'none'; 
+      questionEl.innerText = "🎉 Quiz Completed!";
+      optionsEl.innerHTML = "";
+      
+      let allCorrect = firstAttemptCorrect.every(val => val === true);
+      let scoreMessage = allCorrect 
+        ? '<p>✅ All Questions: Answered Correctly on First Attempt!</p>'
+        : '<p>🔄 You had to retry some questions, but you got there!</p>';
+
+     scoreCard.innerHTML = `
+  <div class="score-portal">
+    <p style="font-size:1.3rem;">🎖️ <strong>Quest Complete</strong></p>
+
+    <p>👤 ${playerName} | 🏢 ${playerDepartment}</p>
+    ${scoreMessage}
+
+    <p>💎 Gems: <strong>${currentGems}</strong></p>
+    <p>🔥 Peak Streak: <strong>${highestStreak}</strong></p>
+    <p>⏱️ Time: <strong>${totalTime}s</strong></p>
+
+    <button class="next-quest-btn" onclick="goToNextQuest()">
+      🚀 Continue to Next Quest
+    </button>
+
+    <div class="quest-hint">
+      Quest 132 ✓ → Quest 133
+    </div>
+
+    <button onclick="downloadPDFReport()"
+      style="margin-top:1rem; background:none; border:none; color:#9a9aff; cursor:pointer;">
+      📥 Download Performance Report
+    </button>
+  </div>
+`;
+      restartBtn.style.display = "inline-block";
+      createConfetti(scoreCard);
+
+sendViaEdgeFunction({
+  student_name: playerName,
+  department: playerDepartment,
+  correct: allCorrect ? quizData.length : correctCount,
+  wrong: totalWrongClicks,
+  time_spent: totalTime,
+  quest_id: "Quest 134"
+});
+}
+
+    function startTimer() {
+      timerInterval = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - startTime) / 1000);
+        timeValueEl.innerText = elapsed; 
+      }, 1000);
+    }
+
+function downloadPDFReport(previousScore = 0) {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  
+  const totalTime = Math.floor((Date.now() - startTime) / 1000);
+  const reportDate = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+
+  if (!Array.isArray(timePerQuestion)) timePerQuestion = [];
+  if (!Array.isArray(guessesPerQuestion)) guessesPerQuestion = [];
+
+  // --- PDF Header ---
+  doc.setFillColor(25, 25, 60);
+  doc.rect(0, 0, 210, 50, 'F');
+  doc.setDrawColor(184, 134, 11);
+  doc.setLineWidth(1);
+  doc.line(20, 48, 190, 48);
+  doc.setLineWidth(0.5);
+  doc.line(20, 50, 190, 50);
+
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(18);
+  doc.setFont('times', 'bold');
+  doc.text('SRM VALLIAMMAI ENGINEERING COLLEGE', 105, 18, { align: 'center' });
+  doc.setFontSize(11);
+  doc.setFont('times', 'italic');
+  doc.text('(Autonomous)', 105, 26, { align: 'center' });
+  doc.setFontSize(16);
+  doc.setFont('times', 'normal');
+  doc.text('Department of English', 105, 34, { align: 'center' });
+
+  doc.setFontSize(14);
+  doc.setFont('times', 'bold');
+  doc.setTextColor(212, 175, 55);
+  doc.text('Quest Performance Report', 105, 43, { align: 'center' });
+
+  doc.setTextColor(0, 0, 0);
+
+  // --- Candidate Info Table ---
+  doc.setFontSize(11);
+  doc.setFont('times', 'bold');
+  doc.text('CANDIDATE INFORMATION', 20, 58);
+  doc.setDrawColor(184, 134, 11);
+  doc.setLineWidth(0.5);
+  doc.line(20, 60, 190, 60);
+
+  const studentInfo = [
+    ['Student Name', playerName],
+    ['Department', playerDepartment],
+    ['Time of Quest', reportDate]
+  ];
+
+  doc.autoTable({
+    startY: 64,
+    body: studentInfo,
+    theme: 'plain',
+    styles: { fontSize: 14, font: 'times', cellPadding: 3 }, // Changed from 10
+    columnStyles: {
+      0: { fontStyle: 'bold', cellWidth: 50, textColor: [70, 70, 70] },
+      1: { cellWidth: 130 }
+    },
+    margin: { left: 30, right: 30 } // Changed from 20
+  });
+
+  // --- Performance Metrics Table ---
+  let yPosition = doc.lastAutoTable.finalY + 12;
+  doc.setFontSize(16); // Changed from 11
+  doc.setFont('times', 'bold');
+  doc.text('PERFORMANCE METRICS', 20, yPosition);
+  doc.setDrawColor(184, 134, 11);
+  doc.line(20, yPosition + 2, 190, yPosition + 2);
+  yPosition += 8;
+  
+  let allCorrect = firstAttemptCorrect.every(val => val === true);
+  let finalStatus = allCorrect ? "Passed - First Attempt" : "Passed - With Retries";
+
+  const metricsInfo = [
+    ['Final Status', finalStatus],
+    ['Total Questions Answered', totalQuestionsToAnswer.toString()],
+    ['Total Gem Score', `💎 ${currentGems}`], 
+    ['Total Wrong Clicks', totalWrongClicks.toString()],
+    ['Longest Correct Streak', highestStreak.toString()],
+    ['Total Time', `${Math.floor(totalTime / 60)}m ${totalTime % 60}s`],
+    ['Attempts per Question', guessesPerQuestion.join(', ')]
+  ];
+
+  doc.autoTable({
+    startY: yPosition,
+    body: metricsInfo,
+    theme: 'striped',
+    styles: { fontSize: 12, font: 'times', cellPadding: 3 }, // Changed from 9
+    columnStyles: { 
+      0: { fontStyle: 'bold', cellWidth: 70, textColor: [70, 70, 70] },
+      1: { cellWidth: 110}
+    },
+    margin: { left: 30, right: 30 } // Changed from 20
+  });
+
+  // --- Question Breakdown ---
+  yPosition = doc.lastAutoTable.finalY + 15;
+  if (yPosition > 250) { doc.addPage(); yPosition = 20; }
+  doc.setFontSize(16); // Changed from 11
+  doc.setFont('times', 'bold');
+  doc.text('QUESTION BANK WITH CORRECT RESPONSES', 20, yPosition);
+  doc.setDrawColor(184, 134, 11);
+  doc.line(20, yPosition + 2, 190, yPosition + 2);
+  yPosition += 10;
+
+  quizData.forEach((item, idx) => {
+    if (yPosition > 245) { doc.addPage(); yPosition = 25; }
+
+    doc.setFontSize(14); // Changed from 10
+    doc.setFont('times', 'bold');
+    doc.setTextColor(25, 25, 60);
+    doc.text(`Question ${idx + 1}:`, 20, yPosition);
+
+    doc.setTextColor(0, 0, 0);
+    doc.setFont('times', 'normal');
+    const questionLines = doc.splitTextToSize(item.q, 145); // Narrowed from 165
+    doc.text(questionLines, 20, yPosition + 5);
+    yPosition += 5 + (5 * questionLines.length);
+
+    doc.setFont('times', 'bold');
+    doc.setTextColor(0, 100, 0);
+    const correctAnswers = item.correct.map(i => item.options[i]).join(', ');
+    doc.text('Correct Answer:', 20, yPosition);
+    doc.setFont('times', 'normal');
+    const answerLines = doc.splitTextToSize(correctAnswers, 125); // Narrowed from 145
+    doc.text(answerLines, 55, yPosition);
+    yPosition += 5 + (4 * (answerLines.length - 1));
+
+    doc.setTextColor(150, 0, 0);
+    const attemptsText = guessesPerQuestion[idx] !== undefined ? guessesPerQuestion[idx].toString() : 'N/A';
+    doc.text(`Number of Attempts: ${attemptsText}`, 20, yPosition);
+    yPosition += 6;
+
+    doc.setTextColor(70, 70, 70);
+    doc.setFont('times', 'italic');
+    doc.setFontSize(11); // Changed from 9
+    doc.text('Examples:', 20, yPosition);
+    yPosition += 5;
+    item.example.forEach((ex, exIdx) => {
+      const exLines = doc.splitTextToSize(`${exIdx + 1}. ${ex}`, 145); // Narrowed from 165
+      doc.text(exLines, 25, yPosition);
+      yPosition += 4 * exLines.length;
+    });
+
+    yPosition += 6;
+    doc.setDrawColor(230, 230, 230);
+    doc.setLineWidth(0.3);
+    doc.line(20, yPosition, 190, yPosition);
+    yPosition += 8;
+  });
+
+  // --- PDF Footer ---
+  doc.setDrawColor(184, 134, 11);
+  doc.setLineWidth(0.5);
+  doc.line(20, 280, 190, 280);
+  doc.setFontSize(8);
+  doc.setTextColor(128, 128, 128);
+  doc.setFont('times', 'italic');
+  doc.text('This is a system-generated report', 105, 287, { align: 'center' });
+
+  const cleanName = playerName.replace(/[^a-zA-Z0-9]/g, '_');
+  doc.save(`${cleanName}_Quest_Report.pdf`);
+}
+
+    restartBtn.onclick = () => {
+      document.getElementById("quizContainer").classList.remove("retry-mode");
+      document.getElementById("quizContent").style.display = "none";
+      headerBarEl.style.display = 'none'; 
+      document.getElementById("nameForm").style.display = "block";
+      document.getElementById("nameInput").value = "";
+      // Reset department dropdown
+      document.getElementById("departmentSelect").selectedIndex = 0;
+    };
+  </script>
+</body>
+</html>

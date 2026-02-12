@@ -813,12 +813,18 @@ async function downloadProfilePDF(studentObj) {
   document.body.appendChild(pdfArea);
   await new Promise(r => setTimeout(r, 300));
 
-  const canvas = await html2canvas(pdfArea, { scale: 2 });
+  const canvas = await html2canvas(pdfArea, { scale: 3 });
   const imgData = canvas.toDataURL("image/png");
 
   const pdf = new jsPDF("p", "pt", "a4");
-  pdf.addImage(imgData, "PNG", 10, 10, 575, 822);
-  pdf.save(`${studentObj.name}_Profile.pdf`);
+
+const pageWidth = pdf.internal.pageSize.getWidth();
+
+/* Fit width — allow natural height */
+const imgWidth = pageWidth - 20;
+const imgHeight = canvas.height * imgWidth / canvas.width;
+
+pdf.addImage(imgData, "PNG", 10, 10, imgWidth, imgHeight);  pdf.save(`${studentObj.name}_Profile.pdf`);
 
   pdfArea.remove();
 }

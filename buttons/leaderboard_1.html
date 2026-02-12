@@ -342,22 +342,30 @@ B = new Date(b.last_test_taken).getTime();
           }
         } else {
 
-          row.innerHTML = `
-            <div class="rank">
-              ${idx < 3 ? getMedalEmoji(idx) : rank}
-            </div>
-            <div class="name">
-              <div class="cadet-name">${s.name}</div>
-              <div class="metric-tag">
-                ${currentSort === "accuracy" ? "TARGET LOCK" : 
-                  currentSort === "quests_completed" ? "QUESTS" :
-                  currentSort === "videos_completed" ? "VIDEOS" :
-                  currentSort === "stories_completed" ? "STORIES" : ""}
-              </div>
-            </div>
-            <div class="score">${displayValue}</div>
-          `;
-        }
+         row.innerHTML = `
+  <div class="rank">
+    ${idx < 3 ? getMedalEmoji(idx) : rank}
+  </div>
+
+  <div class="name">
+    <div class="cadet-name">
+      ${s.name}
+      <span class="dept-inline">
+        ${s.department ? `· ${s.department}` : ""}
+      </span>
+    </div>
+
+    <div class="metric-tag">
+      ${currentSort === "accuracy" ? "TARGET LOCK" : 
+        currentSort === "quests_completed" ? "QUESTS" :
+        currentSort === "videos_completed" ? "VIDEOS" :
+        currentSort === "stories_completed" ? "STORIES" : ""}
+    </div>
+  </div>
+
+  <div class="score">${displayValue}</div>
+`;
+}
 
         row.onclick = () => showDetail(s);
         container.appendChild(row);
@@ -368,9 +376,10 @@ B = new Date(b.last_test_taken).getTime();
       return idx === 0 ? "🚀" : idx === 1 ? "🛰️" : "🌌";
     }
 
-    // === Mission Calendar Logic ===
     const START_DATE = new Date("2025-08-25");
 
+/* NEW — controls visible calendar range only */
+const CALENDAR_VISIBLE_START = new Date("2026-02-01");
     function mapToDate(number) {
       const d = new Date(START_DATE);
       d.setDate(d.getDate() + (number - 1));
@@ -461,8 +470,11 @@ B = new Date(b.last_test_taken).getTime();
       const container = document.getElementById(containerId);
       container.innerHTML = "";
 
-      let cursor = new Date(START_DATE.getFullYear(), START_DATE.getMonth(), 1);
-      const today = new Date();
+      let cursor = new Date(
+  CALENDAR_VISIBLE_START.getFullYear(),
+  CALENDAR_VISIBLE_START.getMonth(),
+  1
+);   const today = new Date();
       const end = new Date(today.getFullYear(), today.getMonth(), 1);
 
       while (cursor <= end) {
@@ -497,9 +509,9 @@ B = new Date(b.last_test_taken).getTime();
             <div class="stat-foot">Hit Rate</div>
           </div>
           <div class="stat-box">
-            <div class="stat-label">Attempts</div>
+            <div class="stat-label">Quests</div>
             <div class="stat-value">${s.total_attempts ?? 0}</div>
-            <div class="stat-foot">Shots Fired</div>
+            <div class="stat-foot">Quests conquered</div>
           </div>
           <div class="stat-box">
             <div class="stat-label">Correct</div>
@@ -776,8 +788,11 @@ async function downloadProfilePDF(studentObj) {
   const tempCalendarContainer = pdfArea.querySelector("#pdf-mini-calendar");
   const grouped = groupByDate(quests, videos, stories);
 
-  let cursor = new Date(START_DATE.getFullYear(), START_DATE.getMonth(), 1);
-  const today = new Date();
+  let cursor = new Date(
+  CALENDAR_VISIBLE_START.getFullYear(),
+  CALENDAR_VISIBLE_START.getMonth(),
+  1
+);  const today = new Date();
   const end = new Date(today.getFullYear(), today.getMonth(), 1);
 
   while (cursor <= end) {
@@ -1627,6 +1642,637 @@ async function downloadProfilePDF(studentObj) {
   text-transform: uppercase;
   color: var(--text-secondary);
   white-space: nowrap;
+}
+    :root {
+  /* BLACKS */
+  --bg-deep: #0B0B0C;
+  --bg-surface: rgba(17, 17, 19, 0.94);
+  --bg-surface-strong: rgba(11, 11, 12, 0.98);
+  --bg-muted: rgba(24, 24, 27, 0.9);
+
+  /* TEXT */
+  --text-primary: #F8F7F3;
+  --text-secondary: rgba(212, 175, 55, 0.65);
+
+  /* GOLD ACCENTS */
+  --accent-primary: #D4AF37;
+  --accent-secondary: #E6C45A;
+  --accent-warm: #F5E6A8;
+
+  /* METALS */
+  --gold: #D4AF37;
+  --silver: #C7C7C7;
+  --bronze: #B87333;
+
+  /* STATUS */
+  --danger: #B91C1C;
+  --success: #15803D;
+
+  /* BORDERS */
+  --border-color: rgba(212, 175, 55, 0.35);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background:
+    radial-gradient(circle at top, rgba(212,175,55,0.18), transparent 55%),
+    radial-gradient(circle at bottom, rgba(255,215,0,0.12), transparent 60%),
+    #0B0B0C;
+  color: var(--text-primary);
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  min-height: 100vh;
+  padding: 14px 10px 32px;
+  overflow-x: hidden;
+}
+
+/* subtle grid */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(212,175,55,0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(212,175,55,0.05) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* FRAME */
+.command-frame {
+  max-width: 960px;
+  margin: 0 auto;
+  border-radius: 18px;
+  border: 1px solid rgba(212,175,55,0.6);
+  background: linear-gradient(135deg, rgba(11,11,12,0.96), rgba(17,17,19,0.98));
+  box-shadow:
+    0 0 0 1px rgba(0,0,0,0.9),
+    0 30px 80px rgba(0,0,0,0.95),
+    0 0 26px rgba(212,175,55,0.35);
+  overflow: hidden;
+}
+
+/* HEADER */
+.header {
+  padding: 18px;
+  border-bottom: 1px solid rgba(212,175,55,0.4);
+}
+
+.mission-title {
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.title {
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: linear-gradient(120deg, #F5E6A8, #D4AF37, #B8962E);
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
+/* BADGE */
+.badge-live {
+  background: rgba(11,11,12,0.95);
+  border: 1px solid rgba(212,175,55,0.6);
+  border-radius: 999px;
+  padding: 6px 10px;
+  cursor: pointer;
+  box-shadow: 0 0 12px rgba(212,175,55,0.5);
+}
+
+.badge-dot {
+  background: var(--accent-primary);
+  box-shadow: 0 0 10px var(--accent-primary);
+}
+
+/* CONTROLS */
+.top-controls {
+  display: flex;
+  gap: 10px;
+  padding: 12px 18px;
+  border-bottom: 1px solid rgba(212,175,55,0.3);
+}
+
+.department-filter select {
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(11,11,12,0.96);
+  color: var(--text-primary);
+  border: 1px solid rgba(212,175,55,0.6);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* SORT BUTTONS */
+.sort-buttons {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.sort-btn,
+#time-toggle {
+  background:
+    radial-gradient(circle at 0 0, rgba(212,175,55,0.35), transparent 55%),
+    rgba(11,11,12,0.96);
+  border: 1px solid rgba(212,175,55,0.55);
+  color: var(--text-primary);
+  padding: 7px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+}
+
+.sort-btn.active {
+  background: linear-gradient(135deg, #D4AF37, #B8962E);
+  color: #0B0B0C;
+  border-color: #F5E6A8;
+  box-shadow: 0 0 16px rgba(212,175,55,0.6);
+}
+
+/* LEADERBOARD */
+#leaderboard {
+  margin: 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(212,175,55,0.55);
+  background: rgba(11,11,12,0.97);
+  overflow: hidden;
+}
+
+.leaderboard-row {
+  display: grid;
+  grid-template-columns: 48px 1fr auto;
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(212,175,55,0.25);
+  cursor: pointer;
+}
+
+.leaderboard-row:hover {
+  background: rgba(212,175,55,0.08);
+}
+
+/* RANKS */
+.leaderboard-row.gold { border-left: 3px solid var(--gold); }
+.leaderboard-row.silver { border-left: 3px solid var(--silver); }
+.leaderboard-row.bronze { border-left: 3px solid var(--bronze); }
+
+/* TEXT */
+.rank {
+  font-weight: 800;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.cadet-name,
+.full-name {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.metric-tag,
+.last-test-small {
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  color: var(--text-secondary);
+}
+
+/* SCORE */
+.score {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--accent-primary);
+  min-width: 90px;
+  text-align: right;
+}
+
+/* MODAL */
+#modal {
+  background: rgba(11,11,12,0.92);
+  backdrop-filter: blur(6px);
+}
+
+#modal-content {
+  background: rgba(11,11,12,0.98);
+  border-radius: 18px;
+  border: 1px solid rgba(212,175,55,0.7);
+  box-shadow: 0 30px 80px rgba(0,0,0,0.95);
+}
+
+/* STATS */
+.stat-box {
+  background: rgba(17,17,19,0.96);
+  border: 1px solid rgba(212,175,55,0.55);
+}
+
+.stat-label {
+  color: var(--text-secondary);
+}
+
+.stat-value {
+  color: var(--accent-primary);
+}
+
+/* MINI CALENDAR */
+.mini-cal-day {
+  background: rgba(11,11,12,0.96);
+  border: 1px solid rgba(212,175,55,0.4);
+}
+
+.mini-cal-day.marked {
+  background: rgba(212,175,55,0.25);
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 12px rgba(212,175,55,0.5);
+}
+
+/* RESPONSIVE */
+@media (max-width: 600px) {
+  .top-controls {
+    flex-direction: column;
+  }
+}
+/* ======================================================
+   POSH BLACK & GOLD SKIN — OVERRIDES ONLY
+   Safe to paste at END of existing <style>
+   ====================================================== */
+
+:root {
+  --bg-deep: #0B0B0C;
+  --bg-surface: rgba(17,17,19,0.94);
+  --bg-surface-strong: rgba(11,11,12,0.98);
+  --bg-muted: rgba(24,24,27,0.9);
+
+  --text-primary: #F8F7F3;
+  --text-secondary: rgba(212,175,55,0.65);
+
+  --accent-primary: #D4AF37;
+  --accent-secondary: #E6C45A;
+  --accent-warm: #F5E6A8;
+
+  --gold: #D4AF37;
+  --silver: #C7C7C7;
+  --bronze: #B87333;
+
+  --border-color: rgba(212,175,55,0.4);
+}
+
+/* BODY BACKDROP */
+body {
+  background:
+    radial-gradient(circle at top, rgba(212,175,55,0.18), transparent 55%),
+    radial-gradient(circle at bottom, rgba(255,215,0,0.12), transparent 60%),
+    #0B0B0C !important;
+}
+
+/* FRAME */
+.command-frame {
+  border-color: rgba(212,175,55,0.65);
+  box-shadow:
+    0 0 0 1px rgba(0,0,0,0.9),
+    0 30px 80px rgba(0,0,0,0.95),
+    0 0 28px rgba(212,175,55,0.35);
+}
+
+/* HEADER & TITLES */
+.header {
+  border-bottom-color: rgba(212,175,55,0.4);
+}
+
+.title {
+  background: linear-gradient(120deg, #F5E6A8, #D4AF37, #B8962E);
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
+.mission-title,
+.subtitle,
+.metric-tag,
+.last-test-small {
+  color: rgba(212,175,55,0.7);
+}
+
+/* BUTTONS */
+.sort-btn,
+#time-toggle,
+.badge-live {
+  border-color: rgba(212,175,55,0.6);
+}
+
+.sort-btn.active {
+  background: linear-gradient(135deg, #D4AF37, #B8962E);
+  color: #0B0B0C;
+}
+
+/* LEADERBOARD */
+#leaderboard {
+  border-color: rgba(212,175,55,0.55);
+}
+
+.leaderboard-row {
+  border-bottom-color: rgba(212,175,55,0.25);
+}
+
+.leaderboard-row:hover {
+  background: rgba(212,175,55,0.08);
+}
+
+.rank {
+  color: rgba(212,175,55,0.75);
+}
+
+.score {
+  color: var(--accent-primary);
+}
+
+/* MODAL */
+#modal {
+  background: rgba(11,11,12,0.92);
+}
+
+#modal-content {
+  border-color: rgba(212,175,55,0.7);
+}
+
+/* STAT CARDS */
+.stat-box {
+  border-color: rgba(212,175,55,0.55);
+}
+
+.stat-value {
+  color: var(--accent-primary);
+}
+
+/* MINI CALENDAR */
+.mini-cal-day {
+  border-color: rgba(212,175,55,0.4);
+}
+
+.mini-cal-day.marked {
+  background:
+    radial-gradient(circle at 0 0, rgba(212,175,55,0.3), transparent 55%),
+    rgba(11,11,12,0.98);
+  box-shadow: 0 0 12px rgba(212,175,55,0.5);
+}
+/* Department label next to name */
+.dept-inline {
+  margin-left: 6px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(212,175,55,0.65);
+  white-space: nowrap;
+}
+
+/* Mobile: stack department under name if needed */
+@media (max-width: 520px) {
+  .dept-inline {
+    display: block;
+    margin-left: 0;
+    margin-top: 2px;
+    font-size: 9px;
+  }
+}
+
+body::after,
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -2;
+}
+
+/* Small stars */
+body::before {
+  background-image:
+    radial-gradient(1px 1px at 10% 20%, rgba(245,230,168,0.9), transparent),
+    radial-gradient(1px 1px at 30% 80%, rgba(212,175,55,0.8), transparent),
+    radial-gradient(1px 1px at 50% 40%, rgba(255,255,255,0.6), transparent),
+    radial-gradient(1px 1px at 70% 10%, rgba(212,175,55,0.7), transparent),
+    radial-gradient(1px 1px at 90% 60%, rgba(245,230,168,0.85), transparent),
+    radial-gradient(1px 1px at 20% 50%, rgba(255,255,255,0.5), transparent),
+    radial-gradient(1px 1px at 80% 90%, rgba(212,175,55,0.6), transparent);
+  animation: twinkle-small 9s infinite ease-in-out;
+  opacity: 0.8;
+}
+
+/* Medium stars */
+body::after {
+  background-image:
+    radial-gradient(2px 2px at 15% 35%, rgba(245,230,168,0.9), transparent),
+    radial-gradient(2px 2px at 45% 65%, rgba(212,175,55,0.85), transparent),
+    radial-gradient(2px 2px at 75% 25%, rgba(255,255,255,0.7), transparent),
+    radial-gradient(2px 2px at 85% 75%, rgba(245,230,168,0.8), transparent);
+  animation: twinkle-medium 14s infinite ease-in-out;
+  opacity: 0.65;
+}
+
+/* Optional: faint glow haze */
+.command-frame::after {
+  content: "";
+  position: absolute;
+  inset: -40%;
+  background:
+    radial-gradient(circle at 30% 20%, rgba(212,175,55,0.08), transparent 55%),
+    radial-gradient(circle at 70% 80%, rgba(245,230,168,0.06), transparent 60%);
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* ANIMATIONS */
+@keyframes twinkle-small {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+@keyframes twinkle-medium {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.85; }
+}
+    /* ======================================================
+   WHITE & POSH GOLD — PREMIUM PRINT THEME
+   Safe Overrides (Paste at END of <style>)
+   ====================================================== */
+
+:root {
+  --bg-deep: #FFFFFF;
+  --bg-surface: #FFFFFF;
+  --bg-surface-strong: #FFFFFF;
+  --bg-muted: #FAFAFA;
+
+  --text-primary: #111111;
+  --text-secondary: rgba(180, 140, 20, 0.75);
+
+  --accent-primary: #C6A437;     /* Posh gold */
+  --accent-secondary: #E5C76B;   /* Soft gold */
+  --accent-warm: #F4E7C2;
+
+  --gold: #C6A437;
+  --silver: #888888;
+  --bronze: #B87333;
+
+  --border-color: rgba(198,164,55,0.45);
+}
+
+/* BODY */
+body {
+  background: #FFFFFF !important;
+  color: var(--text-primary);
+}
+
+/* Remove starfield / grid visuals for clean print look */
+body::before,
+body::after {
+  display: none !important;
+}
+
+/* FRAME */
+.command-frame {
+  background: #FFFFFF;
+  border: 1px solid rgba(198,164,55,0.55);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+}
+
+/* HEADER */
+.header {
+  background: #FFFFFF;
+  border-bottom: 1px solid rgba(198,164,55,0.35);
+}
+
+.title {
+  background: linear-gradient(120deg, #E5C76B, #C6A437);
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
+.mission-title,
+.subtitle,
+.metric-tag,
+.last-test-small {
+  color: rgba(180,140,20,0.75);
+}
+
+/* BUTTONS */
+.sort-btn,
+#time-toggle,
+.badge-live {
+  background: #FFFFFF;
+  border: 1px solid rgba(198,164,55,0.55);
+  color: var(--text-primary);
+}
+
+.sort-btn:hover {
+  background: rgba(198,164,55,0.08);
+}
+
+.sort-btn.active {
+  background: linear-gradient(135deg, #E5C76B, #C6A437);
+  color: #FFFFFF;
+  border-color: #C6A437;
+  box-shadow: 0 4px 12px rgba(198,164,55,0.35);
+}
+
+/* LEADERBOARD */
+#leaderboard {
+  background: #FFFFFF;
+  border: 1px solid rgba(198,164,55,0.45);
+}
+
+.leaderboard-header-row {
+  background: rgba(198,164,55,0.08);
+  color: var(--text-secondary);
+}
+
+.leaderboard-row {
+  background: #FFFFFF;
+  border-bottom: 1px solid rgba(198,164,55,0.18);
+}
+
+.leaderboard-row:hover {
+  background: rgba(198,164,55,0.06);
+}
+
+.rank {
+  color: rgba(198,164,55,0.9);
+}
+
+.score {
+  color: var(--accent-primary);
+}
+
+/* TOP 3 */
+.leaderboard-row.gold {
+  border-left: 3px solid var(--gold);
+  background: rgba(198,164,55,0.05);
+}
+
+.leaderboard-row.silver {
+  border-left: 3px solid var(--silver);
+}
+
+.leaderboard-row.bronze {
+  border-left: 3px solid var(--bronze);
+}
+
+/* MODAL */
+#modal {
+  background: rgba(255,255,255,0.95);
+}
+
+#modal-content {
+  background: #FFFFFF;
+  border: 1px solid rgba(198,164,55,0.55);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.12);
+}
+
+.modal-header h2 {
+  color: var(--accent-primary);
+}
+
+/* STAT CARDS */
+.stat-box {
+  background: #FFFFFF;
+  border: 1px solid rgba(198,164,55,0.35);
+}
+
+.stat-label {
+  color: var(--text-secondary);
+}
+
+.stat-value {
+  color: var(--accent-primary);
+}
+
+/* MINI CALENDAR */
+.mini-cal-day {
+  background: #FFFFFF;
+  border: 1px solid rgba(198,164,55,0.35);
+  color: #111111;
+}
+
+.mini-cal-day.marked {
+  background: rgba(198,164,55,0.18);
+  border-color: var(--accent-primary);
+}
+
+/* DEPARTMENT LABEL */
+.dept-inline {
+  color: rgba(180,140,20,0.8);
 }
   </style>
 </head>

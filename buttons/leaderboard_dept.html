@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Mission Leaderboard</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -11,6 +11,7 @@
 <script type="module">
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+/* ✅ Supabase */
 const supabase = createClient(
   "https://ahezssoczvpbkteffcgz.supabase.co",
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoZXpzc29jenZwYmt0ZWZmY2d6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI4NTk1ODUsImV4cCI6MjA3ODQzNTU4NX0.2ZlqXnZxv0opkhynAT7OlK4S-xPygcc7ETUyTXRfGHE"
@@ -18,123 +19,80 @@ const supabase = createClient(
 
 let reportData = [];
 let filteredData = [];
-let currentSort = "last_test_taken";
-let sortAscending = false;
 
 const START_DATE = new Date("2025-08-25");
 const CALENDAR_VISIBLE_START = new Date("2026-02-01");
 
-async function loadData() {
+/* ========================================================= */
+
+function safeLoader(show) {
   const loader = document.getElementById("loader");
-  loader.style.display = "flex";
-
-  const { data, error } = await supabase
-    .from("report_card_view")
-    .select("*");
-
-  loader.style.display = "none";
-
-  if (error) {
-    document.getElementById("error").textContent =
-      "⚠️ Unable to load data.";
-    return;
-  }
-
-  reportData = data || [];
-  filteredData = [...reportData];
-
-  filteredData.sort(
-    (a, b) =>
-      new Date(b.last_test_taken || 0) -
-      new Date(a.last_test_taken || 0)
-  );
-
-  populateDepartmentDropdown(reportData);
-  renderLeaderboard();
-  renderClassCalendar();   // ✅ NEW
+  if (!loader) return;
+  loader.style.display = show ? "block" : "none";
 }
 
-function formatDate(dateStr) {
-  if (!dateStr) return "N/A";
-  const date = new Date(dateStr);
-  return date.toLocaleString('en-IN', {
-    timeZone: 'Asia/Kolkata'
-  });
+function showError(msg) {
+  const errorBox = document.getElementById("error");
+  if (!errorBox) return;
+  errorBox.textContent = msg;
 }
 
-function formatTime(seconds) {
-  seconds = Math.round(seconds || 0);
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  const s = seconds % 60;
+/* ========================================================= */
 
-  return `${h}h ${m}m ${s}s`;
-}
+async function loadData() {
+  console.log("▶ Loading data...");
 
-function populateDepartmentDropdown(data) {
-  const select = document.getElementById("departmentSelect");
-  select.innerHTML = `<option value="ALL">All Departments</option>`;
+  safeLoader(true);
 
-  const departments = [...new Set(
-    data.map(s => (s.department || "").toUpperCase()).filter(Boolean)
-  )].sort();
+  try {
+    const { data, error } = await supabase
+      .from("report_card_view")
+      .select("*");
 
-  departments.forEach(dept => {
-    const opt = document.createElement("option");
-    opt.value = dept;
-    opt.textContent = dept;
-    select.appendChild(opt);
-  });
-}
+    safeLoader(false);
 
-window.applyDepartmentFilter = function(dept) {
-  if (dept === "ALL") {
+    if (error) {
+      console.error("❌ Supabase error:", error);
+      showError("⚠️ Data fetch failed");
+      return;
+    }
+
+    reportData = data || [];
     filteredData = [...reportData];
-  } else {
-    filteredData = reportData.filter(
-      s => (s.department || "").toUpperCase() === dept
-    );
+
+    console.log("✅ Rows loaded:", reportData.length);
+
+    renderLeaderboard();
+    renderClassCalendar();
+
+  } catch (err) {
+    safeLoader(false);
+    console.error("❌ Fatal error:", err);
+    showError("⚠️ Unexpected crash — check console");
   }
+}
 
-  renderLeaderboard();
-};
-
-window.sortData = function(key) {
-  currentSort = key;
-
-  filteredData.sort((a, b) => {
-    return (b[key] || 0) - (a[key] || 0);
-  });
-
-  renderLeaderboard();
-};
+/* ========================================================= */
 
 function renderLeaderboard() {
   const container = document.getElementById("leaderboard");
-  container.innerHTML = "";
+  if (!container) return;
 
-  filteredData.forEach((s, idx) => {
-    const row = document.createElement("div");
-    row.className = "leaderboard-row";
+  if (filteredData.length === 0) {
+    container.innerHTML = "<p>No data</p>";
+    return;
+  }
 
-    row.innerHTML = `
-      <div class="rank">${idx + 1}</div>
-      <div class="name">${s.name}</div>
-      <div class="score">${
-        currentSort === "last_test_taken"
-          ? formatDate(s.last_test_taken)
-          : (s[currentSort] || 0)
-      }</div>
-    `;
-
-    row.onclick = () => showDetail(s);
-    container.appendChild(row);
-  });
+  container.innerHTML = filteredData.map((s, idx) => `
+    <div class="leaderboard-row">
+      <div>${idx + 1}</div>
+      <div>${s.name}</div>
+      <div>${Math.round((s.accuracy || 0) * 100)}%</div>
+    </div>
+  `).join("");
 }
 
-/* =========================================================
-   STUDENT DETAIL
-   ========================================================= */
+/* ========================================================= */
 
 function mapToDate(number) {
   const d = new Date(START_DATE);
@@ -154,33 +112,9 @@ function parseItems(rawList) {
     });
 }
 
-function showDetail(s) {
-  const modal = document.getElementById("modal");
-  const content = document.getElementById("modal-content");
-
-  content.innerHTML = `
-    <div class="modal-header">
-      <h2>${s.name}</h2>
-      <button class="close-btn" onclick="closeModal()">×</button>
-    </div>
-
-    <div class="detail-box">
-      <p>Department: ${s.department || "N/A"}</p>
-      <p>Accuracy: ${Math.round((s.accuracy || 0) * 100)}%</p>
-      <p>Total Time: ${formatTime(s.total_time)}</p>
-    </div>
-  `;
-
-  modal.style.display = "flex";
-}
-
-window.closeModal = function() {
-  document.getElementById("modal").style.display = "none";
-};
-
-/* =========================================================
-   ✅ CLASS CALENDAR
-   ========================================================= */
+/* ========================================================= */
+/* ✅ CLASS CALENDAR */
+/* ========================================================= */
 
 function buildClassDateMap(data) {
   const map = {};
@@ -218,100 +152,33 @@ function renderClassCalendar() {
   const container = document.getElementById("class-calendar");
   if (!container) return;
 
+  if (reportData.length === 0) {
+    container.innerHTML = "<p>No activity</p>";
+    return;
+  }
+
   const dateMap = buildClassDateMap(reportData);
-  window.classDateMap = dateMap;
 
-  let cursor = new Date(
-    CALENDAR_VISIBLE_START.getFullYear(),
-    CALENDAR_VISIBLE_START.getMonth(),
-    1
-  );
+  let html = "";
 
-  const today = new Date();
-  const end = new Date(today.getFullYear(), today.getMonth(), 1);
+  Object.keys(dateMap).slice(-30).forEach(dateKey => {
+    const total = Object.values(dateMap[dateKey])
+      .reduce((sum, arr) => sum + arr.length, 0);
 
-  container.innerHTML = "";
+    const intensity = getIntensity(total);
 
-  while (cursor <= end) {
-    container.innerHTML += renderClassMonth(cursor, dateMap);
-    cursor.setMonth(cursor.getMonth() + 1);
-  }
-}
-
-function renderClassMonth(baseDate, dateMap) {
-  const year = baseDate.getFullYear();
-  const month = baseDate.getMonth();
-
-  const firstDay = new Date(year, month, 1).getDay();
-  const numDays = new Date(year, month + 1, 0).getDate();
-
-  let html = `
-    <div>
-      <div class="mini-cal-title">
-        ${baseDate.toLocaleString('en-IN', { month: 'long', year: 'numeric' })}
-      </div>
-
-      <div class="calendar-grid">
-        <div>Sun</div><div>Mon</div><div>Tue</div>
-        <div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
-  `;
-
-  for (let i = 0; i < firstDay; i++) {
-    html += `<div></div>`;
-  }
-
-  for (let d = 1; d <= numDays; d++) {
-    const date = new Date(year, month, d);
-    const key = date.toDateString();
-    const entry = dateMap[key];
-
-    if (entry) {
-      const total = Object.values(entry)
-        .reduce((sum, arr) => sum + arr.length, 0);
-
-      const intensity = getIntensity(total);
-
-      html += `
-        <div class="day marked ${intensity}" onclick="showDateBreakdown('${key}')">
-          <div class="date-num">${d}</div>
-          <div class="count">${total}</div>
-        </div>
-      `;
-    } else {
-      html += `<div class="day">${d}</div>`;
-    }
-  }
-
-  html += "</div></div>";
-  return html;
-}
-
-window.showDateBreakdown = function(dateKey) {
-  const entry = window.classDateMap[dateKey];
-  if (!entry) return;
-
-  const modal = document.getElementById("modal");
-  const content = document.getElementById("modal-content");
-
-  let html = `
-    <div class="modal-header">
-      <h2>${dateKey}</h2>
-      <button class="close-btn" onclick="closeModal()">×</button>
-    </div>
-  `;
-
-  Object.keys(entry).sort().forEach(dept => {
     html += `
-      <div class="detail-box">
-        <h3>${dept} (${entry[dept].length})</h3>
-        ${entry[dept].map(n => `<p>• ${n}</p>`).join("")}
+      <div class="calendar-day ${intensity}">
+        <div>${dateKey}</div>
+        <div>${total}</div>
       </div>
     `;
   });
 
-  content.innerHTML = html;
-  modal.style.display = "flex";
-};
+  container.innerHTML = html;
+}
+
+/* ========================================================= */
 
 window.onload = loadData;
 
@@ -326,85 +193,48 @@ body {
   padding: 20px;
 }
 
-/* Leaderboard */
+#loader {
+  display: none;
+  color: #D4AF37;
+  margin-bottom: 10px;
+}
+
+#error {
+  color: red;
+  margin-bottom: 10px;
+}
 
 .leaderboard-row {
   display: grid;
-  grid-template-columns: 50px 1fr auto;
+  grid-template-columns: 40px 1fr auto;
   padding: 10px;
   border-bottom: 1px solid rgba(212,175,55,0.2);
-  cursor: pointer;
 }
 
-.score { color: #D4AF37; }
-
-/* Calendar */
-
-.calendar-grid {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 6px;
-}
-
-.day {
-  background: #111;
+.calendar-day {
+  padding: 10px;
+  margin: 6px 0;
   border-radius: 8px;
-  padding: 6px;
-  min-height: 60px;
 }
 
-.day.marked { border: 1px solid #D4AF37; }
-
-.day.light { background: rgba(212,175,55,0.18); }
-.day.medium { background: rgba(212,175,55,0.28); }
-.day.heavy { background: rgba(212,175,55,0.38); }
-.day.peak { background: rgba(212,175,55,0.6); }
-
-.count {
-  font-size: 18px;
-  color: #D4AF37;
-}
-
-/* Modal */
-
-#modal {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.85);
-  justify-content: center;
-  align-items: center;
-}
-
-#modal-content {
-  background: #111;
-  padding: 20px;
-  border-radius: 14px;
-  width: 90%;
-  max-width: 420px;
-}
-
-.close-btn { cursor: pointer; }
+.light { background: rgba(212,175,55,0.18); }
+.medium { background: rgba(212,175,55,0.28); }
+.heavy { background: rgba(212,175,55,0.38); }
+.peak { background: rgba(212,175,55,0.6); }
 
 </style>
 </head>
 
 <body>
 
-<h2>Leaderboard</h2>
-<div id="leaderboard"></div>
-
-<div class="detail-box">
-  <h3>📅 Class Activity Calendar</h3>
-  <div id="class-calendar"></div>
-</div>
-
 <div id="loader">Loading...</div>
 <div id="error"></div>
 
-<div id="modal">
-  <div id="modal-content"></div>
-</div>
+<h2>Leaderboard</h2>
+<div id="leaderboard"></div>
+
+<h3>📅 Class Activity Calendar</h3>
+<div id="class-calendar"></div>
 
 </body>
 </html>

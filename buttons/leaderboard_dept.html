@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Mission Leaderboard</title>
+<title>Class Activity Console</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
@@ -45,8 +45,6 @@ async function loadData() {
 }
 
 /* ========================================================= */
-/* Department Filter */
-/* ========================================================= */
 
 function populateDepartmentDropdown() {
   const select = document.getElementById("departmentSelect");
@@ -67,11 +65,10 @@ function populateDepartmentDropdown() {
 
 window.changeDepartment = function(dept) {
   currentDepartment = dept;
+  clearBreakdown();
   renderClassCalendar();
 };
 
-/* ========================================================= */
-/* Helpers */
 /* ========================================================= */
 
 function mapToDate(number) {
@@ -93,8 +90,6 @@ function parseItems(rawList) {
 }
 
 /* ========================================================= */
-/* Build Map */
-/* ========================================================= */
 
 function buildClassDateMap() {
   const map = {};
@@ -106,11 +101,11 @@ function buildClassDateMap() {
       (student.department || "UNKNOWN").toUpperCase() !== currentDepartment
     ) return;
 
-    const quests = parseItems(student.quest_list);
-    const videos = parseItems(student.video_list);
-    const stories = parseItems(student.story_list);
-
-    const all = [...quests, ...videos, ...stories];
+    const all = [
+      ...parseItems(student.quest_list),
+      ...parseItems(student.video_list),
+      ...parseItems(student.story_list)
+    ];
 
     all.forEach(item => {
       const date = mapToDate(item.number);
@@ -125,8 +120,6 @@ function buildClassDateMap() {
 }
 
 /* ========================================================= */
-/* Heatmap */
-/* ========================================================= */
 
 function getIntensity(total) {
   if (total > 20) return "peak";
@@ -135,8 +128,6 @@ function getIntensity(total) {
   return "light";
 }
 
-/* ========================================================= */
-/* Calendar Render */
 /* ========================================================= */
 
 function renderClassCalendar() {
@@ -207,15 +198,14 @@ function renderMonth(baseDate, dateMap) {
 }
 
 /* ========================================================= */
-/* Date Modal */
+/* ✅ INLINE BREAKDOWN */
 /* ========================================================= */
 
 window.showDateDetail = function(dateKey) {
   const entries = window.dateMap[dateKey];
   if (!entries) return;
 
-  const modal = document.getElementById("modal");
-  const content = document.getElementById("modal-content");
+  const panel = document.getElementById("date-breakdown");
 
   const deptMap = {};
 
@@ -226,24 +216,35 @@ window.showDateDetail = function(dateKey) {
     deptMap[dept].push(student.name);
   });
 
-  let html = `<h2>${dateKey}</h2>`;
+  let html = `
+    <div class="breakdown-header">
+      📅 ${dateKey}
+    </div>
+  `;
 
   Object.keys(deptMap).sort().forEach(dept => {
     html += `
-      <div class="dept-block">
-        <div class="dept-title">${dept} (${deptMap[dept].length})</div>
-        ${deptMap[dept].sort().map(n => `<div>${n}</div>`).join("")}
+      <div class="dept-card">
+        <div class="dept-card-title">
+          ${dept} <span>${deptMap[dept].length}</span>
+        </div>
+        <div class="student-list">
+          ${deptMap[dept].sort().map(n => `<div>${n}</div>`).join("")}
+        </div>
       </div>
     `;
   });
 
-  content.innerHTML = html;
-  modal.style.display = "flex";
+  panel.innerHTML = html;
+  panel.style.display = "block";
 };
 
-window.closeModal = function() {
-  document.getElementById("modal").style.display = "none";
-};
+function clearBreakdown() {
+  const panel = document.getElementById("date-breakdown");
+  panel.style.display = "none";
+}
+
+/* ========================================================= */
 
 window.onload = loadData;
 
@@ -252,92 +253,158 @@ window.onload = loadData;
 <style>
 
 body {
-  background: #0B0B0C;
+  background: radial-gradient(circle at top, rgba(212,175,55,0.15), transparent 55%), #0B0B0C;
   color: #F8F7F3;
   font-family: Inter;
   padding: 20px;
 }
 
-/* Controls */
+/* HEADER */
 
-select {
-  padding: 8px;
+.title {
+  text-align: center;
+  font-size: 26px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  color: #D4AF37;
   margin-bottom: 20px;
 }
 
-/* Calendar */
+/* FILTER */
+
+select {
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: #111;
+  color: #D4AF37;
+  border: 1px solid rgba(212,175,55,0.4);
+  font-weight: 700;
+  margin-bottom: 25px;
+}
+
+/* MONTH */
 
 .month-block {
   margin-bottom: 30px;
+  padding: 14px;
+  border-radius: 16px;
+  background: rgba(17,17,19,0.9);
+  border: 1px solid rgba(212,175,55,0.25);
 }
 
 .month-title {
   text-align: center;
   color: #D4AF37;
-  margin-bottom: 8px;
+  font-weight: 700;
+  margin-bottom: 10px;
+  letter-spacing: 0.08em;
 }
+
+/* GRID */
 
 .calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 6px;
+  gap: 8px;
   font-size: 12px;
 }
 
 .day {
-  background: #111;
-  border-radius: 8px;
-  padding: 6px;
-  min-height: 60px;
-  border: 1px solid rgba(212,175,55,0.2);
+  background: #0F0F10;
+  border-radius: 10px;
+  padding: 8px;
+  min-height: 65px;
+  border: 1px solid rgba(212,175,55,0.12);
+  position: relative;
+  transition: 0.2s;
 }
 
-.day.marked { cursor: pointer; border-color: #D4AF37; }
+.day:hover {
+  transform: translateY(-2px);
+}
 
-.light { background: rgba(212,175,55,0.18); }
-.medium { background: rgba(212,175,55,0.28); }
-.heavy { background: rgba(212,175,55,0.38); }
-.peak { background: rgba(212,175,55,0.6); }
+.day.marked {
+  border-color: rgba(212,175,55,0.6);
+  cursor: pointer;
+}
 
-/* Modal */
+/* INTENSITY */
 
-#modal {
+.light { background: rgba(212,175,55,0.12); }
+.medium { background: rgba(212,175,55,0.22); }
+.heavy { background: rgba(212,175,55,0.32); }
+.peak {
+  background: rgba(212,175,55,0.55);
+  box-shadow: 0 0 14px rgba(212,175,55,0.7);
+}
+
+.count {
+  position: absolute;
+  bottom: 6px;
+  right: 8px;
+  font-size: 18px;
+  font-weight: 900;
+  color: #D4AF37;
+}
+
+/* BREAKDOWN PANEL */
+
+#date-breakdown {
+  margin-top: 20px;
   display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.85);
-  justify-content: center;
-  align-items: center;
+  animation: fadeIn 0.3s ease;
 }
 
-#modal-content {
-  background: #111;
-  padding: 20px;
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.breakdown-header {
+  font-size: 16px;
+  font-weight: 800;
+  color: #D4AF37;
+  margin-bottom: 12px;
+}
+
+.dept-card {
+  background: rgba(17,17,19,0.95);
   border-radius: 14px;
-  width: 90%;
-  max-width: 420px;
+  padding: 12px;
+  margin-bottom: 12px;
+  border: 1px solid rgba(212,175,55,0.25);
 }
 
-.dept-title { color: #D4AF37; margin-top: 10px; }
+.dept-card-title {
+  font-weight: 800;
+  color: #D4AF37;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.student-list {
+  font-size: 13px;
+  opacity: 0.9;
+  display: grid;
+  gap: 4px;
+}
 
 </style>
 </head>
 
 <body>
 
+<div class="title">CLASS ACTIVITY CONSOLE</div>
+
 <div id="loader">Loading...</div>
 <div id="error"></div>
 
-<select id="departmentSelect" onchange="changeDepartment(this.value)">
-  <option>Loading departments...</option>
-</select>
+<select id="departmentSelect" onchange="changeDepartment(this.value)"></select>
 
-<h3>📅 Class Activity Calendar</h3>
 <div id="class-calendar"></div>
 
-<div id="modal" onclick="closeModal()">
-  <div id="modal-content" onclick="event.stopPropagation()"></div>
-</div>
+<div id="date-breakdown"></div>
 
 </body>
 </html>

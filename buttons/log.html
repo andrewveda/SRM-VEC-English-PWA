@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Daily Progress Log 🌱</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+<style>
+body {
+  font-family: 'Segoe UI', sans-serif;
+  background: linear-gradient(135deg, #fdfbfb, #ebedee);
+  text-align: center;
+  margin: 0;
+}
+
+.container {
+  max-width: 800px;
+  margin: 2rem auto;
+  background: white;
+  padding: 2rem;
+  border-radius: 18px;
+  box-shadow: 0 15px 35px rgba(0,0,0,0.12);
+}
+
+.question {
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+
+input {
+  width: 80%;
+  padding: 0.7rem;
+  font-size: 1rem;
+  border-radius: 10px;
+  border: 2px solid #cbd5e1;
+  text-align: center;
+}
+
+button {
+  margin-top: 1.2rem;
+  padding: 0.8rem 2rem;
+  border: none;
+  border-radius: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  background: linear-gradient(135deg, #ff9800, #ffb300);
+}
+
+.quiz-header {
+  display: flex;
+  justify-content: space-between;
+  font-weight: bold;
+  margin-bottom: 1.5rem;
+}
+
+#motivationBox {
+  margin-top: 2rem;
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #ff9800;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+  <!-- NAME FORM -->
+  <div id="nameForm">
+    <h2>Daily Progress Log 🌱</h2>
+    <input type="text" id="nameInput" placeholder="Enter your name"/><br><br>
+
+    <select id="departmentSelect">
+      <option value="">Select Department</option>
+      <option value="CSE">CSE</option>
+      <option value="Cyber Security">Cyber Security</option>
+      <option value="ECE">ECE</option>
+    </select><br>
+
+    <button onclick="beginLog()">Start</button>
+  </div>
+
+  <!-- LOG SCREEN -->
+  <div id="logScreen" style="display:none;">
+
+    <div class="quiz-header">
+      <div id="timer">⏳ 0s</div>
+      <div id="progressTracker">📍 1</div>
+    </div>
+
+    <div class="question" id="question"></div>
+    <input type="text" id="answerInput"/>
+
+    <button onclick="nextQuestion()">Next ➜</button>
+
+  </div>
+
+  <!-- SCORE -->
+  <div id="scoreCard"></div>
+
+</div>
+
+<div id="motivationBox"></div>
+
+<script>
+/* ================= DATA ================= */
+
+const questions = [
+  "Book : Read :: Song : ___",
+  "France : Paris :: Japan : ___",
+  "The goal of communication is to ___ positive response."
+];
+
+/* ================= STATE ================= */
+
+let current = 0;
+let startTime;
+let timerInterval;
+let responseLog = [];
+
+let playerName = "";
+let playerDept = "";
+
+/* ================= TIMER ================= */
+
+function startTimer() {
+  timerInterval = setInterval(() => {
+    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+    document.getElementById("timer").innerText = `⏳ ${elapsed}s`;
+  }, 1000);
+}
+
+/* ================= MOTIVATION ================= */
+
+const messages = [
+  "'name' is thinking deeply today 🌱",
+  "'name' is building knowledge brick by brick 🧠",
+  "Progress, not perfection — keep going 'name' 🚀"
+];
+
+function showMotivation() {
+  let msg = messages[Math.floor(Math.random() * messages.length)];
+  msg = msg.replace(/'name'/g, playerName);
+  document.getElementById("motivationBox").innerText = msg;
+}
+
+/* ================= FLOW ================= */
+
+function beginLog() {
+  const name = document.getElementById("nameInput").value.trim();
+  const dept = document.getElementById("departmentSelect").value;
+
+  if (!name || !dept) {
+    alert("Enter name & department");
+    return;
+  }
+
+  playerName = name;
+  playerDept = dept;
+
+  document.getElementById("nameForm").style.display = "none";
+  document.getElementById("logScreen").style.display = "block";
+
+  startTime = Date.now();
+  startTimer();
+
+  loadQuestion();
+}
+
+function loadQuestion() {
+  if (current >= questions.length) return finishLog();
+
+  document.getElementById("question").innerText = questions[current];
+  document.getElementById("progressTracker").innerText = `📍 ${current + 1} / ${questions.length}`;
+  document.getElementById("answerInput").value = "";
+}
+
+function nextQuestion() {
+  const answer = document.getElementById("answerInput").value.trim();
+
+  responseLog.push({
+    question: questions[current],
+    student_answer: answer
+  });
+
+  confetti({ particleCount: 40, spread: 60 });
+  showMotivation();
+
+  current++;
+  loadQuestion();
+}
+
+/* ================= FINISH ================= */
+
+const EDGE_FUNCTION_URL =
+  "https://ahezssoczvpbkteffcgz.supabase.co/functions/v1/logQuest";
+
+function finishLog() {
+  clearInterval(timerInterval);
+
+  const totalTime = Math.floor((Date.now() - startTime) / 1000);
+
+  document.getElementById("logScreen").style.display = "none";
+
+  document.getElementById("scoreCard").innerHTML = `
+    <h2>✅ Log Saved</h2>
+    <p>${playerName} | ${playerDept}</p>
+    <p>⏱️ ${totalTime}s</p>
+    <button onclick="downloadPDF()">📥 Download Report</button>
+  `;
+
+  sendToSupabase(totalTime);
+}
+
+async function sendToSupabase(totalTime) {
+  const payload = {
+    student_name: playerName,
+    department: playerDept,
+    time_spent: totalTime,
+    quest_id: "Log 175",
+    responses: responseLog
+  };
+
+  try {
+    await fetch(EDGE_FUNCTION_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    console.log("Saved ✅");
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+/* ================= PDF ================= */
+
+function downloadPDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+
+  doc.text("Daily Progress Log", 20, 20);
+  doc.text(`${playerName} | ${playerDept}`, 20, 30);
+
+  doc.autoTable({
+    startY: 40,
+    head: [['Question', 'Response']],
+    body: responseLog.map(r => [r.question, r.student_answer])
+  });
+
+  doc.save(`${playerName}_DailyLog.pdf`);
+}
+</script>
+
+</body>
+</html>

@@ -11,87 +11,67 @@
 <script type="module">
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-/* ✅ Supabase */
 const supabase = createClient(
   "https://ahezssoczvpbkteffcgz.supabase.co",
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoZXpzc29jenZwYmt0ZWZmY2d6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI4NTk1ODUsImV4cCI6MjA3ODQzNTU4NX0.2ZlqXnZxv0opkhynAT7OlK4S-xPygcc7ETUyTXRfGHE"
 );
 
 let reportData = [];
-let filteredData = [];
+let currentDepartment = "ALL";
 
 const START_DATE = new Date("2025-08-25");
 const CALENDAR_VISIBLE_START = new Date("2026-02-01");
 
 /* ========================================================= */
 
-function safeLoader(show) {
-  const loader = document.getElementById("loader");
-  if (!loader) return;
-  loader.style.display = show ? "block" : "none";
-}
-
-function showError(msg) {
-  const errorBox = document.getElementById("error");
-  if (!errorBox) return;
-  errorBox.textContent = msg;
-}
-
-/* ========================================================= */
-
 async function loadData() {
-  console.log("▶ Loading data...");
+  document.getElementById("loader").style.display = "block";
 
-  safeLoader(true);
+  const { data, error } = await supabase
+    .from("report_card_view")
+    .select("*");
 
-  try {
-    const { data, error } = await supabase
-      .from("report_card_view")
-      .select("*");
+  document.getElementById("loader").style.display = "none";
 
-    safeLoader(false);
-
-    if (error) {
-      console.error("❌ Supabase error:", error);
-      showError("⚠️ Data fetch failed");
-      return;
-    }
-
-    reportData = data || [];
-    filteredData = [...reportData];
-
-    console.log("✅ Rows loaded:", reportData.length);
-
-    renderLeaderboard();
-    renderClassCalendar();
-
-  } catch (err) {
-    safeLoader(false);
-    console.error("❌ Fatal error:", err);
-    showError("⚠️ Unexpected crash — check console");
-  }
-}
-
-/* ========================================================= */
-
-function renderLeaderboard() {
-  const container = document.getElementById("leaderboard");
-  if (!container) return;
-
-  if (filteredData.length === 0) {
-    container.innerHTML = "<p>No data</p>";
+  if (error) {
+    document.getElementById("error").textContent = "⚠️ Data load failed";
     return;
   }
 
-  container.innerHTML = filteredData.map((s, idx) => `
-    <div class="leaderboard-row">
-      <div>${idx + 1}</div>
-      <div>${s.name}</div>
-      <div>${Math.round((s.accuracy || 0) * 100)}%</div>
-    </div>
-  `).join("");
+  reportData = data || [];
+
+  populateDepartmentDropdown();
+  renderClassCalendar();
 }
 
+/* ========================================================= */
+/* Department Filter */
+/* ========================================================= */
+
+function populateDepartmentDropdown() {
+  const select = document.getElementById("departmentSelect");
+
+  const departments = [...new Set(
+    reportData.map(s => (s.department || "UNKNOWN").toUpperCase())
+  )].sort();
+
+  select.innerHTML = `<option value="ALL">All Departments</option>`;
+
+  departments.forEach(dept => {
+    const opt = document.createElement("option");
+    opt.value = dept;
+    opt.textContent = dept;
+    select.appendChild(opt);
+  });
+}
+
+window.changeDepartment = function(dept) {
+  currentDepartment = dept;
+  renderClassCalendar();
+};
+
+/* ========================================================= */
+/* Helpers */
 /* ========================================================= */
 
 function mapToDate(number) {
@@ -113,13 +93,19 @@ function parseItems(rawList) {
 }
 
 /* ========================================================= */
-/* ✅ CLASS CALENDAR */
+/* Build Map */
 /* ========================================================= */
 
-function buildClassDateMap(data) {
+function buildClassDateMap() {
   const map = {};
 
-  data.forEach(student => {
+  reportData.forEach(student => {
+
+    if (
+      currentDepartment !== "ALL" &&
+      (student.department || "UNKNOWN").toUpperCase() !== currentDepartment
+    ) return;
+
     const quests = parseItems(student.quest_list);
     const videos = parseItems(student.video_list);
     const stories = parseItems(student.story_list);
@@ -129,17 +115,18 @@ function buildClassDateMap(data) {
     all.forEach(item => {
       const date = mapToDate(item.number);
       const key = date.toDateString();
-      const dept = (student.department || "UNKNOWN").toUpperCase();
 
-      if (!map[key]) map[key] = {};
-      if (!map[key][dept]) map[key][dept] = [];
-
-      map[key][dept].push(student.name);
+      if (!map[key]) map[key] = [];
+      map[key].push(student);
     });
   });
 
   return map;
 }
+
+/* ========================================================= */
+/* Heatmap */
+/* ========================================================= */
 
 function getIntensity(total) {
   if (total > 20) return "peak";
@@ -148,37 +135,115 @@ function getIntensity(total) {
   return "light";
 }
 
+/* ========================================================= */
+/* Calendar Render */
+/* ========================================================= */
+
 function renderClassCalendar() {
   const container = document.getElementById("class-calendar");
-  if (!container) return;
+  container.innerHTML = "";
 
-  if (reportData.length === 0) {
-    container.innerHTML = "<p>No activity</p>";
-    return;
+  const dateMap = buildClassDateMap();
+  window.dateMap = dateMap;
+
+  let cursor = new Date(
+    CALENDAR_VISIBLE_START.getFullYear(),
+    CALENDAR_VISIBLE_START.getMonth(),
+    1
+  );
+
+  const today = new Date();
+  const end = new Date(today.getFullYear(), today.getMonth(), 1);
+
+  while (cursor <= end) {
+    container.innerHTML += renderMonth(cursor, dateMap);
+    cursor.setMonth(cursor.getMonth() + 1);
+  }
+}
+
+function renderMonth(baseDate, dateMap) {
+  const year = baseDate.getFullYear();
+  const month = baseDate.getMonth();
+
+  const firstDay = new Date(year, month, 1).getDay();
+  const numDays = new Date(year, month + 1, 0).getDate();
+
+  let html = `
+    <div class="month-block">
+      <div class="month-title">
+        ${baseDate.toLocaleString('en-IN', { month: 'long', year: 'numeric' })}
+      </div>
+
+      <div class="calendar-grid">
+        <div>Sun</div><div>Mon</div><div>Tue</div>
+        <div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+  `;
+
+  for (let i = 0; i < firstDay; i++) {
+    html += `<div class="empty"></div>`;
   }
 
-  const dateMap = buildClassDateMap(reportData);
+  for (let d = 1; d <= numDays; d++) {
+    const date = new Date(year, month, d);
+    const key = date.toDateString();
+    const entries = dateMap[key];
 
-  let html = "";
+    if (entries) {
+      const intensity = getIntensity(entries.length);
 
-  Object.keys(dateMap).slice(-30).forEach(dateKey => {
-    const total = Object.values(dateMap[dateKey])
-      .reduce((sum, arr) => sum + arr.length, 0);
+      html += `
+        <div class="day marked ${intensity}" onclick="showDateDetail('${key}')">
+          <div class="date-num">${d}</div>
+          <div class="count">${entries.length}</div>
+        </div>
+      `;
+    } else {
+      html += `<div class="day">${d}</div>`;
+    }
+  }
 
-    const intensity = getIntensity(total);
+  html += "</div></div>";
+  return html;
+}
 
+/* ========================================================= */
+/* Date Modal */
+/* ========================================================= */
+
+window.showDateDetail = function(dateKey) {
+  const entries = window.dateMap[dateKey];
+  if (!entries) return;
+
+  const modal = document.getElementById("modal");
+  const content = document.getElementById("modal-content");
+
+  const deptMap = {};
+
+  entries.forEach(student => {
+    const dept = (student.department || "UNKNOWN").toUpperCase();
+
+    if (!deptMap[dept]) deptMap[dept] = [];
+    deptMap[dept].push(student.name);
+  });
+
+  let html = `<h2>${dateKey}</h2>`;
+
+  Object.keys(deptMap).sort().forEach(dept => {
     html += `
-      <div class="calendar-day ${intensity}">
-        <div>${dateKey}</div>
-        <div>${total}</div>
+      <div class="dept-block">
+        <div class="dept-title">${dept} (${deptMap[dept].length})</div>
+        ${deptMap[dept].sort().map(n => `<div>${n}</div>`).join("")}
       </div>
     `;
   });
 
-  container.innerHTML = html;
-}
+  content.innerHTML = html;
+  modal.style.display = "flex";
+};
 
-/* ========================================================= */
+window.closeModal = function() {
+  document.getElementById("modal").style.display = "none";
+};
 
 window.onload = loadData;
 
@@ -193,34 +258,67 @@ body {
   padding: 20px;
 }
 
-#loader {
-  display: none;
+/* Controls */
+
+select {
+  padding: 8px;
+  margin-bottom: 20px;
+}
+
+/* Calendar */
+
+.month-block {
+  margin-bottom: 30px;
+}
+
+.month-title {
+  text-align: center;
   color: #D4AF37;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
-#error {
-  color: red;
-  margin-bottom: 10px;
-}
-
-.leaderboard-row {
+.calendar-grid {
   display: grid;
-  grid-template-columns: 40px 1fr auto;
-  padding: 10px;
-  border-bottom: 1px solid rgba(212,175,55,0.2);
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  font-size: 12px;
 }
 
-.calendar-day {
-  padding: 10px;
-  margin: 6px 0;
+.day {
+  background: #111;
   border-radius: 8px;
+  padding: 6px;
+  min-height: 60px;
+  border: 1px solid rgba(212,175,55,0.2);
 }
+
+.day.marked { cursor: pointer; border-color: #D4AF37; }
 
 .light { background: rgba(212,175,55,0.18); }
 .medium { background: rgba(212,175,55,0.28); }
 .heavy { background: rgba(212,175,55,0.38); }
 .peak { background: rgba(212,175,55,0.6); }
+
+/* Modal */
+
+#modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  justify-content: center;
+  align-items: center;
+}
+
+#modal-content {
+  background: #111;
+  padding: 20px;
+  border-radius: 14px;
+  width: 90%;
+  max-width: 420px;
+}
+
+.dept-title { color: #D4AF37; margin-top: 10px; }
 
 </style>
 </head>
@@ -230,11 +328,16 @@ body {
 <div id="loader">Loading...</div>
 <div id="error"></div>
 
-<h2>Leaderboard</h2>
-<div id="leaderboard"></div>
+<select id="departmentSelect" onchange="changeDepartment(this.value)">
+  <option>Loading departments...</option>
+</select>
 
 <h3>📅 Class Activity Calendar</h3>
 <div id="class-calendar"></div>
+
+<div id="modal" onclick="closeModal()">
+  <div id="modal-content" onclick="event.stopPropagation()"></div>
+</div>
 
 </body>
 </html>

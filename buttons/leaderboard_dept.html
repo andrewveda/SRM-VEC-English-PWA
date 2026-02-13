@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+<title>Mission Leaderboard</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+
+<script type="module">
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const supabase = createClient(
+  "https://ahezssoczvpbkteffcgz.supabase.co",
+  "YOUR_PUBLIC_ANON_KEY"
+);
+
+let reportData = [];
+let filteredData = [];
+
+const START_DATE = new Date("2025-08-25");
+const CALENDAR_VISIBLE_START = new Date("2026-02-01");
+
+function mapToDate(number) {
+  const d = new Date(START_DATE);
+  d.setDate(d.getDate() + (number - 1));
+  return d;
+}
+
+function parseItems(rawList) {
+  if (!rawList || rawList === "NULL") return [];
+
+  return rawList
+    .split(",")
+    .map(item => item.trim())
+    .filter(Boolean)
+    .map(item => {
+      const [type, num] = item.split(" ");
+      return { type, number: Number(num), label: item };
+    });
+}
+
+/* =========================================================
+   BUILD DATE → DEPARTMENT → STUDENTS MAP
+   ========================================================= */
+
+function buildDateMap(data) {
+  const map = {};
+
+  data.forEach(student => {
+    const quests = parseItems(student.quest_list);
+    const videos = parseItems(student.video_list);
+    const stories = parseItems(student.story_list);
+
+    const all = [...quests, ...videos, ...stories];
+
+    all.forEach(item => {
+      const date = mapToDate(item.number);
+      const key = date.toDateString();
+      const dept = (student.department || "UNKNOWN").toUpperCase();
+
+      if (!map[key]) map[key] = {};
+      if (!map[key][dept]) map[key][dept] = [];
+
+      map[key][dept].push(student.name);
+    });
+  });
+
+  return map;
+}
+
+/* =========================================================
+   HEATMAP INTENSITY
+   ========================================================= */
+
+function getIntensity(total) {
+  if (total > 20) return "peak";
+  if (total > 10) return "heavy";
+  if (total > 5) return "medium";
+  return "light";
+}
+
+/* =========================================================
+   CALENDAR RENDER
+   ========================================================= */
+
+function renderOneMonth(baseDate, dateMap) {
+  const year = baseDate.getFullYear();
+  const month = baseDate.getMonth();
+
+  const firstDay = new Date(year, month, 1).getDay();
+  const numDays = new Date(year, month + 1, 0).getDate();
+
+  let html = `
+    <div class="month-block">
+      <div class="month-title">
+        ${baseDate.toLocaleString('en-IN', { month: 'long', year: 'numeric' })}
+      </div>
+
+      <div class="calendar-grid">
+        <div>Sun</div><div>Mon</div><div>Tue</div>
+        <div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+  `;
+
+  for (let i = 0; i < firstDay; i++) {
+    html += `<div class="empty"></div>`;
+  }
+
+  for (let d = 1; d <= numDays; d++) {
+    const date = new Date(year, month, d);
+    const key = date.toDateString();
+    const entry = dateMap[key];
+
+    if (entry) {
+      const total = Object.values(entry).reduce((sum, arr) => sum + arr.length, 0);
+      const intensity = getIntensity(total);
+
+      html += `
+        <div class="day marked ${intensity}" onclick="showDateDetail('${key}')">
+          <div class="date-num">${d}</div>
+          <div class="count">${total}</div>
+        </div>
+      `;
+    } else {
+      html += `<div class="day">${d}</div>`;
+    }
+  }
+
+  html += "</div></div>";
+  return html;
+}
+
+function renderCalendar(data) {
+  const container = document.getElementById("class-calendar");
+  container.innerHTML = "";
+
+  const dateMap = buildDateMap(data);
+  window.dateMap = dateMap;
+
+  let cursor = new Date(
+    CALENDAR_VISIBLE_START.getFullYear(),
+    CALENDAR_VISIBLE_START.getMonth(),
+    1
+  );
+
+  const today = new Date();
+  const end = new Date(today.getFullYear(), today.getMonth(), 1);
+
+  while (cursor <= end) {
+    container.innerHTML += renderOneMonth(cursor, dateMap);
+    cursor.setMonth(cursor.getMonth() + 1);
+  }
+}
+
+/* =========================================================
+   DATE DETAIL MODAL
+   ========================================================= */
+
+window.showDateDetail = function(dateKey) {
+  const entry = window.dateMap[dateKey];
+
+  const modal = document.getElementById("modal");
+  const content = document.getElementById("modal-content");
+
+  if (!entry) return;
+
+  let html = `
+    <h2>${dateKey}</h2>
+    <div class="date-total">
+      Total Activity: ${
+        Object.values(entry).reduce((sum, arr) => sum + arr.length, 0)
+      }
+    </div>
+  `;
+
+  Object.keys(entry).sort().forEach(dept => {
+    html += `
+      <div class="dept-block">
+        <div class="dept-title">${dept} (${entry[dept].length})</div>
+        ${entry[dept]
+          .sort()
+          .map(name => `<div class="student">${name}</div>`)
+          .join("")}
+      </div>
+    `;
+  });
+
+  content.innerHTML = html;
+  modal.style.display = "flex";
+};
+
+window.closeModal = function() {
+  document.getElementById("modal").style.display = "none";
+};
+
+/* =========================================================
+   LOAD DATA
+   ========================================================= */
+
+async function loadData() {
+  const { data } = await supabase
+    .from("report_card_view")
+    .select("*");
+
+  reportData = data || [];
+  filteredData = [...reportData];
+
+  renderCalendar(reportData);
+}
+
+window.onload = loadData;
+
+</script>
+
+<style>
+
+body {
+  background: #0B0B0C;
+  color: #F8F7F3;
+  font-family: Inter;
+  padding: 20px;
+}
+
+/* CALENDAR */
+
+.month-block {
+  margin-bottom: 30px;
+}
+
+.month-title {
+  text-align: center;
+  margin-bottom: 10px;
+  color: #D4AF37;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  font-size: 12px;
+}
+
+.calendar-grid > div:nth-child(-n+7) {
+  text-align: center;
+  font-weight: 700;
+  color: rgba(212,175,55,0.7);
+}
+
+.day {
+  background: #111;
+  border-radius: 8px;
+  padding: 6px;
+  min-height: 60px;
+  text-align: left;
+  border: 1px solid rgba(212,175,55,0.2);
+}
+
+.day.marked {
+  cursor: pointer;
+  border-color: #D4AF37;
+}
+
+/* INTENSITY */
+
+.light { background: rgba(212,175,55,0.15); }
+.medium { background: rgba(212,175,55,0.25); }
+.heavy { background: rgba(212,175,55,0.35); }
+.peak { background: rgba(212,175,55,0.55); box-shadow: 0 0 12px #D4AF37; }
+
+.date-num {
+  font-weight: 700;
+}
+
+.count {
+  font-size: 18px;
+  font-weight: 800;
+  color: #D4AF37;
+  margin-top: 6px;
+}
+
+/* MODAL */
+
+#modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  justify-content: center;
+  align-items: center;
+}
+
+#modal-content {
+  background: #111;
+  padding: 20px;
+  border-radius: 14px;
+  width: 90%;
+  max-width: 420px;
+  max-height: 80vh;
+  overflow-y: auto;
+  border: 1px solid #D4AF37;
+}
+
+.date-total {
+  margin: 10px 0 20px;
+  font-size: 14px;
+  color: rgba(212,175,55,0.7);
+}
+
+.dept-block {
+  margin-bottom: 14px;
+}
+
+.dept-title {
+  font-weight: 700;
+  color: #D4AF37;
+  margin-bottom: 6px;
+}
+
+.student {
+  font-size: 13px;
+  padding-left: 10px;
+  opacity: 0.9;
+}
+
+</style>
+</head>
+
+<body>
+
+<h1 style="text-align:center; color:#D4AF37;">Class Activity Calendar</h1>
+
+<div id="class-calendar"></div>
+
+<div id="modal" onclick="closeModal()">
+  <div id="modal-content" onclick="event.stopPropagation()"></div>
+</div>
+
+</body>
+</html>

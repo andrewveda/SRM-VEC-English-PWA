@@ -555,16 +555,37 @@
     //  PDF GENERATION — PREMIUM BLACK & GOLD
     // ══════════════════════════════════════════════════════════
 
-    (function injectLibraries() {
-      const s1 = document.createElement("script");
-      const s2 = document.createElement("script");
-      s1.src = "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";
-      s2.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
-      document.head.appendChild(s1);
-      document.head.appendChild(s2);
-    })();
+    // Robust script loader — returns a Promise that resolves when the script loads
+    function loadScript(src) {
+      return new Promise((resolve, reject) => {
+        // Already loaded?
+        if (document.querySelector(`script[src="${src}"]`)) {
+          resolve(); return;
+        }
+        const s = document.createElement("script");
+        s.src = src;
+        s.onload = resolve;
+        s.onerror = () => reject(new Error("Failed to load: " + src));
+        document.head.appendChild(s);
+      });
+    }
 
     async function downloadProfilePDF(studentObj) {
+      // Show a loading indicator on the button
+      const btn = document.querySelector("#modal-content button:last-child");
+      const origText = btn ? btn.innerHTML : "";
+      if (btn) { btn.innerHTML = "⏳ Generating PDF..."; btn.disabled = true; }
+
+      try {
+        // Ensure libraries are loaded before proceeding
+        await loadScript("https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js");
+        await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
+      } catch (e) {
+        alert("Could not load PDF libraries. Check your internet connection.");
+        if (btn) { btn.innerHTML = origText; btn.disabled = false; }
+        return;
+      }
+
       const { jsPDF } = window.jspdf;
 
       // ── 1. Parse activity lists ──
@@ -596,9 +617,10 @@
       const grouped = groupByDate(quests, videos, stories);
 
       // ── 5. Off-screen container ──
+      // Use top:-99999px (not left:-9999px) to avoid horizontal overflow clipping
       const wrap = document.createElement("div");
       wrap.style.cssText = `
-        position:fixed; left:-9999px; top:0;
+        position:absolute; left:0; top:-99999px;
         width:794px; font-family:'Inter',Arial,sans-serif;
         background:#0B0B0C; color:#F8F7F3;
       `;
@@ -613,9 +635,7 @@
         ">
           <div style="font-size:9px;letter-spacing:.18em;text-transform:uppercase;
                       color:rgba(212,175,55,0.7);margin-bottom:4px;">${label}</div>
-          <div style="font-size:22px;font-weight:900;
-                      background:linear-gradient(120deg,#F5E6A8,#D4AF37);
-                      -webkit-background-clip:text;color:transparent;line-height:1.1;">${value}</div>
+          <div style="font-size:22px;font-weight:900;color:#D4AF37;line-height:1.1;">${value}</div>
           <div style="font-size:9px;color:rgba(248,247,243,0.5);margin-top:4px;">${sub}</div>
         </div>`;
 
@@ -735,9 +755,7 @@
                           color:rgba(212,175,55,0.6);margin-bottom:5px;">
                 Mission: Veni, Vidi, Vici!
               </div>
-              <div style="font-size:19px;font-weight:900;letter-spacing:.05em;text-transform:uppercase;
-                          background:linear-gradient(120deg,#F5E6A8,#D4AF37,#B8962E);
-                          -webkit-background-clip:text;color:transparent;">
+              <div style="font-size:19px;font-weight:900;letter-spacing:.05em;text-transform:uppercase;color:#D4AF37;">
                 SRM Valliammai Engineering College
               </div>
               <div style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;
@@ -832,45 +850,53 @@
         </div>`;
 
       // ── 6. Render → canvas → multi-page PDF ──
-      await new Promise(r => setTimeout(r, 450));
+      try {
+        await new Promise(r => setTimeout(r, 450));
 
-      const canvas = await html2canvas(wrap.firstElementChild, {
-        scale: 2,
-        backgroundColor: "#0B0B0C",
-        useCORS: true,
-        logging: false,
-      });
+        const canvas = await html2canvas(wrap.firstElementChild, {
+          scale: 2,
+          backgroundColor: "#0B0B0C",
+          useCORS: true,
+          logging: false,
+          allowTaint: true,
+        });
 
-      const imgW      = canvas.width;
-      const imgH      = canvas.height;
-      const pdf       = new jsPDF("p", "pt", "a4");
-      const pageW     = pdf.internal.pageSize.getWidth();
-      const pageH     = pdf.internal.pageSize.getHeight();
-      const ratio     = pageW / imgW;
-      const rendered  = imgH * ratio;
+        const imgW      = canvas.width;
+        const imgH      = canvas.height;
+        const pdf       = new jsPDF("p", "pt", "a4");
+        const pageW     = pdf.internal.pageSize.getWidth();
+        const pageH     = pdf.internal.pageSize.getHeight();
+        const ratio     = pageW / imgW;
+        const rendered  = imgH * ratio;
 
-      let yOffset   = 0;
-      let remaining = rendered;
+        let yOffset   = 0;
+        let remaining = rendered;
 
-      while (remaining > 0) {
-        const sliceH   = Math.min(remaining, pageH);
-        const srcY     = yOffset / ratio;
-        const srcH     = sliceH / ratio;
+        while (remaining > 0) {
+          const sliceH   = Math.min(remaining, pageH);
+          const srcY     = yOffset / ratio;
+          const srcH     = sliceH / ratio;
 
-        const pg       = document.createElement("canvas");
-        pg.width       = imgW;
-        pg.height      = srcH;
-        pg.getContext("2d").drawImage(canvas, 0, srcY, imgW, srcH, 0, 0, imgW, srcH);
+          const pg       = document.createElement("canvas");
+          pg.width       = imgW;
+          pg.height      = Math.ceil(srcH);
+          pg.getContext("2d").drawImage(canvas, 0, srcY, imgW, srcH, 0, 0, imgW, Math.ceil(srcH));
 
-        if (yOffset > 0) pdf.addPage();
-        pdf.addImage(pg.toDataURL("image/png"), "PNG", 0, 0, pageW, sliceH);
+          if (yOffset > 0) pdf.addPage();
+          pdf.addImage(pg.toDataURL("image/png"), "PNG", 0, 0, pageW, sliceH);
 
-        yOffset   += sliceH;
-        remaining -= sliceH;
+          yOffset   += sliceH;
+          remaining -= sliceH;
+        }
+
+        pdf.save(`${studentObj.name}_MissionReport.pdf`);
+      } catch (err) {
+        console.error("PDF generation failed:", err);
+        alert("PDF generation failed: " + err.message);
+      } finally {
+        wrap.remove();
+        if (btn) { btn.innerHTML = origText; btn.disabled = false; }
       }
-
-      pdf.save(`${studentObj.name}_MissionReport.pdf`);
-      wrap.remove();
     }
 
   </script>

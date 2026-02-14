@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Mission: Veni, Vidi, Vici! — Command Deck Leaderboard</title>
   
-  <!-- Import Google Font: Inter -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
@@ -17,86 +16,87 @@
       "https://ahezssoczvpbkteffcgz.supabase.co",
       "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoZXpzc29jenZwYmt0ZWZmY2d6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI4NTk1ODUsImV4cCI6MjA3ODQzNTU4NX0.2ZlqXnZxv0opkhynAT7OlK4S-xPygcc7ETUyTXRfGHE"
     );
-let filteredData = [];
-let currentDepartment = "ALL";
 
+    let filteredData = [];
+    let currentDepartment = "ALL";
     let reportData = [];
-let currentSort = "last_test_taken";
+    let currentSort = "last_test_taken";
     let sortAscending = false;
     let lastTestInfo = { name: "", date: "" };
     let showSecondsOnly = false;
 
-   async function loadData() {
-  const loader = document.getElementById("loader");
-  loader.style.display = "flex";
+    // ── CONSTANTS ────────────────────────────────────────────
+    const START_DATE = new Date("2025-08-25");
+    const CALENDAR_VISIBLE_START = new Date("2026-02-01");
 
-  const { data, error } = await supabase
-    .from("report_card_view")
-    .select("*");
-console.log("RAW ROW SAMPLE:", data?.[0]);
-console.log("COLUMNS:", Object.keys(data?.[0] || {}));
+    // ── LOAD DATA ────────────────────────────────────────────
+    async function loadData() {
+      const loader = document.getElementById("loader");
+      loader.style.display = "flex";
 
-  loader.style.display = "none";
+      const { data, error } = await supabase
+        .from("report_card_view")
+        .select("*");
 
-  if (error) {
-    console.error(error);
-    document.getElementById("error").textContent =
-      "⚠️ Telemetry link lost: unable to load data.";
-    return;
-  }
+      console.log("RAW ROW SAMPLE:", data?.[0]);
+      console.log("COLUMNS:", Object.keys(data?.[0] || {}));
 
-reportData = data || [];
-filteredData = [...reportData];
+      loader.style.display = "none";
 
-// FORCE default sort: latest test first
-filteredData.sort(
-  (a, b) =>
-    new Date(b.last_test_taken || 0) -
-    new Date(a.last_test_taken || 0)
-);
+      if (error) {
+        console.error(error);
+        document.getElementById("error").textContent =
+          "⚠️ Telemetry link lost: unable to load data.";
+        return;
+      }
 
+      reportData = data || [];
+      filteredData = [...reportData];
 
-  populateDepartmentDropdown(reportData);
+      filteredData.sort(
+        (a, b) => new Date(b.last_test_taken || 0) - new Date(a.last_test_taken || 0)
+      );
 
-  if (reportData.length > 0) {
-    const sorted = [...reportData].sort(
-      (a, b) => new Date(b.last_test_taken) - new Date(a.last_test_taken)
-    );
+      populateDepartmentDropdown(reportData);
 
-    lastTestInfo = {
-      name: sorted[0].name,
-      date: formatDate(sorted[0].last_test_taken)
-    };
+      if (reportData.length > 0) {
+        const sorted = [...reportData].sort(
+          (a, b) => new Date(b.last_test_taken) - new Date(a.last_test_taken)
+        );
+        lastTestInfo = {
+          name: sorted[0].name,
+          date: formatDate(sorted[0].last_test_taken)
+        };
+        document.getElementById("last-test-info").textContent =
+          `⏱ ✨${lastTestInfo.name} at ${lastTestInfo.date}`;
+      } else {
+        document.getElementById("last-test-info").textContent =
+          "Awaiting first mission log...";
+      }
 
-    document.getElementById("last-test-info").textContent =
-      `⏱ ✨${lastTestInfo.name} at ${lastTestInfo.date}`;
-  } else {
-    document.getElementById("last-test-info").textContent =
-      "Awaiting first mission log...";
-  }
+      const savedDept = localStorage.getItem("leaderboard_department");
+      if (savedDept) {
+        const sel = document.getElementById("departmentSelect");
+        if (sel) {
+          sel.value = savedDept;
+          applyDepartmentFilter(savedDept);
+          return;
+        }
+      }
 
-  const savedDept = localStorage.getItem("leaderboard_department");
-  if (savedDept) {
-    const sel = document.getElementById("departmentSelect");
-    if (sel) {
-      sel.value = savedDept;
-      applyDepartmentFilter(savedDept);
-      return;
+      sortData(currentSort);
     }
-  }
 
-  sortData(currentSort);
-}
-
+    // ── FORMAT HELPERS ───────────────────────────────────────
     function formatDate(dateStr) {
       if (!dateStr) return "N/A";
       const date = new Date(dateStr);
-      return date.toLocaleString('en-IN', { 
+      return date.toLocaleString('en-IN', {
         timeZone: 'Asia/Kolkata',
-        day: '2-digit', 
-        month: 'short', 
-        year: 'numeric', 
-        hour: '2-digit', 
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
         minute: '2-digit',
         hour12: true
       });
@@ -109,120 +109,75 @@ filteredData.sort(
 
     function formatTime(seconds) {
       if (!seconds && seconds !== 0) return `
-        <span class="time-block">
-          <span class="time-num">0</span><span class="time-unit h">h</span>
-        </span>
-        <span class="time-block">
-          <span class="time-num">0</span><span class="time-unit m">m</span>
-        </span>
-        <span class="time-block">
-          <span class="time-num">0</span><span class="time-unit s">s</span>
-        </span>
+        <span class="time-block"><span class="time-num">0</span><span class="time-unit h">h</span></span>
+        <span class="time-block"><span class="time-num">0</span><span class="time-unit m">m</span></span>
+        <span class="time-block"><span class="time-num">0</span><span class="time-unit s">s</span></span>
       `;
-
       seconds = Math.round(seconds);
-
       const h = Math.floor(seconds / 3600);
       const m = Math.floor((seconds % 3600) / 60);
       const s = seconds % 60;
-
       return `
-        <span class="time-block">
-          <span class="time-num">${h}</span><span class="time-unit h">h</span>
-        </span>
-        <span class="time-block">
-          <span class="time-num">${m}</span><span class="time-unit m">m</span>
-        </span>
-        <span class="time-block">
-          <span class="time-num">${s}</span><span class="time-unit s">s</span>
-        </span>
+        <span class="time-block"><span class="time-num">${h}</span><span class="time-unit h">h</span></span>
+        <span class="time-block"><span class="time-num">${m}</span><span class="time-unit m">m</span></span>
+        <span class="time-block"><span class="time-num">${s}</span><span class="time-unit s">s</span></span>
       `;
     }
-function populateDepartmentDropdown(data) {
-  const select = document.getElementById("departmentSelect");
-  if (!select) return;
 
-  select.innerHTML = `<option value="ALL">All Departments</option>`;
+    // ── DEPARTMENT FILTER ────────────────────────────────────
+    function populateDepartmentDropdown(data) {
+      const select = document.getElementById("departmentSelect");
+      if (!select) return;
+      select.innerHTML = `<option value="ALL">All Departments</option>`;
+      const departments = [...new Set(
+        data.map(s => (s.department || "").trim().toUpperCase()).filter(Boolean)
+      )].sort();
+      departments.forEach(dept => {
+        const opt = document.createElement("option");
+        opt.value = dept;
+        opt.textContent = dept;
+        select.appendChild(opt);
+      });
+    }
 
-  const departments = [...new Set(
-    data
-  .map(s => (s.department || "").trim().toUpperCase())
-  .filter(Boolean)
-  )].sort();
+    function applyDepartmentFilter(dept) {
+      console.log("▶ Dropdown changed to:", dept);
+      currentDepartment = dept;
+      localStorage.setItem("leaderboard_department", dept);
+      if (dept === "ALL") {
+        filteredData = [...reportData];
+      } else {
+        const target = dept.trim().toUpperCase();
+        filteredData = reportData.filter(s =>
+          (s.department || "").trim().toUpperCase() === target
+        );
+      }
+      sortAscending = false;
+      filteredData.sort(
+        (a, b) => new Date(b.last_test_taken || 0) - new Date(a.last_test_taken || 0)
+      );
+      renderLeaderboard();
+    }
 
-  departments.forEach(dept => {
-    const opt = document.createElement("option");
-    opt.value = dept;
-    opt.textContent = dept;
-    select.appendChild(opt);
-  });
-}
-function applyDepartmentFilter(dept) {
-  console.log("▶ Dropdown changed to:", dept);
-
-  currentDepartment = dept;
-  localStorage.setItem("leaderboard_department", dept);
-
-  if (dept === "ALL") {
-    filteredData = [...reportData];
-    console.log("▶ Showing ALL students:", filteredData.length);
-  } else {
-    const target = dept.trim().toUpperCase();
-
-    filteredData = reportData.filter(s =>
-      (s.department || "").trim().toUpperCase() === target
-    );
-
-    console.log(
-      "▶ Filtering by department:",
-      target,
-      "→ matched rows:",
-      filteredData.length
-    );
-  }
-
-  sortAscending = false;
-
-  console.log("▶ Rendering leaderboard with rows:", filteredData.length);
- filteredData.sort(
-  (a, b) =>
-    new Date(b.last_test_taken || 0) -
-    new Date(a.last_test_taken || 0)
-);
-  renderLeaderboard();
-}
-
-
+    // ── SORT ─────────────────────────────────────────────────
     function sortData(key) {
-if (currentSort === key && reportData.length > 0 && document.getElementById("leaderboard").children.length > 1) {
-
-    // Only flip if user manually clicked a sort button (leaderboard already rendered)
-    sortAscending = !sortAscending;
-} else {
-    currentSort = key;
-    sortAscending = false;  // default descending
-}
-
-      
-    filteredData.sort((a, b) => {
-
+      if (currentSort === key && reportData.length > 0 && document.getElementById("leaderboard").children.length > 1) {
+        sortAscending = !sortAscending;
+      } else {
+        currentSort = key;
+        sortAscending = false;
+      }
+      filteredData.sort((a, b) => {
         let A = a[key];
         let B = b[key];
-
-        // Handle null or undefined values, sorting them to the bottom
         if (A === null || A === undefined) A = sortAscending ? Infinity : -Infinity;
         if (B === null || B === undefined) B = sortAscending ? Infinity : -Infinity;
-        
-        // For last_test_taken, sort by date
         if (key === 'last_test_taken') {
-       A = new Date(a.last_test_taken).getTime();
-B = new Date(b.last_test_taken).getTime();
-
+          A = new Date(a.last_test_taken).getTime();
+          B = new Date(b.last_test_taken).getTime();
         }
-        
         return sortAscending ? A - B : B - A;
       });
-
       updateActiveButton();
       renderLeaderboard();
     }
@@ -230,19 +185,11 @@ B = new Date(b.last_test_taken).getTime();
     function updateActiveButton() {
       document.querySelectorAll(".sort-btn").forEach(btn => {
         btn.classList.remove("active");
-
         const indicator = btn.querySelector('.sort-indicator');
-        if (indicator) {
-          indicator.textContent = "";
-        }
+        if (indicator) indicator.textContent = "";
       });
-
-      // Toggle time display button visibility
       const toggle = document.getElementById("time-toggle");
-      if (toggle) {
-        toggle.style.display = (currentSort === "total_time") ? "inline-flex" : "none";
-      }
-
+      if (toggle) toggle.style.display = (currentSort === "total_time") ? "inline-flex" : "none";
       const activeButton = document.querySelector(`[data-sort="${currentSort}"]`);
       if (activeButton) {
         activeButton.classList.add("active");
@@ -256,14 +203,13 @@ B = new Date(b.last_test_taken).getTime();
       }
     }
 
+    // ── RENDER LEADERBOARD ───────────────────────────────────
     function renderLeaderboard() {
       const container = document.getElementById("leaderboard");
       container.innerHTML = "";
-
       filteredData.forEach((s, idx) => {
         const row = document.createElement("div");
         row.className = "leaderboard-row";
-        
         const rank = idx + 1;
         if (idx === 0) row.classList.add("gold");
         else if (idx === 1) row.classList.add("silver");
@@ -274,8 +220,8 @@ B = new Date(b.last_test_taken).getTime();
           value = (currentSort === "last_test_taken") ? null : 0;
         }
 
-        const displayValue = 
-          currentSort === "accuracy" 
+        const displayValue =
+          currentSort === "accuracy"
             ? `${Math.round((value || 0) * 100)}%` :
           currentSort === "total_time"
             ? (showSecondsOnly ? formatSecondsOnly(value) : formatTime(value)) :
@@ -284,53 +230,29 @@ B = new Date(b.last_test_taken).getTime();
           value;
 
         if (currentSort === "last_test_taken") {
-
           row.innerHTML = `
-            <div class="rank">
-              ${idx < 3 ? getMedalEmoji(idx) : rank}
-            </div>
-
+            <div class="rank">${idx < 3 ? getMedalEmoji(idx) : rank}</div>
             <div class="name name-two-line">
               <div class="full-name">${s.name}</div>
-              <div class="last-test-small time-colored">
-                ${formatDate(s.last_test_taken)}
-              </div>
+              <div class="last-test-small time-colored">${formatDate(s.last_test_taken)}</div>
             </div>
-
             <div class="score"></div>
           `;
-
         } else if (currentSort === "total_time") {
-
           if (showSecondsOnly) {
             row.innerHTML = `
-              <div class="rank">
-                ${idx < 3 ? getMedalEmoji(idx) : rank}
-              </div>
-
-              <div class="name name-two-line">
-                <div class="full-name">${s.name}</div>
-              </div>
-
-              <div class="score score-seconds">
-                ${formatSecondsOnly(s.total_time)}
-              </div>
+              <div class="rank">${idx < 3 ? getMedalEmoji(idx) : rank}</div>
+              <div class="name name-two-line"><div class="full-name">${s.name}</div></div>
+              <div class="score score-seconds">${formatSecondsOnly(s.total_time)}</div>
             `;
           } else {
             const totalSeconds = s.total_time ?? 0;
             const h = Math.floor(totalSeconds / 3600).toString().padStart(2, "0");
             const m = Math.floor((totalSeconds % 3600) / 60).toString().padStart(2, "0");
             const s_val = (totalSeconds % 60).toString().padStart(2, "0");
-
             row.innerHTML = `
-              <div class="rank">
-                ${idx < 3 ? getMedalEmoji(idx) : rank}
-              </div>
-
-              <div class="name name-two-line">
-                <div class="full-name">${s.name}</div>
-              </div>
-
+              <div class="rank">${idx < 3 ? getMedalEmoji(idx) : rank}</div>
+              <div class="name name-two-line"><div class="full-name">${s.name}</div></div>
               <div class="score name-two-line aligned-time">
                 <div class="time-row">
                   <span class="t-block"><span class="t-num">${h}</span><span class="t-unit h">h</span></span>
@@ -341,32 +263,23 @@ B = new Date(b.last_test_taken).getTime();
             `;
           }
         } else {
-
-         row.innerHTML = `
-  <div class="rank">
-    ${idx < 3 ? getMedalEmoji(idx) : rank}
-  </div>
-
-  <div class="name">
-    <div class="cadet-name">
-      ${s.name}
-      <span class="dept-inline">
-        ${s.department ? `· ${s.department}` : ""}
-      </span>
-    </div>
-
-    <div class="metric-tag">
-      ${currentSort === "accuracy" ? "TARGET LOCK" : 
-        currentSort === "quests_completed" ? "QUESTS" :
-        currentSort === "videos_completed" ? "VIDEOS" :
-        currentSort === "stories_completed" ? "STORIES" : ""}
-    </div>
-  </div>
-
-  <div class="score">${displayValue}</div>
-`;
-}
-
+          row.innerHTML = `
+            <div class="rank">${idx < 3 ? getMedalEmoji(idx) : rank}</div>
+            <div class="name">
+              <div class="cadet-name">
+                ${s.name}
+                <span class="dept-inline">${s.department ? `· ${s.department}` : ""}</span>
+              </div>
+              <div class="metric-tag">
+                ${currentSort === "accuracy" ? "TARGET LOCK" :
+                  currentSort === "quests_completed" ? "QUESTS" :
+                  currentSort === "videos_completed" ? "VIDEOS" :
+                  currentSort === "stories_completed" ? "STORIES" : ""}
+              </div>
+            </div>
+            <div class="score">${displayValue}</div>
+          `;
+        }
         row.onclick = () => showDetail(s);
         container.appendChild(row);
       });
@@ -376,10 +289,7 @@ B = new Date(b.last_test_taken).getTime();
       return idx === 0 ? "🚀" : idx === 1 ? "🛰️" : "🌌";
     }
 
-    const START_DATE = new Date("2025-08-25");
-
-/* NEW — controls visible calendar range only */
-const CALENDAR_VISIBLE_START = new Date("2026-02-01");
+    // ── CALENDAR HELPERS ─────────────────────────────────────
     function mapToDate(number) {
       const d = new Date(START_DATE);
       d.setDate(d.getDate() + (number - 1));
@@ -388,7 +298,6 @@ const CALENDAR_VISIBLE_START = new Date("2026-02-01");
 
     function parseItems(rawList) {
       if (!rawList || rawList === "NULL") return [];
-
       return rawList
         .split(",")
         .map(item => item.trim())
@@ -408,24 +317,20 @@ const CALENDAR_VISIBLE_START = new Date("2026-02-01");
 
     function groupByDate(quests, videos, stories) {
       const map = {};
-
       const add = (date, label) => {
         const key = date.toDateString();
         if (!map[key]) map[key] = [];
         map[key].push(label);
       };
-
       quests.forEach(q => add(mapToDate(q.number), q.label));
       videos.forEach(v => add(mapToDate(v.number), v.label));
       stories.forEach(s => add(mapToDate(s.number), s.label));
-
       return map;
     }
 
     function renderOneMonth(baseDate, grouped) {
       const year = baseDate.getFullYear();
       const month = baseDate.getMonth();
-
       const firstDay = new Date(year, month, 1).getDay();
       const numDays = new Date(year, month + 1, 0).getDate();
 
@@ -433,35 +338,26 @@ const CALENDAR_VISIBLE_START = new Date("2026-02-01");
         <div class="mini-cal-title">
           ${baseDate.toLocaleString('en-IN', { month: 'long', year: 'numeric' })}
         </div>
-
         <div class="mini-cal-grid">
           <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div>
           <div>Thu</div><div>Fri</div><div>Sat</div>
       `;
-
-      for (let i = 0; i < firstDay; i++) {
-        html += `<div class="mini-cal-empty"></div>`;
-      }
-
+      for (let i = 0; i < firstDay; i++) html += `<div class="mini-cal-empty"></div>`;
       for (let d = 1; d <= numDays; d++) {
         const date = new Date(year, month, d);
         const key = date.toDateString();
         const items = grouped[key];
-
         if (items) {
           html += `
             <div class="mini-cal-day marked">
               <div class="mini-cal-date">${d}</div>
-              <div class="mini-cal-items">
-                ${items.map(i => `<div>${iconFor(i)}</div>`).join("")}
-              </div>
+              <div class="mini-cal-items">${items.map(i => `<div>${iconFor(i)}</div>`).join("")}</div>
             </div>
           `;
         } else {
           html += `<div class="mini-cal-day">${d}</div>`;
         }
       }
-
       html += "</div>";
       return html;
     }
@@ -469,34 +365,31 @@ const CALENDAR_VISIBLE_START = new Date("2026-02-01");
     function renderMiniCalendar(containerId, grouped) {
       const container = document.getElementById(containerId);
       container.innerHTML = "";
-
-      let cursor = new Date(
-  CALENDAR_VISIBLE_START.getFullYear(),
-  CALENDAR_VISIBLE_START.getMonth(),
-  1
-);   const today = new Date();
+      let cursor = new Date(CALENDAR_VISIBLE_START.getFullYear(), CALENDAR_VISIBLE_START.getMonth(), 1);
+      const today = new Date();
       const end = new Date(today.getFullYear(), today.getMonth(), 1);
-
       while (cursor <= end) {
         container.innerHTML += renderOneMonth(cursor, grouped);
         cursor.setMonth(cursor.getMonth() + 1);
       }
     }
 
+    // ── DETAIL MODAL ─────────────────────────────────────────
     function showDetail(s) {
       const modal = document.getElementById("modal");
       const content = document.getElementById("modal-content");
-      
+
       content.innerHTML = `
         <div class="modal-header">
           <div class="modal-id-tag">Pilot Profile</div>
           <h2>${s.name}</h2>
           <button class="close-btn" onclick="closeModal()">×</button>
         </div>
-         <div style="text-align:center; margin-top:-8px; margin-bottom:12px; font-size:12px; color:rgba(148,163,184,0.95); text-transform:uppercase; letter-spacing:0.12em;">
-    ${s.department || 'N/A'}
-  </div>
-        
+        <div style="text-align:center; margin-top:-8px; margin-bottom:12px; font-size:12px;
+                    color:rgba(148,163,184,0.95); text-transform:uppercase; letter-spacing:0.12em;">
+          ${s.department || 'N/A'}
+        </div>
+
         <div class="stats-grid">
           <div class="stat-box">
             <div class="stat-label">Total Score</div>
@@ -525,9 +418,7 @@ const CALENDAR_VISIBLE_START = new Date("2026-02-01");
           </div>
           <div class="stat-box">
             <div class="stat-label">Time on Mission</div>
-            <div class="stat-value time-stat">
-              ${formatTime(s.total_time)}
-            </div>
+            <div class="stat-value time-stat">${formatTime(s.total_time)}</div>
             <div class="stat-foot">Cumulative</div>
           </div>
         </div>
@@ -544,30 +435,34 @@ const CALENDAR_VISIBLE_START = new Date("2026-02-01");
         </div>
       `;
 
-      const quests = parseItems(s.quest_list);
-      const videos = parseItems(s.video_list);
+      const quests  = parseItems(s.quest_list);
+      const videos  = parseItems(s.video_list);
       const stories = parseItems(s.story_list);
-
       const grouped = groupByDate(quests, videos, stories);
       renderMiniCalendar("mini-calendar", grouped);
-// INSERT THIS INSIDE showDetail(s), at the end:
 
-const pdfBtn = document.createElement("button");
-pdfBtn.textContent = "📄 Download PDF";
-pdfBtn.style.cssText = `
-  width:100%;
-  padding:10px;
-  margin-top:12px;
-  font-weight:700;
-  border:1px solid #888;
-  background:#fff;
-  color:#000;
-  cursor:pointer;
-  border-radius:6px;
-`;
-pdfBtn.onclick = () => downloadProfilePDF(s);
-
-document.getElementById("modal-content").appendChild(pdfBtn);
+      // ── PDF download button (gold-styled) ──
+      const pdfBtn = document.createElement("button");
+      pdfBtn.innerHTML = "📄 Download Mission Report";
+      pdfBtn.style.cssText = `
+        width:100%; padding:12px; margin-top:14px;
+        font-weight:800; font-size:13px; letter-spacing:0.12em;
+        text-transform:uppercase; cursor:pointer; border-radius:10px;
+        background:linear-gradient(135deg,#D4AF37,#B8962E);
+        color:#0B0B0C; border:1px solid #F5E6A8;
+        box-shadow:0 0 16px rgba(212,175,55,0.5);
+        transition:transform 0.12s ease, box-shadow 0.12s ease;
+      `;
+      pdfBtn.onmouseover = () => {
+        pdfBtn.style.transform = "translateY(-1px)";
+        pdfBtn.style.boxShadow = "0 0 24px rgba(212,175,55,0.7)";
+      };
+      pdfBtn.onmouseout = () => {
+        pdfBtn.style.transform = "";
+        pdfBtn.style.boxShadow = "0 0 16px rgba(212,175,55,0.5)";
+      };
+      pdfBtn.onclick = () => downloadProfilePDF(s);
+      document.getElementById("modal-content").appendChild(pdfBtn);
 
       modal.style.display = "flex";
     }
@@ -576,79 +471,68 @@ document.getElementById("modal-content").appendChild(pdfBtn);
       document.getElementById("modal").style.display = "none";
     }
 
-   function showClassStats() {
-  if (reportData.length === 0) return;
+    // ── CLASS STATS MODAL ────────────────────────────────────
+    function showClassStats() {
+      if (reportData.length === 0) return;
+      const totalStudents = reportData.length;
+      const avgScore = Math.round(reportData.reduce((sum, s) => sum + (s.total_score || 0), 0) / totalStudents);
+      const avgAccuracy = Math.round((reportData.reduce((sum, s) => sum + (s.accuracy || 0), 0) / totalStudents) * 100);
+      const totalAttempts = reportData.reduce((sum, s) => sum + (s.total_attempts || 0), 0);
+      const totalTime = reportData.reduce((sum, s) => sum + (s.total_time || 0), 0);
+      const totalVideos = reportData.reduce((sum, s) => sum + (s.videos_completed || 0), 0);
+      const totalStories = reportData.reduce((sum, s) => sum + (s.stories_completed || 0), 0);
+      const totalQuests = reportData.reduce((sum, s) => sum + (s.quests_completed || 0), 0);
 
-  const totalStudents = reportData.length;
-  const avgScore = Math.round(
-    reportData.reduce((sum, s) => sum + (s.total_score || 0), 0) / totalStudents
-  );
-  const avgAccuracy = Math.round(
-    (reportData.reduce((sum, s) => sum + (s.accuracy || 0), 0) / totalStudents) * 100
-  );
-  const totalAttempts = reportData.reduce((sum, s) => sum + (s.total_attempts || 0), 0);
-  const totalTime = reportData.reduce((sum, s) => sum + (s.total_time || 0), 0);
-  const totalVideos = reportData.reduce((sum, s) => sum + (s.videos_completed || 0), 0);
-  const totalStories = reportData.reduce((sum, s) => sum + (s.stories_completed || 0), 0);
-  const totalQuests = reportData.reduce((sum, s) => sum + (s.quests_completed || 0), 0);
+      const modal = document.getElementById("modal");
+      const content = document.getElementById("modal-content");
+      content.innerHTML = `
+        <div class="modal-header">
+          <div class="modal-id-tag">Class Stats</div>
+          <h2>Squad Overview</h2>
+          <button class="close-btn" onclick="closeModal()">×</button>
+        </div>
+        <div class="stats-grid">
+          <div class="stat-box">
+            <div class="stat-label">Avg Score</div>
+            <div class="stat-value">${avgScore}</div>
+            <div class="stat-foot">Per Pilot</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Avg Accuracy</div>
+            <div class="stat-value">${avgAccuracy}%</div>
+            <div class="stat-foot">Hit Rate</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Total Attempts</div>
+            <div class="stat-value">${totalAttempts}</div>
+            <div class="stat-foot">Shots Fired</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Total Time</div>
+            <div class="stat-value time-stat">${formatTime(totalTime)}</div>
+            <div class="stat-foot">Cumulative</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Videos</div>
+            <div class="stat-value">${totalVideos}</div>
+            <div class="stat-foot">Completed</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Stories</div>
+            <div class="stat-value">${totalStories}</div>
+            <div class="stat-foot">Completed</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Quests</div>
+            <div class="stat-value">${totalQuests}</div>
+            <div class="stat-foot">Completed</div>
+          </div>
+        </div>
+      `;
+      modal.style.display = "flex";
+    }
 
-  const modal = document.getElementById("modal");
-  const content = document.getElementById("modal-content");
-
-  content.innerHTML = `
-    <div class="modal-header">
-      <div class="modal-id-tag">Class Stats</div>
-      <h2>Squad Overview</h2>
-      <button class="close-btn" onclick="closeModal()">×</button>
-    </div>
-
-    <div class="stats-grid">
-      <div class="stat-box">
-        <div class="stat-label">Avg Score</div>
-        <div class="stat-value">${avgScore}</div>
-        <div class="stat-foot">Per Pilot</div>
-      </div>
-
-      <div class="stat-box">
-        <div class="stat-label">Avg Accuracy</div>
-        <div class="stat-value">${avgAccuracy}%</div>
-        <div class="stat-foot">Hit Rate</div>
-      </div>
-
-      <div class="stat-box">
-        <div class="stat-label">Total Attempts</div>
-        <div class="stat-value">${totalAttempts}</div>
-        <div class="stat-foot">Shots Fired</div>
-      </div>
-
-      <div class="stat-box">
-        <div class="stat-label">Total Time</div>
-        <div class="stat-value time-stat">${formatTime(totalTime)}</div>
-        <div class="stat-foot">Cumulative</div>
-      </div>
-
-      <div class="stat-box">
-        <div class="stat-label">Videos</div>
-        <div class="stat-value">${totalVideos}</div>
-        <div class="stat-foot">Completed</div>
-      </div>
-
-      <div class="stat-box">
-        <div class="stat-label">Stories</div>
-        <div class="stat-value">${totalStories}</div>
-        <div class="stat-foot">Completed</div>
-      </div>
-
-      <div class="stat-box">
-        <div class="stat-label">Quests</div>
-        <div class="stat-value">${totalQuests}</div>
-        <div class="stat-foot">Completed</div>
-      </div>
-    </div>
-  `;
-
-  modal.style.display = "flex";
-}
+    // ── GLOBAL BINDINGS ──────────────────────────────────────
     window.sortData = sortData;
     window.closeModal = closeModal;
     window.showClassStats = showClassStats;
@@ -662,1660 +546,748 @@ document.getElementById("modal-content").appendChild(pdfBtn);
       renderLeaderboard();
     };
 
-    window.onclick = function(event) {
+    window.onclick = function (event) {
       const modal = document.getElementById("modal");
-      if (event.target === modal) {
-        closeModal();
-      }
+      if (event.target === modal) closeModal();
     };
-    // === PDF GENERATION ===============================================
 
-(function injectLibraries() {
-  if (!window.jspdf) {
-    const s1 = document.createElement("script");
-    const s2 = document.createElement("script");
-    s1.src = "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";
-    s2.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
-    document.head.appendChild(s1);
-    document.head.appendChild(s2);
-  }
-})();
+    // ══════════════════════════════════════════════════════════
+    //  PDF GENERATION — PREMIUM BLACK & GOLD
+    // ══════════════════════════════════════════════════════════
 
-// ============================================================
-//  DROP-IN REPLACEMENT for downloadProfilePDF(studentObj)
-//  Paste this entire block in place of the existing function
-//  inside the <script type="module"> tag in your HTML.
-// ============================================================
+    (function injectLibraries() {
+      const s1 = document.createElement("script");
+      const s2 = document.createElement("script");
+      s1.src = "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";
+      s2.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
+      document.head.appendChild(s1);
+      document.head.appendChild(s2);
+    })();
 
-async function downloadProfilePDF(studentObj) {
-  const { jsPDF } = window.jspdf;
+    async function downloadProfilePDF(studentObj) {
+      const { jsPDF } = window.jspdf;
 
-  // ── 1. Parse activity lists ──────────────────────────────
-  const quests  = parseItems(studentObj.quest_list);
-  const videos  = parseItems(studentObj.video_list);
-  const stories = parseItems(studentObj.story_list);
+      // ── 1. Parse activity lists ──
+      const quests  = parseItems(studentObj.quest_list);
+      const videos  = parseItems(studentObj.video_list);
+      const stories = parseItems(studentObj.story_list);
 
-  const questCount  = quests.length;
-  const videoCount  = videos.length;
-  const storyCount  = stories.length;
+      const questCount  = quests.length;
+      const videoCount  = videos.length;
+      const storyCount  = stories.length;
 
-  // ── 2. Time formatting ───────────────────────────────────
-  const totalSec = Math.round(studentObj.total_time ?? 0);
-  const th = Math.floor(totalSec / 3600);
-  const tm = Math.floor((totalSec % 3600) / 60);
-  const ts = totalSec % 60;
-  const formattedTime = `${th}h ${tm}m ${ts}s`;
+      // ── 2. Format time ──
+      const totalSec    = Math.round(studentObj.total_time ?? 0);
+      const th          = Math.floor(totalSec / 3600);
+      const tm          = Math.floor((totalSec % 3600) / 60);
+      const ts          = totalSec % 60;
+      const formattedTime = `${th}h ${tm}m ${ts}s`;
 
-  // ── 3. Derived stats ─────────────────────────────────────
-  const accuracy     = Math.round((studentObj.accuracy ?? 0) * 100);
-  const totalScore   = studentObj.total_score   ?? 0;
-  const totalCorrect = studentObj.total_correct ?? 0;
-  const totalWrong   = studentObj.total_wrong   ?? 0;
-  const totalAttempts= studentObj.total_attempts?? 0;
-  const department   = studentObj.department     ?? "N/A";
-  const lastTest     = formatDate(studentObj.last_test_taken);
+      // ── 3. Derived stats ──
+      const accuracy      = Math.round((studentObj.accuracy ?? 0) * 100);
+      const totalScore    = studentObj.total_score    ?? 0;
+      const totalCorrect  = studentObj.total_correct  ?? 0;
+      const totalWrong    = studentObj.total_wrong    ?? 0;
+      const totalAttempts = studentObj.total_attempts ?? 0;
+      const department    = studentObj.department     ?? "N/A";
+      const lastTest      = formatDate(studentObj.last_test_taken);
 
-  // ── 4. Calendar data ─────────────────────────────────────
-  const grouped = groupByDate(quests, videos, stories);
+      // ── 4. Calendar data ──
+      const grouped = groupByDate(quests, videos, stories);
 
-  // ── 5. Build the off-screen PDF element ─────────────────
-  const wrap = document.createElement("div");
-  wrap.style.cssText = `
-    position:fixed; left:-9999px; top:0;
-    width:794px; font-family:'Inter',Arial,sans-serif;
-    background:#0B0B0C; color:#F8F7F3;
-  `;
-  document.body.appendChild(wrap);
+      // ── 5. Off-screen container ──
+      const wrap = document.createElement("div");
+      wrap.style.cssText = `
+        position:fixed; left:-9999px; top:0;
+        width:794px; font-family:'Inter',Arial,sans-serif;
+        background:#0B0B0C; color:#F8F7F3;
+      `;
+      document.body.appendChild(wrap);
 
-  // ─── Helper: stat card HTML ───────────────────────────────
-  const card = (label, value, sub) => `
-    <div style="
-      background:linear-gradient(135deg,rgba(212,175,55,0.14),rgba(11,11,12,0.98));
-      border:1px solid rgba(212,175,55,0.55);
-      border-radius:10px; padding:12px 14px; flex:1; min-width:0;
-    ">
-      <div style="font-size:9px;letter-spacing:.18em;text-transform:uppercase;
-                  color:rgba(212,175,55,0.7);margin-bottom:4px;">${label}</div>
-      <div style="font-size:22px;font-weight:900;
-                  background:linear-gradient(120deg,#F5E6A8,#D4AF37);
-                  -webkit-background-clip:text;color:transparent;
-                  line-height:1.1;">${value}</div>
-      <div style="font-size:9px;color:rgba(248,247,243,0.5);margin-top:4px;">${sub}</div>
-    </div>`;
-
-  // ─── Accuracy bar ─────────────────────────────────────────
-  const accBarWidth = Math.round(accuracy * 5.3); // max ~530px
-  const accBar = `
-    <div style="margin-bottom:18px;">
-      <div style="display:flex;justify-content:space-between;
-                  font-size:10px;letter-spacing:.12em;text-transform:uppercase;
-                  color:rgba(212,175,55,0.8);margin-bottom:6px;">
-        <span>Accuracy</span><span>${accuracy}%</span>
-      </div>
-      <div style="height:8px;background:rgba(212,175,55,0.15);
-                  border-radius:999px;overflow:hidden;
-                  border:1px solid rgba(212,175,55,0.3);">
-        <div style="height:100%;width:${accBarWidth}px;
-                    background:linear-gradient(90deg,#B8962E,#F5E6A8);
-                    border-radius:999px;"></div>
-      </div>
-    </div>`;
-
-  // ─── Correct vs Wrong bar ─────────────────────────────────
-  const totalQ      = totalCorrect + totalWrong || 1;
-  const correctPct  = Math.round((totalCorrect / totalQ) * 100);
-  const wrongPct    = 100 - correctPct;
-  const splitBar = `
-    <div style="margin-bottom:22px;">
-      <div style="display:flex;justify-content:space-between;
-                  font-size:10px;letter-spacing:.12em;text-transform:uppercase;
-                  color:rgba(248,247,243,0.55);margin-bottom:6px;">
-        <span style="color:rgba(74,222,128,0.9);">✔ Correct ${totalCorrect} (${correctPct}%)</span>
-        <span style="color:rgba(248,113,113,0.9);">✘ Wrong ${totalWrong} (${wrongPct}%)</span>
-      </div>
-      <div style="height:10px;background:rgba(248,113,113,0.35);
-                  border-radius:999px;overflow:hidden;display:flex;
-                  border:1px solid rgba(248,247,243,0.15);">
-        <div style="width:${correctPct}%;background:rgba(74,222,128,0.75);"></div>
-      </div>
-    </div>`;
-
-  // ─── Calendar renderer (PDF version) ─────────────────────
-  function renderCalMonth(baseDate, grouped) {
-    const year     = baseDate.getFullYear();
-    const month    = baseDate.getMonth();
-    const firstDay = new Date(year, month, 1).getDay();
-    const numDays  = new Date(year, month + 1, 0).getDate();
-
-    const monthLabel = baseDate.toLocaleString("en-IN", {
-      month: "long", year: "numeric"
-    });
-
-    const dayHeaders = ["Su","Mo","Tu","We","Th","Fr","Sa"]
-      .map(d => `<div style="font-size:8px;text-align:center;
-                             color:rgba(212,175,55,0.7);
-                             font-weight:700;padding-bottom:3px;">${d}</div>`)
-      .join("");
-
-    let cells = "";
-    for (let i = 0; i < firstDay; i++) {
-      cells += `<div></div>`;
-    }
-    for (let d = 1; d <= numDays; d++) {
-      const key   = new Date(year, month, d).toDateString();
-      const items = grouped[key];
-      const marked = !!items;
-      cells += `
+      // ── Helper: stat card ──
+      const card = (label, value, sub) => `
         <div style="
-          background:${marked
-            ? "linear-gradient(135deg,rgba(212,175,55,0.28),rgba(11,11,12,0.9))"
-            : "rgba(17,17,19,0.9)"};
-          border:1px solid ${marked
-            ? "rgba(212,175,55,0.7)"
-            : "rgba(212,175,55,0.2)"};
-          border-radius:5px; min-height:26px;
-          display:flex;flex-direction:column;align-items:center;
-          justify-content:center; padding:2px;
-          ${marked ? "box-shadow:0 0 6px rgba(212,175,55,0.35);" : ""}
+          background:linear-gradient(135deg,rgba(212,175,55,0.14),rgba(11,11,12,0.98));
+          border:1px solid rgba(212,175,55,0.55);
+          border-radius:10px; padding:12px 14px; flex:1; min-width:0;
         ">
-          <span style="font-size:8px;font-weight:700;
-                       color:${marked
-                         ? "#F5E6A8"
-                         : "rgba(248,247,243,0.4)"};">${d}</span>
-          ${marked ? `<span style="font-size:7px;line-height:1;">✦</span>` : ""}
+          <div style="font-size:9px;letter-spacing:.18em;text-transform:uppercase;
+                      color:rgba(212,175,55,0.7);margin-bottom:4px;">${label}</div>
+          <div style="font-size:22px;font-weight:900;
+                      background:linear-gradient(120deg,#F5E6A8,#D4AF37);
+                      -webkit-background-clip:text;color:transparent;line-height:1.1;">${value}</div>
+          <div style="font-size:9px;color:rgba(248,247,243,0.5);margin-top:4px;">${sub}</div>
         </div>`;
+
+      // ── Accuracy progress bar ──
+      const accBarPx = Math.round(accuracy * 5.3); // 100% ≈ 530px
+      const accBar = `
+        <div style="margin-bottom:18px;">
+          <div style="display:flex;justify-content:space-between;font-size:10px;
+                      letter-spacing:.12em;text-transform:uppercase;
+                      color:rgba(212,175,55,0.8);margin-bottom:6px;">
+            <span>Accuracy</span><span>${accuracy}%</span>
+          </div>
+          <div style="height:8px;background:rgba(212,175,55,0.15);border-radius:999px;
+                      overflow:hidden;border:1px solid rgba(212,175,55,0.3);">
+            <div style="height:100%;width:${accBarPx}px;
+                        background:linear-gradient(90deg,#B8962E,#F5E6A8);
+                        border-radius:999px;"></div>
+          </div>
+        </div>`;
+
+      // ── Correct vs Wrong split bar ──
+      const totalQ      = totalCorrect + totalWrong || 1;
+      const correctPct  = Math.round((totalCorrect / totalQ) * 100);
+      const wrongPct    = 100 - correctPct;
+      const splitBar = `
+        <div style="margin-bottom:22px;">
+          <div style="display:flex;justify-content:space-between;font-size:10px;
+                      letter-spacing:.12em;text-transform:uppercase;
+                      color:rgba(248,247,243,0.55);margin-bottom:6px;">
+            <span style="color:rgba(74,222,128,0.9);">✔ Correct ${totalCorrect} (${correctPct}%)</span>
+            <span style="color:rgba(248,113,113,0.9);">✘ Wrong ${totalWrong} (${wrongPct}%)</span>
+          </div>
+          <div style="height:10px;background:rgba(248,113,113,0.35);border-radius:999px;
+                      overflow:hidden;display:flex;border:1px solid rgba(248,247,243,0.15);">
+            <div style="width:${correctPct}%;background:rgba(74,222,128,0.75);"></div>
+          </div>
+        </div>`;
+
+      // ── PDF calendar renderer ──
+      function renderCalMonth(baseDate, grouped) {
+        const year     = baseDate.getFullYear();
+        const month    = baseDate.getMonth();
+        const firstDay = new Date(year, month, 1).getDay();
+        const numDays  = new Date(year, month + 1, 0).getDate();
+        const monthLabel = baseDate.toLocaleString("en-IN", { month: "long", year: "numeric" });
+
+        const dayHeaders = ["Su","Mo","Tu","We","Th","Fr","Sa"]
+          .map(d => `<div style="font-size:8px;text-align:center;color:rgba(212,175,55,0.7);
+                                 font-weight:700;padding-bottom:3px;">${d}</div>`)
+          .join("");
+
+        let cells = "";
+        for (let i = 0; i < firstDay; i++) cells += `<div></div>`;
+        for (let d = 1; d <= numDays; d++) {
+          const key    = new Date(year, month, d).toDateString();
+          const marked = !!grouped[key];
+          cells += `
+            <div style="
+              background:${marked
+                ? "linear-gradient(135deg,rgba(212,175,55,0.28),rgba(11,11,12,0.9))"
+                : "rgba(17,17,19,0.9)"};
+              border:1px solid ${marked ? "rgba(212,175,55,0.7)" : "rgba(212,175,55,0.18)"};
+              border-radius:5px; min-height:26px;
+              display:flex;flex-direction:column;align-items:center;
+              justify-content:center; padding:2px;
+              ${marked ? "box-shadow:0 0 6px rgba(212,175,55,0.35);" : ""}
+            ">
+              <span style="font-size:8px;font-weight:700;
+                           color:${marked ? "#F5E6A8" : "rgba(248,247,243,0.35)"};">${d}</span>
+              ${marked ? `<span style="font-size:7px;line-height:1;color:#D4AF37;">✦</span>` : ""}
+            </div>`;
+        }
+
+        return `
+          <div style="width:47%;margin-bottom:12px;">
+            <div style="font-size:9px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;
+                        color:rgba(212,175,55,0.85);text-align:center;margin-bottom:6px;
+                        border-bottom:1px solid rgba(212,175,55,0.3);padding-bottom:4px;">
+              ${monthLabel}
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;">
+              ${dayHeaders}${cells}
+            </div>
+          </div>`;
+      }
+
+      // Build calendar HTML
+      let calHTML = "";
+      let cursor  = new Date(CALENDAR_VISIBLE_START.getFullYear(), CALENDAR_VISIBLE_START.getMonth(), 1);
+      const calEnd = new Date(); calEnd.setDate(1);
+      while (cursor <= calEnd) {
+        calHTML += renderCalMonth(new Date(cursor), grouped);
+        cursor.setMonth(cursor.getMonth() + 1);
+      }
+
+      // ── Full page HTML ──
+      wrap.innerHTML = `
+        <div style="
+          width:794px; min-height:1123px; background:#0B0B0C;
+          padding:0 0 32px 0; position:relative;
+        ">
+
+          <!-- TOP GOLD BAND -->
+          <div style="
+            background:linear-gradient(90deg,#8B6914,#B8962E,#D4AF37,#F5E6A8,#D4AF37,#B8962E,#8B6914);
+            height:6px; width:100%;
+          "></div>
+
+          <!-- HEADER -->
+          <div style="
+            padding:22px 40px 18px;
+            border-bottom:1px solid rgba(212,175,55,0.4);
+            display:flex; align-items:center; justify-content:space-between;
+          ">
+            <div>
+              <div style="font-size:9px;letter-spacing:.26em;text-transform:uppercase;
+                          color:rgba(212,175,55,0.6);margin-bottom:5px;">
+                Mission: Veni, Vidi, Vici!
+              </div>
+              <div style="font-size:19px;font-weight:900;letter-spacing:.05em;text-transform:uppercase;
+                          background:linear-gradient(120deg,#F5E6A8,#D4AF37,#B8962E);
+                          -webkit-background-clip:text;color:transparent;">
+                SRM Valliammai Engineering College
+              </div>
+              <div style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+                          color:rgba(212,175,55,0.55);margin-top:4px;">
+                Department of English
+              </div>
+            </div>
+            <div style="text-align:right;font-size:9px;letter-spacing:.12em;
+                        text-transform:uppercase;color:rgba(212,175,55,0.4);line-height:1.8;">
+              Pilot Report<br>
+              ${new Date().toLocaleDateString("en-IN",{day:"2-digit",month:"short",year:"numeric"})}
+            </div>
+          </div>
+
+          <!-- PILOT BANNER -->
+          <div style="
+            margin:20px 40px 0; padding:16px 22px;
+            background:linear-gradient(135deg,rgba(212,175,55,0.18),rgba(11,11,12,0.98));
+            border:1px solid rgba(212,175,55,0.6); border-radius:12px;
+            border-left:4px solid #D4AF37;
+          ">
+            <div style="font-size:9px;letter-spacing:.24em;text-transform:uppercase;
+                        color:rgba(212,175,55,0.6);margin-bottom:5px;">Pilot Profile</div>
+            <div style="font-size:26px;font-weight:900;color:#F8F7F3;letter-spacing:.02em;">
+              ${studentObj.name}
+            </div>
+            <div style="font-size:10px;letter-spacing:.18em;text-transform:uppercase;
+                        color:rgba(212,175,55,0.65);margin-top:5px;">
+              ${department}
+            </div>
+          </div>
+
+          <!-- STAT CARDS ROW 1: Score · Accuracy · Time -->
+          <div style="display:flex;gap:12px;margin:16px 40px 0;">
+            ${card("Total Score",       totalScore,     "Mission Points")}
+            ${card("Accuracy",          accuracy + "%", "Hit Rate")}
+            ${card("Time on Mission",   formattedTime,  "Cumulative")}
+          </div>
+
+          <!-- STAT CARDS ROW 2: Quests · Videos · Stories · Attempts -->
+          <div style="display:flex;gap:12px;margin:10px 40px 0;">
+            ${card("Quests",    questCount,   "Completed")}
+            ${card("Videos",    videoCount,   "Watched")}
+            ${card("Stories",   storyCount,   "Read")}
+            ${card("Attempts",  totalAttempts,"Total")}
+          </div>
+
+          <!-- PERFORMANCE BREAKDOWN -->
+          <div style="
+            margin:18px 40px 0; padding:18px 22px;
+            background:rgba(17,17,19,0.97);
+            border:1px solid rgba(212,175,55,0.4); border-radius:10px;
+          ">
+            <div style="font-size:9px;letter-spacing:.22em;text-transform:uppercase;
+                        color:rgba(212,175,55,0.7);margin-bottom:16px;font-weight:800;">
+              Performance Breakdown
+            </div>
+            ${accBar}
+            ${splitBar}
+            <div style="display:flex;gap:8px;font-size:9px;letter-spacing:.12em;
+                        text-transform:uppercase;color:rgba(248,247,243,0.4);">
+              <span>Last Test:</span>
+              <span style="color:rgba(212,175,55,0.75);">${lastTest}</span>
+            </div>
+          </div>
+
+          <!-- ACTIVITY CALENDAR -->
+          <div style="
+            margin:18px 40px 0; padding:18px 22px 12px;
+            background:rgba(11,11,12,0.98);
+            border:1px solid rgba(212,175,55,0.4); border-radius:10px;
+          ">
+            <div style="font-size:9px;letter-spacing:.22em;text-transform:uppercase;
+                        color:rgba(212,175,55,0.7);margin-bottom:14px;font-weight:800;">
+              📅 Mission Activity Grid
+              <span style="color:rgba(248,247,243,0.28);font-size:8px;
+                           letter-spacing:.1em;margin-left:10px;font-weight:400;">
+                ✦ = active day
+              </span>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:14px;justify-content:space-between;">
+              ${calHTML}
+            </div>
+          </div>
+
+          <!-- BOTTOM GOLD BAND -->
+          <div style="
+            background:linear-gradient(90deg,#8B6914,#B8962E,#D4AF37,#F5E6A8,#D4AF37,#B8962E,#8B6914);
+            height:4px; width:100%; margin-top:28px;
+          "></div>
+
+        </div>`;
+
+      // ── 6. Render → canvas → multi-page PDF ──
+      await new Promise(r => setTimeout(r, 450));
+
+      const canvas = await html2canvas(wrap.firstElementChild, {
+        scale: 2,
+        backgroundColor: "#0B0B0C",
+        useCORS: true,
+        logging: false,
+      });
+
+      const imgW      = canvas.width;
+      const imgH      = canvas.height;
+      const pdf       = new jsPDF("p", "pt", "a4");
+      const pageW     = pdf.internal.pageSize.getWidth();
+      const pageH     = pdf.internal.pageSize.getHeight();
+      const ratio     = pageW / imgW;
+      const rendered  = imgH * ratio;
+
+      let yOffset   = 0;
+      let remaining = rendered;
+
+      while (remaining > 0) {
+        const sliceH   = Math.min(remaining, pageH);
+        const srcY     = yOffset / ratio;
+        const srcH     = sliceH / ratio;
+
+        const pg       = document.createElement("canvas");
+        pg.width       = imgW;
+        pg.height      = srcH;
+        pg.getContext("2d").drawImage(canvas, 0, srcY, imgW, srcH, 0, 0, imgW, srcH);
+
+        if (yOffset > 0) pdf.addPage();
+        pdf.addImage(pg.toDataURL("image/png"), "PNG", 0, 0, pageW, sliceH);
+
+        yOffset   += sliceH;
+        remaining -= sliceH;
+      }
+
+      pdf.save(`${studentObj.name}_MissionReport.pdf`);
+      wrap.remove();
     }
 
-    return `
-      <div style="width:47%;margin-bottom:12px;">
-        <div style="font-size:9px;font-weight:700;letter-spacing:.16em;
-                    text-transform:uppercase;color:rgba(212,175,55,0.85);
-                    text-align:center;margin-bottom:6px;
-                    border-bottom:1px solid rgba(212,175,55,0.3);
-                    padding-bottom:4px;">${monthLabel}</div>
-        <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;">
-          ${dayHeaders}${cells}
-        </div>
-      </div>`;
-  }
-
-  // Collect active calendar months only
-  let calHTML = "";
-  let cursor  = new Date(
-    CALENDAR_VISIBLE_START.getFullYear(),
-    CALENDAR_VISIBLE_START.getMonth(), 1
-  );
-  const calEnd = new Date();
-  calEnd.setDate(1);
-  while (cursor <= calEnd) {
-    calHTML += renderCalMonth(new Date(cursor), grouped);
-    cursor.setMonth(cursor.getMonth() + 1);
-  }
-
-  // ─── Full PDF page HTML ───────────────────────────────────
-  wrap.innerHTML = `
-  <!-- ★ OUTER PAGE ★ -->
-  <div style="
-    width:794px; min-height:1123px;
-    background:#0B0B0C;
-    padding:0 0 32px 0;
-    position:relative;
-  ">
-
-    <!-- TOP GOLD BAND -->
-    <div style="
-      background:linear-gradient(90deg,#B8962E,#D4AF37,#F5E6A8,#D4AF37,#B8962E);
-      height:5px; width:100%;
-    "></div>
-
-    <!-- HEADER -->
-    <div style="
-      padding:22px 36px 18px;
-      border-bottom:1px solid rgba(212,175,55,0.4);
-      display:flex; align-items:center; justify-content:space-between;
-    ">
-      <div>
-        <div style="
-          font-size:10px;letter-spacing:.22em;text-transform:uppercase;
-          color:rgba(212,175,55,0.65);margin-bottom:4px;
-        ">Mission: Veni, Vidi, Vici!</div>
-        <div style="
-          font-size:20px;font-weight:900;letter-spacing:.06em;
-          background:linear-gradient(120deg,#F5E6A8,#D4AF37,#B8962E);
-          -webkit-background-clip:text;color:transparent;
-          text-transform:uppercase;
-        ">SRM Valliammai Engineering College</div>
-        <div style="
-          font-size:12px;letter-spacing:.12em;text-transform:uppercase;
-          color:rgba(212,175,55,0.6);margin-top:3px;
-        ">Department of English</div>
-      </div>
-      <div style="
-        font-size:9px;letter-spacing:.12em;text-transform:uppercase;
-        color:rgba(212,175,55,0.45);text-align:right;line-height:1.7;
-      ">
-        Pilot Report<br>
-        ${new Date().toLocaleDateString("en-IN",{day:"2-digit",month:"short",year:"numeric"})}
-      </div>
-    </div>
-
-    <!-- PILOT NAME BANNER -->
-    <div style="
-      margin:20px 36px 0;
-      padding:16px 20px;
-      background:linear-gradient(135deg,rgba(212,175,55,0.18),rgba(11,11,12,0.98));
-      border:1px solid rgba(212,175,55,0.6);
-      border-radius:12px;
-      border-left:4px solid #D4AF37;
-    ">
-      <div style="
-        font-size:9px;letter-spacing:.22em;text-transform:uppercase;
-        color:rgba(212,175,55,0.65);margin-bottom:4px;
-      ">Pilot Profile</div>
-      <div style="
-        font-size:26px;font-weight:900;
-        color:#F8F7F3;letter-spacing:.03em;
-      ">${studentObj.name}</div>
-      <div style="
-        font-size:11px;letter-spacing:.16em;text-transform:uppercase;
-        color:rgba(212,175,55,0.7);margin-top:4px;
-      ">${department}</div>
-    </div>
-
-    <!-- STAT CARDS ROW 1: Score · Accuracy · Time -->
-    <div style="
-      display:flex;gap:12px;margin:16px 36px 0;
-    ">
-      ${card("Total Score", totalScore, "Mission Points")}
-      ${card("Accuracy", accuracy + "%", "Hit Rate")}
-      ${card("Time on Mission", formattedTime, "Cumulative")}
-    </div>
-
-    <!-- STAT CARDS ROW 2: Quests · Videos · Stories · Attempts -->
-    <div style="display:flex;gap:12px;margin:10px 36px 0;">
-      ${card("Quests", questCount, "Completed")}
-      ${card("Videos", videoCount, "Watched")}
-      ${card("Stories", storyCount, "Read")}
-      ${card("Attempts", totalAttempts, "Total")}
-    </div>
-
-    <!-- ACCURACY BAR + CORRECT/WRONG -->
-    <div style="margin:20px 36px 0;
-                padding:16px 20px;
-                background:rgba(17,17,19,0.95);
-                border:1px solid rgba(212,175,55,0.4);
-                border-radius:10px;">
-      <div style="font-size:10px;letter-spacing:.2em;text-transform:uppercase;
-                  color:rgba(212,175,55,0.7);margin-bottom:14px;font-weight:700;">
-        Performance Breakdown
-      </div>
-      ${accBar}
-      ${splitBar}
-      <div style="
-        display:flex;gap:8px;
-        font-size:10px;letter-spacing:.1em;text-transform:uppercase;
-        color:rgba(248,247,243,0.5);
-      ">
-        <span>Last Test:</span>
-        <span style="color:rgba(212,175,55,0.8);">${lastTest}</span>
-      </div>
-    </div>
-
-    <!-- ACTIVITY CALENDAR -->
-    <div style="margin:20px 36px 0;
-                padding:16px 20px 10px;
-                background:rgba(11,11,12,0.98);
-                border:1px solid rgba(212,175,55,0.4);
-                border-radius:10px;">
-      <div style="font-size:10px;letter-spacing:.2em;text-transform:uppercase;
-                  color:rgba(212,175,55,0.7);margin-bottom:12px;font-weight:700;">
-        📅 Mission Activity Grid
-        <span style="color:rgba(248,247,243,0.3);font-size:8px;
-                     letter-spacing:.1em;margin-left:8px;font-weight:400;">
-          ✦ = active day
-        </span>
-      </div>
-      <div style="display:flex;flex-wrap:wrap;gap:14px;justify-content:space-between;">
-        ${calHTML}
-      </div>
-    </div>
-
-    <!-- BOTTOM GOLD BAND -->
-    <div style="
-      background:linear-gradient(90deg,#B8962E,#D4AF37,#F5E6A8,#D4AF37,#B8962E);
-      height:3px; width:100%; margin-top:28px;
-    "></div>
-
-  </div>`;
-
-  // ── 6. Render → canvas → PDF ──────────────────────────────
-  await new Promise(r => setTimeout(r, 400));
-
-  const canvas = await html2canvas(wrap.firstElementChild, {
-    scale: 2,
-    backgroundColor: "#0B0B0C",
-    useCORS: true,
-    logging: false,
-  });
-
-  const imgData  = canvas.toDataURL("image/png");
-  const imgW     = canvas.width;
-  const imgH     = canvas.height;
-
-  // A4 dimensions in pt (595 × 842). We'll add pages if content is taller.
-  const pdf      = new jsPDF("p", "pt", "a4");
-  const pageW    = pdf.internal.pageSize.getWidth();
-  const pageH    = pdf.internal.pageSize.getHeight();
-  const ratio    = pageW / imgW;
-  const renderedH = imgH * ratio;
-
-  let yOffset = 0;
-  let remaining = renderedH;
-
-  while (remaining > 0) {
-    const sliceH = Math.min(remaining, pageH);
-    // Clip the portion of the image for this page
-    const srcY   = yOffset / ratio;
-    const srcH   = sliceH / ratio;
-
-    const pageCanvas = document.createElement("canvas");
-    pageCanvas.width  = imgW;
-    pageCanvas.height = srcH;
-    const ctx = pageCanvas.getContext("2d");
-    ctx.drawImage(canvas, 0, srcY, imgW, srcH, 0, 0, imgW, srcH);
-
-    const pageImg = pageCanvas.toDataURL("image/png");
-    if (yOffset > 0) pdf.addPage();
-    pdf.addImage(pageImg, "PNG", 0, 0, pageW, sliceH);
-
-    yOffset   += sliceH;
-    remaining -= sliceH;
-  }
-
-  pdf.save(`${studentObj.name}_MissionReport.pdf`);
-  wrap.remove();
-}
   </script>
 
   <style>
     :root {
-      --bg-deep: #020617;
-      --bg-surface: rgba(15, 23, 42, 0.92);
-      --bg-surface-strong: rgba(15, 23, 42, 0.98);
-      --bg-muted: rgba(15, 23, 42, 0.85);
-      --border-color: rgba(148, 163, 184, 0.35);
-      --text-primary: #E5F2FF;
-      --text-secondary: #94A3B8;
-      --accent-primary: #22D3EE; /* cyan */
-      --accent-secondary: #A855F7; /* purple */
-      --accent-warm: #F97316; /* orange for energy */
-      --gold: #FACC15;
-      --silver: #E5E7EB;
-      --bronze: #FB923C;
-      --danger: #F97373;
-      --success: #4ADE80;
+      --bg-deep: #0B0B0C;
+      --bg-surface: rgba(17,17,19,0.94);
+      --bg-surface-strong: rgba(11,11,12,0.98);
+      --bg-muted: rgba(24,24,27,0.9);
+      --text-primary: #F8F7F3;
+      --text-secondary: rgba(212,175,55,0.65);
+      --accent-primary: #D4AF37;
+      --accent-secondary: #E6C45A;
+      --accent-warm: #F5E6A8;
+      --gold: #D4AF37;
+      --silver: #C7C7C7;
+      --bronze: #B87333;
+      --danger: #B91C1C;
+      --success: #15803D;
+      --border-color: rgba(212,175,55,0.4);
     }
 
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+    * { margin:0; padding:0; box-sizing:border-box; }
 
     body {
       background:
-        radial-gradient(circle at top, rgba(56, 189, 248, 0.2), transparent 55%),
-        radial-gradient(circle at bottom, rgba(147, 51, 234, 0.25), transparent 55%),
-        #020617;
+        radial-gradient(circle at top, rgba(212,175,55,0.18), transparent 55%),
+        radial-gradient(circle at bottom, rgba(255,215,0,0.12), transparent 60%),
+        #0B0B0C;
       color: var(--text-primary);
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       min-height: 100vh;
       padding: 14px 10px 32px;
-      position: relative;
       overflow-x: hidden;
     }
 
-    /* Faint grid for mission control feel */
     body::before {
-      content: "";
-      position: fixed;
-      inset: 0;
-      background-image: linear-gradient(rgba(148, 163, 184, 0.08) 1px, transparent 1px),
-                        linear-gradient(90deg, rgba(148, 163, 184, 0.08) 1px, transparent 1px);
-      background-size: 40px 40px;
-      opacity: 0.35;
-      pointer-events: none;
-      z-index: -2;
+      content:""; position:fixed; inset:0;
+      background-image:
+        radial-gradient(1px 1px at 10% 20%, rgba(245,230,168,0.9), transparent),
+        radial-gradient(1px 1px at 30% 80%, rgba(212,175,55,0.8), transparent),
+        radial-gradient(1px 1px at 50% 40%, rgba(255,255,255,0.6), transparent),
+        radial-gradient(1px 1px at 70% 10%, rgba(212,175,55,0.7), transparent),
+        radial-gradient(1px 1px at 90% 60%, rgba(245,230,168,0.85), transparent),
+        radial-gradient(1px 1px at 20% 50%, rgba(255,255,255,0.5), transparent),
+        radial-gradient(1px 1px at 80% 90%, rgba(212,175,55,0.6), transparent);
+      animation: twinkle-small 9s infinite ease-in-out;
+      pointer-events:none; z-index:-2;
     }
 
     body::after {
-      content: "";
-      position: fixed;
-      inset: 0;
-      background: radial-gradient(circle at 20% 0%, rgba(248, 250, 252, 0.04), transparent 50%);
-      pointer-events: none;
-      z-index: -1;
+      content:""; position:fixed; inset:0;
+      background-image:
+        radial-gradient(2px 2px at 15% 35%, rgba(245,230,168,0.9), transparent),
+        radial-gradient(2px 2px at 45% 65%, rgba(212,175,55,0.85), transparent),
+        radial-gradient(2px 2px at 75% 25%, rgba(255,255,255,0.7), transparent),
+        radial-gradient(2px 2px at 85% 75%, rgba(245,230,168,0.8), transparent);
+      animation: twinkle-medium 14s infinite ease-in-out;
+      opacity:0.65; pointer-events:none; z-index:-2;
     }
 
+    @keyframes twinkle-small { 0%,100%{opacity:.6} 50%{opacity:1} }
+    @keyframes twinkle-medium { 0%,100%{opacity:.4} 50%{opacity:.85} }
+
     .command-frame {
-      max-width: 960px;
-      margin: 0 auto;
-      border-radius: 18px;
-      border: 1px solid rgba(148, 163, 184, 0.5);
-      background: linear-gradient(135deg, rgba(15,23,42,0.9), rgba(15,23,42,0.96));
+      max-width:960px; margin:0 auto; border-radius:18px;
+      border:1px solid rgba(212,175,55,0.65);
+      background:linear-gradient(135deg,rgba(11,11,12,0.96),rgba(17,17,19,0.98));
       box-shadow:
-        0 0 0 1px rgba(15, 23, 42, 0.6),
-        0 30px 80px rgba(15, 23, 42, 0.9),
-        0 0 24px rgba(34, 211, 238, 0.25);
-      overflow: hidden;
-      position: relative;
+        0 0 0 1px rgba(0,0,0,0.9),
+        0 30px 80px rgba(0,0,0,0.95),
+        0 0 28px rgba(212,175,55,0.35);
+      overflow:hidden; position:relative;
     }
 
     .command-frame::before {
-      content: "SRM VEC · ENGLISH COMMAND";
-      position: absolute;
-      top: 10px;
-      right: 18px;
-      font-size: 9px;
-      letter-spacing: 0.16em;
-      text-transform: uppercase;
-      color: rgba(148, 163, 184, 0.7);
+      content:"SRM VEC · ENGLISH COMMAND";
+      position:absolute; top:10px; right:18px;
+      font-size:9px; letter-spacing:.16em; text-transform:uppercase;
+      color:rgba(212,175,55,0.4);
     }
 
+    .command-frame::after {
+      content:""; position:absolute; inset:-40%;
+      background:
+        radial-gradient(circle at 30% 20%, rgba(212,175,55,0.08), transparent 55%),
+        radial-gradient(circle at 70% 80%, rgba(245,230,168,0.06), transparent 60%);
+      pointer-events:none; z-index:-1;
+    }
+
+    /* HEADER */
     .header {
-      padding: 18px 18px 10px;
-      border-bottom: 1px solid rgba(148, 163, 184, 0.3);
-      backdrop-filter: blur(14px);
-      background: linear-gradient(135deg, rgba(15,23,42,0.96), rgba(15,23,42,0.9));
+      padding:18px 18px 10px;
+      border-bottom:1px solid rgba(212,175,55,0.4);
     }
 
     .header-top {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 10px;
+      display:flex; justify-content:space-between; align-items:center;
+      gap:12px; margin-bottom:10px;
     }
 
-    .title-block {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
+    .title-block { display:flex; flex-direction:column; gap:4px; }
+
+    .mission-title {
+      font-size:12px; letter-spacing:.18em; text-transform:uppercase;
+      color:rgba(212,175,55,0.65); white-space:nowrap;
     }
 
     .title {
-      font-size: 22px;
-      font-weight: 900;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      background: linear-gradient(120deg, #E0F2FE, #5EEAD4, #C4B5FD);
-      -webkit-background-clip: text;
-      color: transparent;
-    }
-
-    .subtitle-main {
-      font-size: 12px;
-      text-transform: uppercase;
-      letter-spacing: 0.18em;
-      color: var(--text-secondary);
-    }
-
-    .badge-live {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 4px 10px;
-      border-radius: 999px;
-      background: radial-gradient(circle at 0 0, rgba(45, 212, 191, 0.35), transparent 55%),
-                  rgba(15,23,42,0.9);
-      border: 1px solid rgba(45, 212, 191, 0.7);
-      box-shadow: 0 0 10px rgba(45, 212, 191, 0.5);
-      font-size: 11px;
-      font-weight: 600;
-      text-transform: uppercase;
-    }
-
-    .badge-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 999px;
-      background: #22C55E;
-      box-shadow: 0 0 10px #22C55E, 0 0 20px #22C55E;
-      animation: pulse 1.2s infinite;
-    }
-
-    @keyframes pulse {
-      0% { transform: scale(1); opacity: 1; }
-      60% { transform: scale(1.8); opacity: 0; }
-      100% { transform: scale(1.8); opacity: 0; }
-    }
-
-    .emoji-row {
-      font-size: 24px;
-      margin-bottom: 10px;
-      text-align: left;
+      font-size:22px; font-weight:900; letter-spacing:.06em; text-transform:uppercase;
+      background:linear-gradient(120deg,#F5E6A8,#D4AF37,#B8962E);
+      -webkit-background-clip:text; color:transparent; white-space:nowrap;
     }
 
     .subtitle {
-      font-size: 11px;
-      color: var(--text-secondary);
-      min-height: 1.2em;
+      font-size:11px; color:rgba(212,175,55,0.7); min-height:1.2em;
     }
+
+    .badge-live {
+      display:inline-flex; align-items:center; gap:6px;
+      padding:6px 10px; border-radius:999px;
+      background:rgba(11,11,12,0.95);
+      border:1px solid rgba(212,175,55,0.6);
+      box-shadow:0 0 12px rgba(212,175,55,0.5);
+      cursor:pointer;
+      transition:transform .12s ease, box-shadow .12s ease;
+    }
+
+    .badge-live:hover {
+      transform:translateY(-1px);
+      box-shadow:0 0 18px rgba(212,175,55,0.7);
+    }
+
+    .badge-dot {
+      width:6px; height:6px; border-radius:999px;
+      background:var(--accent-primary);
+      box-shadow:0 0 10px var(--accent-primary);
+      animation:pulse 1.2s infinite;
+    }
+
+    @keyframes pulse {
+      0%{transform:scale(1);opacity:1}
+      60%{transform:scale(1.8);opacity:0}
+      100%{transform:scale(1.8);opacity:0}
+    }
+
+    /* CONTROLS */
     .top-controls {
-      display: flex;
-      gap: 10px;
-      padding: 12px 18px 14px;
-      align-items: stretch;
-      background: radial-gradient(circle at 0 0, rgba(56, 189, 248, 0.15), transparent 55%);
-      border-bottom: 1px solid rgba(148, 163, 184, 0.25);
+      display:flex; gap:10px; padding:12px 18px 14px; align-items:stretch;
+      border-bottom:1px solid rgba(212,175,55,0.3);
     }
 
-    .class-stats-btn {
-      min-width: 120px;
-      max-width: 140px;
-      height: auto;
-      padding: 12px 10px;
-      border-radius: 16px;
-      border: 1px solid rgba(56, 189, 248, 0.6);
-      background: radial-gradient(circle at 0 0, rgba(34, 211, 238, 0.3), transparent 55%),
-                  rgba(15,23,42, 0.95);
-      font-size: 13px;
-      font-weight: 700;
-      text-align: left;
-      color: #E0F2FE;
-      cursor: pointer;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      gap: 4px;
-      box-shadow:
-        0 0 12px rgba(34, 211, 238, 0.35),
-        0 0 1px rgba(15, 23, 42, 0.9);
-      transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
-    }
-
-    .class-stats-btn::before {
-      content: "Squad Uplink";
-      font-size: 10px;
-      text-transform: uppercase;
-      letter-spacing: 0.18em;
-      color: rgba(186, 230, 253, 0.8);
-    }
-
-    .class-stats-btn:hover {
-      transform: translateY(-1px);
-      box-shadow:
-        0 0 18px rgba(34, 211, 238, 0.5),
-        0 20px 40px rgba(15, 23, 42, 0.9);
-      border-color: rgba(56, 189, 248, 0.9);
-    }
     .department-filter select {
-  width: 100%;
-  padding: 10px 12px;
-  border-radius: 14px;
-  background:
-    radial-gradient(circle at 0 0, rgba(56,189,248,0.25), transparent 55%),
-    rgba(15,23,42,0.95);
-  color: var(--text-primary);
-  border: 1px solid rgba(148,163,184,0.6);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  cursor: pointer;
-}
-
-.department-filter select option {
-  background: #020617;
-  color: #E5F2FF;
-}
-    .sort-panel {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
+      width:100%; padding:10px 12px; border-radius:14px;
+      background:rgba(11,11,12,0.96);
+      color:var(--text-primary);
+      border:1px solid rgba(212,175,55,0.6);
+      font-size:12px; font-weight:700; letter-spacing:.1em;
+      text-transform:uppercase; cursor:pointer;
     }
 
-    .sort-label-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 10px;
-      text-transform: uppercase;
-      letter-spacing: 0.16em;
-      color: rgba(148, 163, 184, 0.9);
-    }
+    .department-filter select option { background:#0B0B0C; color:#F8F7F3; }
 
-    .sort-label-row span:last-child {
-      font-size: 9px;
-      color: rgba(148, 163, 184, 0.8);
-    }
-.sort-label-row {
-  display: none !important;
-}
+    .sort-panel { flex:1; display:flex; flex-direction:column; gap:6px; }
+    .sort-label-row { display:none !important; }
+
     .sort-buttons {
-      flex: 1;
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 8px;
+      flex:1; display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px;
     }
 
     .sort-btn, #time-toggle {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 5px;
-      background: radial-gradient(circle at 0 0, rgba(79, 70, 229, 0.4), transparent 55%),
-                  rgba(15,23,42,0.95);
-      color: var(--text-primary);
-      border: 1px solid rgba(148, 163, 184, 0.6);
-      padding: 7px 8px;
-      border-radius: 999px;
-      font-size: 11px;
-      font-weight: 600;
-      cursor: pointer;
-      white-space: nowrap;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      transition: all 0.14s ease;
-      min-height: 30px;
+      display:inline-flex; align-items:center; justify-content:center; gap:5px;
+      background:radial-gradient(circle at 0 0,rgba(212,175,55,0.35),transparent 55%),
+                 rgba(11,11,12,0.96);
+      color:var(--text-primary);
+      border:1px solid rgba(212,175,55,0.55);
+      padding:7px 8px; border-radius:999px;
+      font-size:11px; font-weight:700; cursor:pointer;
+      white-space:nowrap; text-transform:uppercase; letter-spacing:.1em;
+      transition:all .14s ease; min-height:30px;
     }
 
-    .sort-btn .sort-indicator {
-      font-size: 9px;
-      opacity: 0.8;
-    }
+    .sort-btn .sort-indicator { font-size:9px; opacity:.8; }
 
     .sort-btn.active {
-      background:
-        radial-gradient(circle at 0 0, rgba(129, 230, 217, 0.7), transparent 55%),
-        linear-gradient(135deg, #0EA5E9, #A855F7);
-      border-color: rgba(56, 189, 248, 0.9);
-      color: #0F172A;
-      box-shadow:
-        0 0 12px rgba(56, 189, 248, 0.6),
-        0 0 1px rgba(15, 23, 42, 0.9);
+      background:linear-gradient(135deg,#D4AF37,#B8962E);
+      color:#0B0B0C; border-color:#F5E6A8;
+      box-shadow:0 0 16px rgba(212,175,55,0.6);
     }
 
-    #time-toggle {
-      font-size: 10px;
-      padding-inline: 10px;
-      justify-self: flex-end;
-    }
+    #time-toggle { font-size:10px; padding-inline:10px; justify-self:flex-end; }
 
-    /* LEADERBOARD ================================== */
+    /* LEADERBOARD */
     #leaderboard {
-      margin: 1px 14px 16px;
-      border-radius: 14px;
-      border: 1px solid rgba(148, 163, 184, 0.5);
-      overflow: hidden;
-      background: radial-gradient(circle at 0 0, rgba(56, 189, 248, 0.15), transparent 45%),
-                  radial-gradient(circle at 100% 100%, rgba(147, 51, 234, 0.12), transparent 50%),
-                  rgba(15, 23, 42, 0.96);
+      margin:12px; border-radius:14px;
+      border:1px solid rgba(212,175,55,0.55);
+      background:rgba(11,11,12,0.97); overflow:hidden;
     }
 
     .leaderboard-header-row {
-      display: grid;
-      grid-template-columns: 48px 1fr auto;
-      padding: 6px 12px;
-      font-size: 10px;
-      text-transform: uppercase;
-      letter-spacing: 0.14em;
-      color: rgba(148, 163, 184, 0.9);
-      border-bottom: 1px solid rgba(148, 163, 184, 0.35);
-      background: linear-gradient(90deg, rgba(15,23,42,0.9), rgba(30,64,175,0.65));
+      display:grid; grid-template-columns:48px 1fr auto;
+      padding:6px 12px; font-size:10px; text-transform:uppercase;
+      letter-spacing:.14em; color:rgba(212,175,55,0.6);
+      border-bottom:1px solid rgba(212,175,55,0.3);
     }
 
     .leaderboard-row {
-      display: grid;
-      grid-template-columns: 48px 1fr auto;
-      padding: 9px 12px;
-      border-bottom: 1px solid rgba(30, 41, 59, 0.9);
-      cursor: pointer;
-      align-items: center;
-      position: relative;
-      transition: background 0.15s ease, transform 0.12s ease, box-shadow 0.12s ease;
+      display:grid; grid-template-columns:48px 1fr auto;
+      padding:10px 12px;
+      border-bottom:1px solid rgba(212,175,55,0.25);
+      cursor:pointer; align-items:center;
+      transition:background .15s ease, transform .12s ease;
     }
 
-    .leaderboard-row:last-child {
-      border-bottom: none;
-    }
+    .leaderboard-row:last-child { border-bottom:none; }
 
-    .leaderboard-row::after {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(90deg, rgba(56,189,248,0.06), transparent);
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.18s ease;
-    }
+    .leaderboard-row:hover { background:rgba(212,175,55,0.08); transform:translateY(-1px); }
 
-    .leaderboard-row:hover {
-      background: radial-gradient(circle at 0 0, rgba(56,189,248,0.15), transparent 50%);
-      transform: translateY(-1px);
-      box-shadow: 0 8px 18px rgba(15, 23, 42, 0.9);
-    }
-
-    .leaderboard-row:hover::after {
-      opacity: 1;
-    }
-
-    .leaderboard-row.gold {
-      border-left: 3px solid var(--gold);
-    }
-    .leaderboard-row.silver {
-      border-left: 3px solid rgba(148, 163, 184, 0.9);
-    }
-    .leaderboard-row.bronze {
-      border-left: 3px solid var(--bronze);
-    }
+    .leaderboard-row.gold   { border-left:3px solid var(--gold); }
+    .leaderboard-row.silver { border-left:3px solid var(--silver); }
+    .leaderboard-row.bronze { border-left:3px solid var(--bronze); }
 
     .rank {
-      font-size: 13px;
-      font-weight: 800;
-      text-align: center;
-      color: rgba(148, 163, 184, 0.95);
+      font-size:13px; font-weight:800; text-align:center;
+      color:rgba(212,175,55,0.75);
     }
 
     .leaderboard-row.gold .rank,
     .leaderboard-row.silver .rank,
-    .leaderboard-row.bronze .rank {
-      font-size: 18px;
-    }
+    .leaderboard-row.bronze .rank { font-size:18px; }
 
     .name {
-      padding: 0 10px;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
+      padding:0 10px; display:flex; flex-direction:column; justify-content:center;
     }
 
-    .cadet-name,
-    .full-name {
-      font-size: 14px;
-      font-weight: 700;
-      color: var(--text-primary);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+    .cadet-name, .full-name {
+      font-size:14px; font-weight:700; color:var(--text-primary);
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    }
+
+    .dept-inline {
+      margin-left:6px; font-size:10px; font-weight:600;
+      letter-spacing:.12em; text-transform:uppercase;
+      color:rgba(212,175,55,0.65); white-space:nowrap;
     }
 
     .metric-tag {
-      margin-top: 2px;
-      font-size: 9px;
-      text-transform: uppercase;
-      letter-spacing: 0.18em;
-      color: rgba(148, 163, 184, 0.9);
+      margin-top:2px; font-size:9px; text-transform:uppercase;
+      letter-spacing:.18em; color:rgba(212,175,55,0.6);
     }
 
     .last-test-small {
-      font-size: 10px;
-      color: rgba(148, 163, 184, 0.95);
-      margin-top: 3px;
+      font-size:10px; color:rgba(212,175,55,0.65); margin-top:3px;
     }
 
     .score {
-      font-size: 18px;
-      font-weight: 800;
-      color: #E0F2FE;
-      text-align: right;
-      min-width: 90px;
-      display: flex;
-      align-items: center;
-      justify-content: flex-end;
-      font-variant-numeric: tabular-nums;
+      font-size:18px; font-weight:800; color:var(--accent-primary);
+      text-align:right; min-width:90px; display:flex;
+      align-items:center; justify-content:flex-end;
+      font-variant-numeric:tabular-nums;
     }
 
-    .score-seconds {
-      font-size: 16px;
-      color: var(--accent-primary);
-    }
+    .score-seconds { font-size:16px; color:var(--accent-primary); }
 
-    /* Time layout (Apple-ish) */
-    .time-block {
-      display: inline-flex;
-      align-items: baseline;
-      gap: 3px;
-      margin-right: 10px;
-    }
+    /* TIME BLOCKS */
+    .time-block { display:inline-flex; align-items:baseline; gap:3px; margin-right:10px; }
+    .time-num { font-size:16px; font-weight:600; color:var(--text-primary); font-variant-numeric:tabular-nums; }
+    .time-unit { font-size:12px; font-weight:600; position:relative; top:-1px;
+                 background:transparent!important; padding:0!important;
+                 margin:0!important; border-radius:0!important; }
+    .time-unit.h { color:#A855F7; }
+    .time-unit.m { color:#38BDF8; }
+    .time-unit.s { color:#34D399; }
+    .aligned-time { display:flex; flex-direction:column; }
+    .time-row { display:grid; grid-template-columns:repeat(3,1fr); text-align:center; margin-top:2px; }
+    .t-block { display:flex; justify-content:center; align-items:baseline; gap:2px; }
+    .t-num { font-size:14px; font-weight:700; color:var(--text-primary); font-variant-numeric:tabular-nums; }
+    .t-unit { font-size:10px; font-weight:600; position:relative; top:-1px; padding-left:1px; }
+    .t-unit.h { color:#A855F7; }
+    .t-unit.m { color:#38BDF8; }
+    .t-unit.s { color:#34D399; }
 
-    .time-num {
-      font-size: 16px;
-      font-weight: 600;
-      color: var(--text-primary);
-      font-variant-numeric: tabular-nums;
-    }
-
-    .time-unit {
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--text-secondary);
-      position: relative;
-      top: -1px;
-      background: transparent !important;
-      padding: 0 !important;
-      margin: 0 !important;
-      border-radius: 0 !important;
-    }
-    .time-unit.h { color: #A855F7; }
-    .time-unit.m { color: #38BDF8; }
-    .time-unit.s { color: #34D399; }
-
-    .aligned-time {
-      display: flex;
-      flex-direction: column;
-    }
-
-    .time-row {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      text-align: center;
-      margin-top: 2px;
-    }
-
-    .t-block {
-      display: flex;
-      justify-content: center;
-      align-items: baseline;
-      gap: 2px;
-    }
-
-    .t-num {
-      font-size: 14px;
-      font-weight: 700;
-      color: var(--text-primary);
-      font-variant-numeric: tabular-nums;
-    }
-
-    .t-unit {
-      font-size: 10px;
-      font-weight: 600;
-      color: var(--text-secondary);
-      position: relative;
-      top: -1px;
-      padding-left: 1px;
-    }
-
-    .t-unit.h { color: #A855F7; }
-    .t-unit.m { color: #38BDF8; }
-    .t-unit.s { color: #34D399; }
-
-    /* LOAD + ERROR =============================== */
-    #loader {
-      display: none;
-      justify-content: center;
-      align-items: center;
-      padding: 40px 0 20px;
-    }
+    /* LOADER */
+    #loader { display:none; justify-content:center; align-items:center; padding:40px 0 20px; }
 
     .spinner {
-      width: 46px;
-      height: 46px;
-      border-radius: 999px;
-      border: 3px solid rgba(148, 163, 184, 0.5);
-      border-top-color: #22D3EE;
-      border-right-color: #A855F7;
-      animation: spin 0.9s linear infinite;
-      box-shadow: 0 0 18px rgba(34, 211, 238, 0.6);
+      width:46px; height:46px; border-radius:999px;
+      border:3px solid rgba(212,175,55,0.3);
+      border-top-color:#D4AF37; border-right-color:#F5E6A8;
+      animation:spin .9s linear infinite;
+      box-shadow:0 0 18px rgba(212,175,55,0.5);
     }
 
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
+    @keyframes spin { to{transform:rotate(360deg)} }
 
     #error {
-      color: var(--danger);
-      text-align: center;
-      padding: 12px 16px 18px;
-      font-weight: 600;
-      font-size: 12px;
+      color:var(--danger); text-align:center;
+      padding:12px 16px 18px; font-weight:600; font-size:12px;
     }
 
-    /* MODAL ====================================== */
+    /* MODAL */
     #modal {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: radial-gradient(circle at top, rgba(15,23,42,0.9), rgba(15,23,42,0.98));
-      backdrop-filter: blur(6px);
-      justify-content: center;
-      align-items: flex-start;
-      z-index: 1000;
-      overflow-y: auto;
-      padding: 25px 12px;
+      display:none; position:fixed; inset:0;
+      background:rgba(11,11,12,0.92); backdrop-filter:blur(6px);
+      justify-content:center; align-items:flex-start;
+      z-index:1000; overflow-y:auto; padding:25px 12px;
     }
 
     #modal-content {
-      background: var(--bg-surface-strong);
-      border-radius: 18px;
-      padding: 18px 16px 20px;
-      width: 100%;
-      max-width: 520px;
-      margin: 0 auto;
-      border: 1px solid rgba(148, 163, 184, 0.7);
-      box-shadow:
-        0 0 1px rgba(15,23,42,1),
-        0 30px 80px rgba(15, 23, 42, 1),
-        0 0 26px rgba(56, 189, 248, 0.35);
-      position: relative;
+      background:rgba(11,11,12,0.98); border-radius:18px;
+      padding:18px 16px 20px; width:100%; max-width:520px;
+      margin:0 auto; border:1px solid rgba(212,175,55,0.7);
+      box-shadow:0 30px 80px rgba(0,0,0,0.95),0 0 26px rgba(212,175,55,0.3);
+      position:relative;
     }
 
     .modal-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 16px;
-      padding-bottom: 12px;
-      border-bottom: 1px solid rgba(148, 163, 184, 0.45);
+      display:flex; justify-content:space-between; align-items:center;
+      gap:10px; margin-bottom:16px; padding-bottom:12px;
+      border-bottom:1px solid rgba(212,175,55,0.35);
     }
 
-    .modal-header h2 {
-      font-size: 18px;
-      font-weight: 800;
-      color: #E0F2FE;
-    }
+    .modal-header h2 { font-size:18px; font-weight:800; color:#F8F7F3; }
 
     .modal-id-tag {
-      position: absolute;
-      top: -10px;
-      left: 16px;
-      font-size: 10px;
-      text-transform: uppercase;
-      letter-spacing: 0.16em;
-      padding: 3px 8px;
-      border-radius: 999px;
-      background: rgba(15,23,42,0.9);
-      border: 1px solid rgba(148, 163, 184, 0.7);
-      color: rgba(148, 163, 184, 0.95);
+      position:absolute; top:-10px; left:16px;
+      font-size:10px; text-transform:uppercase; letter-spacing:.16em;
+      padding:3px 8px; border-radius:999px;
+      background:rgba(11,11,12,0.95);
+      border:1px solid rgba(212,175,55,0.6);
+      color:rgba(212,175,55,0.8);
     }
 
     .close-btn {
-      background: rgba(15,23,42,0.95);
-      border: 1px solid rgba(148, 163, 184, 0.7);
-      color: #E0F2FE;
-      font-size: 20px;
-      cursor: pointer;
-      width: 32px;
-      height: 32px;
-      border-radius: 999px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      line-height: 1;
-      transition: background 0.1s ease, transform 0.1s ease, box-shadow 0.1s ease;
+      background:rgba(11,11,12,0.95); border:1px solid rgba(212,175,55,0.55);
+      color:#F8F7F3; font-size:20px; cursor:pointer;
+      width:32px; height:32px; border-radius:999px;
+      display:flex; align-items:center; justify-content:center; line-height:1;
+      transition:all .1s ease;
     }
 
-    .close-btn:hover {
-      background: rgba(30,64,175,0.9);
-      transform: translateY(-1px);
-      box-shadow: 0 0 12px rgba(59, 130, 246, 0.7);
-    }
+    .close-btn:hover { background:rgba(212,175,55,0.2); transform:translateY(-1px); }
 
     .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
-      gap: 10px;
-      margin-bottom: 16px;
+      display:grid; grid-template-columns:repeat(auto-fit,minmax(110px,1fr));
+      gap:10px; margin-bottom:16px;
     }
 
     .stat-box {
-      background: radial-gradient(circle at 0 0, rgba(56, 189, 248, 0.16), transparent 55%),
-                  rgba(15,23,42, 0.98);
-      padding: 10px 10px 9px;
-      border-radius: 10px;
-      text-align: left;
-      border: 1px solid rgba(148, 163, 184, 0.6);
-      position: relative;
-      overflow: hidden;
-    }
-
-    .stat-box::after {
-      content: "";
-      position: absolute;
-      inset: -40%;
-      background: radial-gradient(circle at 120% -10%, rgba(56,189,248,0.28), transparent 55%);
-      opacity: 0.8;
-      pointer-events: none;
+      background:rgba(17,17,19,0.96); padding:10px 10px 9px;
+      border-radius:10px; text-align:left;
+      border:1px solid rgba(212,175,55,0.55); position:relative; overflow:hidden;
     }
 
     .stat-label {
-      font-size: 10px;
-      color: rgba(148, 163, 184, 0.9);
-      text-transform: uppercase;
-      margin-bottom: 2px;
-      letter-spacing: 0.16em;
-      position: relative;
-      z-index: 1;
+      font-size:10px; color:rgba(212,175,55,0.65); text-transform:uppercase;
+      margin-bottom:2px; letter-spacing:.16em;
     }
 
-    .stat-value {
-      font-size: 20px;
-      font-weight: 800;
-      color: #E0F2FE;
-      line-height: 1.2;
-      position: relative;
-      z-index: 1;
-      font-variant-numeric: tabular-nums;
-    }
-
-    .time-stat {
-      font-size: 0;
-    }
-
-    .stat-foot {
-      font-size: 10px;
-      color: rgba(148, 163, 184, 0.9);
-      margin-top: 4px;
-      position: relative;
-      z-index: 1;
-    }
+    .stat-value { font-size:20px; font-weight:800; color:var(--accent-primary); line-height:1.2; font-variant-numeric:tabular-nums; }
+    .time-stat { font-size:0; }
+    .stat-foot { font-size:10px; color:rgba(212,175,55,0.5); margin-top:4px; }
 
     .detail-box {
-      background: rgba(15, 23, 42, 0.98);
-      padding: 12px 11px 11px;
-      border-radius: 10px;
-      margin-bottom: 12px;
-      border: 1px solid rgba(148, 163, 184, 0.55);
+      background:rgba(11,11,12,0.98); padding:12px 11px 11px;
+      border-radius:10px; margin-bottom:12px;
+      border:1px solid rgba(212,175,55,0.45);
     }
 
     .detail-box h3 {
-      color: #E0F2FE;
-      margin-bottom: 6px;
-      font-size: 14px;
-      font-weight: 700;
-      display: flex;
-      align-items: center;
-      gap: 6px;
+      color:#F8F7F3; margin-bottom:6px; font-size:14px; font-weight:700;
+      display:flex; align-items:center; gap:6px;
     }
 
-    .detail-box p {
-      color: rgba(226, 232, 240, 0.96);
-      line-height: 1.5;
-      font-size: 12px;
-      word-wrap: break-word;
-      white-space: pre-wrap;
-    }
+    .detail-box p { color:rgba(248,247,243,0.9); line-height:1.5; font-size:12px; word-wrap:break-word; }
+    .detail-caption { font-size:10px; color:rgba(212,175,55,0.5); margin-bottom:8px; }
 
-    .detail-caption {
-      font-size: 10px;
-      color: rgba(148, 163, 184, 0.95);
-      margin-bottom: 8px;
-    }
-
-    /* MINI CALENDAR =============================== */
-    .mission-calendar {
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-    }
+    /* MINI CALENDAR */
+    .mission-calendar { display:flex; flex-direction:column; gap:14px; }
 
     .mini-cal-title {
-      text-align: center;
-      font-weight: 600;
-      margin-bottom: 6px;
-      font-size: 11px;
-      color: #7DD3FC;
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
+      text-align:center; font-weight:600; margin-bottom:6px; font-size:11px;
+      color:rgba(212,175,55,0.8); text-transform:uppercase; letter-spacing:.12em;
     }
 
     .mini-cal-grid {
-      display: grid;
-      grid-template-columns: repeat(7, minmax(0, 1fr));
-      gap: 4px;
-      font-size: 9px;
+      display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:4px; font-size:9px;
     }
 
     .mini-cal-grid > div:nth-child(-n+7) {
-      font-weight: 600;
-      text-align: center;
-      color: rgba(148, 163, 184, 0.95);
-      padding-bottom: 2px;
+      font-weight:600; text-align:center; color:rgba(212,175,55,0.6); padding-bottom:2px;
     }
 
     .mini-cal-day {
-      background: rgba(15, 23, 42, 0.96);
-      padding: 4px 3px;
-      border-radius: 6px;
-      min-height: 46px;
-      font-size: 9px;
-      color: #E5E7EB;
-      border: 1px solid rgba(30, 64, 175, 0.7);
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
+      background:rgba(11,11,12,0.96); padding:4px 3px; border-radius:6px;
+      min-height:46px; font-size:9px; color:#F8F7F3;
+      border:1px solid rgba(212,175,55,0.35);
+      display:flex; flex-direction:column; align-items:flex-start;
     }
 
     .mini-cal-day.marked {
-      background: radial-gradient(circle at 0 0, rgba(34, 197, 94, 0.3), transparent 55%),
-                  rgba(15, 23, 42, 0.98);
-      border-color: rgba(34, 197, 94, 0.9);
-      box-shadow: 0 0 10px rgba(34, 197, 94, 0.5);
+      background:rgba(212,175,55,0.25);
+      border-color:var(--accent-primary);
+      box-shadow:0 0 12px rgba(212,175,55,0.5);
     }
 
-    .mini-cal-date {
-      font-weight: 700;
-      margin-bottom: 2px;
+    .mini-cal-date { font-weight:700; margin-bottom:2px; }
+    .mini-cal-items div { font-size:9px; line-height:1.1; }
+
+    /* RESPONSIVE */
+    @media (max-width:600px) {
+      .top-controls { flex-direction:column; }
+      #leaderboard { margin-inline:10px; }
+      .leaderboard-header-row { display:none; }
+      .dept-inline { display:block; margin-left:0; margin-top:2px; font-size:9px; }
     }
-
-    .mini-cal-items div {
-      font-size: 9px;
-      line-height: 1.1;
-    }
-
-    /* RESPONSIVE ================================= */
-    @media (max-width: 600px) {
-      .command-frame {
-        border-radius: 16px;
-      }
-      .header {
-        padding: 14px 14px 8px;
-      }
-      .top-controls {
-        flex-direction: column;
-      }
-      .class-stats-btn {
-        max-width: none;
-      }
-      .sort-buttons {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-      }
-      #leaderboard {
-        margin-inline: 10px;
-      }
-      .leaderboard-header-row {
-        display: none;
-      }
-    }
-.title {
-  white-space: nowrap;
-  letter-spacing: 0.04em;
-}
-
-.badge-live {
-  cursor: pointer;
-  border: 1px solid rgba(45, 212, 191, 0.7);
-  transition: transform 0.12s ease, box-shadow 0.12s ease;
-}
-
-.badge-live:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 0 14px rgba(34, 211, 238, 0.7);
-}
-.mission-title {
-  font-size: 14px;
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--text-secondary);
-  white-space: nowrap;
-}
-    :root {
-  /* BLACKS */
-  --bg-deep: #0B0B0C;
-  --bg-surface: rgba(17, 17, 19, 0.94);
-  --bg-surface-strong: rgba(11, 11, 12, 0.98);
-  --bg-muted: rgba(24, 24, 27, 0.9);
-
-  /* TEXT */
-  --text-primary: #F8F7F3;
-  --text-secondary: rgba(212, 175, 55, 0.65);
-
-  /* GOLD ACCENTS */
-  --accent-primary: #D4AF37;
-  --accent-secondary: #E6C45A;
-  --accent-warm: #F5E6A8;
-
-  /* METALS */
-  --gold: #D4AF37;
-  --silver: #C7C7C7;
-  --bronze: #B87333;
-
-  /* STATUS */
-  --danger: #B91C1C;
-  --success: #15803D;
-
-  /* BORDERS */
-  --border-color: rgba(212, 175, 55, 0.35);
-}
-
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-body {
-  background:
-    radial-gradient(circle at top, rgba(212,175,55,0.18), transparent 55%),
-    radial-gradient(circle at bottom, rgba(255,215,0,0.12), transparent 60%),
-    #0B0B0C;
-  color: var(--text-primary);
-  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  min-height: 100vh;
-  padding: 14px 10px 32px;
-  overflow-x: hidden;
-}
-
-/* subtle grid */
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  background-image:
-    linear-gradient(rgba(212,175,55,0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(212,175,55,0.05) 1px, transparent 1px);
-  background-size: 40px 40px;
-  pointer-events: none;
-  z-index: -1;
-}
-
-/* FRAME */
-.command-frame {
-  max-width: 960px;
-  margin: 0 auto;
-  border-radius: 18px;
-  border: 1px solid rgba(212,175,55,0.6);
-  background: linear-gradient(135deg, rgba(11,11,12,0.96), rgba(17,17,19,0.98));
-  box-shadow:
-    0 0 0 1px rgba(0,0,0,0.9),
-    0 30px 80px rgba(0,0,0,0.95),
-    0 0 26px rgba(212,175,55,0.35);
-  overflow: hidden;
-}
-
-/* HEADER */
-.header {
-  padding: 18px;
-  border-bottom: 1px solid rgba(212,175,55,0.4);
-}
-
-.mission-title {
-  font-size: 12px;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--text-secondary);
-}
-
-.title {
-  font-size: 22px;
-  font-weight: 900;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  background: linear-gradient(120deg, #F5E6A8, #D4AF37, #B8962E);
-  -webkit-background-clip: text;
-  color: transparent;
-}
-
-/* BADGE */
-.badge-live {
-  background: rgba(11,11,12,0.95);
-  border: 1px solid rgba(212,175,55,0.6);
-  border-radius: 999px;
-  padding: 6px 10px;
-  cursor: pointer;
-  box-shadow: 0 0 12px rgba(212,175,55,0.5);
-}
-
-.badge-dot {
-  background: var(--accent-primary);
-  box-shadow: 0 0 10px var(--accent-primary);
-}
-
-/* CONTROLS */
-.top-controls {
-  display: flex;
-  gap: 10px;
-  padding: 12px 18px;
-  border-bottom: 1px solid rgba(212,175,55,0.3);
-}
-
-.department-filter select {
-  padding: 10px 12px;
-  border-radius: 14px;
-  background: rgba(11,11,12,0.96);
-  color: var(--text-primary);
-  border: 1px solid rgba(212,175,55,0.6);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
-/* SORT BUTTONS */
-.sort-buttons {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-}
-
-.sort-btn,
-#time-toggle {
-  background:
-    radial-gradient(circle at 0 0, rgba(212,175,55,0.35), transparent 55%),
-    rgba(11,11,12,0.96);
-  border: 1px solid rgba(212,175,55,0.55);
-  color: var(--text-primary);
-  padding: 7px 10px;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  cursor: pointer;
-}
-
-.sort-btn.active {
-  background: linear-gradient(135deg, #D4AF37, #B8962E);
-  color: #0B0B0C;
-  border-color: #F5E6A8;
-  box-shadow: 0 0 16px rgba(212,175,55,0.6);
-}
-
-/* LEADERBOARD */
-#leaderboard {
-  margin: 12px;
-  border-radius: 14px;
-  border: 1px solid rgba(212,175,55,0.55);
-  background: rgba(11,11,12,0.97);
-  overflow: hidden;
-}
-
-.leaderboard-row {
-  display: grid;
-  grid-template-columns: 48px 1fr auto;
-  padding: 10px 12px;
-  border-bottom: 1px solid rgba(212,175,55,0.25);
-  cursor: pointer;
-}
-
-.leaderboard-row:hover {
-  background: rgba(212,175,55,0.08);
-}
-
-/* RANKS */
-.leaderboard-row.gold { border-left: 3px solid var(--gold); }
-.leaderboard-row.silver { border-left: 3px solid var(--silver); }
-.leaderboard-row.bronze { border-left: 3px solid var(--bronze); }
-
-/* TEXT */
-.rank {
-  font-weight: 800;
-  text-align: center;
-  color: var(--text-secondary);
-}
-
-.cadet-name,
-.full-name {
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
-.metric-tag,
-.last-test-small {
-  font-size: 9px;
-  letter-spacing: 0.16em;
-  color: var(--text-secondary);
-}
-
-/* SCORE */
-.score {
-  font-size: 18px;
-  font-weight: 800;
-  color: var(--accent-primary);
-  min-width: 90px;
-  text-align: right;
-}
-
-/* MODAL */
-#modal {
-  background: rgba(11,11,12,0.92);
-  backdrop-filter: blur(6px);
-}
-
-#modal-content {
-  background: rgba(11,11,12,0.98);
-  border-radius: 18px;
-  border: 1px solid rgba(212,175,55,0.7);
-  box-shadow: 0 30px 80px rgba(0,0,0,0.95);
-}
-
-/* STATS */
-.stat-box {
-  background: rgba(17,17,19,0.96);
-  border: 1px solid rgba(212,175,55,0.55);
-}
-
-.stat-label {
-  color: var(--text-secondary);
-}
-
-.stat-value {
-  color: var(--accent-primary);
-}
-
-/* MINI CALENDAR */
-.mini-cal-day {
-  background: rgba(11,11,12,0.96);
-  border: 1px solid rgba(212,175,55,0.4);
-}
-
-.mini-cal-day.marked {
-  background: rgba(212,175,55,0.25);
-  border-color: var(--accent-primary);
-  box-shadow: 0 0 12px rgba(212,175,55,0.5);
-}
-
-/* RESPONSIVE */
-@media (max-width: 600px) {
-  .top-controls {
-    flex-direction: column;
-  }
-}
-/* ======================================================
-   POSH BLACK & GOLD SKIN — OVERRIDES ONLY
-   Safe to paste at END of existing <style>
-   ====================================================== */
-
-:root {
-  --bg-deep: #0B0B0C;
-  --bg-surface: rgba(17,17,19,0.94);
-  --bg-surface-strong: rgba(11,11,12,0.98);
-  --bg-muted: rgba(24,24,27,0.9);
-
-  --text-primary: #F8F7F3;
-  --text-secondary: rgba(212,175,55,0.65);
-
-  --accent-primary: #D4AF37;
-  --accent-secondary: #E6C45A;
-  --accent-warm: #F5E6A8;
-
-  --gold: #D4AF37;
-  --silver: #C7C7C7;
-  --bronze: #B87333;
-
-  --border-color: rgba(212,175,55,0.4);
-}
-
-/* BODY BACKDROP */
-body {
-  background:
-    radial-gradient(circle at top, rgba(212,175,55,0.18), transparent 55%),
-    radial-gradient(circle at bottom, rgba(255,215,0,0.12), transparent 60%),
-    #0B0B0C !important;
-}
-
-/* FRAME */
-.command-frame {
-  border-color: rgba(212,175,55,0.65);
-  box-shadow:
-    0 0 0 1px rgba(0,0,0,0.9),
-    0 30px 80px rgba(0,0,0,0.95),
-    0 0 28px rgba(212,175,55,0.35);
-}
-
-/* HEADER & TITLES */
-.header {
-  border-bottom-color: rgba(212,175,55,0.4);
-}
-
-.title {
-  background: linear-gradient(120deg, #F5E6A8, #D4AF37, #B8962E);
-  -webkit-background-clip: text;
-  color: transparent;
-}
-
-.mission-title,
-.subtitle,
-.metric-tag,
-.last-test-small {
-  color: rgba(212,175,55,0.7);
-}
-
-/* BUTTONS */
-.sort-btn,
-#time-toggle,
-.badge-live {
-  border-color: rgba(212,175,55,0.6);
-}
-
-.sort-btn.active {
-  background: linear-gradient(135deg, #D4AF37, #B8962E);
-  color: #0B0B0C;
-}
-
-/* LEADERBOARD */
-#leaderboard {
-  border-color: rgba(212,175,55,0.55);
-}
-
-.leaderboard-row {
-  border-bottom-color: rgba(212,175,55,0.25);
-}
-
-.leaderboard-row:hover {
-  background: rgba(212,175,55,0.08);
-}
-
-.rank {
-  color: rgba(212,175,55,0.75);
-}
-
-.score {
-  color: var(--accent-primary);
-}
-
-/* MODAL */
-#modal {
-  background: rgba(11,11,12,0.92);
-}
-
-#modal-content {
-  border-color: rgba(212,175,55,0.7);
-}
-
-/* STAT CARDS */
-.stat-box {
-  border-color: rgba(212,175,55,0.55);
-}
-
-.stat-value {
-  color: var(--accent-primary);
-}
-
-/* MINI CALENDAR */
-.mini-cal-day {
-  border-color: rgba(212,175,55,0.4);
-}
-
-.mini-cal-day.marked {
-  background:
-    radial-gradient(circle at 0 0, rgba(212,175,55,0.3), transparent 55%),
-    rgba(11,11,12,0.98);
-  box-shadow: 0 0 12px rgba(212,175,55,0.5);
-}
-/* Department label next to name */
-.dept-inline {
-  margin-left: 6px;
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: rgba(212,175,55,0.65);
-  white-space: nowrap;
-}
-
-/* Mobile: stack department under name if needed */
-@media (max-width: 520px) {
-  .dept-inline {
-    display: block;
-    margin-left: 0;
-    margin-top: 2px;
-    font-size: 9px;
-  }
-}
-
-body::after,
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: -2;
-}
-
-/* Small stars */
-body::before {
-  background-image:
-    radial-gradient(1px 1px at 10% 20%, rgba(245,230,168,0.9), transparent),
-    radial-gradient(1px 1px at 30% 80%, rgba(212,175,55,0.8), transparent),
-    radial-gradient(1px 1px at 50% 40%, rgba(255,255,255,0.6), transparent),
-    radial-gradient(1px 1px at 70% 10%, rgba(212,175,55,0.7), transparent),
-    radial-gradient(1px 1px at 90% 60%, rgba(245,230,168,0.85), transparent),
-    radial-gradient(1px 1px at 20% 50%, rgba(255,255,255,0.5), transparent),
-    radial-gradient(1px 1px at 80% 90%, rgba(212,175,55,0.6), transparent);
-  animation: twinkle-small 9s infinite ease-in-out;
-  opacity: 0.8;
-}
-
-/* Medium stars */
-body::after {
-  background-image:
-    radial-gradient(2px 2px at 15% 35%, rgba(245,230,168,0.9), transparent),
-    radial-gradient(2px 2px at 45% 65%, rgba(212,175,55,0.85), transparent),
-    radial-gradient(2px 2px at 75% 25%, rgba(255,255,255,0.7), transparent),
-    radial-gradient(2px 2px at 85% 75%, rgba(245,230,168,0.8), transparent);
-  animation: twinkle-medium 14s infinite ease-in-out;
-  opacity: 0.65;
-}
-
-/* Optional: faint glow haze */
-.command-frame::after {
-  content: "";
-  position: absolute;
-  inset: -40%;
-  background:
-    radial-gradient(circle at 30% 20%, rgba(212,175,55,0.08), transparent 55%),
-    radial-gradient(circle at 70% 80%, rgba(245,230,168,0.06), transparent 60%);
-  pointer-events: none;
-  z-index: -1;
-}
-
-/* ANIMATIONS */
-@keyframes twinkle-small {
-  0%, 100% { opacity: 0.6; }
-  50% { opacity: 1; }
-}
-
-@keyframes twinkle-medium {
-  0%, 100% { opacity: 0.4; }
-  50% { opacity: 0.85; }
-}
   </style>
 </head>
 
@@ -2324,52 +1296,44 @@ body::after {
     <div class="header">
       <div class="header-top">
         <div class="title-block">
-         <div class="mission-title">Mission: Veni, Vidi, Vici!</div>
-<div class="title">LEADERBOARD</div>
+          <div class="mission-title">Mission: Veni, Vidi, Vici!</div>
+          <div class="title">LEADERBOARD</div>
         </div>
         <button class="badge-live" onclick="showClassStats()">
-  <span class="badge-dot"></span>
-  🔍
-</button>
+          <span class="badge-dot"></span>
+          🔍
+        </button>
       </div>
       <div class="subtitle" id="last-test-info">Initializing mission feed...</div>
     </div>
 
     <div class="top-controls">
-      <!-- Department Filter Dropdown -->
-<div class="department-filter">
-  <select id="departmentSelect" onchange="applyDepartmentFilter(this.value)">
-    <option value="ALL">All Departments</option>
-  </select>
-</div>
+      <div class="department-filter">
+        <select id="departmentSelect" onchange="applyDepartmentFilter(this.value)">
+          <option value="ALL">All Departments</option>
+        </select>
+      </div>
 
-           <div class="sort-panel">
-        <div class="sort-label-row">
-        </div>
+      <div class="sort-panel">
+        <div class="sort-label-row"></div>
         <div class="sort-buttons">
           <button class="sort-btn" data-sort="accuracy" onclick="sortData('accuracy')">
-            Accuracy
-            <span class="sort-indicator"></span>
+            Accuracy <span class="sort-indicator"></span>
           </button>
           <button class="sort-btn" data-sort="total_time" onclick="sortData('total_time')">
-            Time
-            <span class="sort-indicator"></span>
+            Time <span class="sort-indicator"></span>
           </button>
           <button class="sort-btn" data-sort="quests_completed" onclick="sortData('quests_completed')">
-            Quests
-            <span class="sort-indicator"></span>
+            Quests <span class="sort-indicator"></span>
           </button>
           <button class="sort-btn" data-sort="videos_completed" onclick="sortData('videos_completed')">
-            Videos
-            <span class="sort-indicator"></span>
+            Videos <span class="sort-indicator"></span>
           </button>
           <button class="sort-btn" data-sort="stories_completed" onclick="sortData('stories_completed')">
-            Stories
-            <span class="sort-indicator"></span>
+            Stories <span class="sort-indicator"></span>
           </button>
           <button class="sort-btn" data-sort="last_test_taken" onclick="sortData('last_test_taken')">
-            Last Test
-            <span class="sort-indicator"></span>
+            Last Test <span class="sort-indicator"></span>
           </button>
         </div>
       </div>
@@ -2384,9 +1348,7 @@ body::after {
       </button>
     </div>
 
-    <div id="loader">
-      <div class="spinner"></div>
-    </div>
+    <div id="loader"><div class="spinner"></div></div>
     <div id="error"></div>
 
     <div id="leaderboard">
@@ -2395,7 +1357,6 @@ body::after {
         <div>Pilot</div>
         <div>Metric</div>
       </div>
-      <!-- Rows injected here -->
     </div>
 
     <div id="modal">

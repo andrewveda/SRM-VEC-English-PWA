@@ -85,6 +85,7 @@
       }
 
       sortData(currentSort);
+      renderAnalyticsPanel();
     }
 
     // ── FORMAT HELPERS ───────────────────────────────────────
@@ -157,6 +158,7 @@
         (a, b) => new Date(b.last_test_taken || 0) - new Date(a.last_test_taken || 0)
       );
       renderLeaderboard();
+      renderAnalyticsPanel();
     }
 
     // ── SORT ─────────────────────────────────────────────────
@@ -289,6 +291,208 @@
       return idx === 0 ? "🚀" : idx === 1 ? "🛰️" : "🌌";
     }
 
+    // ══════════════════════════════════════════════════════════
+    //  ANALYTICS ENGINE
+    // ══════════════════════════════════════════════════════════
+
+    // ── Tier classification ──────────────────────────────────
+    // Elite:      accuracy ≥ 80% AND activity in last 3 days
+    // Active:     activity in last 7 days  (but not Elite)
+    // Developing: activity in last 14 days (but not Active)
+    // At-Risk:    no activity for 14+ days OR never active
+    function getTier(s) {
+      const acc       = (s.accuracy ?? 0);
+      const daysSince = getDaysSince(s.last_test_taken);
+      if (acc >= 0.80 && daysSince <= 3)  return { label: "Elite",      icon: "⚡", color: "#F5E6A8", bg: "rgba(212,175,55,0.25)",  border: "rgba(212,175,55,0.8)" };
+      if (daysSince <= 7)                  return { label: "Active",     icon: "🟢", color: "#4ADE80", bg: "rgba(74,222,128,0.15)",  border: "rgba(74,222,128,0.7)"  };
+      if (daysSince <= 14)                 return { label: "Developing", icon: "🔵", color: "#38BDF8", bg: "rgba(56,189,248,0.15)",  border: "rgba(56,189,248,0.6)"  };
+      return                                        { label: "At-Risk",  icon: "🔴", color: "#F87171", bg: "rgba(248,113,113,0.15)", border: "rgba(248,113,113,0.6)" };
+    }
+
+    function getDaysSince(dateStr) {
+      if (!dateStr) return 9999;
+      const diff = Date.now() - new Date(dateStr).getTime();
+      return Math.floor(diff / 86400000);
+    }
+
+    // ── Streak calculation ───────────────────────────────────
+    // A "streak day" = any calendar day (IST) with at least one quest/video/story
+    function calcStreak(s) {
+      const quests  = parseItems(s.quest_list);
+      const videos  = parseItems(s.video_list);
+      const stories = parseItems(s.story_list);
+      const grouped = groupByDate(quests, videos, stories);
+      const activeDays = new Set(Object.keys(grouped)); // "Mon Jan 01 2026" strings
+
+      if (activeDays.size === 0) return { current: 0, longest: 0 };
+
+      // Walk backwards from today counting consecutive active days
+      let current = 0;
+      const todayIST = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
+      let cursor = new Date(todayIST.getFullYear(), todayIST.getMonth(), todayIST.getDate());
+
+      // Allow a 1-day grace: if today has no activity, still start from yesterday
+      if (!activeDays.has(cursor.toDateString())) {
+        cursor.setDate(cursor.getDate() - 1);
+      }
+
+      while (activeDays.has(cursor.toDateString())) {
+        current++;
+        cursor.setDate(cursor.getDate() - 1);
+      }
+
+      // Longest streak — scan all active days
+      const sorted = [...activeDays]
+        .map(d => new Date(d).getTime())
+        .sort((a, b) => a - b);
+
+      let longest = 1, run = 1;
+      for (let i = 1; i < sorted.length; i++) {
+        const gap = (sorted[i] - sorted[i-1]) / 86400000;
+        if (gap === 1) { run++; longest = Math.max(longest, run); }
+        else run = 1;
+      }
+
+      return { current, longest };
+    }
+
+    // ── Rank within all students (by total_score desc) ───────
+    function getRank(s) {
+      const sorted = [...reportData].sort((a, b) => (b.total_score || 0) - (a.total_score || 0));
+      const pos    = sorted.findIndex(r => r.name === s.name) + 1;
+      const total  = reportData.length;
+      const pct    = total > 0 ? Math.round((pos / total) * 100) : 100;
+      return { pos, total, pct };
+    }
+
+    // ── Rank within student's own department ─────────────────
+    function getDeptRank(s) {
+      const dept   = (s.department || "").trim().toUpperCase();
+      const deptList = reportData
+        .filter(r => (r.department || "").trim().toUpperCase() === dept)
+        .sort((a, b) => (b.total_score || 0) - (a.total_score || 0));
+      const pos   = deptList.findIndex(r => r.name === s.name) + 1;
+      const total = deptList.length;
+      return { pos, total };
+    }
+
+    // ── Department comparison table ──────────────────────────
+    function getDeptStats() {
+      const depts = {};
+      reportData.forEach(s => {
+        const key = (s.department || "Unknown").trim().toUpperCase();
+        if (!depts[key]) depts[key] = { name: key, students: [], totalAcc: 0, totalActivity: 0, atRisk: 0 };
+        depts[key].students.push(s);
+        depts[key].totalAcc += (s.accuracy || 0);
+        const tier = getTier(s);
+        if (tier.label === "At-Risk") depts[key].atRisk++;
+      });
+      return Object.values(depts).map(d => ({
+        name:     d.name,
+        count:    d.students.length,
+        avgAcc:   Math.round((d.totalAcc / d.students.length) * 100),
+        atRisk:   d.atRisk,
+        tier:     getTier(d.students.sort((a,b) => (b.total_score||0) - (a.total_score||0))[0])
+      })).sort((a, b) => b.avgAcc - a.avgAcc);
+    }
+
+    // ── Render the analytics panel ───────────────────────────
+    function renderAnalyticsPanel() {
+      const panel = document.getElementById("analytics-panel");
+      if (!panel || reportData.length === 0) return;
+
+      // ── Tier counts ──
+      const tiers = { Elite: 0, Active: 0, Developing: 0, "At-Risk": 0 };
+      reportData.forEach(s => tiers[getTier(s).label]++);
+
+      // ── At-risk list (inactive 14+ days), sorted by days since ──
+      const atRiskList = reportData
+        .filter(s => getTier(s).label === "At-Risk")
+        .map(s => ({ ...s, daysSince: getDaysSince(s.last_test_taken) }))
+        .sort((a, b) => b.daysSince - a.daysSince)
+        .slice(0, 12); // cap at 12
+
+      // ── Department stats ──
+      const deptStats = getDeptStats();
+
+      const tierColors = {
+        "Elite":      { color: "#F5E6A8", bg: "rgba(212,175,55,0.2)",  border: "rgba(212,175,55,0.7)", icon: "⚡" },
+        "Active":     { color: "#4ADE80", bg: "rgba(74,222,128,0.15)", border: "rgba(74,222,128,0.6)", icon: "🟢" },
+        "Developing": { color: "#38BDF8", bg: "rgba(56,189,248,0.15)", border: "rgba(56,189,248,0.5)", icon: "🔵" },
+        "At-Risk":    { color: "#F87171", bg: "rgba(248,113,113,0.12)",border: "rgba(248,113,113,0.5)", icon: "🔴" }
+      };
+
+      panel.innerHTML = `
+        <!-- ── SECTION HEADER ── -->
+        <div class="ap-header">
+          <div class="ap-title">Intelligence Report</div>
+          <div class="ap-sub">Auto-computed from live data · Updated on load</div>
+        </div>
+
+        <!-- ── TIER DISTRIBUTION ── -->
+        <div class="ap-section">
+          <div class="ap-section-label">▸ Pilot Tier Distribution</div>
+          <div class="ap-tier-row">
+            ${Object.entries(tiers).map(([label, count]) => {
+              const tc = tierColors[label];
+              const pct = reportData.length ? Math.round((count / reportData.length) * 100) : 0;
+              return `
+                <div class="ap-tier-card" style="border-color:${tc.border};background:${tc.bg};">
+                  <div class="ap-tier-icon">${tc.icon}</div>
+                  <div class="ap-tier-count" style="color:${tc.color};">${count}</div>
+                  <div class="ap-tier-label" style="color:${tc.color};">${label}</div>
+                  <div class="ap-tier-pct">${pct}%</div>
+                </div>`;
+            }).join("")}
+          </div>
+        </div>
+
+        <!-- ── DEPARTMENT COMPARISON ── -->
+        <div class="ap-section">
+          <div class="ap-section-label">▸ Department Intel</div>
+          <div class="ap-dept-table">
+            <div class="ap-dept-head">
+              <span>Department</span>
+              <span>Pilots</span>
+              <span>Avg Accuracy</span>
+              <span>At-Risk</span>
+            </div>
+            ${deptStats.map((d, i) => `
+              <div class="ap-dept-row ${i === 0 ? "ap-dept-top" : ""}">
+                <span class="ap-dept-name">${d.name}</span>
+                <span class="ap-dept-val">${d.count}</span>
+                <span class="ap-dept-val">
+                  <span class="ap-acc-bar-wrap">
+                    <span class="ap-acc-bar-fill" style="width:${d.avgAcc}%;"></span>
+                  </span>
+                  <span class="ap-acc-num">${d.avgAcc}%</span>
+                </span>
+                <span class="ap-dept-val ${d.atRisk > 0 ? "ap-at-risk-num" : ""}">${d.atRisk > 0 ? "⚠ " + d.atRisk : "—"}</span>
+              </div>`).join("")}
+          </div>
+        </div>
+
+        <!-- ── AT-RISK PILOTS ── -->
+        <div class="ap-section">
+          <div class="ap-section-label">▸ At-Risk Pilots
+            <span class="ap-section-sub">No activity for 14+ days</span>
+          </div>
+          ${atRiskList.length === 0
+            ? `<div class="ap-empty">✅ No at-risk pilots — all hands active!</div>`
+            : `<div class="ap-risk-grid">
+                ${atRiskList.map(s => `
+                  <div class="ap-risk-card" onclick="showDetail(reportData.find(r=>r.name==='${s.name.replace(/'/g,"\\'")}'))">
+                    <div class="ap-risk-name">${s.name}</div>
+                    <div class="ap-risk-dept">${s.department || "—"}</div>
+                    <div class="ap-risk-days">
+                      ${s.daysSince === 9999 ? "Never active" : s.daysSince + "d ago"}
+                    </div>
+                  </div>`).join("")}
+              </div>`}
+        </div>
+      `;
+    }
+
     // ── CALENDAR HELPERS ─────────────────────────────────────
     function mapToDate(number) {
       const d = new Date(START_DATE);
@@ -376,8 +580,15 @@
 
     // ── DETAIL MODAL ─────────────────────────────────────────
     function showDetail(s) {
-      const modal = document.getElementById("modal");
+      const modal   = document.getElementById("modal");
       const content = document.getElementById("modal-content");
+
+      const tier      = getTier(s);
+      const rank      = getRank(s);
+      const deptRank  = getDeptRank(s);
+      const streak    = calcStreak(s);
+      const daysSince = getDaysSince(s.last_test_taken);
+      const topPct    = rank.pct <= 10 ? "🏅 Top 10%" : rank.pct <= 25 ? "Top 25%" : rank.pct <= 50 ? "Top 50%" : "";
 
       content.innerHTML = `
         <div class="modal-header">
@@ -385,9 +596,45 @@
           <h2>${s.name}</h2>
           <button class="close-btn" onclick="closeModal()">×</button>
         </div>
-        <div style="text-align:center; margin-top:-8px; margin-bottom:12px; font-size:12px;
-                    color:rgba(148,163,184,0.95); text-transform:uppercase; letter-spacing:0.12em;">
-          ${s.department || 'N/A'}
+
+        <!-- Dept + Tier badge row -->
+        <div style="display:flex;align-items:center;justify-content:center;gap:10px;
+                    margin-top:-6px;margin-bottom:14px;flex-wrap:wrap;">
+          <div style="font-size:11px;color:rgba(212,175,55,0.7);text-transform:uppercase;
+                      letter-spacing:.12em;">${s.department || 'N/A'}</div>
+          <div style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;
+                      border-radius:999px;font-size:11px;font-weight:700;
+                      background:${tier.bg};border:1px solid ${tier.border};color:${tier.color};">
+            ${tier.icon} ${tier.label}
+          </div>
+          ${topPct ? `<div style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;
+                      border-radius:999px;font-size:11px;font-weight:700;
+                      background:rgba(212,175,55,0.12);border:1px solid rgba(212,175,55,0.4);
+                      color:rgba(212,175,55,0.9);">${topPct}</div>` : ""}
+        </div>
+
+        <!-- Rank + Streak mini-cards -->
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;">
+          <div class="stat-box" style="text-align:center;">
+            <div class="stat-label">Class Rank</div>
+            <div class="stat-value">#${rank.pos}</div>
+            <div class="stat-foot">of ${rank.total}</div>
+          </div>
+          <div class="stat-box" style="text-align:center;">
+            <div class="stat-label">Dept Rank</div>
+            <div class="stat-value">#${deptRank.pos}</div>
+            <div class="stat-foot">of ${deptRank.total}</div>
+          </div>
+          <div class="stat-box" style="text-align:center;">
+            <div class="stat-label">🔥 Streak</div>
+            <div class="stat-value" style="color:${streak.current > 0 ? '#F97316' : 'rgba(212,175,55,0.5)'};">${streak.current}d</div>
+            <div class="stat-foot">Current</div>
+          </div>
+          <div class="stat-box" style="text-align:center;">
+            <div class="stat-label">Best Streak</div>
+            <div class="stat-value">${streak.longest}d</div>
+            <div class="stat-foot">All-time</div>
+          </div>
         </div>
 
         <div class="stats-grid">
@@ -425,13 +672,17 @@
 
         <div class="detail-box">
           <h3>📡 Mission Activity Grid</h3>
-          <p class="detail-caption">Green sectors show days with completed Quests, Videos, or Stories.</p>
+          <p class="detail-caption">Gold sectors = active days. Quests ♥️ · Videos 😍 · Stories 📜</p>
           <div id="mini-calendar" class="mission-calendar"></div>
         </div>
 
         <div class="detail-box">
           <h3>🕐 Last Mission Timestamp</h3>
-          <p>${formatDate(s.last_test_taken)}</p>
+          <p>${formatDate(s.last_test_taken)}
+            <span style="margin-left:8px;font-size:10px;opacity:.6;">
+              (${daysSince === 9999 ? "never" : daysSince + "d ago"})
+            </span>
+          </p>
         </div>
       `;
 
@@ -441,7 +692,7 @@
       const grouped = groupByDate(quests, videos, stories);
       renderMiniCalendar("mini-calendar", grouped);
 
-      // ── PDF download button (gold-styled) ──
+      // ── PDF download button ──
       const pdfBtn = document.createElement("button");
       pdfBtn.innerHTML = "📄 Download Mission Report";
       pdfBtn.style.cssText = `
@@ -453,14 +704,8 @@
         box-shadow:0 0 16px rgba(212,175,55,0.5);
         transition:transform 0.12s ease, box-shadow 0.12s ease;
       `;
-      pdfBtn.onmouseover = () => {
-        pdfBtn.style.transform = "translateY(-1px)";
-        pdfBtn.style.boxShadow = "0 0 24px rgba(212,175,55,0.7)";
-      };
-      pdfBtn.onmouseout = () => {
-        pdfBtn.style.transform = "";
-        pdfBtn.style.boxShadow = "0 0 16px rgba(212,175,55,0.5)";
-      };
+      pdfBtn.onmouseover = () => { pdfBtn.style.transform = "translateY(-1px)"; pdfBtn.style.boxShadow = "0 0 24px rgba(212,175,55,0.7)"; };
+      pdfBtn.onmouseout  = () => { pdfBtn.style.transform = ""; pdfBtn.style.boxShadow = "0 0 16px rgba(212,175,55,0.5)"; };
       pdfBtn.onclick = () => downloadProfilePDF(s);
       document.getElementById("modal-content").appendChild(pdfBtn);
 
@@ -537,7 +782,10 @@
     window.closeModal = closeModal;
     window.showClassStats = showClassStats;
     window.applyDepartmentFilter = applyDepartmentFilter;
+    window.showDetail = showDetail;
     window.onload = loadData;
+    // expose reportData for inline onclick in analytics panel
+    Object.defineProperty(window, 'reportData', { get: () => reportData });
 
     window.toggleTimeFormat = function () {
       showSecondsOnly = !showSecondsOnly;
@@ -612,6 +860,14 @@
       const totalAttempts = studentObj.total_attempts ?? 0;
       const department    = studentObj.department     ?? "N/A";
       const lastTest      = formatDate(studentObj.last_test_taken);
+
+      // ── 3b. Analytics stats ──
+      const tier      = getTier(studentObj);
+      const rank      = getRank(studentObj);
+      const deptRank  = getDeptRank(studentObj);
+      const streak    = calcStreak(studentObj);
+      const daysSince = getDaysSince(studentObj.last_test_taken);
+      const topPct    = rank.pct <= 10 ? "🏅 Top 10%" : rank.pct <= 25 ? "Top 25%" : rank.pct <= 50 ? "Top 50%" : `Top ${rank.pct}%`;
 
       // ── 4. Calendar data ──
       const grouped = groupByDate(quests, videos, stories);
@@ -785,6 +1041,38 @@
             <div style="font-size:10px;letter-spacing:.18em;text-transform:uppercase;
                         color:rgba(212,175,55,0.65);margin-top:5px;">
               ${department}
+            </div>
+          </div>
+
+          <!-- TIER / RANK / STREAK STRIP -->
+          <div style="display:flex;gap:10px;margin:12px 40px 0;">
+            <!-- Tier badge -->
+            <div style="flex:1;padding:10px 14px;border-radius:10px;
+                        background:${tier.bg};border:1px solid ${tier.border};text-align:center;">
+              <div style="font-size:18px;line-height:1;">${tier.icon}</div>
+              <div style="font-size:13px;font-weight:900;color:${tier.color};margin-top:3px;">${tier.label}</div>
+              <div style="font-size:8px;letter-spacing:.14em;color:rgba(248,247,243,0.4);margin-top:2px;">TIER</div>
+            </div>
+            <!-- Class rank -->
+            <div style="flex:1;padding:10px 14px;border-radius:10px;text-align:center;
+                        background:rgba(17,17,19,0.97);border:1px solid rgba(212,175,55,0.4);">
+              <div style="font-size:18px;font-weight:900;color:#D4AF37;">#${rank.pos}</div>
+              <div style="font-size:8px;letter-spacing:.14em;color:rgba(248,247,243,0.4);margin-top:2px;">CLASS RANK</div>
+              <div style="font-size:9px;color:rgba(212,175,55,0.6);">${topPct}</div>
+            </div>
+            <!-- Dept rank -->
+            <div style="flex:1;padding:10px 14px;border-radius:10px;text-align:center;
+                        background:rgba(17,17,19,0.97);border:1px solid rgba(212,175,55,0.4);">
+              <div style="font-size:18px;font-weight:900;color:#D4AF37;">#${deptRank.pos}</div>
+              <div style="font-size:8px;letter-spacing:.14em;color:rgba(248,247,243,0.4);margin-top:2px;">DEPT RANK</div>
+              <div style="font-size:9px;color:rgba(212,175,55,0.6);">of ${deptRank.total}</div>
+            </div>
+            <!-- Streak -->
+            <div style="flex:1;padding:10px 14px;border-radius:10px;text-align:center;
+                        background:rgba(17,17,19,0.97);border:1px solid rgba(212,175,55,0.4);">
+              <div style="font-size:18px;font-weight:900;color:${streak.current > 0 ? '#F97316' : 'rgba(212,175,55,0.4)'};">${streak.current}d</div>
+              <div style="font-size:8px;letter-spacing:.14em;color:rgba(248,247,243,0.4);margin-top:2px;">🔥 STREAK</div>
+              <div style="font-size:9px;color:rgba(212,175,55,0.6);">Best: ${streak.longest}d</div>
             </div>
           </div>
 
@@ -1314,6 +1602,159 @@
       .leaderboard-header-row { display:none; }
       .dept-inline { display:block; margin-left:0; margin-top:2px; font-size:9px; }
     }
+    /* ── ANALYTICS PANEL ─────────────────────────────────── */
+    .analytics-panel {
+      margin: 0 12px 24px;
+      border-radius: 14px;
+      border: 1px solid rgba(212,175,55,0.5);
+      background: rgba(11,11,12,0.97);
+      overflow: hidden;
+    }
+
+    .ap-header {
+      padding: 14px 18px 10px;
+      border-bottom: 1px solid rgba(212,175,55,0.3);
+      background: linear-gradient(90deg, rgba(212,175,55,0.1), transparent);
+    }
+
+    .ap-title {
+      font-size: 13px; font-weight: 800; text-transform: uppercase;
+      letter-spacing: .18em; color: rgba(212,175,55,0.9);
+    }
+
+    .ap-sub {
+      font-size: 9px; letter-spacing: .12em; text-transform: uppercase;
+      color: rgba(212,175,55,0.4); margin-top: 3px;
+    }
+
+    .ap-section {
+      padding: 14px 18px;
+      border-bottom: 1px solid rgba(212,175,55,0.18);
+    }
+
+    .ap-section:last-child { border-bottom: none; }
+
+    .ap-section-label {
+      font-size: 10px; font-weight: 700; letter-spacing: .18em;
+      text-transform: uppercase; color: rgba(212,175,55,0.7);
+      margin-bottom: 10px; display: flex; align-items: center; gap: 10px;
+    }
+
+    .ap-section-sub {
+      font-size: 9px; font-weight: 400; color: rgba(248,247,243,0.3);
+      letter-spacing: .1em;
+    }
+
+    /* Tier cards */
+    .ap-tier-row {
+      display: grid; grid-template-columns: repeat(4,1fr); gap: 10px;
+    }
+
+    .ap-tier-card {
+      border-radius: 10px; border: 1px solid; padding: 12px 8px;
+      text-align: center;
+    }
+
+    .ap-tier-icon { font-size: 16px; line-height: 1; }
+    .ap-tier-count { font-size: 26px; font-weight: 900; line-height: 1.1; margin-top: 4px; }
+    .ap-tier-label { font-size: 9px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; margin-top: 2px; }
+    .ap-tier-pct { font-size: 10px; color: rgba(248,247,243,0.35); margin-top: 4px; }
+
+    /* Dept table */
+    .ap-dept-table { display: flex; flex-direction: column; gap: 4px; }
+
+    .ap-dept-head {
+      display: grid; grid-template-columns: 2fr 1fr 2fr 1fr;
+      padding: 5px 10px; font-size: 9px; font-weight: 700;
+      letter-spacing: .14em; text-transform: uppercase;
+      color: rgba(212,175,55,0.5);
+    }
+
+    .ap-dept-row {
+      display: grid; grid-template-columns: 2fr 1fr 2fr 1fr;
+      padding: 8px 10px; border-radius: 8px; align-items: center;
+      background: rgba(17,17,19,0.8);
+      border: 1px solid rgba(212,175,55,0.15);
+      transition: background .12s ease;
+    }
+
+    .ap-dept-row:hover { background: rgba(212,175,55,0.07); }
+
+    .ap-dept-top {
+      border-color: rgba(212,175,55,0.4);
+      background: rgba(212,175,55,0.08);
+    }
+
+    .ap-dept-name {
+      font-size: 11px; font-weight: 700; color: #F8F7F3;
+      letter-spacing: .06em; text-transform: uppercase;
+    }
+
+    .ap-dept-val {
+      font-size: 11px; font-weight: 600; color: rgba(212,175,55,0.8);
+      display: flex; align-items: center; gap: 6px;
+    }
+
+    .ap-at-risk-num { color: #F87171 !important; font-weight: 800; }
+
+    .ap-acc-bar-wrap {
+      display: inline-block; width: 50px; height: 5px;
+      background: rgba(212,175,55,0.15); border-radius: 999px; overflow: hidden;
+      vertical-align: middle;
+    }
+
+    .ap-acc-bar-fill {
+      display: block; height: 100%;
+      background: linear-gradient(90deg, #B8962E, #F5E6A8);
+      border-radius: 999px;
+    }
+
+    .ap-acc-num { font-size: 11px; color: rgba(212,175,55,0.8); }
+
+    /* At-risk grid */
+    .ap-risk-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(150px,1fr));
+      gap: 8px;
+    }
+
+    .ap-risk-card {
+      background: rgba(248,113,113,0.08);
+      border: 1px solid rgba(248,113,113,0.35);
+      border-radius: 8px; padding: 9px 10px;
+      cursor: pointer;
+      transition: background .12s ease, transform .12s ease;
+    }
+
+    .ap-risk-card:hover {
+      background: rgba(248,113,113,0.15);
+      transform: translateY(-1px);
+    }
+
+    .ap-risk-name {
+      font-size: 11px; font-weight: 700; color: #F8F7F3;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+
+    .ap-risk-dept {
+      font-size: 9px; letter-spacing: .1em; text-transform: uppercase;
+      color: rgba(248,113,113,0.6); margin-top: 2px;
+    }
+
+    .ap-risk-days {
+      font-size: 10px; font-weight: 700; color: #F87171; margin-top: 4px;
+    }
+
+    .ap-empty {
+      font-size: 12px; color: rgba(74,222,128,0.8); padding: 8px 0;
+      letter-spacing: .06em;
+    }
+
+    @media (max-width: 600px) {
+      .ap-tier-row { grid-template-columns: repeat(2,1fr); }
+      .ap-dept-head, .ap-dept-row { grid-template-columns: 2fr 1fr 1.5fr 1fr; }
+      .ap-acc-bar-wrap { display: none; }
+      .analytics-panel { margin-inline: 10px; }
+    }
   </style>
 </head>
 
@@ -1384,6 +1825,9 @@
         <div>Metric</div>
       </div>
     </div>
+
+    <!-- ── ANALYTICS PANEL ── -->
+    <div id="analytics-panel" class="analytics-panel"></div>
 
     <div id="modal">
       <div id="modal-content"></div>

@@ -3,8 +3,17 @@
 <head>
    
  <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>English Quests - SRM VEC</title>
+
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#0A0A0A">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="English Quests">
+    <meta name="application-name" content="English Quests">
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Montserrat:wght@300;400;500&display=swap" rel="stylesheet">
@@ -33,9 +42,17 @@
             background: linear-gradient(135deg, var(--deep-black) 0%, var(--rich-black) 50%, #0D0D0D 100%);
             color: var(--silver);
             min-height: 100vh;
-            padding: 0.75rem;
+            min-height: 100dvh; /* fixes iOS Safari address bar jump */
+            /* Safe area insets for notched phones (iPhone X+) */
+            padding: max(0.75rem, env(safe-area-inset-top))
+                     max(0.75rem, env(safe-area-inset-right))
+                     max(0.75rem, env(safe-area-inset-bottom))
+                     max(0.75rem, env(safe-area-inset-left));
             position: relative;
             overflow-x: hidden;
+            /* Prevent text size inflation on orientation change */
+            -webkit-text-size-adjust: 100%;
+            text-size-adjust: 100%;
         }
 
         body::before {
@@ -442,7 +459,7 @@
 
         h1 {
             font-family: 'Playfair Display', serif;
-            font-size: clamp(2rem, 4vw, 3rem);
+            font-size: clamp(1.8rem, 6vw, 3rem); /* 6vw = ~23px on 390px phone — readable */
             font-weight: 700;
             background: linear-gradient(135deg, var(--gold-light) 0%, var(--gold) 50%, var(--gold-dark) 100%);
             -webkit-background-clip: text;
@@ -484,7 +501,7 @@
         }
 
         .subtitle {
-            font-size: 0.75rem;
+            font-size: clamp(0.7rem, 2vw, 0.75rem); /* never below ~11px */
             color: var(--silver);
             font-weight: 300;
             letter-spacing: 0.25em;
@@ -540,7 +557,8 @@
         .quest-card {
             background: linear-gradient(145deg, var(--rich-black), var(--charcoal));
             border: 1px solid rgba(212, 175, 55, 0.2);
-            padding: 0.8rem 0.7rem;
+            padding: 1rem 0.85rem; /* increased for touch comfort */
+            min-height: 88px; /* Apple HIG minimum touch target */
             text-decoration: none;
             color: inherit;
             transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
@@ -552,6 +570,56 @@
             transform: translateY(20px);
             animation: fadeInUp 0.5s ease forwards, cardLevitate 4s ease-in-out infinite, magicPulse 3s ease-in-out infinite;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+            /* Hint to browser to promote to GPU layer — smoother animations */
+            will-change: transform;
+            /* Remove tap highlight flash on iOS/Android */
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+
+        /* Touch/tap feedback — mirrors hover for touch users */
+        .quest-card:active {
+            transform: translateY(-3px) scale(0.98);
+            box-shadow:
+                0 8px 25px rgba(212, 175, 55, 0.25),
+                0 0 30px rgba(212, 175, 55, 0.1);
+            border-color: var(--gold);
+        }
+
+        /* =====================================================
+           ✨ Cinematic Shimmer Sweep — added to quest cards
+           ===================================================== */
+        .quest-card .card-shimmer {
+            position: absolute;
+            top: 0;
+            left: -120%;
+            width: 60%;
+            height: 100%;
+            background: linear-gradient(
+                110deg,
+                transparent,
+                rgba(255, 215, 120, 0.45),
+                transparent
+            );
+            animation: shimmerSweep 5.5s ease-in-out infinite;
+            pointer-events: none;
+            z-index: 3;
+        }
+
+        /* Each card gets its own staggered shimmer delay */
+        .quest-card:nth-child(1)  .card-shimmer { animation-delay: 0s; }
+        .quest-card:nth-child(2)  .card-shimmer { animation-delay: 0.7s; }
+        .quest-card:nth-child(3)  .card-shimmer { animation-delay: 1.4s; }
+        .quest-card:nth-child(4)  .card-shimmer { animation-delay: 2.1s; }
+        .quest-card:nth-child(5)  .card-shimmer { animation-delay: 2.8s; }
+        .quest-card:nth-child(6)  .card-shimmer { animation-delay: 3.5s; }
+        .quest-card:nth-child(7)  .card-shimmer { animation-delay: 4.2s; }
+        .quest-card:nth-child(8)  .card-shimmer { animation-delay: 4.9s; }
+
+        @keyframes shimmerSweep {
+            0%   { left: -120%; }
+            50%  { left: 140%; }
+            100% { left: 140%; }
         }
 
         @keyframes cardLevitate {
@@ -659,7 +727,7 @@
 
         .quest-number {
             font-family: 'Playfair Display', serif;
-            font-size: 1.1rem;
+            font-size: clamp(0.95rem, 3vw, 1.1rem);
             color: var(--gold-light);
             margin-bottom: 0.4rem;
             font-weight: 600;
@@ -675,7 +743,7 @@
         }
 
         .quest-topic {
-            font-size: 0.65rem;
+            font-size: clamp(0.62rem, 1.8vw, 0.65rem);
             color: var(--silver);
             line-height: 1.2;
             font-weight: 400;
@@ -690,7 +758,7 @@
         }
 
         .quest-date {
-            font-size: 0.6rem;
+            font-size: clamp(0.6rem, 1.6vw, 0.65rem);
             color: var(--gold-dark);
             margin-top: 0.4rem;
             font-style: italic;
@@ -770,12 +838,38 @@
         @media (max-width: 768px) {
             .grid {
                 grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+                gap: 0.6rem;
+            }
+            header {
+                margin-bottom: 1.5rem;
+            }
+            /* Kill heavy background animations on mobile — saves battery & GPU */
+            .nebula,
+            .orb,
+            .sacred-geometry,
+            .energy-grid {
+                display: none;
+            }
+            /* Tone down perpetual card animations on mobile */
+            @keyframes cardLevitate {
+                0%, 100% { transform: translateY(0px); }
+                50% { transform: translateY(-2px); }
+            }
+            @keyframes magicPulse {
+                0%, 100% { box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5); }
+                50% { box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5), 0 0 12px rgba(212, 175, 55, 0.15); }
             }
         }
 
         @media (max-width: 480px) {
             .grid {
                 grid-template-columns: repeat(2, 1fr);
+                gap: 0.5rem;
+            }
+            /* Stars are heavy on small phones too */
+            .stars,
+            .shooting-star {
+                display: none;
             }
         }
 
@@ -795,7 +889,8 @@
             .shooting-star,
             .sacred-geometry,
             .energy-grid,
-            .particle {
+            .particle,
+            .card-shimmer {
                 display: none;
             }
         }
@@ -827,54 +922,60 @@
 
         <div class="grid">
             <a href="https://andrewveda.github.io/SRM-VEC-English-PWA/semII/verb" class="quest-card">
+                <div class="card-shimmer"></div>
                 <div class="quest-number">Noun and Verb</div>
                 <div class="quest-topic">Quest 1</div>
                <div class="quest-date">Feb 11</div>
             </a>
 
              <a href="https://andrewveda.github.io/SRM-VEC-English-PWA/semII/prep" class="quest-card">
+                <div class="card-shimmer"></div>
                 <div class="quest-number">Preposition</div>
                 <div class="quest-topic">Quest 2</div>
                <div class="quest-date">Feb 12</div>
             </a>
-  <a href="https://andrewveda.github.io/SRM-VEC-English-PWA/semII/3" class="quest-card">
+
+            <a href="https://andrewveda.github.io/SRM-VEC-English-PWA/semII/3" class="quest-card">
+                <div class="card-shimmer"></div>
                 <div class="quest-number">Contextual meaning</div>
                 <div class="quest-topic">Quest 3</div>
                <div class="quest-date">Feb 13</div>
             </a>
 
-           
             <a href="https://andrewveda.github.io/SRM-VEC-English-PWA/semII/4" class="quest-card">
+                <div class="card-shimmer"></div>
                 <div class="quest-number">Adverbs - I</div>
                 <div class="quest-topic">Quest 4</div>
                <div class="quest-date">Feb 14</div>
             </a>
-    <a href="https://andrewveda.github.io/SRM-VEC-English-PWA/semII/5" class="quest-card">
+
+            <a href="https://andrewveda.github.io/SRM-VEC-English-PWA/semII/5" class="quest-card">
+                <div class="card-shimmer"></div>
                 <div class="quest-number">Verbal Analogy</div>
                 <div class="quest-topic">Quest 5</div>
                <div class="quest-date">Feb 15</div>
             </a>
 
-    <a href="https://andrewveda.github.io/SRM-VEC-English-PWA/semII/6" class="quest-card">
-                <div class="quest-number"> Active and Passive voice</div>
+            <a href="https://andrewveda.github.io/SRM-VEC-English-PWA/semII/6" class="quest-card">
+                <div class="card-shimmer"></div>
+                <div class="quest-number">Active and Passive voice</div>
                 <div class="quest-topic">Quest 6</div>
                <div class="quest-date">Feb 16</div>
             </a>
 
              <a href="https://andrewveda.github.io/SRM-VEC-English-PWA/semII/7" class="quest-card">
+                <div class="card-shimmer"></div>
                 <div class="quest-number">Gerunds and Infinitives</div>
                 <div class="quest-topic">Quest 7</div>
                <div class="quest-date">Feb 17</div>
             </a>
 
              <a href="https://andrewveda.github.io/SRM-VEC-English-PWA/semII/8" class="quest-card">
+                <div class="card-shimmer"></div>
                 <div class="quest-number">Adverbs and Tenses</div>
                 <div class="quest-topic">Quest 8</div>
                <div class="quest-date">Feb 18</div>
             </a>
-
-
-           
         </div>
 
         <footer>
@@ -883,28 +984,24 @@
     </div>
 
     <script>
-        // Add floating particles to cards on hover
+        // Add floating particles to cards on hover AND touch
+        function spawnParticles(card) {
+            const particleCount = 8;
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = `${Math.random() * 100}%`;
+                particle.style.bottom = '0';
+                particle.style.setProperty('--drift', `${(Math.random() - 0.5) * 50}px`);
+                particle.style.animationDelay = `${Math.random() * 0.5}s`;
+                card.appendChild(particle);
+                setTimeout(() => particle.remove(), 2000);
+            }
+        }
+
         document.querySelectorAll('.quest-card').forEach(card => {
-            card.addEventListener('mouseenter', function(e) {
-                const rect = this.getBoundingClientRect();
-                const particleCount = 8;
-                
-                for (let i = 0; i < particleCount; i++) {
-                    const particle = document.createElement('div');
-                    particle.className = 'particle';
-                    particle.style.left = `${Math.random() * 100}%`;
-                    particle.style.bottom = '0';
-                    particle.style.setProperty('--drift', `${(Math.random() - 0.5) * 50}px`);
-                    particle.style.animationDelay = `${Math.random() * 0.5}s`;
-                    
-                    this.appendChild(particle);
-                    
-                    // Remove particle after animation
-                    setTimeout(() => {
-                        particle.remove();
-                    }, 2000);
-                }
-            });
+            card.addEventListener('mouseenter', () => spawnParticles(card));
+            card.addEventListener('touchstart', () => spawnParticles(card), { passive: true });
         });
 
         // Stagger card levitation animations for more organic feel

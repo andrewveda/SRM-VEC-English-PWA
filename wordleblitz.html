@@ -479,10 +479,17 @@ let score = 0, wordsSolved = 0, wordAttempts = 0, wordStartTime = 0;
 let currentWord = '', guesses = [], currentInput = '';
 let solvedLog = []; // {word, guesses, pts, grid}
 let accepting = true; // lock input during flip animation
+let accepting = true;
+let transitioning = false;  
 
-/* ============================================================
-   CANVAS FX — PARTICLES
-============================================================ */
+setInterval(()=>{
+   if(gameActive && !accepting && !transitioning){
+      console.warn("⚠️ Watchdog unlock");
+      accepting = true;
+   }
+}, 2000);
+
+
 (function(){
   const c=document.getElementById('particleCanvas'),ctx=c.getContext('2d');
   let W,H,pts=[];
@@ -594,17 +601,39 @@ function anim(el,cls,cb){
   if(cb)el.addEventListener('animationend',cb,{once:true});
   else   el.addEventListener('animationend',()=>el.classList.remove(cls),{once:true});
 }
-
-/* ============================================================
-   SUBMIT GUESS
-============================================================ */
 function submitGuess(){
-  if(currentInput.length!==5){showHint('Need 5 letters!');shakeRow();return;}
-  if(!WORDS.includes(currentInput)){showHint('Not a valid word!');shakeRow();return;}
-  accepting=false;
-  evaluateGuess(currentInput);
-  currentInput='';
+
+  if(!gameActive || !accepting || transitioning) return;
+
+  if(currentInput.length !== 5){
+     showHint('Need 5 letters!');
+     shakeRow();
+     return;
+  }
+
+  if(!WORDS.length){
+     showHint('Words still loading...');
+     return;
+  }
+
+  if(!WORDS.includes(currentInput)){
+     showHint('Not a valid word!');
+     shakeRow();
+     return;
+  }
+
+  accepting = false;
+
+  try{
+     evaluateGuess(currentInput);
+  }catch(e){
+     console.error("❌ submitGuess crash:", e);
+     accepting = true;   // ⭐ FAILSAFE UNLOCK
+  }
+
+  currentInput = '';
 }
+
 function shakeRow(){
   const row=document.getElementById('board').children[guesses.length];
   Array.from(row.children).forEach((t,i)=>setTimeout(()=>anim(t,'shake'),i*25));
@@ -614,44 +643,83 @@ function showHint(msg){
 }
 
 function evaluateGuess(guess){
-  const row=document.getElementById('board').children[guesses.length];
-  const aArr=currentWord.split(''),gArr=guess.split(''),result=Array(5).fill('absent');
-  const freq={};aArr.forEach(c=>freq[c]=(freq[c]||0)+1);
-  for(let i=0;i<5;i++)if(gArr[i]===aArr[i]){result[i]='correct';freq[gArr[i]]--;}
-  for(let i=0;i<5;i++)if(result[i]!=='correct'&&freq[gArr[i]]>0){result[i]='present';freq[gArr[i]]--;}
 
-  // Staggered flip
+  if(!currentWord){
+     console.error("❌ evaluateGuess → currentWord undefined");
+     accepting = true;
+     return;
+  }
+
+  const DONE = 5*110 + 480;
+
+  const row = document.getElementById('board').children[guesses.length];
+
+  if(!row){
+     console.error("❌ Row missing");
+     accepting = true;
+     return;
+  }
+
+  const aArr = currentWord.split('');
+  const gArr = guess.split('');
+  const result = Array(5).fill('absent');
+
+  const freq = {};
+  aArr.forEach(c => freq[c] = (freq[c] || 0) + 1);
+
+  for(let i=0;i<5;i++){
+     if(gArr[i] === aArr[i]){
+        result[i] = 'correct';
+        freq[gArr[i]]--;
+     }
+  }
+
+  for(let i=0;i<5;i++){
+     if(result[i] !== 'correct' && freq[gArr[i]] > 0){
+        result[i] = 'present';
+        freq[gArr[i]]--;
+     }
+  }
+
   gArr.forEach((ch,i)=>{
-    const tile=row.children[i];tile.textContent=ch;
-    setTimeout(()=>{
-      tile.classList.add('flip');
-      tile.addEventListener('animationend',()=>{tile.classList.remove('flip');tile.classList.add(result[i]);},{once:true});
-    },i*110);
+     const tile = row.children[i];
+     if(!tile) return;
+
+     tile.textContent = ch;
+
+     setTimeout(()=>{
+        tile.classList.add('flip');
+
+        tile.addEventListener('animationend',()=>{
+           tile.classList.remove('flip');
+           tile.classList.add(result[i]);
+        },{once:true});
+
+     }, i*110);
   });
 
-  let flipsDone = 0;
-
-tile.addEventListener('animationend', () => {
-   flipsDone++;
-   if(flipsDone === 5){
-       finalizeGuess();
-   }
-});
   setTimeout(()=>{
-    updateKeyColors(gArr,result);
-    guesses.push(guess);
-    updateActiveRow();
-    const won=guess===currentWord;
-    const lost=!won&&guesses.length>=6;
-    if(won||lost){
-      if(won) onWordSolved();
-      else    onWordFailed();
-    } else {
-      accepting=true;
-      document.getElementById('hint').textContent='';
-    }
-  },DONE);
+     try{
+
+        updateKeyColors(gArr, result);
+
+        guesses.push(guess);
+        updateActiveRow();
+
+        const won  = guess === currentWord;
+        const lost = !won && guesses.length >= 6;
+
+        if(won)       onWordSolved();
+        else if(lost) onWordFailed();
+        else          accepting = true;
+
+     }catch(e){
+        console.error("❌ Post-eval crash:", e);
+        accepting = true;   // ⭐ FAILSAFE UNLOCK
+     }
+  }, DONE);
 }
+
 
 function updateKeyColors(letters,results){
   const kb=document.getElementById('keyboard');
@@ -758,36 +826,71 @@ function onWordFailed(){
 }
 
 function nextWord(){
-  if(!gameActive)return;
-  accepting=false;
-  const boardEl=document.getElementById('board');
 
-  // Slide out
+  if(!gameActive || transitioning) return;
+
+  transitioning = true;
+  accepting = false;
+
+  const boardEl = document.getElementById('board');
+
   boardEl.classList.add('slide-out');
+
   boardEl.addEventListener('animationend',()=>{
-    boardEl.classList.remove('slide-out');
-    // Reset
-    guesses=[];currentInput='';
-    loadNextWord();
-    createBoard();
-    renderKeyboard();
-    // Slide in
-    boardEl.classList.add('slide-in');
-    boardEl.addEventListener('animationend',()=>{boardEl.classList.remove('slide-in');accepting=true;},{once:true});
+
+     try{
+
+        boardEl.classList.remove('slide-out');
+
+        guesses = [];
+        currentInput = '';
+
+        loadNextWord();
+        createBoard();
+        renderKeyboard();
+
+        boardEl.classList.add('slide-in');
+
+        boardEl.addEventListener('animationend',()=>{
+           boardEl.classList.remove('slide-in');
+           accepting = true;
+           transitioning = false;   // ⭐ RELEASE LOCK
+        },{once:true});
+
+     }catch(e){
+        console.error("❌ Transition crash:", e);
+        accepting = true;
+        transitioning = false;      // ⭐ FAILSAFE RELEASE
+     }
+
   },{once:true});
 }
 
+
 function loadNextWord(){
-  if(!wordQueue.length) wordQueue=shuffleArray(WORDS);
-  currentWord=wordQueue.pop();
-  wordStartTime=Date.now();
-  document.getElementById('wordNumVal').textContent=wordsSolved+wordAttempts>0?(wordsSolved+1):1;
+
+  if(!WORDS.length){
+     console.error("❌ loadNextWord → WORDS empty");
+     accepting = true;
+     return;
+  }
+
+  if(!wordQueue.length){
+     wordQueue = shuffleArray(WORDS);
+  }
+
+  currentWord = wordQueue.pop();
+
+  if(!currentWord){
+     console.error("❌ wordQueue returned undefined");
+     currentWord = WORDS[Math.floor(Math.random()*WORDS.length)];
+  }
+
+  wordStartTime = Date.now();
+
   document.getElementById('hint').textContent='';
 }
 
-/* ============================================================
-   SOLVED FLASH
-============================================================ */
 function flashSolved(word, pts, bonus){
   const sf=document.getElementById('solvedFlash');
   const sw=document.getElementById('solvedWordText');
@@ -843,18 +946,30 @@ function updateArc(){
 }
 function formatTime(s){return Math.floor(s/60)+':'+(s%60<10?'0':'')+s%60;}
 function startTimer(){
-  timerInterval=setInterval(()=>{
-    if(!gameActive)return;
+
+  clearInterval(timerInterval);
+
+  timerInterval = setInterval(()=>{
+
+    if(!gameActive) return;
+
     timeLeft--;
-    document.getElementById('timerText').textContent=formatTime(timeLeft);
+
+    if(timeLeft < 0){
+       console.error("❌ Timer underflow");
+       endGame();
+       return;
+    }
+
+    document.getElementById('timerText').textContent = formatTime(timeLeft);
     updateArc();
-    if(timeLeft<=0) endGame();
+
+    if(timeLeft <= 0) endGame();
+
   },1000);
 }
 
-/* ============================================================
-   GAME FLOW
-============================================================ */
+
 function startGame(){
   score=0;wordsSolved=0;wordAttempts=0;timeLeft=TOTAL_TIME;solvedLog=[];
   guesses=[];currentInput='';accepting=true;gameActive=true;

@@ -359,7 +359,8 @@ B = new Date(b.last_test_taken).getTime();
       ${currentSort === "accuracy" ? "TARGET LOCK" : 
         currentSort === "quests_completed" ? "QUESTS" :
         currentSort === "videos_completed" ? "VIDEOS" :
-        currentSort === "stories_completed" ? "STORIES" : ""}
+        currentSort === "stories_completed" ? "STORIES" :
+         currentSort === "cryptic_completed" ? "CRYPTIC" : ""}
     </div>
   </div>
 
@@ -509,6 +510,12 @@ const CALENDAR_VISIBLE_START = new Date("2026-02-01");
             <div class="stat-foot">Hit Rate</div>
           </div>
           <div class="stat-box">
+  <div class="stat-label">Cryptic</div>
+  <div class="stat-value">${s.cryptic_completed ?? 0}</div>
+  <div class="stat-foot">Puzzles solved</div>
+</div>
+
+          <div class="stat-box">
             <div class="stat-label">Quests</div>
             <div class="stat-value">${s.total_attempts ?? 0}</div>
             <div class="stat-foot">Quests conquered</div>
@@ -591,6 +598,7 @@ document.getElementById("modal-content").appendChild(pdfBtn);
   const totalVideos = reportData.reduce((sum, s) => sum + (s.videos_completed || 0), 0);
   const totalStories = reportData.reduce((sum, s) => sum + (s.stories_completed || 0), 0);
   const totalQuests = reportData.reduce((sum, s) => sum + (s.quests_completed || 0), 0);
+const totalCryptic = reportData.reduce((sum, s) => sum + (s.cryptic_completed || 0), 0);
 
   const modal = document.getElementById("modal");
   const content = document.getElementById("modal-content");
@@ -608,6 +616,11 @@ document.getElementById("modal-content").appendChild(pdfBtn);
         <div class="stat-value">${avgScore}</div>
         <div class="stat-foot">Per Pilot</div>
       </div>
+<div class="stat-box">
+  <div class="stat-label">Cryptic</div>
+  <div class="stat-value">${totalCryptic}</div>
+  <div class="stat-foot">Solved</div>
+</div>
 
       <div class="stat-box">
         <div class="stat-label">Avg Accuracy</div>
@@ -813,18 +826,12 @@ async function downloadProfilePDF(studentObj) {
   document.body.appendChild(pdfArea);
   await new Promise(r => setTimeout(r, 300));
 
-  const canvas = await html2canvas(pdfArea, { scale: 3 });
+  const canvas = await html2canvas(pdfArea, { scale: 2 });
   const imgData = canvas.toDataURL("image/png");
 
   const pdf = new jsPDF("p", "pt", "a4");
-
-const pageWidth = pdf.internal.pageSize.getWidth();
-
-/* Fit width — allow natural height */
-const imgWidth = pageWidth - 20;
-const imgHeight = canvas.height * imgWidth / canvas.width;
-
-pdf.addImage(imgData, "PNG", 10, 10, imgWidth, imgHeight);  pdf.save(`${studentObj.name}_Profile.pdf`);
+  pdf.addImage(imgData, "PNG", 10, 10, 575, 822);
+  pdf.save(`${studentObj.name}_Profile.pdf`);
 
   pdfArea.remove();
 }
@@ -2110,176 +2117,6 @@ body::after {
   0%, 100% { opacity: 0.4; }
   50% { opacity: 0.85; }
 }
-    /* ======================================================
-   WHITE & POSH GOLD — PREMIUM PRINT THEME
-   Safe Overrides (Paste at END of <style>)
-   ====================================================== */
-
-:root {
-  --bg-deep: #FFFFFF;
-  --bg-surface: #FFFFFF;
-  --bg-surface-strong: #FFFFFF;
-  --bg-muted: #FAFAFA;
-
-  --text-primary: #111111;
-  --text-secondary: rgba(180, 140, 20, 0.75);
-
-  --accent-primary: #C6A437;     /* Posh gold */
-  --accent-secondary: #E5C76B;   /* Soft gold */
-  --accent-warm: #F4E7C2;
-
-  --gold: #C6A437;
-  --silver: #888888;
-  --bronze: #B87333;
-
-  --border-color: rgba(198,164,55,0.45);
-}
-
-/* BODY */
-body {
-  background: #FFFFFF !important;
-  color: var(--text-primary);
-}
-
-/* Remove starfield / grid visuals for clean print look */
-body::before,
-body::after {
-  display: none !important;
-}
-
-/* FRAME */
-.command-frame {
-  background: #FFFFFF;
-  border: 1px solid rgba(198,164,55,0.55);
-  box-shadow: 0 10px 30px rgba(0,0,0,0.08);
-}
-
-/* HEADER */
-.header {
-  background: #FFFFFF;
-  border-bottom: 1px solid rgba(198,164,55,0.35);
-}
-
-.title {
-  background: linear-gradient(120deg, #E5C76B, #C6A437);
-  -webkit-background-clip: text;
-  color: transparent;
-}
-
-.mission-title,
-.subtitle,
-.metric-tag,
-.last-test-small {
-  color: rgba(180,140,20,0.75);
-}
-
-/* BUTTONS */
-.sort-btn,
-#time-toggle,
-.badge-live {
-  background: #FFFFFF;
-  border: 1px solid rgba(198,164,55,0.55);
-  color: var(--text-primary);
-}
-
-.sort-btn:hover {
-  background: rgba(198,164,55,0.08);
-}
-
-.sort-btn.active {
-  background: linear-gradient(135deg, #E5C76B, #C6A437);
-  color: #FFFFFF;
-  border-color: #C6A437;
-  box-shadow: 0 4px 12px rgba(198,164,55,0.35);
-}
-
-/* LEADERBOARD */
-#leaderboard {
-  background: #FFFFFF;
-  border: 1px solid rgba(198,164,55,0.45);
-}
-
-.leaderboard-header-row {
-  background: rgba(198,164,55,0.08);
-  color: var(--text-secondary);
-}
-
-.leaderboard-row {
-  background: #FFFFFF;
-  border-bottom: 1px solid rgba(198,164,55,0.18);
-}
-
-.leaderboard-row:hover {
-  background: rgba(198,164,55,0.06);
-}
-
-.rank {
-  color: rgba(198,164,55,0.9);
-}
-
-.score {
-  color: var(--accent-primary);
-}
-
-/* TOP 3 */
-.leaderboard-row.gold {
-  border-left: 3px solid var(--gold);
-  background: rgba(198,164,55,0.05);
-}
-
-.leaderboard-row.silver {
-  border-left: 3px solid var(--silver);
-}
-
-.leaderboard-row.bronze {
-  border-left: 3px solid var(--bronze);
-}
-
-/* MODAL */
-#modal {
-  background: rgba(255,255,255,0.95);
-}
-
-#modal-content {
-  background: #FFFFFF;
-  border: 1px solid rgba(198,164,55,0.55);
-  box-shadow: 0 20px 40px rgba(0,0,0,0.12);
-}
-
-.modal-header h2 {
-  color: var(--accent-primary);
-}
-
-/* STAT CARDS */
-.stat-box {
-  background: #FFFFFF;
-  border: 1px solid rgba(198,164,55,0.35);
-}
-
-.stat-label {
-  color: var(--text-secondary);
-}
-
-.stat-value {
-  color: var(--accent-primary);
-}
-
-/* MINI CALENDAR */
-.mini-cal-day {
-  background: #FFFFFF;
-  border: 1px solid rgba(198,164,55,0.35);
-  color: #111111;
-}
-
-.mini-cal-day.marked {
-  background: rgba(198,164,55,0.18);
-  border-color: var(--accent-primary);
-}
-
-/* DEPARTMENT LABEL */
-.dept-inline {
-  color: rgba(180,140,20,0.8);
-}
   </style>
 </head>
 
@@ -2310,6 +2147,11 @@ body::after {
            <div class="sort-panel">
         <div class="sort-label-row">
         </div>
+             <button class="sort-btn" data-sort="cryptic_completed" onclick="sortData('cryptic_completed')">
+  Cryptic
+  <span class="sort-indicator"></span>
+</button>
+
         <div class="sort-buttons">
           <button class="sort-btn" data-sort="accuracy" onclick="sortData('accuracy')">
             Accuracy

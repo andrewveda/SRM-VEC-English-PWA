@@ -305,6 +305,16 @@ canvas.fx { position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:no
 }
 
 .end-name-row { display:flex;flex-direction:column;gap:8px;margin:16px 0; }
+  #playerIdentity {
+  font-family:'Rajdhani',sans-serif;
+  font-size:1.4rem;
+  font-weight:700;
+  color:var(--gold);
+  letter-spacing:1px;
+  margin-top:4px;
+  transition: transform 0.25s ease, opacity 0.25s ease;
+}
+
 .end-name-row input {
   padding:11px 14px;border-radius:10px;border:1px solid rgba(255,255,255,0.1);
   background:var(--surface);color:var(--text);font-size:15px;font-family:'Nunito',sans-serif;
@@ -428,8 +438,8 @@ canvas.fx { position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:no
       <div id="wordsList"></div>
     </div>
     <div class="end-name-row">
-      <input id="playerName" type="text" placeholder="Enter your name for the leaderboard"/>
-      <p id="leaderboardText">Join the leaderboard!</p>
+      <div id="playerIdentity"></div>
+<p id="leaderboardText"></p>
     </div>
     <div class="btn-row">
       <button class="btn btn-primary" id="playAgainBtn">⚡ Play Again</button>
@@ -445,8 +455,10 @@ canvas.fx { position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:no
 ============================================================ */
 const EDGE_URL = "https://ahezssoczvpbkteffcgz.supabase.co/functions/v1/logQuest";
 const CSV_URL  = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ5Z6lmXH4jxHYMKUcimj_M-IV1pwtBUF72YKJIi_BO-KD_NYwWBJBQqni7m4NmQyU9NMdve4vGZ7rh/pub?gid=0&single=true&output=csv';
-const NAME_KEY = 'wordle-blitz-name';
-const TOTAL_TIME = 300; // 5 minutes in seconds
+const NAME_KEY = "questPlayerName";
+const DEPT_KEY = "questPlayerDept";
+  
+const TOTAL_TIME = 300;
 const ARC_FULL   = 163.4;
 const startBtn = document.getElementById('startBtn');
 
@@ -1021,6 +1033,7 @@ function endGame(){
    END SCREEN
 ============================================================ */
 function showEndScreen(){
+  
   document.getElementById('gameScreen').style.display='none';
   document.getElementById('endScreen').style.display='flex';
 
@@ -1053,14 +1066,26 @@ function showEndScreen(){
   });
 
   // Saved name
-  const saved=localStorage.getItem(NAME_KEY);
-  if(saved){document.getElementById('playerName').value=saved;document.getElementById('leaderboardText').textContent=`Welcome back, ${saved}! 🎉`;submitScore(saved);}
+ /* ── Unified Identity ── */
+const name = localStorage.getItem(NAME_KEY) || "Guest";
+const dept = localStorage.getItem(DEPT_KEY) || "";
 
-  document.getElementById('playerName').addEventListener('change',()=>{
-    const n=document.getElementById('playerName').value.trim()||'Guest';
-    localStorage.setItem(NAME_KEY,n);submitScore(n);
-    document.getElementById('leaderboardText').textContent=`Score recorded for ${n}!`;
-  });
+const badge = document.getElementById('playerIdentity');
+
+badge.style.opacity = 0;
+badge.style.transform = "translateY(-4px)";
+
+setTimeout(() => {
+  badge.textContent = `👤 ${name}${dept ? ' · ' + dept : ''}`;
+  badge.style.opacity = 1;
+  badge.style.transform = "translateY(0)";
+}, 180);
+
+document.getElementById('leaderboardText').textContent =
+  `Score recorded for ${name}`;
+
+submitScore(name);
+
 
   // Fireworks on end
   launchFireworks(innerWidth/2, innerHeight/3);
@@ -1078,7 +1103,8 @@ function submitScore(name){
     correct: score,
     wrong: failedWords,
     time_spent: TOTAL_TIME - timeLeft,
-    department: 'WordleBlitz',
+  department: localStorage.getItem(DEPT_KEY) || "Unknown",
+
     answer: score + ' pts / ' + wordsSolved + ' words'
   })}).catch(()=>{});
 }

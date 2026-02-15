@@ -144,7 +144,27 @@ to {opacity: 1; transform: scale(1);}
     <div id="scorecard" class="scorecard">    
       <h1 id="scoreTitle"></h1>    
       <p id="scoreMsg"></p>    
-      <input id="playerName" type="text" placeholder="Enter your name" />    
+      <input id="playerName" type="text" placeholder="Enter your name" />   
+      <select id="playerDept">
+  <option value="">-- Select Department --</option>
+  <option value="Cyber Security">Cyber Security</option>
+  <option value="EIE">EIE</option>
+  <option value="CSE-1">CSE-1</option>
+  <option value="CSE-2">CSE-2</option>
+  <option value="CSE-3">CSE-3</option>
+  <option value="Mechanical Engineering">Mechanical Engineering</option>
+  <option value="ECE-1">ECE-1</option>
+  <option value="ECE-2">ECE-2</option>
+  <option value="ECE-3">ECE-3</option>
+  <option value="AI DS-1">AI DS-1</option>
+  <option value="AI DS-2">AI DS-2</option>
+  <option value="Agri and Civil">Agri and Civil</option>
+  <option value="EEE">EEE</option>
+  <option value="Medical Electronics">Medical Electronics</option>
+  <option value="IT-1">IT-1</option>
+  <option value="IT-2">IT-2</option>
+</select>
+
       <p id="leaderboardText" style="margin-bottom:12px; color:#bcd3ef; font-size:18px;"></p>    
       <button id="leaderboardBtn" style="display:none;">Check Leaderboard</button>    
       <button id="shareBtn">Share on WhatsApp</button>    
@@ -184,7 +204,8 @@ const scoreMsg=document.getElementById('scoreMsg');
 const shareBtn = document.getElementById('shareBtn');
 const introOverlay = document.getElementById('introOverlay');
 const startBtn = document.getElementById('startBtn');
-const NAME_KEY = 'wordle-player-name';
+const NAME_KEY = "questPlayerName";
+const DEPT_KEY = "questPlayerDept";
 startBtn.addEventListener('click', () => {
 introOverlay.style.display = 'none';
 document.addEventListener('keydown', keydownHandler); // enable keyboard after overlay
@@ -254,7 +275,7 @@ sendViaEdgeFunction({
 student_name: playerName,
 tries: guesses.length,
 time_spent: totalTime,
-department: "Wordle",
+department: localStorage.getItem(DEPT_KEY) || "Unknown",
 answer: ANSWER
 });
 }
@@ -270,14 +291,32 @@ function showScore(win) {
   const leaderboardBtn = document.getElementById('leaderboardBtn');
 
   const savedName = localStorage.getItem(NAME_KEY);
+const savedDept = localStorage.getItem(DEPT_KEY);
+const deptSelect = document.getElementById('playerDept');
 
-  if (savedName) {
-    nameInput.value = savedName;
-    leaderboardText.textContent = `Welcome back, ${savedName}! 🎉`;
-    fetchToSheet(savedName);
-  } else {
-    leaderboardText.textContent = "Join the leaderboard!";
-  }
+if (savedName && savedDept) {
+
+  /* ✅ Known identity */
+
+  nameInput.value = savedName;
+  deptSelect.value = savedDept;
+
+  nameInput.style.display = "none";
+  deptSelect.style.display = "none";
+
+  leaderboardText.textContent =
+     `Score recorded for ${savedName}`;
+
+  fetchToSheet(savedName);
+
+} else {
+
+  /* ✅ New identity */
+
+  leaderboardText.textContent = "Enter details to join leaderboard";
+
+}
+
 
   // 3️⃣ Leaderboard button
   leaderboardBtn.style.display = "inline-block";
@@ -289,12 +328,26 @@ function showScore(win) {
   };
 
   // 4️⃣ When user enters/changes name
-  nameInput.addEventListener('change', () => {
-    const name = nameInput.value.trim() || 'Guest';
-    localStorage.setItem(NAME_KEY, name);
-    fetchToSheet(name);
-    leaderboardText.textContent = `Thanks ${name}, your score is recorded!`;
-  });
+function saveIdentity(){
+
+  const name = nameInput.value.trim();
+  const dept = document.getElementById('playerDept').value;
+
+  if (!name || !dept) return;
+
+  localStorage.setItem(NAME_KEY, name);
+  localStorage.setItem(DEPT_KEY, dept);
+
+  fetchToSheet(name);
+
+  leaderboardText.textContent =
+     `Thanks ${name}, score recorded!`;
+
+}
+
+nameInput.addEventListener('change', saveIdentity);
+document.getElementById('playerDept').addEventListener('change', saveIdentity);
+
 
   // 5️⃣ Result message
   if (win) {

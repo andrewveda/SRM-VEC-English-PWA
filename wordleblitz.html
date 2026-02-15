@@ -984,6 +984,90 @@ document.getElementById('startBtn').onclick=startGame;
     if(!WORDS.length){document.getElementById('startBtn').textContent='⚠️ Word list failed';return;}
   }catch(e){console.error(e);}
 })();
+/* ============================================================
+   DEBUG CONSOLE OVERLAY 🔎
+============================================================ */
+
+(function(){
+
+  const box = document.createElement('div');
+  box.id = 'debugConsole';
+
+  box.style.position = 'fixed';
+  box.style.bottom = '0';
+  box.style.left = '0';
+  box.style.width = '100%';
+  box.style.maxHeight = '45%';
+  box.style.overflowY = 'auto';
+  box.style.background = 'rgba(0,0,0,0.9)';
+  box.style.color = '#00ff9d';
+  box.style.fontFamily = 'monospace';
+  box.style.fontSize = '12px';
+  box.style.padding = '8px';
+  box.style.zIndex = '99999';
+  box.style.borderTop = '2px solid #00c6ff';
+  box.style.display = 'none';
+
+  document.body.appendChild(box);
+
+  const btn = document.createElement('div');
+  btn.textContent = '🐞 DEBUG';
+  btn.style.position = 'fixed';
+  btn.style.bottom = '10px';
+  btn.style.right = '10px';
+  btn.style.background = '#00c6ff';
+  btn.style.color = 'black';
+  btn.style.padding = '6px 10px';
+  btn.style.borderRadius = '8px';
+  btn.style.fontSize = '12px';
+  btn.style.fontWeight = 'bold';
+  btn.style.zIndex = '100000';
+  btn.style.cursor = 'pointer';
+
+  btn.onclick = () => {
+    box.style.display = box.style.display === 'none' ? 'block' : 'none';
+  };
+
+  document.body.appendChild(btn);
+
+  function log(msg, isError=false){
+    const line = document.createElement('div');
+    line.style.borderBottom = '1px solid rgba(255,255,255,0.08)';
+    line.style.padding = '3px 0';
+    line.style.color = isError ? '#ff5252' : '#00ff9d';
+    line.textContent = msg;
+    box.appendChild(line);
+    box.scrollTop = box.scrollHeight;
+  }
+
+  /* 🔴 Capture ALL JS errors */
+  window.onerror = function(message, source, lineno, colno, error){
+    log(`❌ ERROR: ${message}`, true);
+    if(source) log(`📄 ${source}:${lineno}:${colno}`, true);
+    if(error?.stack) log(error.stack, true);
+  };
+
+  /* 🔴 Capture Promise / async crashes */
+  window.addEventListener('unhandledrejection', function(event){
+    log(`❌ PROMISE ERROR: ${event.reason}`, true);
+    if(event.reason?.stack) log(event.reason.stack, true);
+  });
+
+  /* 🟢 Optional: intercept console.log */
+  const origLog = console.log;
+  console.log = function(...args){
+    origLog.apply(console, args);
+    log('🟢 LOG: ' + args.join(' '));
+  };
+
+  /* 🟠 Optional: intercept console.error */
+  const origErr = console.error;
+  console.error = function(...args){
+    origErr.apply(console, args);
+    log('❌ CONSOLE ERROR: ' + args.join(' '), true);
+  };
+
+})();
 </script>
 </body>
 </html>

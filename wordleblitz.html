@@ -448,6 +448,11 @@ const CSV_URL  = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ5Z6lmXH4jxHY
 const NAME_KEY = 'wordle-blitz-name';
 const TOTAL_TIME = 300; // 5 minutes in seconds
 const ARC_FULL   = 163.4;
+const startBtn = document.getElementById('startBtn');
+
+startBtn.disabled = true;
+startBtn.textContent = "Loading words...";
+startBtn.style.opacity = "0.6";
 
 // Engineering trivia
 const TRIVIA = [
@@ -969,7 +974,14 @@ function startTimer(){
 }
 
 
-function startGame(){
+{function startGame(){
+
+  if(!WORDS.length){
+     console.error("❌ startGame blocked → WORDS empty");
+     showHint("Words still loading...");
+     return;
+  }
+
   score=0;wordsSolved=0;wordAttempts=0;timeLeft=TOTAL_TIME;solvedLog=[];
   guesses=[];currentInput='';accepting=true;gameActive=true;
   triviaShown.clear();
@@ -1091,16 +1103,34 @@ document.getElementById('skipBtn').onclick=()=>{
 document.getElementById('startBtn').onclick=startGame;
 
 (async function init(){
+
   try{
-    const r=await fetch(CSV_URL);
-    const txt=await r.text();
-    WORDS=parseCSV(txt);
-    if(!WORDS.length){document.getElementById('startBtn').textContent='⚠️ Word list failed';return;}
-  }catch(e){console.error(e);}
+
+    const r = await fetch(CSV_URL);
+    const txt = await r.text();
+
+    WORDS = parseCSV(txt);
+
+    if(!WORDS.length){
+       startBtn.textContent = "⚠️ Word list failed";
+       console.error("❌ CSV parsed empty");
+       return;
+    }
+
+    console.log("✅ WORDS loaded:", WORDS.length);
+
+    startBtn.disabled = false;
+    startBtn.textContent = "⚡ START BLITZ";
+    startBtn.style.opacity = "1";
+
+  }catch(e){
+
+    console.error("❌ CSV LOAD FAILED:", e);
+    startBtn.textContent = "⚠️ Load failed";
+
+  }
+
 })();
-/* ============================================================
-   DEBUG CONSOLE OVERLAY 🔎
-============================================================ */
 
 (function(){
 

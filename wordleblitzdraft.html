@@ -838,60 +838,75 @@ function buildGrid(word, guessList){
    WORD SOLVED / FAILED
 ============================================================ */
 function onWordSolved(){
-  const elapsed=Math.round((Date.now()-wordStartTime)/1000);
-  const tries = guesses.length;  
-  const pts=calcScore(tries,elapsed);
-  const bonus=calcTimeBonus(tries);
 
-  score+=pts;
-  wordsSolved++;
-  wordAttempts+=tries;
+  const elapsed = Math.round((Date.now() - wordStartTime) / 1000);
+  const tries   = guesses.length;
 
-  // Log for end screen
-  solvedLog.push({word:currentWord,guesses:[...guesses],pts,grid:buildGrid(currentWord,guesses)});
-
-  // Jump tiles
-  const row=document.getElementById('board').children[guesses.length-1];
-  Array.from(row.children).forEach((t,i)=>setTimeout(()=>anim(t,'jump'),80+i*80));
-
-  // Time bonus
-  if(bonus>0){
-    timeLeft=Math.min(timeLeft+bonus,TOTAL_TIME);
-    updateArc();
-    showTimeBonusFlash('+'+bonus+'s');
-  }
-
-  // Score display
-  document.getElementById('scoreVal').textContent=score;
-  document.getElementById('wordsVal').textContent=wordsSolved+' word'+(wordsSolved!==1?'s':'')+' solved';
-
-  // Fireworks + confetti
-  const board=document.getElementById('board');
-  const br=board.getBoundingClientRect();
-  launchFireworks(br.left+br.width/2, br.top+br.height/2);
-  setTimeout(launchConfetti,300);
-
-  // SOLVED flash
-  flashSolved(currentWord.toUpperCase(), pts, bonus);
-
-  // Trivia between words
-  setTimeout(()=>showTrivia(), 600);
-
-  // Next word after transition
-  setTimeout(()=>nextWord(), 1800);
+  /* ✅ STATS FIRST — CRITICAL FIX */
   totalAttempts += tries;
 
-if (tries === 1) perfectSolves++;
+  if (tries === 1) perfectSolves++;
 
-fastestSolveSec = Math.min(fastestSolveSec, elapsed);
+  fastestSolveSec = Math.min(fastestSolveSec, elapsed);
 
-totalTimeBonus += bonus;
+  const bonus = calcTimeBonus(tries);
+  totalTimeBonus += bonus;
 
-currentStreak++;
-longestStreak = Math.max(longestStreak, currentStreak);
+  currentStreak++;
+  longestStreak = Math.max(longestStreak, currentStreak);
 
+  /* ✅ SCORING */
+  const pts = calcScore(tries, elapsed);
 
+  score += pts;
+  wordsSolved++;
+  wordAttempts += tries;
+
+  /* ✅ END SCREEN LOG */
+  solvedLog.push({
+    word: currentWord,
+    guesses: [...guesses],
+    pts,
+    grid: buildGrid(currentWord, guesses)
+  });
+
+  /* ✅ TILE JUMP */
+  const row = document.getElementById('board').children[tries - 1];
+  if(row){
+    Array.from(row.children).forEach((t, i) =>
+      setTimeout(() => anim(t, 'jump'), 80 + i * 80)
+    );
+  }
+
+  /* ✅ TIME BONUS */
+  if (bonus > 0) {
+    timeLeft = Math.min(timeLeft + bonus, TOTAL_TIME);
+    updateArc();
+    showTimeBonusFlash('+' + bonus + 's');
+  }
+
+  /* ✅ SCORE DISPLAY */
+  document.getElementById('scoreVal').textContent = score;
+  document.getElementById('wordsVal').textContent =
+    wordsSolved + ' word' + (wordsSolved !== 1 ? 's' : '') + ' solved';
+
+  /* ✅ FIREWORKS */
+  const board = document.getElementById('board');
+  const br = board.getBoundingClientRect();
+
+  launchFireworks(br.left + br.width / 2, br.top + br.height / 2);
+  setTimeout(launchConfetti, 300);
+
+  /* ✅ SOLVED FLASH */
+  flashSolved(currentWord.toUpperCase(), pts, bonus);
+
+  /* ✅ TRIVIA */
+  setTimeout(showTrivia, 600);
+
+  /* ✅ NEXT WORD */
+  setTimeout(nextWord, 1800);
 }
+
 
 function onWordFailed(){
   // Show answer briefly then move on

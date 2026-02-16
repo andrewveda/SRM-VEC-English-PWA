@@ -1122,6 +1122,21 @@ function endGame(){
   gameActive=false;
   clearInterval(timerInterval);
   document.removeEventListener('keydown',keydownHandler);
+
+  // Snapshot all stats so Play Again reset can't clobber them
+  window._finalStats = {
+    score,
+    wordsSolved,
+    wordAttempts,
+    timeLeft,
+    solvedLog: [...solvedLog],
+    totalAttempts,
+    perfectSolves,
+    fastestSolveSec,
+    totalTimeBonus,
+    longestStreak
+  };
+
   setTimeout(showEndScreen, 600);
 }
 
@@ -1247,21 +1262,22 @@ submitScore(name);
 
 function submitScore(name){
   const dept = localStorage.getItem(DEPT_KEY) || "Unknown";
-  const failedWords = solvedLog.filter(e=>e.failed).length;
+  const s = window._finalStats || {};
+  const failedWords = (s.solvedLog || solvedLog).filter(e=>e.failed).length;
   fetch(EDGE_URL,{method:'POST',headers:{'Content-Type':'application/json'},body: JSON.stringify({
   student_name: name,
   department: dept,
 
-  score: score,
-  correct: wordsSolved,
+  score: s.score ?? score,
+  correct: s.wordsSolved ?? wordsSolved,
   wrong: failedWords,
-  time_spent: TOTAL_TIME - timeLeft,
+  time_spent: TOTAL_TIME - (s.timeLeft ?? timeLeft),
 
-  total_attempts: totalAttempts,
-  perfect_solves: perfectSolves,
-  fastest_solve_sec: fastestSolveSec === 999 ? null : fastestSolveSec,
-  total_time_bonus: totalTimeBonus,
-  longest_streak: longestStreak,
+  total_attempts: s.totalAttempts ?? totalAttempts,
+  perfect_solves: s.perfectSolves ?? perfectSolves,
+  fastest_solve_sec: (s.fastestSolveSec ?? fastestSolveSec) === 999 ? null : (s.fastestSolveSec ?? fastestSolveSec),
+  total_time_bonus: s.totalTimeBonus ?? totalTimeBonus,
+  longest_streak: s.longestStreak ?? longestStreak,
 
   quest_id: "Wordleblitz"
 })

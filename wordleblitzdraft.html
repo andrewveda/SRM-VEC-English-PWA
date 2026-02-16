@@ -544,7 +544,7 @@ let fastestSolveSec = 999;
 let totalTimeBonus = 0;
 let longestStreak = 0;
 let currentStreak = 0;
-
+let _frozenStats = null; 
 setInterval(()=>{
    if(gameActive && !accepting && !transitioning){
       console.warn("⚠️ Watchdog unlock");
@@ -1079,6 +1079,7 @@ function startTimer(){
 
 
 function startGame(){
+_frozenStats = null;
 totalAttempts = 0;
 perfectSolves = 0;
 fastestSolveSec = 999;
@@ -1123,34 +1124,34 @@ function endGame(){
   clearInterval(timerInterval);
   document.removeEventListener('keydown',keydownHandler);
 
-  // Snapshot all stats so Play Again reset can't clobber them
-  window._finalStats = {
-    score,
-    wordsSolved,
-    wordAttempts,
-    timeLeft,
-    solvedLog: [...solvedLog],
-    totalAttempts,
-    perfectSolves,
-    fastestSolveSec,
-    totalTimeBonus,
-    longestStreak
-  };
-
-  setTimeout(showEndScreen, 600);
-}
-
+ const failedCount = solvedLog.filter(e => e.failed).length;
+_frozenStats = {
+  score,
+  wordsSolved,
+  wordAttempts,
+  timeLeft,
+  solvedLog:        [...solvedLog],
+  totalAttempts,
+  perfectSolves,
+  fastestSolveSec:  fastestSolveSec === 999 ? null : fastestSolveSec,
+  totalTimeBonus,
+  longestStreak,
+  failedCount,
+  timeSpent:        TOTAL_TIME - timeLeft,
+};
+setTimeout(showEndScreen, 600);
+  }
 /* ============================================================
    END SCREEN
 ============================================================ */
 function showEndScreen(){
-  
+  const s = _frozenStats;  // ← ADD THIS — local alias to frozen snapshot
+
   document.getElementById('gameScreen').style.display='none';
   document.getElementById('endScreen').style.display='flex';
 
-  // Animate score counter
   let displayed=0;
-  const target=score;
+  const target = s.score;  // ← was: score (global)
   const step=Math.max(1,Math.ceil(target/40));
   const iv=setInterval(()=>{
     displayed=Math.min(displayed+step,target);
@@ -1158,79 +1159,49 @@ function showEndScreen(){
     if(displayed>=target)clearInterval(iv);
   },30);
 
-  document.getElementById('endWords').textContent=wordsSolved;
-  const avg=wordsSolved>0?(wordAttempts/wordsSolved).toFixed(1):'–';
+  document.getElementById('endWords').textContent = s.wordsSolved;  // ← was: wordsSolved
+  const avg = s.wordsSolved>0 ? (s.wordAttempts/s.wordsSolved).toFixed(1) : '–';  // ← was globals
   document.getElementById('endAvg').textContent=avg;
 
-  // Title
   const titles=['⏱️ TIME\'S UP!','🔥 BLITZ DONE!','⚡ NICE RUN!'];
-  document.getElementById('endTitle').textContent=wordsSolved>=8?'🏆 LEGENDARY!':wordsSolved>=5?'🔥 ON FIRE!':titles[Math.floor(Math.random()*titles.length)];
+  document.getElementById('endTitle').textContent = s.wordsSolved>=8?'🏆 LEGENDARY!':s.wordsSolved>=5?'🔥 ON FIRE!':titles[Math.floor(Math.random()*titles.length)];
 
-  // Words list
-  const list=document.getElementById('wordsList');list.innerHTML='';
-  if(solvedLog.length===0){list.innerHTML='<p style="color:var(--muted);text-align:center;padding:10px;">No words solved — try again!</p>';}
-  solvedLog.forEach((entry,i)=>{
-    const div=document.createElement('div');div.className='word-entry';
+  const list=document.getElementById('wordsList'); list.innerHTML='';
+  if(s.solvedLog.length===0){ list.innerHTML='<p style="color:var(--muted);text-align:center;padding:10px;">No words solved — try again!</p>'; }
+  s.solvedLog.forEach((entry,i)=>{  // ← was: solvedLog (global)
+    const div=document.createElement('div'); div.className='word-entry';
     div.style.animationDelay=(i*0.07)+'s';
     div.innerHTML=`<span class="we-word">${entry.word.toUpperCase()}</span><span class="we-grid">${entry.grid.split('\n')[0]}${entry.guesses.length>1?'…':''}</span><span class="we-pts">${entry.failed?'<span style="color:var(--danger)">✗</span>':'+'+entry.pts+' pts'}</span>`;
     list.appendChild(div);
   });
 
-  // Saved name
- /* ── Unified Identity ── */
-const storedName = localStorage.getItem(NAME_KEY);
-const storedDept = localStorage.getItem(DEPT_KEY);
+  const storedName=localStorage.getItem(NAME_KEY);
+  const storedDept=localStorage.getItem(DEPT_KEY);
+  const badge=document.getElementById('playerIdentity');
+  const nameBox=document.getElementById('fallbackName');
+  const deptBox=document.getElementById('fallbackDept');
 
-const badge   = document.getElementById('playerIdentity');
-const nameBox = document.getElementById('fallbackName');
-const deptBox = document.getElementById('fallbackDept');
+  if(storedName && storedDept){
+    nameBox.style.display="none"; deptBox.style.display="none";
+    badge.style.opacity=0; badge.style.transform="translateY(-4px)";
+    setTimeout(()=>{ badge.textContent=`👤 ${storedName} · ${storedDept}`; badge.style.opacity=1; badge.style.transform="translateY(0)"; },180);
+    document.getElementById('leaderboardText').textContent=`Score recorded for ${storedName}`;
+    submitScore(storedName, storedDept, s);  // ← 3 args now
+  } else {
+    badge.textContent="👤 New Player";
+    nameBox.style.display="block"; deptBox.style.display="block";
+    nameBox.value=''; deptBox.value='';
+    nameBox.focus();
+    nameBox.onchange = () => saveFallbackIdentity(s);  // ← pass s
+    deptBox.onchange = () => saveFallbackIdentity(s);  // ← pass s
+  }
 
-if (storedName && storedDept) {
-
-   /* ✅ Known identity → display only */
-
-   nameBox.style.display = "none";
-   deptBox.style.display = "none";
-
-   badge.style.opacity = 0;
-   badge.style.transform = "translateY(-4px)";
-
-   setTimeout(() => {
-      badge.textContent = `👤 ${storedName} · ${storedDept}`;
-      badge.style.opacity = 1;
-      badge.style.transform = "translateY(0)";
-   }, 180);
-
-   document.getElementById('leaderboardText').textContent =
-      `Score recorded for ${storedName}`;
-
-   submitScore(storedName);
-
-} else {
-
-   /* ✅ No identity → allow entry */
-
-   badge.textContent = "👤 New Player";
-
-   nameBox.style.display = "block";
-   deptBox.style.display = "block";
-
-   nameBox.focus();
-
-   nameBox.onchange = saveFallbackIdentity;
-   deptBox.onchange = saveFallbackIdentity;
-}
-
-
-  // Fireworks on end
-  launchFireworks(innerWidth/2, innerHeight/3);
-
-  // Buttons
+  launchFireworks(innerWidth/2,innerHeight/3);
   document.getElementById('playAgainBtn').onclick=startGame;
   document.getElementById('leaderboardBtn').onclick=()=>window.open('https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/leaderboard_live','_blank');
-  document.getElementById('shareBtn').onclick=shareOnWhatsApp;
+  document.getElementById('shareBtn').onclick = () => shareOnWhatsApp(s);  // ← pass s
 }
-function saveFallbackIdentity(){
+function saveFallbackIdentity(frozenStats){ 
 
    const name = document.getElementById('fallbackName').value.trim();
    const dept = document.getElementById('fallbackDept').value;
@@ -1256,40 +1227,36 @@ function saveFallbackIdentity(){
 
    document.getElementById('leaderboardText').textContent =
       `Score recorded for ${name}`;
-submitScore(name);
+submitScore(name, dept, frozenStats);
 
 }
 
-function submitScore(name){
-  const dept = localStorage.getItem(DEPT_KEY) || "Unknown";
-  const s = window._finalStats || {};
-  const failedWords = (s.solvedLog || solvedLog).filter(e=>e.failed).length;
-  fetch(EDGE_URL,{method:'POST',headers:{'Content-Type':'application/json'},body: JSON.stringify({
-  student_name: name,
-  department: dept,
-
-  score: s.score ?? score,
-  correct: s.wordsSolved ?? wordsSolved,
-  wrong: failedWords,
-  time_spent: TOTAL_TIME - (s.timeLeft ?? timeLeft),
-
-  total_attempts: s.totalAttempts ?? totalAttempts,
-  perfect_solves: s.perfectSolves ?? perfectSolves,
-  fastest_solve_sec: (s.fastestSolveSec ?? fastestSolveSec) === 999 ? null : (s.fastestSolveSec ?? fastestSolveSec),
-  total_time_bonus: s.totalTimeBonus ?? totalTimeBonus,
-  longest_streak: s.longestStreak ?? longestStreak,
-
-  quest_id: "Wordleblitz"
-})
-}).catch(()=>{});
+function submitScore(name, dept, s) {
+  const payload = {
+    student_name:      name,
+    department:        dept,
+    score:             s.score,        // never reads a global
+    correct:           s.wordsSolved,
+    wrong:             s.failedCount,
+    time_spent:        s.timeSpent,
+    total_attempts:    s.totalAttempts,
+    perfect_solves:    s.perfectSolves,
+    fastest_solve_sec: s.fastestSolveSec,
+    total_time_bonus:  s.totalTimeBonus,
+    longest_streak:    s.longestStreak,
+    quest_id:          "Wordleblitz"
+  };
+  fetch(EDGE_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) })
+    .then(r => r.json())
+    .then(d => console.log("✅ Score submitted:", JSON.stringify(d)))
+    .catch(e => console.error("❌ Submit failed:", e));
 }
 
-function shareOnWhatsApp(){
-  const grids=solvedLog.filter(e=>!e.failed).map(e=>`${e.word.toUpperCase()}: ${e.grid.split('\n')[0]}`).join('\n');
-  const msg=`⚡ Wordle Blitz — I solved ${wordsSolved} words and scored ${score} pts in 5 minutes!\n\n${grids}\n\n🎯 Try it: https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/wordle`;
+function shareOnWhatsApp(s){
+  const grids=s.solvedLog.filter(e=>!e.failed).map(e=>`${e.word.toUpperCase()}: ${e.grid.split('\n')[0]}`).join('\n');
+  const msg=`⚡ Wordle Blitz — I solved ${s.wordsSolved} words and scored ${s.score} pts in 5 minutes!\n\n${grids}\n\n🎯 Try it: https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/wordle`;
   window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`,'_blank');
 }
-
 /* ============================================================
    SKIP
 ============================================================ */

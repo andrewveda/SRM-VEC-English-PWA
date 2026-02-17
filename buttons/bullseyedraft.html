@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no" />
+  <title>Blossom — Word Game</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --petal: #f9c6d0;
+      --petal-hover: #f4a3b5;
+      --center: #f6654a;
+      --center-hover: #e04e35;
+      --stem: #4a8c5c;
+      --stem-light: #7dbb8f;
+      --ink: #2a1f1a;
+      --ink-muted: #8a7060;
+      --gold: #e8a020;
+      --bg: #fdf0e2;
+      --card: #fffdf9;
+      --shadow: rgba(74,60,50,0.12);
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      overflow-y: auto;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 10% 20%, #fde8d880 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 90% 80%, #f9c6d040 0%, transparent 60%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .screen { display: none; flex-direction: column; align-items: center; width: 100%; position: relative; z-index: 1; }
+    .screen.active { display: flex; }
+
+    /* ══ GAME SCREEN ══ */
+    #gameScreen header { width: 100%; text-align: center; padding: 28px 20px 10px; }
+    #gameScreen header h1 { font-family: 'Playfair Display', serif; font-size: clamp(2rem,6vw,3.2rem); font-weight: 900; letter-spacing: -1px; color: var(--ink); line-height: 1; }
+    #gameScreen header h1 span { color: var(--center); }
+    .tagline { margin-top: 6px; font-size: 0.82rem; color: var(--ink-muted); font-weight: 400; letter-spacing: 0.06em; text-transform: uppercase; }
+
+    .main-wrap { display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 480px; padding: 0 16px 40px; gap: 14px; }
+
+    /* ── Top row: timer + scores ── */
+    .top-row { display: flex; gap: 10px; width: 100%; align-items: stretch; }
+
+    .timer-card {
+      flex: 0 0 auto; background: var(--card); border-radius: 14px; padding: 12px 14px;
+      box-shadow: 0 2px 12px var(--shadow); display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 4px; min-width: 88px;
+    }
+    .timer-arc-wrap { position: relative; width: 56px; height: 56px; }
+    #timerArc { transform: rotate(-90deg); }
+    .timer-text {
+      position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+      font-family: 'Playfair Display', serif; font-size: 0.92rem; font-weight: 700; color: var(--ink);
+      transition: color 0.4s;
+    }
+    .timer-text.amber { color: var(--gold); }
+    .timer-text.danger { color: var(--center); animation: timerPulse 0.6s ease-in-out infinite; }
+    @keyframes timerPulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.15)} }
+    .timer-label { font-size: 0.65rem; color: var(--ink-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+
+    .score-bar {
+      flex: 1; display: flex; justify-content: space-between; align-items: center;
+      background: var(--card); border-radius: 14px; padding: 10px 20px;
+      box-shadow: 0 2px 12px var(--shadow);
+    }
+    .score-bar .label { color: var(--ink-muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.72rem; }
+    .score-bar .value { font-family: 'Playfair Display', serif; font-size: 1.5rem; font-weight: 700; color: var(--stem); line-height: 1; }
+    .score-item { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+
+    /* ── Rank bar ── */
+    .rank-bar { width: 100%; background: var(--card); border-radius: 14px; padding: 12px 20px; box-shadow: 0 2px 12px var(--shadow); }
+    .rank-label { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .rank-name { font-family: 'Playfair Display', serif; font-size: 1rem; font-weight: 700; color: var(--center); }
+    .rank-pts { font-size: 0.78rem; color: var(--ink-muted); }
+    .rank-track { height: 7px; background: #f0e6d8; border-radius: 99px; overflow: hidden; }
+    .rank-fill { height: 100%; background: linear-gradient(90deg, var(--stem-light), var(--center)); border-radius: 99px; transition: width 0.6s cubic-bezier(.4,0,.2,1); }
+
+    /* ── Input row ── */
+    .input-row { display: flex; align-items: center; gap: 8px; width: 100%; }
+    .word-display {
+      flex: 1; background: var(--card); border: 2px solid #e8d8c8; border-radius: 12px;
+      padding: 12px 16px; font-family: 'Playfair Display', serif; font-size: 1.5rem;
+      letter-spacing: 0.06em; color: var(--ink); min-height: 54px; display: flex;
+      align-items: center; box-shadow: 0 2px 12px var(--shadow); text-transform: uppercase;
+      transition: border-color 0.2s;
+    }
+    .word-display.error  { border-color: #e04e35; animation: shake 0.35s ease; }
+    .word-display.success{ border-color: var(--stem); }
+    @keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-6px)} 40%{transform:translateX(6px)} 60%{transform:translateX(-4px)} 80%{transform:translateX(4px)} }
+    .word-display .cursor { display: inline-block; width: 2px; height: 1.2em; background: var(--ink-muted); margin-left: 2px; animation: blink 1s step-end infinite; vertical-align: middle; }
+    @keyframes blink { 50%{opacity:0} }
+
+    .btn-delete {
+      background: var(--card); border: 2px solid #e8d8c8; border-radius: 12px;
+      width: 54px; height: 54px; display: flex; align-items: center; justify-content: center;
+      cursor: pointer; font-size: 1.3rem; box-shadow: 0 2px 12px var(--shadow);
+      transition: background 0.15s, transform 0.1s; color: var(--ink-muted);
+    }
+    .btn-delete:hover { background: #fde8d8; transform: scale(1.05); }
+    .btn-delete:active { transform: scale(0.95); }
+
+    /* ── Flower ── */
+    .flower-wrap { position: relative; width: 280px; height: 280px; margin: 4px 0; }
+    .petal-btn {
+      position: absolute; width: 86px; height: 86px; border-radius: 50%; border: none;
+      cursor: pointer; font-family: 'Playfair Display', serif; font-size: 1.6rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.02em;
+      transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s;
+      display: flex; align-items: center; justify-content: center;
+      user-select: none; -webkit-user-select: none; box-shadow: 0 4px 14px var(--shadow);
+    }
+    .petal-btn:active { transform: scale(0.91) !important; }
+    .petal-btn.outer { background: var(--petal); color: var(--ink); }
+    .petal-btn.outer:hover { background: var(--petal-hover); transform: scale(1.07); box-shadow: 0 6px 20px rgba(249,100,74,0.22); }
+    .petal-btn.center-btn {
+      background: var(--center); color: #fff; width: 94px; height: 94px; font-size: 1.8rem;
+      box-shadow: 0 6px 20px rgba(240,80,55,0.35); left: 50%; top: 50%;
+      transform: translate(-50%, -50%); z-index: 5;
+    }
+    .petal-btn.center-btn:hover { background: var(--center-hover); transform: translate(-50%, -50%) scale(1.07); }
+    .petal-btn.center-btn:active { transform: translate(-50%, -50%) scale(0.93) !important; }
+
+    /* ── Enter + controls ── */
+    .btn-enter {
+      width: 100%; padding: 15px; background: var(--stem); color: #fff; border: none;
+      border-radius: 14px; font-family: 'DM Sans', sans-serif; font-size: 1rem; font-weight: 600;
+      letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer;
+      box-shadow: 0 4px 16px rgba(74,140,92,0.3); transition: background 0.15s, transform 0.1s;
+    }
+    .btn-enter:hover { background: #3a7a4c; transform: translateY(-1px); }
+    .btn-enter:active { transform: translateY(1px); }
+    .btn-enter:disabled { background: #c8d8c0; cursor: default; transform: none; box-shadow: none; }
+
+    .spinner { display: inline-block; width: 18px; height: 18px; border: 2.5px solid #ffffff44; border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; }
+    @keyframes spin { to{transform:rotate(360deg)} }
+
+    .controls { display: flex; gap: 8px; width: 100%; }
+    .btn-secondary {
+      flex: 1; padding: 10px; background: var(--card); color: var(--ink-muted);
+      border: 2px solid #e8d8c8; border-radius: 12px; font-family: 'DM Sans', sans-serif;
+      font-size: 0.82rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;
+      cursor: pointer; box-shadow: 0 2px 8px var(--shadow); transition: background 0.15s, color 0.15s;
+    }
+    .btn-secondary:hover { background: #fde8d8; color: var(--center); border-color: var(--petal-hover); }
+    .btn-end-game {
+      flex: 1; padding: 10px; background: #fff0ee; color: var(--center);
+      border: 2px solid var(--petal-hover); border-radius: 12px; font-family: 'DM Sans', sans-serif;
+      font-size: 0.82rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;
+      cursor: pointer; transition: background 0.15s;
+    }
+    .btn-end-game:hover { background: var(--petal); }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed; top: 24px; left: 50%; transform: translateX(-50%) translateY(-80px);
+      background: var(--ink); color: #fff; padding: 10px 22px; border-radius: 99px;
+      font-size: 0.9rem; font-weight: 500; z-index: 200; pointer-events: none;
+      transition: transform 0.35s cubic-bezier(.2,1.4,.4,1), opacity 0.35s;
+      opacity: 0; white-space: nowrap;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+    .toast.good { background: var(--stem); }
+    .toast.bad  { background: var(--center); }
+
+    /* ── Found words ── */
+    .found-section { width: 100%; background: var(--card); border-radius: 14px; padding: 14px 18px; box-shadow: 0 2px 12px var(--shadow); }
+    .found-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .found-header h3 { font-family: 'Playfair Display', serif; font-size: 0.95rem; font-weight: 700; color: var(--ink-muted); text-transform: uppercase; letter-spacing: 0.08em; }
+    .found-count { background: var(--stem-light); color: #fff; border-radius: 99px; padding: 2px 10px; font-size: 0.78rem; font-weight: 600; }
+    .found-list { display: flex; flex-wrap: wrap; gap: 6px; }
+    .found-word { background: #f0f8f2; border: 1.5px solid #c8e8d4; color: var(--stem); border-radius: 8px; padding: 3px 10px; font-size: 0.82rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; animation: pop-in 0.3s cubic-bezier(.2,1.5,.4,1); }
+    @keyframes pop-in { from{transform:scale(0.6);opacity:0} to{transform:scale(1);opacity:1} }
+    .found-word.pangram { background: #fff8e6; border-color: var(--gold); color: #b07010; }
+    .found-word.pangram::before { content: '★ '; }
+
+    footer { position: relative; z-index: 1; padding-bottom: 20px; font-size: 0.72rem; color: var(--ink-muted); text-align: center; }
+
+    /* ══ END SCREEN ══ */
+    #endScreen { min-height: 100vh; justify-content: flex-start; padding: 30px 16px 50px; }
+
+    .end-card {
+      background: var(--card); border: 1.5px solid rgba(246,101,74,0.18); border-radius: 24px;
+      padding: 36px 28px; max-width: 480px; width: 100%;
+      box-shadow: 0 0 50px rgba(246,101,74,0.07), 0 20px 60px rgba(0,0,0,0.08);
+      animation: cardIn 0.6s cubic-bezier(0.34,1.4,0.64,1) forwards;
+    }
+    @keyframes cardIn { from{opacity:0;transform:translateY(32px) scale(0.96)} to{opacity:1;transform:none} }
+
+    .end-title { font-family: 'Playfair Display', serif; font-size: 2.4rem; font-weight: 900; text-align: center; color: var(--center); margin-bottom: 4px; }
+    .end-subtitle { text-align: center; font-size: 0.82rem; color: var(--ink-muted); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 22px; }
+
+    .end-stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+    .stat-box { background: #fdf0e2; border-radius: 12px; padding: 14px 8px; text-align: center; border: 1.5px solid #f0d8c0; }
+    .stat-num { font-family: 'Playfair Display', serif; font-size: 2rem; font-weight: 700; color: var(--stem); line-height: 1; }
+    .stat-lbl { font-size: 0.68rem; color: var(--ink-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 4px; }
+
+    .end-words-title { font-size: 0.78rem; color: var(--ink-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; }
+    .end-words-grid { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 22px; }
+    .end-word-chip {
+      background: #f0f8f2; border: 1.5px solid #c8e8d4; color: var(--stem); border-radius: 8px;
+      padding: 4px 12px; font-size: 0.82rem; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.05em; animation: pop-in 0.35s cubic-bezier(.2,1.5,.4,1) backwards;
+    }
+    .end-word-chip.pangram { background: #fff8e6; border-color: var(--gold); color: #b07010; }
+    .end-word-chip.pangram::before { content: '★ '; }
+
+    /* ── Identity section ── */
+    .identity-section {
+      background: #fdf0e2; border-radius: 14px; padding: 16px 18px;
+      border: 1.5px solid #f0d8c0; margin-bottom: 18px;
+    }
+    .identity-section h4 { font-family: 'Playfair Display', serif; font-size: 0.95rem; font-weight: 700; color: var(--ink); margin-bottom: 12px; }
+
+    .identity-known {
+      font-family: 'Playfair Display', serif; font-size: 1.05rem; font-weight: 700; color: var(--stem);
+      display: flex; align-items: center; gap: 8px; transition: opacity 0.25s, transform 0.25s;
+    }
+    .identity-known .id-sub { font-family: 'DM Sans', sans-serif; font-size: 0.8rem; color: var(--ink-muted); font-weight: 400; }
+
+    .identity-fields { display: flex; flex-direction: column; gap: 8px; }
+    .identity-fields input,
+    .identity-fields select {
+      padding: 10px 14px; border-radius: 10px; border: 1.5px solid #e8d8c8;
+      background: var(--card); color: var(--ink); font-size: 0.92rem;
+      font-family: 'DM Sans', sans-serif; outline: none; transition: border-color 0.2s; width: 100%;
+    }
+    .identity-fields input:focus,
+    .identity-fields select:focus { border-color: var(--stem); }
+
+    .id-note { font-size: 0.72rem; color: var(--ink-muted); margin-top: 4px; text-align: center; }
+
+    .submit-status { font-size: 0.78rem; text-align: center; margin-top: 8px; min-height: 18px; color: var(--stem); }
+    .submit-status.err { color: var(--center); }
+
+    /* ── End buttons ── */
+    .end-btn-row { display: flex; gap: 10px; flex-wrap: wrap; }
+    .btn-end {
+      flex: 1; padding: 13px 10px; border: none; border-radius: 12px;
+      font-family: 'DM Sans', sans-serif; font-size: 0.88rem; font-weight: 600;
+      letter-spacing: 0.04em; cursor: pointer; transition: transform 0.15s;
+      text-transform: uppercase;
+    }
+    .btn-end:hover { transform: scale(1.03); }
+    .btn-end-primary   { background: linear-gradient(135deg, var(--stem), #7dbb8f); color: white; box-shadow: 0 4px 16px rgba(74,140,92,0.25); }
+    .btn-end-share     { background: linear-gradient(135deg, #128c7e, #25d366); color: white; }
+    .btn-end-secondary { background: #fdf0e2; color: var(--ink-muted); border: 1.5px solid #e8d8c8; }
+
+    @media (max-width: 360px) {
+      .flower-wrap { width: 240px; height: 240px; }
+      .petal-btn { width: 74px; height: 74px; font-size: 1.4rem; }
+      .petal-btn.center-btn { width: 82px; height: 82px; font-size: 1.6rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="toast" id="toast"></div>
+
+<!-- ══ GAME SCREEN ══ -->
+<div class="screen active" id="gameScreen">
+  <header>
+    <h1>Blos<span>✿</span>m</h1>
+    <p class="tagline">Make words · Must use the center letter</p>
+  </header>
+
+  <div class="main-wrap">
+
+    <div class="top-row">
+      <!-- Timer -->
+      <div class="timer-card">
+        <div class="timer-arc-wrap">
+          <svg id="timerArc" width="56" height="56" viewBox="0 0 56 56">
+            <circle cx="28" cy="28" r="22" fill="none" stroke="rgba(74,60,50,0.1)" stroke-width="4"/>
+            <circle id="arcPath" cx="28" cy="28" r="22" fill="none" stroke="var(--stem)" stroke-width="4"
+              stroke-dasharray="138.2" stroke-dashoffset="0" stroke-linecap="round"
+              style="transition:stroke-dashoffset 1s linear, stroke 0.5s ease;"/>
+          </svg>
+          <div class="timer-text" id="timerText">3:00</div>
+        </div>
+        <div class="timer-label">Time Left</div>
+      </div>
+      <!-- Scores -->
+      <div class="score-bar">
+        <div class="score-item"><span class="label">Score</span><span class="value" id="score">0</span></div>
+        <div class="score-item"><span class="label">Words</span><span class="value" id="word-count">0</span></div>
+        <div class="score-item"><span class="label">Best</span><span class="value" id="best-score">0</span></div>
+      </div>
+    </div>
+
+    <!-- Rank -->
+    <div class="rank-bar">
+      <div class="rank-label">
+        <span class="rank-name" id="rank-name">Seedling 🌱</span>
+        <span class="rank-pts" id="rank-pts">Next rank at 10 pts</span>
+      </div>
+      <div class="rank-track"><div class="rank-fill" id="rank-fill" style="width:0%"></div></div>
+    </div>
+
+    <!-- Input -->
+    <div class="input-row">
+      <div class="word-display" id="word-display">
+        <span id="typed-letters"></span><span class="cursor"></span>
+      </div>
+      <button class="btn-delete" id="btn-delete">⌫</button>
+    </div>
+
+    <!-- Flower -->
+    <div class="flower-wrap" id="flower"></div>
+
+    <!-- Enter -->
+    <button class="btn-enter" id="btn-enter">Enter Word</button>
+
+    <!-- Controls -->
+    <div class="controls">
+      <button class="btn-secondary" id="btn-shuffle">⇄ Shuffle</button>
+      <button class="btn-secondary" id="btn-new">✿ New Puzzle</button>
+      <button class="btn-end-game" id="btn-end-game">🏁 End Game</button>
+    </div>
+
+    <!-- Found words -->
+    <div class="found-section">
+      <div class="found-header">
+        <h3>Found Words</h3>
+        <span class="found-count" id="found-count">0</span>
+      </div>
+      <div class="found-list" id="found-list">
+        <span style="font-size:0.8rem;color:var(--ink-muted)">Words you find will appear here…</span>
+      </div>
+    </div>
+
+  </div>
+  <footer>Words must be 4+ letters · Center letter required · Pangrams use all 7 letters ★</footer>
+</div>
+
+<!-- ══ END SCREEN ══ -->
+<div class="screen" id="endScreen">
+  <div class="end-card">
+
+    <div class="end-title" id="endTitle">🌸 Time's Up!</div>
+    <div class="end-subtitle" id="endSubtitle">Blossom Word Game</div>
+
+    <div class="end-stats">
+      <div class="stat-box"><div class="stat-num" id="endScore">0</div><div class="stat-lbl">Score</div></div>
+      <div class="stat-box"><div class="stat-num" id="endWords">0</div><div class="stat-lbl">Words</div></div>
+      <div class="stat-box"><div class="stat-num" id="endPangrams">0</div><div class="stat-lbl">Pangrams ★</div></div>
+    </div>
+
+    <div class="end-words-title">Words Found</div>
+    <div class="end-words-grid" id="endWordsGrid"></div>
+
+    <!-- Identity / score submission -->
+    <div class="identity-section">
+      <h4>📋 Record Your Score</h4>
+
+      <div class="identity-known" id="identityKnown" style="display:none;">
+        <span>👤</span>
+        <div>
+          <div id="knownName"></div>
+          <div class="id-sub" id="knownDept"></div>
+        </div>
+      </div>
+
+      <div class="identity-fields" id="identityFields">
+        <input type="text" id="playerName" placeholder="Your name" maxlength="60" />
+        <select id="playerDept">
+          <option value="">— Select Department —</option>
+          <option value="Cyber Security">Cyber Security</option>
+          <option value="EIE">EIE</option>
+          <option value="CSE-1">CSE-1</option>
+          <option value="CSE-2">CSE-2</option>
+          <option value="CSE-3">CSE-3</option>
+          <option value="Mechanical Engineering">Mechanical Engineering</option>
+          <option value="ECE-1">ECE-1</option>
+          <option value="ECE-2">ECE-2</option>
+          <option value="ECE-3">ECE-3</option>
+          <option value="AI DS-1">AI DS-1</option>
+          <option value="AI DS-2">AI DS-2</option>
+          <option value="Agri and Civil">Agri and Civil</option>
+          <option value="EEE">EEE</option>
+          <option value="Medical Electronics">Medical Electronics</option>
+          <option value="IT-1">IT-1</option>
+          <option value="IT-2">IT-2</option>
+        </select>
+        <div class="id-note">Your score will be submitted to the leaderboard once both fields are filled.</div>
+      </div>
+
+      <div class="submit-status" id="submitStatus"></div>
+    </div>
+
+    <div class="end-btn-row">
+      <button class="btn-end btn-end-primary"   id="btnPlayAgain">✿ Play Again</button>
+      <button class="btn-end btn-end-share"      id="btnShare">📲 Share</button>
+      <button class="btn-end btn-end-secondary"  id="btnLeaderboard">🏆 Leaderboard</button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // ─── Config ───────────────────────────────────────────────────
+  const EDGE_URL  = 'https://ahezssoczvpbkteffcgz.supabase.co/functions/v1/logQuest';
+  const NAME_KEY  = 'blossomPlayerName';
+  const DEPT_KEY  = 'blossomPlayerDept';
+  const BEST_KEY  = 'blossomBest';
+  const GAME_SECS = 180;    // 3-minute round
+  const ARC_CIRC  = 138.2;  // 2π×22
+
+  // ─── Puzzles: [center, p1..p6] ────────────────────────────────
+  const PUZZLES = [
+    ['A','R','N','T','E','G','L'],['E','S','T','R','A','N','D'],
+    ['I','N','G','H','T','S','L'],['O','R','P','W','E','D','S'],
+    ['U','N','D','S','R','A','E'],['A','M','P','L','E','S','T'],
+    ['E','C','R','A','T','S','N'],['I','L','P','E','S','C','A'],
+    ['O','N','C','E','T','S','I'],['A','T','R','I','N','G','S'],
+    ['E','B','L','A','S','T','R'],['I','G','H','T','S','E','R'],
+    ['O','F','L','W','E','R','S'],['A','H','N','D','S','T','R'],
+    ['E','G','R','A','S','N','D'],['U','S','E','D','R','A','N'],
+    ['A','C','L','E','S','P','I'],['I','N','T','E','R','S','A'],
+    ['O','S','T','A','R','E','D'],['E','R','P','A','S','T','N'],
+  ];
+
+  const RANKS = [
+    {name:'Seedling 🌱',   min:0  },{name:'Sprout 🌿',      min:10 },
+    {name:'Budding 🌸',    min:25 },{name:'Blooming 🌺',    min:50 },
+    {name:'Flourishing 🌻',min:80 },{name:'Garden Genius 🏆',min:120},
+  ];
+
+  // ─── State ────────────────────────────────────────────────────
+  let letters = [], outerLetters = [];
+  let currentWord = '', foundWords = new Set(), pangrams = [];
+  let score = 0, bestScore = parseInt(localStorage.getItem(BEST_KEY) || '0');
+  let validating = false;
+  let timeLeft = GAME_SECS, timerInterval = null, gameActive = false;
+
+  // ─── Init ─────────────────────────────────────────────────────
+  newPuzzle();
+
+  function newPuzzle() {
+    clearInterval(timerInterval);
+    const pick = PUZZLES[Math.floor(Math.random() * PUZZLES.length)];
+    letters      = [...pick];
+    outerLetters = letters.slice(1);
+    foundWords   = new Set();
+    pangrams     = [];
+    score        = 0;
+    currentWord  = '';
+    gameActive   = true;
+    timeLeft     = GAME_SECS;
+    updateScoreDisplay();
+    updateFoundList();
+    renderFlower();
+    renderInput();
+    updateTimerDisplay();
+    updateArc();
+    startTimer();
+  }
+
+  // ─── Timer ────────────────────────────────────────────────────
+  function startTimer() {
+    timerInterval = setInterval(() => {
+      if (!gameActive) return;
+      timeLeft--;
+      updateTimerDisplay();
+      updateArc();
+      if (timeLeft <= 0) endGame();
+    }, 1000);
+  }
+
+  function updateTimerDisplay() {
+    const m = Math.floor(timeLeft / 60);
+    const s = timeLeft % 60;
+    document.getElementById('timerText').textContent = m + ':' + (s < 10 ? '0' : '') + s;
+    const el = document.getElementById('timerText');
+    el.classList.remove('amber', 'danger');
+    if (timeLeft <= 30)      el.classList.add('danger');
+    else if (timeLeft <= 60) el.classList.add('amber');
+  }
+
+  function updateArc() {
+    const frac   = Math.max(0, timeLeft / GAME_SECS);
+    const offset = ARC_CIRC * (1 - frac);
+    const arc    = document.getElementById('arcPath');
+    arc.style.strokeDashoffset = offset;
+    arc.style.stroke = timeLeft <= 30 ? 'var(--center)' : timeLeft <= 60 ? 'var(--gold)' : 'var(--stem)';
+  }
+
+  // ─── Flower ───────────────────────────────────────────────────
+  function renderFlower() {
+    const wrap = document.getElementById('flower');
+    wrap.innerHTML = '';
+    const cx = 140, cy = 140, r = 85;
+    for (let i = 0; i < 6; i++) {
+      const angle = (Math.PI / 3) * i - Math.PI / 2;
+      const btn = document.createElement('button');
+      btn.className = 'petal-btn outer';
+      btn.textContent = outerLetters[i];
+      btn.style.left  = (cx + r * Math.cos(angle) - 43) + 'px';
+      btn.style.top   = (cy + r * Math.sin(angle) - 43) + 'px';
+      btn.addEventListener('click', () => addLetter(outerLetters[i]));
+      wrap.appendChild(btn);
+    }
+    const center = document.createElement('button');
+    center.className = 'petal-btn center-btn';
+    center.textContent = letters[0];
+    center.addEventListener('click', () => addLetter(letters[0]));
+    wrap.appendChild(center);
+  }
+
+  // ─── Input ────────────────────────────────────────────────────
+  function addLetter(l) {
+    if (!gameActive || currentWord.length >= 20) return;
+    currentWord += l.toUpperCase();
+    renderInput();
+  }
+  function deleteLetter() {
+    if (!currentWord.length) return;
+    currentWord = currentWord.slice(0, -1);
+    renderInput();
+  }
+  function renderInput() {
+    document.getElementById('typed-letters').textContent = currentWord;
+    document.getElementById('word-display').classList.remove('error', 'success');
+  }
+  function shakeDisplay() {
+    const d = document.getElementById('word-display');
+    d.classList.add('error');
+    setTimeout(() => d.classList.remove('error'), 500);
+  }
+
+  // ─── Scoring ──────────────────────────────────────────────────
+  function isPangram(word) {
+    const u = new Set(word.split(''));
+    return letters.every(l => u.has(l.toUpperCase()));
+  }
+  function wordScore(word) {
+    return word.length === 4 ? 1 : word.length + (isPangram(word) ? 7 : 0);
+  }
+
+  // ─── Submit word ──────────────────────────────────────────────
+  async function submitWord() {
+    if (validating || !gameActive) return;
+    const word = currentWord.toUpperCase();
+    if (word.length < 4)                                { showToast('Too short! (4+ letters)', 'bad'); shakeDisplay(); return; }
+    if (!word.includes(letters[0].toUpperCase()))        { showToast(`Must use "${letters[0].toUpperCase()}"`, 'bad'); shakeDisplay(); return; }
+    if (![...word].every(c => letters.map(l=>l.toUpperCase()).includes(c))) { showToast('Use only the flower letters!', 'bad'); shakeDisplay(); return; }
+    if (foundWords.has(word))                            { showToast('Already found!', 'bad'); shakeDisplay(); return; }
+
+    validating = true;
+    document.getElementById('btn-enter').innerHTML = '<span class="spinner"></span>';
+    document.getElementById('btn-enter').disabled  = true;
+
+    const valid = await checkDictionary(word.toLowerCase());
+
+    validating = false;
+    document.getElementById('btn-enter').textContent = 'Enter Word';
+    document.getElementById('btn-enter').disabled    = false;
+
+    if (!valid) { showToast('Not a valid word', 'bad'); shakeDisplay(); return; }
+
+    const pts = wordScore(word);
+    score += pts;
+    foundWords.add(word);
+    if (isPangram(word)) pangrams.push(word);
+    currentWord = '';
+    renderInput();
+    updateScoreDisplay();
+    updateFoundList();
+
+    let msg = pts === 1 ? '+1 point' : `+${pts} points`;
+    if (isPangram(word)) msg = '★ Pangram! ' + msg;
+    showToast(msg, 'good');
+    document.getElementById('word-display').classList.add('success');
+    setTimeout(() => document.getElementById('word-display').classList.remove('success'), 700);
+  }
+
+  async function checkDictionary(word) {
+    try {
+      const res = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word}`);
+      return res.ok;
+    } catch { return true; } // offline fallback
+  }
+
+  // ─── Score / rank display ─────────────────────────────────────
+  function updateScoreDisplay() {
+    document.getElementById('score').textContent      = score;
+    document.getElementById('word-count').textContent = foundWords.size;
+    if (score > bestScore) { bestScore = score; localStorage.setItem(BEST_KEY, bestScore); }
+    document.getElementById('best-score').textContent = bestScore;
+
+    let ri = 0;
+    for (let i = RANKS.length - 1; i >= 0; i--) { if (score >= RANKS[i].min) { ri = i; break; } }
+    const rank = RANKS[ri], next = RANKS[ri + 1];
+    document.getElementById('rank-name').textContent = rank.name;
+    if (next) {
+      document.getElementById('rank-fill').style.width = Math.min(100, ((score - rank.min) / (next.min - rank.min)) * 100) + '%';
+      document.getElementById('rank-pts').textContent = `Next rank at ${next.min} pts`;
+    } else {
+      document.getElementById('rank-fill').style.width = '100%';
+      document.getElementById('rank-pts').textContent = 'Max rank reached!';
+    }
+  }
+
+  function updateFoundList() {
+    document.getElementById('found-count').textContent = foundWords.size;
+    const list = document.getElementById('found-list');
+    if (!foundWords.size) {
+      list.innerHTML = '<span style="font-size:0.8rem;color:var(--ink-muted)">Words you find will appear here…</span>';
+      return;
+    }
+    list.innerHTML = '';
+    [...foundWords].sort((a,b) => b.length - a.length || a.localeCompare(b)).forEach(w => {
+      const span = document.createElement('span');
+      span.className = 'found-word' + (isPangram(w) ? ' pangram' : '');
+      span.textContent = w;
+      list.appendChild(span);
+    });
+  }
+
+  // ─── Toast ────────────────────────────────────────────────────
+  let toastTimer;
+  function showToast(msg, type = '') {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.className = 'toast show ' + type;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+  }
+
+  // ─── Shuffle ──────────────────────────────────────────────────
+  function shuffle() {
+    for (let i = outerLetters.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [outerLetters[i], outerLetters[j]] = [outerLetters[j], outerLetters[i]];
+    }
+    renderFlower();
+  }
+
+  // ─── Keyboard ─────────────────────────────────────────────────
+  document.addEventListener('keydown', e => {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    if (!document.getElementById('gameScreen').classList.contains('active')) return;
+    const key = e.key.toUpperCase();
+    if (key.length === 1 && /[A-Z]/.test(key)) {
+      if (letters.map(l=>l.toUpperCase()).includes(key)) addLetter(key);
+      else { shakeDisplay(); showToast('Not in the flower!', 'bad'); }
+    } else if (e.key === 'Backspace') deleteLetter();
+    else if (e.key === 'Enter') submitWord();
+  });
+
+  // ─── Game controls ────────────────────────────────────────────
+  document.getElementById('btn-delete').addEventListener('click', deleteLetter);
+  document.getElementById('btn-enter').addEventListener('click', submitWord);
+  document.getElementById('btn-shuffle').addEventListener('click', shuffle);
+  document.getElementById('btn-new').addEventListener('click', () => {
+    if (confirm('Start a new puzzle? Your current progress will be lost.')) newPuzzle();
+  });
+  document.getElementById('btn-end-game').addEventListener('click', () => {
+    if (confirm('End the game and see your results?')) endGame();
+  });
+
+  // ─── End game ─────────────────────────────────────────────────
+  function endGame() {
+    gameActive = false;
+    clearInterval(timerInterval);
+    setTimeout(showEndScreen, 300);
+  }
+
+  function getRankName(pts) {
+    let ri = 0;
+    for (let i = RANKS.length - 1; i >= 0; i--) { if (pts >= RANKS[i].min) { ri = i; break; } }
+    return RANKS[ri].name;
+  }
+
+  // ─── End Screen ───────────────────────────────────────────────
+  function showEndScreen() {
+    document.getElementById('gameScreen').classList.remove('active');
+    document.getElementById('endScreen').classList.add('active');
+
+    // Title
+    const titleMap = [[120,'🏆 Garden Genius!'],[80,'🌻 Flourishing!'],[50,'🌺 Blooming!'],[25,'🌸 Budding!'],[0,'🌱 Good effort!']];
+    document.getElementById('endTitle').textContent    = (titleMap.find(([min]) => score >= min) || titleMap[4])[1];
+    document.getElementById('endSubtitle').textContent = `Blossom · ${foundWords.size} word${foundWords.size !== 1 ? 's' : ''} · Rank: ${getRankName(score)}`;
+    document.getElementById('endScore').textContent    = score;
+    document.getElementById('endWords').textContent    = foundWords.size;
+    document.getElementById('endPangrams').textContent = pangrams.length;
+
+    // Words grid
+    const grid = document.getElementById('endWordsGrid');
+    grid.innerHTML = '';
+    if (!foundWords.size) {
+      grid.innerHTML = '<span style="font-size:0.82rem;color:var(--ink-muted)">No words found this round.</span>';
+    } else {
+      [...foundWords].sort((a,b) => b.length - a.length || a.localeCompare(b)).forEach((w, i) => {
+        const chip = document.createElement('span');
+        chip.className = 'end-word-chip' + (isPangram(w) ? ' pangram' : '');
+        chip.textContent = w;
+        chip.style.animationDelay = (i * 0.05) + 's';
+        grid.appendChild(chip);
+      });
+    }
+
+    // Identity
+    const storedName = localStorage.getItem(NAME_KEY);
+    const storedDept = localStorage.getItem(DEPT_KEY);
+    document.getElementById('submitStatus').textContent = '';
+    document.getElementById('submitStatus').className   = 'submit-status';
+
+    if (storedName && storedDept) {
+      showKnownIdentity(storedName, storedDept);
+      submitScore(storedName, storedDept);
+    } else {
+      document.getElementById('identityKnown').style.display = 'none';
+      document.getElementById('identityFields').style.display = 'flex';
+      document.getElementById('playerName').value = '';
+      document.getElementById('playerDept').value = '';
+
+      const trySubmit = () => {
+        const name = document.getElementById('playerName').value.trim();
+        const dept = document.getElementById('playerDept').value;
+        if (!name || !dept) return;
+        localStorage.setItem(NAME_KEY, name);
+        localStorage.setItem(DEPT_KEY, dept);
+        showKnownIdentity(name, dept);
+        submitScore(name, dept);
+        document.getElementById('btnShare').onclick = () => shareResult(name, dept);
+      };
+      document.getElementById('playerName').onblur  = trySubmit;
+      document.getElementById('playerDept').onchange = trySubmit;
+    }
+
+    // Buttons
+    document.getElementById('btnPlayAgain').onclick = () => {
+      document.getElementById('endScreen').classList.remove('active');
+      document.getElementById('gameScreen').classList.add('active');
+      newPuzzle();
+    };
+    document.getElementById('btnShare').onclick = () => shareResult(storedName, storedDept);
+    document.getElementById('btnLeaderboard').onclick = () =>
+      window.open('https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/leaderboard_live', '_blank');
+  }
+
+  function showKnownIdentity(name, dept) {
+    document.getElementById('identityFields').style.display = 'none';
+    const known = document.getElementById('identityKnown');
+    known.style.display = 'flex';
+    document.getElementById('knownName').textContent = '👤 ' + name;
+    document.getElementById('knownDept').textContent = dept;
+  }
+
+  // ─── Supabase score submission ────────────────────────────────
+  function submitScore(name, dept) {
+    const status = document.getElementById('submitStatus');
+    status.className   = 'submit-status';
+    status.textContent = '⏳ Submitting score…';
+
+    const payload = {
+      student_name:      name,
+      department:        dept,
+      score:             Number(score),
+      correct:           Number(foundWords.size),
+      wrong:             0,
+      time_spent:        String(GAME_SECS - timeLeft),
+      total_attempts:    Number(foundWords.size),
+      perfect_solves:    Number(pangrams.length),   // pangrams = "perfect" finds
+      fastest_solve_sec: 0,
+      total_time_bonus:  0,
+      longest_streak:    0,
+      quest_id:          'Blossom'
+    };
+
+    console.log('📤 Blossom payload:', JSON.stringify(payload));
+
+    fetch(EDGE_URL, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify(payload)
+    })
+    .then(r => r.json())
+    .then(d => {
+      console.log('✅ Score submitted:', JSON.stringify(d));
+      status.className   = 'submit-status';
+      status.textContent = `✅ Score recorded for ${name}`;
+    })
+    .catch(err => {
+      console.error('❌ Submit failed:', err);
+      status.className   = 'submit-status err';
+      status.textContent = '⚠️ Could not submit score — check your connection.';
+    });
+  }
+
+  // ─── Share ────────────────────────────────────────────────────
+  function shareResult(name, dept) {
+    const wordSample = [...foundWords].sort((a,b) => b.length - a.length).slice(0,5).join(', ');
+    const pangramLine = pangrams.length ? `\n★ Pangram${pangrams.length>1?'s':''}: ${pangrams.join(', ')}` : '';
+    const id = (name && dept) ? `\n👤 ${name} · ${dept}` : '';
+    const msg =
+      `🌸 Blossom Word Game${id}\n` +
+      `Score: ${score} pts · ${foundWords.size} word${foundWords.size!==1?'s':''} · ${getRankName(score)}\n` +
+      (wordSample ? `Words: ${wordSample}${pangramLine}\n` : '') +
+      `\n🌺 Play: [your GitHub Pages link]`;
+
+    if (navigator.share) {
+      navigator.share({ title: 'Blossom Word Game', text: msg }).catch(() => waShare(msg));
+    } else {
+      waShare(msg);
+    }
+  }
+
+  function waShare(msg) {
+    window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
+  }
+</script>
+</body>
+</html>

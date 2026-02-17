@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Blossom — Word Game</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --cream: #fdf6ec;
+      --petal: #f9c6d0;
+      --petal-hover: #f4a3b5;
+      --center: #f6654a;
+      --center-hover: #e04e35;
+      --stem: #4a8c5c;
+      --stem-light: #7dbb8f;
+      --ink: #2a1f1a;
+      --ink-muted: #8a7060;
+      --gold: #e8a020;
+      --bg: #fdf0e2;
+      --card: #fffdf9;
+      --shadow: rgba(74,60,50,0.12);
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* Decorative background */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 10% 20%, #fde8d880 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 90% 80%, #f9c6d040 0%, transparent 60%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    header {
+      width: 100%;
+      text-align: center;
+      padding: 28px 20px 10px;
+      position: relative;
+      z-index: 1;
+    }
+
+    header h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(2rem, 6vw, 3.2rem);
+      font-weight: 900;
+      letter-spacing: -1px;
+      color: var(--ink);
+      line-height: 1;
+    }
+
+    header h1 span { color: var(--center); }
+
+    header p.tagline {
+      margin-top: 6px;
+      font-size: 0.82rem;
+      color: var(--ink-muted);
+      font-weight: 400;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .main-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+      max-width: 480px;
+      padding: 0 16px 40px;
+      position: relative;
+      z-index: 1;
+      gap: 16px;
+    }
+
+    /* ── Score Bar ── */
+    .score-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      background: var(--card);
+      border-radius: 14px;
+      padding: 10px 20px;
+      box-shadow: 0 2px 12px var(--shadow);
+      font-size: 0.85rem;
+    }
+
+    .score-bar .label { color: var(--ink-muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.72rem; }
+    .score-bar .value { font-family: 'Playfair Display', serif; font-size: 1.5rem; font-weight: 700; color: var(--stem); line-height: 1; }
+
+    .score-item { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+
+    /* ── Rank Progress ── */
+    .rank-bar {
+      width: 100%;
+      background: var(--card);
+      border-radius: 14px;
+      padding: 12px 20px;
+      box-shadow: 0 2px 12px var(--shadow);
+    }
+
+    .rank-label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .rank-name {
+      font-family: 'Playfair Display', serif;
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--center);
+    }
+
+    .rank-pts { font-size: 0.78rem; color: var(--ink-muted); }
+
+    .rank-track {
+      height: 7px;
+      background: #f0e6d8;
+      border-radius: 99px;
+      overflow: hidden;
+    }
+
+    .rank-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--stem-light), var(--center));
+      border-radius: 99px;
+      transition: width 0.6s cubic-bezier(.4,0,.2,1);
+    }
+
+    /* ── Input ── */
+    .input-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+    }
+
+    .word-display {
+      flex: 1;
+      background: var(--card);
+      border: 2px solid #e8d8c8;
+      border-radius: 12px;
+      padding: 12px 16px;
+      font-family: 'Playfair Display', serif;
+      font-size: 1.5rem;
+      letter-spacing: 0.06em;
+      color: var(--ink);
+      min-height: 54px;
+      display: flex;
+      align-items: center;
+      box-shadow: 0 2px 12px var(--shadow);
+      text-transform: uppercase;
+      transition: border-color 0.2s;
+    }
+
+    .word-display.error { border-color: #e04e35; animation: shake 0.35s ease; }
+    .word-display.success { border-color: var(--stem); }
+
+    @keyframes shake {
+      0%,100%{transform:translateX(0)}
+      20%{transform:translateX(-6px)}
+      40%{transform:translateX(6px)}
+      60%{transform:translateX(-4px)}
+      80%{transform:translateX(4px)}
+    }
+
+    .word-display .cursor {
+      display: inline-block;
+      width: 2px;
+      height: 1.2em;
+      background: var(--ink-muted);
+      margin-left: 2px;
+      animation: blink 1s step-end infinite;
+      vertical-align: middle;
+    }
+
+    @keyframes blink { 50%{opacity:0} }
+
+    .btn-delete {
+      background: var(--card);
+      border: 2px solid #e8d8c8;
+      border-radius: 12px;
+      width: 54px;
+      height: 54px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 1.3rem;
+      box-shadow: 0 2px 12px var(--shadow);
+      transition: background 0.15s, transform 0.1s;
+      color: var(--ink-muted);
+    }
+
+    .btn-delete:hover { background: #fde8d8; transform: scale(1.05); }
+    .btn-delete:active { transform: scale(0.95); }
+
+    /* ── Flower ── */
+    .flower-wrap {
+      position: relative;
+      width: 280px;
+      height: 280px;
+      margin: 4px 0;
+    }
+
+    .petal-btn {
+      position: absolute;
+      width: 86px;
+      height: 86px;
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+      font-family: 'Playfair Display', serif;
+      font-size: 1.6rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+      transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      user-select: none;
+      -webkit-user-select: none;
+      box-shadow: 0 4px 14px var(--shadow);
+    }
+
+    .petal-btn:active { transform: scale(0.91) !important; }
+
+    .petal-btn.outer {
+      background: var(--petal);
+      color: var(--ink);
+    }
+    .petal-btn.outer:hover { background: var(--petal-hover); transform: scale(1.07); box-shadow: 0 6px 20px rgba(249,100,74,0.22); }
+
+    .petal-btn.center-btn {
+      background: var(--center);
+      color: #fff;
+      width: 94px;
+      height: 94px;
+      font-size: 1.8rem;
+      box-shadow: 0 6px 20px rgba(240,80,55,0.35);
+      left: 50%; top: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 5;
+    }
+    .petal-btn.center-btn:hover { background: var(--center-hover); transform: translate(-50%, -50%) scale(1.07); }
+    .petal-btn.center-btn:active { transform: translate(-50%, -50%) scale(0.93) !important; }
+
+    /* ── Enter Button ── */
+    .btn-enter {
+      width: 100%;
+      padding: 15px;
+      background: var(--stem);
+      color: #fff;
+      border: none;
+      border-radius: 14px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 1rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      cursor: pointer;
+      box-shadow: 0 4px 16px rgba(74,140,92,0.3);
+      transition: background 0.15s, transform 0.1s;
+    }
+
+    .btn-enter:hover { background: #3a7a4c; transform: translateY(-1px); }
+    .btn-enter:active { transform: translateY(1px); }
+    .btn-enter:disabled { background: #c8d8c0; cursor: default; transform: none; box-shadow: none; }
+
+    /* ── Message toast ── */
+    .toast {
+      position: fixed;
+      top: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-80px);
+      background: var(--ink);
+      color: #fff;
+      padding: 10px 22px;
+      border-radius: 99px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      z-index: 100;
+      pointer-events: none;
+      transition: transform 0.35s cubic-bezier(.2,1.4,.4,1), opacity 0.35s;
+      opacity: 0;
+      white-space: nowrap;
+    }
+
+    .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+    .toast.good { background: var(--stem); }
+    .toast.bad { background: var(--center); }
+
+    /* ── Found Words ── */
+    .found-section {
+      width: 100%;
+      background: var(--card);
+      border-radius: 14px;
+      padding: 14px 18px;
+      box-shadow: 0 2px 12px var(--shadow);
+    }
+
+    .found-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .found-header h3 {
+      font-family: 'Playfair Display', serif;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--ink-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .found-count {
+      background: var(--stem-light);
+      color: #fff;
+      border-radius: 99px;
+      padding: 2px 10px;
+      font-size: 0.78rem;
+      font-weight: 600;
+    }
+
+    .found-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .found-word {
+      background: #f0f8f2;
+      border: 1.5px solid #c8e8d4;
+      color: var(--stem);
+      border-radius: 8px;
+      padding: 3px 10px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      animation: pop-in 0.3s cubic-bezier(.2,1.5,.4,1);
+    }
+
+    @keyframes pop-in {
+      from { transform: scale(0.6); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    /* ── Controls ── */
+    .controls {
+      display: flex;
+      gap: 8px;
+      width: 100%;
+    }
+
+    .btn-secondary {
+      flex: 1;
+      padding: 10px;
+      background: var(--card);
+      color: var(--ink-muted);
+      border: 2px solid #e8d8c8;
+      border-radius: 12px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.82rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      cursor: pointer;
+      box-shadow: 0 2px 8px var(--shadow);
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .btn-secondary:hover { background: #fde8d8; color: var(--center); border-color: var(--petal-hover); }
+
+    /* ── Loading spinner ── */
+    .spinner {
+      display: inline-block;
+      width: 18px;
+      height: 18px;
+      border: 2.5px solid #ffffff44;
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Pangram star ── */
+    .found-word.pangram {
+      background: #fff8e6;
+      border-color: var(--gold);
+      color: #b07010;
+    }
+
+    .found-word.pangram::before { content: '★ '; }
+
+    /* ── Responsive ── */
+    @media (max-width: 360px) {
+      .flower-wrap { width: 240px; height: 240px; }
+      .petal-btn { width: 74px; height: 74px; font-size: 1.4rem; }
+      .petal-btn.center-btn { width: 82px; height: 82px; font-size: 1.6rem; }
+    }
+
+    footer {
+      position: relative;
+      z-index: 1;
+      padding-bottom: 20px;
+      font-size: 0.72rem;
+      color: var(--ink-muted);
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Blos<span>✿</span>m</h1>
+  <p class="tagline">Make words · Must use the center letter</p>
+</header>
+
+<div class="toast" id="toast"></div>
+
+<div class="main-wrap">
+
+  <!-- Score -->
+  <div class="score-bar">
+    <div class="score-item">
+      <span class="label">Score</span>
+      <span class="value" id="score">0</span>
+    </div>
+    <div class="score-item">
+      <span class="label">Words</span>
+      <span class="value" id="word-count">0</span>
+    </div>
+    <div class="score-item">
+      <span class="label">Best</span>
+      <span class="value" id="best-score">0</span>
+    </div>
+  </div>
+
+  <!-- Rank progress -->
+  <div class="rank-bar">
+    <div class="rank-label">
+      <span class="rank-name" id="rank-name">Seedling 🌱</span>
+      <span class="rank-pts" id="rank-pts">Next rank at 10 pts</span>
+    </div>
+    <div class="rank-track">
+      <div class="rank-fill" id="rank-fill" style="width:0%"></div>
+    </div>
+  </div>
+
+  <!-- Word input display -->
+  <div class="input-row">
+    <div class="word-display" id="word-display">
+      <span id="typed-letters"></span>
+      <span class="cursor"></span>
+    </div>
+    <button class="btn-delete" id="btn-delete" title="Delete last letter">⌫</button>
+  </div>
+
+  <!-- Flower -->
+  <div class="flower-wrap" id="flower"></div>
+
+  <!-- Enter -->
+  <button class="btn-enter" id="btn-enter">Enter Word</button>
+
+  <!-- Controls -->
+  <div class="controls">
+    <button class="btn-secondary" id="btn-shuffle">⇄ Shuffle</button>
+    <button class="btn-secondary" id="btn-new">✿ New Puzzle</button>
+  </div>
+
+  <!-- Found words -->
+  <div class="found-section">
+    <div class="found-header">
+      <h3>Found Words</h3>
+      <span class="found-count" id="found-count">0</span>
+    </div>
+    <div class="found-list" id="found-list">
+      <span style="font-size:0.8rem;color:var(--ink-muted)">Words you find will appear here…</span>
+    </div>
+  </div>
+
+</div>
+
+<footer>Words must be 4+ letters · Center letter required · Pangrams use all 7 letters ★</footer>
+
+<script>
+  // ─── Puzzle data ───────────────────────────────────────────────
+  // Curated letter sets: [centerLetter, ...6 petals]
+  // Each set is chosen to guarantee many real English words.
+  const PUZZLES = [
+    ['A','R','N','T','E','G','L'],
+    ['E','S','T','R','A','N','D'],
+    ['I','N','G','H','T','S','L'],
+    ['O','R','P','W','E','D','S'],
+    ['U','N','D','S','R','A','E'],
+    ['A','M','P','L','E','S','T'],
+    ['E','C','R','A','T','S','N'],
+    ['I','L','P','E','S','C','A'],
+    ['O','N','C','E','T','S','I'],
+    ['A','T','R','I','N','G','S'],
+    ['E','B','L','A','S','T','R'],
+    ['I','G','H','T','S','E','R'],
+    ['O','F','L','W','E','R','S'],
+    ['A','H','N','D','S','T','R'],
+    ['E','G','R','A','S','N','D'],
+    ['U','S','E','D','R','A','N'],
+    ['A','C','L','E','S','P','I'],
+    ['I','N','T','E','R','S','A'],
+    ['O','S','T','A','R','E','D'],
+    ['E','R','P','A','S','T','N'],
+  ];
+
+  // ─── Ranks ────────────────────────────────────────────────────
+  const RANKS = [
+    { name: 'Seedling 🌱',  min: 0  },
+    { name: 'Sprout 🌿',    min: 10 },
+    { name: 'Budding 🌸',   min: 25 },
+    { name: 'Blooming 🌺',  min: 50 },
+    { name: 'Flourishing 🌻',min:80 },
+    { name: 'Garden Genius 🏆',min:120},
+  ];
+
+  // ─── State ────────────────────────────────────────────────────
+  let letters = [];       // [center, p1..p6]
+  let currentWord = '';
+  let foundWords = new Set();
+  let score = 0;
+  let bestScore = parseInt(localStorage.getItem('blossomBest') || '0');
+  let validating = false;
+  let outerLetters = [];  // shuffleable subset
+
+  // ─── Init ─────────────────────────────────────────────────────
+  newPuzzle();
+
+  function newPuzzle() {
+    const pick = PUZZLES[Math.floor(Math.random() * PUZZLES.length)];
+    letters = [...pick];
+    outerLetters = letters.slice(1);
+    foundWords = new Set();
+    score = 0;
+    currentWord = '';
+    updateScoreDisplay();
+    updateFoundList();
+    renderFlower();
+    renderInput();
+  }
+
+  // ─── Flower render ────────────────────────────────────────────
+  // Positions: center + 6 petals arranged in a circle
+  function renderFlower() {
+    const wrap = document.getElementById('flower');
+    wrap.innerHTML = '';
+    const cx = 140, cy = 140, r = 85;
+
+    // 6 outer petals
+    for (let i = 0; i < 6; i++) {
+      const angle = (Math.PI / 3) * i - Math.PI / 2;
+      const x = cx + r * Math.cos(angle) - 43;
+      const y = cy + r * Math.sin(angle) - 43;
+      const btn = document.createElement('button');
+      btn.className = 'petal-btn outer';
+      btn.textContent = outerLetters[i];
+      btn.style.left = x + 'px';
+      btn.style.top  = y + 'px';
+      btn.addEventListener('click', () => addLetter(outerLetters[i]));
+      wrap.appendChild(btn);
+    }
+
+    // Center
+    const center = document.createElement('button');
+    center.className = 'petal-btn center-btn';
+    center.textContent = letters[0];
+    center.addEventListener('click', () => addLetter(letters[0]));
+    wrap.appendChild(center);
+  }
+
+  // ─── Input management ─────────────────────────────────────────
+  function addLetter(l) {
+    if (currentWord.length >= 20) return;
+    currentWord += l.toUpperCase();
+    renderInput();
+  }
+
+  function deleteLetter() {
+    if (!currentWord.length) return;
+    currentWord = currentWord.slice(0, -1);
+    clearState();
+    renderInput();
+  }
+
+  function renderInput() {
+    document.getElementById('typed-letters').textContent = currentWord;
+    const display = document.getElementById('word-display');
+    display.classList.remove('error', 'success');
+  }
+
+  function clearState() {
+    const d = document.getElementById('word-display');
+    d.classList.remove('error', 'success');
+  }
+
+  // ─── Validation & scoring ─────────────────────────────────────
+  function wordScore(word) {
+    const len = word.length;
+    if (len === 4) return 1;
+    let pts = len;
+    // Pangram bonus
+    const unique = new Set(word.split(''));
+    if ([...letters].every(l => unique.has(l))) pts += 7;
+    return pts;
+  }
+
+  function isPangram(word) {
+    const unique = new Set(word.split(''));
+    return [...letters].every(l => unique.has(l));
+  }
+
+  async function submitWord() {
+    if (validating) return;
+    const word = currentWord.toUpperCase();
+
+    if (word.length < 4) {
+      showToast('Too short! (4+ letters)', 'bad');
+      shakeDisplay();
+      return;
+    }
+    if (!word.includes(letters[0].toUpperCase())) {
+      showToast(`Must use the center letter "${letters[0].toUpperCase()}"`, 'bad');
+      shakeDisplay();
+      return;
+    }
+    const allLetters = letters.map(l => l.toUpperCase());
+    if (![...word].every(c => allLetters.includes(c))) {
+      showToast('Use only the flower letters!', 'bad');
+      shakeDisplay();
+      return;
+    }
+    if (foundWords.has(word)) {
+      showToast('Already found!', 'bad');
+      shakeDisplay();
+      return;
+    }
+
+    // API validation
+    validating = true;
+    document.getElementById('btn-enter').innerHTML = '<span class="spinner"></span>';
+    document.getElementById('btn-enter').disabled = true;
+
+    const valid = await checkDictionary(word.toLowerCase());
+
+    validating = false;
+    document.getElementById('btn-enter').textContent = 'Enter Word';
+    document.getElementById('btn-enter').disabled = false;
+
+    if (!valid) {
+      showToast('Not a valid word', 'bad');
+      shakeDisplay();
+      return;
+    }
+
+    // ✓ Accept
+    const pts = wordScore(word);
+    score += pts;
+    foundWords.add(word);
+    currentWord = '';
+    renderInput();
+    updateScoreDisplay();
+    updateFoundList();
+
+    let msg = pts === 1 ? '+1 point' : `+${pts} points`;
+    if (isPangram(word)) msg = '★ Pangram! ' + msg;
+    showToast(msg, 'good');
+    document.getElementById('word-display').classList.add('success');
+    setTimeout(() => document.getElementById('word-display').classList.remove('success'), 700);
+  }
+
+  async function checkDictionary(word) {
+    try {
+      const res = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word}`);
+      return res.ok;
+    } catch {
+      // Network error — fall back to accept (offline)
+      return true;
+    }
+  }
+
+  function shakeDisplay() {
+    const d = document.getElementById('word-display');
+    d.classList.add('error');
+    setTimeout(() => d.classList.remove('error'), 500);
+  }
+
+  // ─── Score / rank display ─────────────────────────────────────
+  function updateScoreDisplay() {
+    document.getElementById('score').textContent = score;
+    document.getElementById('word-count').textContent = foundWords.size;
+
+    if (score > bestScore) {
+      bestScore = score;
+      localStorage.setItem('blossomBest', bestScore);
+    }
+    document.getElementById('best-score').textContent = bestScore;
+
+    // Rank
+    let rankIdx = 0;
+    for (let i = RANKS.length - 1; i >= 0; i--) {
+      if (score >= RANKS[i].min) { rankIdx = i; break; }
+    }
+    const rank = RANKS[rankIdx];
+    const next = RANKS[rankIdx + 1];
+    document.getElementById('rank-name').textContent = rank.name;
+
+    if (next) {
+      const pct = Math.min(100, ((score - rank.min) / (next.min - rank.min)) * 100);
+      document.getElementById('rank-fill').style.width = pct + '%';
+      document.getElementById('rank-pts').textContent = `Next rank at ${next.min} pts`;
+    } else {
+      document.getElementById('rank-fill').style.width = '100%';
+      document.getElementById('rank-pts').textContent = 'Max rank reached!';
+    }
+  }
+
+  // ─── Found words list ─────────────────────────────────────────
+  function updateFoundList() {
+    document.getElementById('found-count').textContent = foundWords.size;
+    const list = document.getElementById('found-list');
+    if (!foundWords.size) {
+      list.innerHTML = '<span style="font-size:0.8rem;color:var(--ink-muted)">Words you find will appear here…</span>';
+      return;
+    }
+    list.innerHTML = '';
+    const sorted = [...foundWords].sort((a,b) => b.length - a.length || a.localeCompare(b));
+    for (const w of sorted) {
+      const span = document.createElement('span');
+      span.className = 'found-word' + (isPangram(w) ? ' pangram' : '');
+      span.textContent = w;
+      list.appendChild(span);
+    }
+  }
+
+  // ─── Toast ────────────────────────────────────────────────────
+  let toastTimer;
+  function showToast(msg, type = '') {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast show ' + type;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+  }
+
+  // ─── Shuffle outer petals ─────────────────────────────────────
+  function shuffle() {
+    for (let i = outerLetters.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [outerLetters[i], outerLetters[j]] = [outerLetters[j], outerLetters[i]];
+    }
+    renderFlower();
+  }
+
+  // ─── Keyboard support ─────────────────────────────────────────
+  document.addEventListener('keydown', e => {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    const key = e.key.toUpperCase();
+    const allowed = letters.map(l => l.toUpperCase());
+    if (key.length === 1 && /[A-Z]/.test(key)) {
+      if (allowed.includes(key)) addLetter(key);
+      else { shakeDisplay(); showToast('Not in the flower!', 'bad'); }
+    } else if (e.key === 'Backspace') {
+      deleteLetter();
+    } else if (e.key === 'Enter') {
+      submitWord();
+    }
+  });
+
+  // ─── Event listeners ──────────────────────────────────────────
+  document.getElementById('btn-delete').addEventListener('click', deleteLetter);
+  document.getElementById('btn-enter').addEventListener('click', submitWord);
+  document.getElementById('btn-shuffle').addEventListener('click', shuffle);
+  document.getElementById('btn-new').addEventListener('click', () => {
+    if (confirm('Start a new puzzle? Your current progress will be lost.')) newPuzzle();
+  });
+</script>
+</body>
+</html>

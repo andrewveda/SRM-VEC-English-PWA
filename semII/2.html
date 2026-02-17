@@ -1,0 +1,1403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>4 Pics 1 Word — Adverb Quest</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+  <style>
+    :root {
+      --wood-dark:   #7a4f2d;
+      --wood-mid:    #a0672a;
+      --wood-light:  #c8913a;
+      --wood-grain:  #b07e38;
+      --felt-green:  #2e7d32;
+      --tile-bg:     #f5dfa0;
+      --tile-border: #c49a3c;
+      --tile-shadow: #8a6520;
+      --tile-text:   #3b2200;
+      --slot-empty:  rgba(255,255,255,0.18);
+      --slot-filled: #ffe082;
+      --correct-col: #43a047;
+      --wrong-col:   #e53935;
+      --gem-col:     #00e5ff;
+      --streak-col:  #ffd600;
+      --ui-bg:       #1a1a2e;
+      --ui-accent:   #6c63ff;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Nunito', sans-serif;
+      background: var(--wood-dark);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* Wood grain overlay */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        repeating-linear-gradient(
+          90deg,
+          transparent,
+          transparent 38px,
+          rgba(0,0,0,0.04) 38px,
+          rgba(0,0,0,0.04) 40px
+        ),
+        repeating-linear-gradient(
+          180deg,
+          transparent,
+          transparent 18px,
+          rgba(255,255,255,0.03) 18px,
+          rgba(255,255,255,0.03) 20px
+        );
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── HEADER BAR ── */
+    #header-bar {
+      width: 100%;
+      max-width: 520px;
+      background: linear-gradient(135deg, #1a1a2e, #0f0f1a);
+      border-bottom: 3px solid var(--wood-light);
+      padding: 8px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 10;
+      position: relative;
+      border-radius: 0 0 16px 16px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    }
+
+    #header-bar.hidden { display: none; }
+
+    .stat-pill {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-family: 'Fredoka One', cursive;
+      font-size: 1rem;
+      padding: 4px 10px;
+      border-radius: 20px;
+      background: rgba(255,255,255,0.07);
+    }
+    .stat-pill.gems  { color: var(--gem-col); }
+    .stat-pill.fire  { color: var(--streak-col); }
+    .stat-pill.prog  { color: #b39ddb; }
+    .stat-pill.timer { color: #80cbc4; }
+
+    /* ── MAIN GAME WRAPPER ── */
+    #game-wrapper {
+      width: 100%;
+      max-width: 520px;
+      padding: 12px 14px 30px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ── NAME FORM ── */
+    #name-screen {
+      background: linear-gradient(160deg, #1a1a2e, #0a0a18);
+      border-radius: 20px;
+      padding: 30px 24px;
+      margin-top: 20px;
+      border: 2px solid rgba(108,99,255,0.4);
+      box-shadow: 0 0 40px rgba(108,99,255,0.2);
+      color: white;
+      text-align: center;
+    }
+
+    .hero-quote {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 14px;
+      padding: 20px;
+      margin-bottom: 24px;
+    }
+
+    .hero-text {
+      font-family: 'Fredoka One', cursive;
+      font-size: 1.35rem;
+      line-height: 1.5;
+      color: #ffe082;
+      text-shadow: 0 0 20px rgba(255,224,130,0.4);
+    }
+
+    .hero-author {
+      margin-top: 10px;
+      font-size: 0.85rem;
+      color: #aaa;
+      font-style: italic;
+    }
+
+    #name-screen select,
+    #name-screen input {
+      display: block;
+      width: 100%;
+      max-width: 320px;
+      margin: 10px auto;
+      padding: 12px 16px;
+      font-size: 1rem;
+      font-family: 'Nunito', sans-serif;
+      border-radius: 10px;
+      border: 2px solid rgba(108,99,255,0.4);
+      background: rgba(255,255,255,0.08);
+      color: white;
+      outline: none;
+      transition: border 0.2s;
+    }
+    #name-screen select option { background: #1a1a2e; }
+    #name-screen input::placeholder { color: rgba(255,255,255,0.4); }
+    #name-screen select:focus,
+    #name-screen input:focus { border-color: var(--ui-accent); }
+
+    #start-btn {
+      margin-top: 18px;
+      padding: 14px 40px;
+      font-family: 'Fredoka One', cursive;
+      font-size: 1.3rem;
+      letter-spacing: 1px;
+      border: none;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #6c63ff, #9c7fff);
+      color: white;
+      cursor: pointer;
+      box-shadow: 0 6px 20px rgba(108,99,255,0.5);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    #start-btn:hover { transform: scale(1.05); box-shadow: 0 8px 30px rgba(108,99,255,0.7); }
+
+    /* ── GAME BOARD ── */
+    #game-board { display: none; flex-direction: column; align-items: center; gap: 14px; }
+
+    /* Image display */
+    #image-box {
+      width: 100%;
+      border-radius: 18px;
+      overflow: hidden;
+      border: 4px solid var(--wood-light);
+      box-shadow: 0 8px 30px rgba(0,0,0,0.5), inset 0 0 0 2px rgba(255,255,255,0.1);
+      background: transparent;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+    }
+
+    #question-img {
+      max-width: 100%;
+      max-height: 100%;
+      width: auto;
+      height: auto;
+      display: block;
+    }
+
+    /* Hint label */
+    .img-label {
+      position: absolute;
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.65);
+      color: #ffe082;
+      font-family: 'Fredoka One', cursive;
+      font-size: 0.85rem;
+      padding: 4px 14px;
+      border-radius: 20px;
+      letter-spacing: 1px;
+      backdrop-filter: blur(4px);
+    }
+
+    /* ── ANSWER SLOTS ── */
+    #answer-row {
+      display: flex;
+      gap: 7px;
+      justify-content: center;
+      flex-wrap: wrap;
+      padding: 8px 0;
+    }
+
+    .answer-slot {
+      width: 46px;
+      height: 52px;
+      border-radius: 10px;
+      background: var(--slot-empty);
+      border: 2px solid rgba(255,255,255,0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Fredoka One', cursive;
+      font-size: 1.5rem;
+      color: var(--tile-text);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.25);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .answer-slot.filled {
+      background: linear-gradient(160deg, #ffe082, #ffcc02);
+      border-color: #c49a3c;
+      box-shadow: 0 4px 12px rgba(255,200,0,0.35), inset 0 1px 0 rgba(255,255,255,0.5);
+      transform: translateY(-2px);
+    }
+
+    .answer-slot.correct-flash {
+      background: linear-gradient(160deg, #a5d6a7, #66bb6a) !important;
+      border-color: #2e7d32 !important;
+      animation: slotCorrect 0.5s ease;
+    }
+
+    .answer-slot.shake {
+      animation: slotShake 0.4s ease;
+    }
+
+    @keyframes slotCorrect {
+      0%,100% { transform: translateY(-2px) scale(1); }
+      50% { transform: translateY(-6px) scale(1.12); box-shadow: 0 0 20px rgba(102,187,106,0.8); }
+    }
+
+    @keyframes slotShake {
+      0%,100% { transform: translateX(0); }
+      20% { transform: translateX(-8px); }
+      40% { transform: translateX(8px); }
+      60% { transform: translateX(-5px); }
+      80% { transform: translateX(5px); }
+    }
+
+    /* ── LETTER TILES ── */
+    #letter-pool {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 4px;
+      background: rgba(0,0,0,0.2);
+      border-radius: 16px;
+      width: 100%;
+      min-height: 90px;
+    }
+
+    .letter-tile {
+      width: 48px;
+      height: 54px;
+      border-radius: 10px;
+      background: linear-gradient(160deg, #f8e5b0, #e8c875);
+      border: none;
+      border-bottom: 4px solid var(--tile-shadow);
+      border-right: 2px solid rgba(139,100,30,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Fredoka One', cursive;
+      font-size: 1.55rem;
+      color: var(--tile-text);
+      cursor: pointer;
+      user-select: none;
+      transition: transform 0.1s ease, opacity 0.2s ease, box-shadow 0.15s ease;
+      box-shadow: 0 4px 0 var(--tile-shadow), 0 6px 12px rgba(0,0,0,0.3);
+      position: relative;
+    }
+
+    .letter-tile::before {
+      content: '';
+      position: absolute;
+      top: 2px; left: 3px; right: 3px; height: 40%;
+      background: linear-gradient(to bottom, rgba(255,255,255,0.45), transparent);
+      border-radius: 7px 7px 0 0;
+      pointer-events: none;
+    }
+
+    .letter-tile:hover:not(.used) {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 0 var(--tile-shadow), 0 10px 20px rgba(0,0,0,0.35);
+    }
+
+    .letter-tile:active:not(.used) {
+      transform: translateY(1px);
+      box-shadow: 0 2px 0 var(--tile-shadow), 0 3px 8px rgba(0,0,0,0.25);
+    }
+
+    .letter-tile.used {
+      opacity: 0.25;
+      cursor: default;
+      pointer-events: none;
+      transform: none;
+    }
+
+    .letter-tile.bounce-back {
+      animation: tileReturn 0.5s ease;
+    }
+
+    @keyframes tileReturn {
+      0%   { transform: scale(0.7); opacity: 0.5; }
+      60%  { transform: scale(1.1); }
+      100% { transform: scale(1);   opacity: 1; }
+    }
+
+    /* ── ACTION BUTTONS ── */
+    .action-row {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+    }
+
+    .action-btn {
+      padding: 10px 22px;
+      border-radius: 12px;
+      border: none;
+      font-family: 'Fredoka One', cursive;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+
+    .action-btn:hover { transform: translateY(-2px); }
+
+    .btn-clear {
+      background: linear-gradient(135deg, #ef5350, #b71c1c);
+      color: white;
+      box-shadow: 0 4px 12px rgba(239,83,80,0.4);
+    }
+
+    .btn-mute {
+      background: linear-gradient(135deg, #546e7a, #263238);
+      color: white;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+
+    .btn-skip {
+      background: linear-gradient(135deg, #f57f17, #e65100);
+      color: white;
+      box-shadow: 0 4px 12px rgba(245,127,23,0.45);
+      position: relative;
+    }
+
+    .btn-skip .skip-cost {
+      display: inline-block;
+      background: rgba(0,0,0,0.25);
+      border-radius: 10px;
+      padding: 1px 6px;
+      font-size: 0.78rem;
+      margin-left: 5px;
+      vertical-align: middle;
+      letter-spacing: 0;
+    }
+
+    .btn-skip:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      transform: none !important;
+    }
+
+    /* Skip flash overlay on image */
+    #skip-flash {
+      position: absolute;
+      inset: 0;
+      background: rgba(245,127,23,0.35);
+      border-radius: 14px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.15s;
+      z-index: 5;
+    }
+    #skip-flash.show { opacity: 1; }
+
+    /* Skipped stamp */
+    #skipped-stamp {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) rotate(-12deg);
+      font-family: 'Fredoka One', cursive;
+      font-size: 2.2rem;
+      color: rgba(255,120,0,0.9);
+      border: 4px solid rgba(255,120,0,0.7);
+      padding: 6px 18px;
+      border-radius: 10px;
+      letter-spacing: 3px;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.4);
+      pointer-events: none;
+      opacity: 0;
+      z-index: 6;
+      transition: opacity 0.2s;
+    }
+    #skipped-stamp.show { opacity: 1; }
+
+    /* ── FEEDBACK MESSAGE ── */
+    #feedback-msg {
+      font-family: 'Fredoka One', cursive;
+      font-size: 1.2rem;
+      min-height: 32px;
+      text-align: center;
+      transition: opacity 0.3s;
+      letter-spacing: 0.5px;
+    }
+
+    #feedback-msg.correct-msg { color: #a5d6a7; }
+    #feedback-msg.wrong-msg   { color: #ef9a9a; }
+
+    /* ── SCORE / NEXT SCREEN ── */
+    #score-screen {
+      display: none;
+      background: linear-gradient(160deg, #1a1a2e, #0a0a18);
+      border-radius: 20px;
+      padding: 30px 20px;
+      text-align: center;
+      color: white;
+      border: 2px solid rgba(108,99,255,0.3);
+      box-shadow: 0 0 50px rgba(108,99,255,0.2);
+    }
+
+    .score-portal {
+      animation: portalGlow 2s ease-in-out infinite;
+    }
+
+    @keyframes portalGlow {
+      0%,100% { box-shadow: 0 0 25px rgba(108,99,255,0.3); }
+      50%      { box-shadow: 0 0 50px rgba(108,99,255,0.7); }
+    }
+
+    .next-quest-btn {
+      margin-top: 18px;
+      padding: 14px 36px;
+      font-family: 'Fredoka One', cursive;
+      font-size: 1.2rem;
+      border-radius: 14px;
+      border: none;
+      background: linear-gradient(135deg, #6c63ff, #9c7fff);
+      color: white;
+      cursor: pointer;
+      box-shadow: 0 6px 24px rgba(108,99,255,0.6);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .next-quest-btn:hover { transform: scale(1.06); box-shadow: 0 8px 32px rgba(154,148,255,0.9); }
+
+    /* ── FLYING GEM ── */
+    .flying-gem {
+      position: fixed;
+      font-family: 'Fredoka One', cursive;
+      font-size: 1.4rem;
+      pointer-events: none;
+      z-index: 999;
+      animation: flyGem 0.9s ease-out forwards;
+    }
+    .flying-gem.plus { color: #00e5ff; }
+    .flying-gem.minus { color: #ef9a9a; }
+
+    @keyframes flyGem {
+      0%   { opacity: 1; transform: translateY(0) scale(1); }
+      100% { opacity: 0; transform: translateY(-70px) scale(1.3); }
+    }
+
+    /* ── SPARK PARTICLES ── */
+    .spark {
+      position: fixed;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 900;
+      animation: sparkFly 0.8s ease-out forwards;
+    }
+
+    @keyframes sparkFly {
+      0%   { opacity: 1; transform: translate(0,0) scale(1); }
+      100% { opacity: 0; transform: translate(var(--tx), var(--ty)) scale(0); }
+    }
+
+    /* ── CONFETTI ── */
+    .confetti-piece {
+      position: fixed;
+      width: 9px;
+      height: 9px;
+      pointer-events: none;
+      z-index: 901;
+      animation: confettiFall 1.4s ease-out forwards;
+    }
+    @keyframes confettiFall {
+      0%   { opacity: 1; transform: translateY(0) rotate(0deg); }
+      100% { opacity: 0; transform: translateY(280px) rotate(600deg); }
+    }
+
+    /* ── STARS BG ── */
+    .star {
+      position: fixed;
+      width: 2px;
+      height: 2px;
+      background: rgba(255,255,255,0.6);
+      border-radius: 50%;
+      animation: twinkle 3s infinite;
+      z-index: 0;
+    }
+    @keyframes twinkle {
+      0%,100% { opacity: 0.2; }
+      50%      { opacity: 0.8; }
+    }
+
+    /* ── WORD CORRECT OVERLAY ── */
+    #word-correct-overlay {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 800;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    #word-correct-overlay.show { opacity: 1; }
+
+    .big-correct-text {
+      font-family: 'Fredoka One', cursive;
+      font-size: 3.5rem;
+      color: #ffe082;
+      text-shadow: 0 0 30px rgba(255,224,130,0.9), 0 0 60px rgba(255,160,0,0.6);
+      animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    @keyframes popIn {
+      0%   { transform: scale(0.3); opacity: 0; }
+      70%  { transform: scale(1.15); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    /* ── RETRY BANNER ── */
+    #retry-banner {
+      display: none;
+      background: linear-gradient(135deg, rgba(229,57,53,0.25), rgba(183,28,28,0.15));
+      border: 2px solid rgba(229,57,53,0.5);
+      border-radius: 14px;
+      padding: 14px;
+      text-align: center;
+      color: #ef9a9a;
+      font-family: 'Fredoka One', cursive;
+      font-size: 1.1rem;
+      width: 100%;
+    }
+
+    /* Answer word reveal under image */
+    #answer-reveal {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity 0.4s;
+      border-radius: 14px;
+      pointer-events: none;
+    }
+    #answer-reveal.show { opacity: 1; }
+    #answer-reveal span {
+      font-family: 'Fredoka One', cursive;
+      font-size: 2.5rem;
+      color: #ffe082;
+      text-shadow: 0 0 20px rgba(255,224,130,0.8);
+      letter-spacing: 4px;
+    }
+
+    /* Next button */
+    #next-btn {
+      display: none;
+      margin-top: 4px;
+      padding: 12px 36px;
+      font-family: 'Fredoka One', cursive;
+      font-size: 1.15rem;
+      border-radius: 14px;
+      border: none;
+      background: linear-gradient(135deg, #43a047, #1b5e20);
+      color: white;
+      cursor: pointer;
+      box-shadow: 0 6px 20px rgba(67,160,71,0.5);
+      transition: transform 0.2s, box-shadow 0.2s;
+      width: 100%;
+    }
+    #next-btn:hover { transform: translateY(-3px); box-shadow: 0 10px 28px rgba(67,160,71,0.7); }
+
+    #restart-btn {
+      margin-top: 14px;
+      padding: 10px 28px;
+      font-family: 'Fredoka One', cursive;
+      font-size: 1rem;
+      border-radius: 12px;
+      border: none;
+      background: rgba(255,255,255,0.1);
+      color: #bbb;
+      cursor: pointer;
+    }
+
+    /* Gem pulse anim */
+    .gem-pulse { animation: gemPulse 0.4s ease; }
+    @keyframes gemPulse {
+      0%,100% { transform: scale(1); }
+      50% { transform: scale(1.25); filter: brightness(1.5); }
+    }
+
+    /* responsive */
+    @media (max-width: 400px) {
+      .letter-tile { width: 42px; height: 48px; font-size: 1.3rem; }
+      .answer-slot { width: 40px; height: 46px; font-size: 1.3rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Stars -->
+<div id="stars-container"></div>
+
+<!-- Word correct overlay -->
+<div id="word-correct-overlay">
+  <div class="big-correct-text">✨ Correct! ✨</div>
+</div>
+
+<!-- Header -->
+<div id="header-bar" class="hidden">
+  <div class="stat-pill timer">⏳ <span id="time-val">0</span>s</div>
+  <div class="stat-pill gems" id="gem-pill">💎 <span id="gem-val">0</span></div>
+  <div class="stat-pill fire">🔥 <span id="streak-val">0</span></div>
+  <div class="stat-pill prog">📝 <span id="q-current">1</span>/<span id="q-total">15</span></div>
+</div>
+
+<div id="game-wrapper">
+
+  <!-- Name Screen -->
+  <div id="name-screen">
+    <div class="hero-quote">
+      <div class="hero-text">
+        "Ever tried.<br>Ever failed.<br>No matter.<br>
+        Try again.<br>Fail again.<br>Fail better!"
+      </div>
+      <div class="hero-author">— Samuel Beckett</div>
+    </div>
+
+    <select id="dept-select">
+      <option value="">-- Select Department --</option>
+      <option>Cyber Security</option><option>CSE-1</option><option>CSE-2</option>
+      <option>CSE-3</option><option>Mechanical Engineering</option><option>ECE-1</option>
+      <option>ECE-2</option><option>ECE-3</option><option>AI DS-1</option>
+      <option>AI DS-2</option><option>Civil</option><option>Agri</option>
+      <option>EEE</option><option>EIE</option><option>Medical Electronics</option>
+      <option>IT-1</option><option>IT-2</option>
+    </select>
+
+    <input type="text" id="name-input" placeholder="Enter your name" />
+    <button id="start-btn">🎮 Start Quest</button>
+  </div>
+
+  <!-- Game Board -->
+  <div id="game-board">
+    <div id="retry-banner">⚠️ Retry Round — Answer correctly on first attempt!</div>
+
+    <!-- Image -->
+    <div id="image-box">
+      <img id="question-img" />
+      <div id="answer-reveal"><span id="answer-reveal-text"></span></div>
+      <div class="img-label" id="img-label">🔤 Find the Adverb</div>
+      <div id="skip-flash"></div>
+      <div id="skipped-stamp">SKIPPED</div>
+    </div>
+
+    <!-- Feedback -->
+    <div id="feedback-msg"></div>
+
+    <!-- Answer slots -->
+    <div id="answer-row"></div>
+
+    <!-- Letter pool -->
+    <div id="letter-pool"></div>
+
+    <!-- Next btn -->
+    <button id="next-btn">➡️ Next Question</button>
+
+    <!-- Actions -->
+    <div class="action-row">
+      <button class="action-btn btn-clear" id="clear-btn">🗑️ Clear</button>
+      <button class="action-btn btn-skip" id="skip-btn">⏭️ Skip<span class="skip-cost">-2💎</span></button>
+      <button class="action-btn btn-mute" id="mute-btn">🔊 Sound</button>
+    </div>
+  </div>
+
+  <!-- Score Screen -->
+  <div id="score-screen">
+    <div class="score-portal">
+      <p style="font-family:'Fredoka One',cursive;font-size:1.6rem;color:#ffe082;">🏆 Quest Complete!</p>
+      <p id="score-name" style="margin-top:8px;color:#ccc;font-size:0.95rem;"></p>
+      <p id="score-status" style="margin-top:6px;font-size:0.9rem;"></p>
+      <p id="score-gems" style="margin-top:6px;font-size:0.9rem;color:#00e5ff;"></p>
+      <p id="score-streak" style="margin-top:6px;font-size:0.9rem;color:#ffd600;"></p>
+      <p id="score-time" style="margin-top:6px;font-size:0.9rem;color:#80cbc4;"></p>
+      <button class="next-quest-btn" onclick="goToNextQuest()">🚀 Next Quest</button>
+    </div>
+    <button id="restart-btn">🔄 Play Again</button>
+  </div>
+
+</div><!-- /game-wrapper -->
+
+<script>
+// ─────────────────────────────────────────────
+//  QUIZ DATA
+// ─────────────────────────────────────────────
+const quizData = [
+  {
+    answer: "META",
+    hint: "___",
+    letters: ["Q","A","I","E","K","L","Y","T","M","O","S","P"],
+    image: "https://raw.githubusercontent.com/andrewveda/SRM-VEC-English-PWA/de1e24d99b88fb29573e1ac09ceda65e97b27ed3/4pics/IMG-20260217-WA0028.jpg",
+  }
+];
+
+// ─────────────────────────────────────────────
+//  STATE
+// ─────────────────────────────────────────────
+let playerName = "", playerDept = "";
+let current = 0;
+let isRetryRound = false;
+let questionsToRetry = [];
+let firstAttemptCorrect = [];
+let currentQuestionFirstAttempt = true;
+let currentGems = 0;
+let totalWrongClicks = 0;
+let currentStreak = 0;
+let highestStreak = 0;
+let startTime, timerInterval;
+let globalQCounter = 1;
+let totalQCount = quizData.length;
+let timePerQuestion = [];
+let guessesPerQuestion = [];
+let isMuted = false;
+let audioCtx;
+let totalSkips = 0;
+let skippedQuestions = [];
+
+// Slot state
+let slottedLetters = [];
+let answerLength = 0;
+
+const NEXT_QUEST_URL = "https://andrewveda.github.io/SRM-VEC-English-PWA/semII/picsdraft";
+
+// ─────────────────────────────────────────────
+//  STARFIELD
+// ─────────────────────────────────────────────
+(function createStars() {
+  const c = document.getElementById('stars-container');
+  for (let i = 0; i < 60; i++) {
+    const s = document.createElement('div');
+    s.className = 'star';
+    s.style.cssText = `left:${Math.random()*100}%;top:${Math.random()*100}%;animation-delay:${Math.random()*4}s;`;
+    c.appendChild(s);
+  }
+})();
+
+// ─────────────────────────────────────────────
+//  AUDIO
+// ─────────────────────────────────────────────
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+
+function playTone(freq, duration, type='sine', vol=0.12) {
+  if (isMuted) return;
+  try {
+    const ctx = getAudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, ctx.currentTime);
+    gain.gain.setValueAtTime(vol, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + duration);
+  } catch(e){}
+}
+
+function playCorrect()  { playTone(523, 0.4); setTimeout(() => playTone(659, 0.3), 120); }
+function playTileClick(){ playTone(440, 0.08, 'sine', 0.06); }
+function playWrong()    { playTone(220, 0.35, 'sine', 0.1); }
+function playRetry()    { playTone(300, 0.4, 'sine', 0.09); setTimeout(() => playTone(260, 0.3), 200); }
+function playVictory() {
+  [440, 523, 587, 659, 784].forEach((f,i) => setTimeout(() => playTone(f, 0.35, 'sine', 0.14), i*130));
+}
+function playSkip() {
+  playTone(392, 0.12, 'sine', 0.09);
+  setTimeout(() => playTone(330, 0.18, 'sine', 0.07), 130);
+}
+
+document.getElementById('mute-btn').onclick = () => {
+  isMuted = !isMuted;
+  document.getElementById('mute-btn').textContent = isMuted ? '🔇 Muted' : '🔊 Sound';
+};
+
+// ─────────────────────────────────────────────
+//  START FLOW
+// ─────────────────────────────────────────────
+
+function startGame(name, dept) {
+  playerName = name; playerDept = dept;
+  try { localStorage.setItem('pName', name); localStorage.setItem('pDept', dept); } catch(e){}
+  document.getElementById('name-screen').style.display = 'none';
+  document.getElementById('game-board').style.display = 'flex';
+  document.getElementById('game-board').style.flexDirection = 'column';
+  document.getElementById('game-board').style.gap = '12px';
+  document.getElementById('header-bar').classList.remove('hidden');
+  initQuiz();
+}
+
+// ── Auto-skip name screen if localStorage has data ──
+try {
+  const sn = localStorage.getItem('pName');
+  const sd = localStorage.getItem('pDept');
+  if (sn && sd) {
+    // Pre-fill the form (in case they use "Play Again")
+    document.getElementById('name-input').value = sn;
+    document.getElementById('dept-select').value = sd;
+    // Skip straight to the game
+    startGame(sn, sd);
+  } else {
+    // Partially pre-fill whatever we have
+    if (sn) document.getElementById('name-input').value = sn;
+    if (sd) document.getElementById('dept-select').value = sd;
+  }
+} catch(e) {}
+
+document.getElementById('start-btn').onclick = () => {
+  const n = document.getElementById('name-input').value.trim();
+  const d = document.getElementById('dept-select').value;
+  if (!d) { alert('Please select your department!'); return; }
+  if (!n) { alert('Please enter your name!'); return; }
+  startGame(n, d);
+};
+
+document.getElementById('restart-btn').onclick = () => {
+  document.getElementById('score-screen').style.display = 'none';
+  document.getElementById('name-screen').style.display = 'block';
+  document.getElementById('header-bar').classList.add('hidden');
+  // Clear localStorage so the name screen shows next time too
+  try { localStorage.removeItem('pName'); localStorage.removeItem('pDept'); } catch(e){}
+  document.getElementById('name-input').value = '';
+  document.getElementById('dept-select').selectedIndex = 0;
+};
+
+// ─────────────────────────────────────────────
+//  QUIZ INIT
+// ─────────────────────────────────────────────
+function initQuiz() {
+  current = 0;
+  isRetryRound = false;
+  questionsToRetry = [];
+  firstAttemptCorrect = new Array(quizData.length).fill(null);
+  currentGems = 0;
+  totalWrongClicks = 0;
+  currentStreak = 0;
+  highestStreak = 0;
+  startTime = Date.now();
+  globalQCounter = 1;
+  totalQCount = quizData.length;
+  timePerQuestion = [];
+  guessesPerQuestion = [];
+  slottedLetters = [];
+  totalSkips = 0;
+  skippedQuestions = [];
+
+  updateHeader();
+  clearInterval(timerInterval);
+  timerInterval = setInterval(() => {
+    document.getElementById('time-val').textContent = Math.floor((Date.now()-startTime)/1000);
+  }, 1000);
+
+  document.getElementById('next-btn').style.display = 'none';
+  document.getElementById('retry-banner').style.display = 'none';
+  loadQuestion();
+}
+
+function updateHeader() {
+  document.getElementById('gem-val').textContent = currentGems;
+  document.getElementById('streak-val').textContent = currentStreak;
+  document.getElementById('q-current').textContent = globalQCounter;
+  document.getElementById('q-total').textContent = totalQCount;
+}
+
+// ─────────────────────────────────────────────
+//  LOAD QUESTION
+// ─────────────────────────────────────────────
+function loadQuestion() {
+  if (!isRetryRound && current >= quizData.length) {
+    questionsToRetry = quizData.map((_,i) => i).filter(i => firstAttemptCorrect[i] === false);
+    if (questionsToRetry.length > 0) {
+      isRetryRound = true;
+      current = 0;
+      document.getElementById('retry-banner').style.display = 'block';
+      playRetry();
+      totalQCount += questionsToRetry.length;
+      updateHeader();
+      setTimeout(loadQuestion, 500);
+      return;
+    } else {
+      return showScore();
+    }
+  }
+
+  if (isRetryRound && current >= questionsToRetry.length) {
+    const still = questionsToRetry.filter(i => firstAttemptCorrect[i] === false);
+    if (still.length > 0) {
+      questionsToRetry = still;
+      current = 0;
+      totalQCount += still.length;
+      playRetry();
+      updateHeader();
+      setTimeout(loadQuestion, 400);
+      return;
+    } else {
+      return showScore();
+    }
+  }
+
+  const qIdx = isRetryRound ? questionsToRetry[current] : current;
+  const data = quizData[qIdx];
+  answerLength = data.answer.length;
+  slottedLetters = [];
+  currentQuestionFirstAttempt = true;
+  if (!guessesPerQuestion[qIdx]) guessesPerQuestion[qIdx] = 0;
+  if (!timePerQuestion[qIdx]) timePerQuestion[qIdx] = Date.now();
+
+  document.getElementById('next-btn').style.display = 'none';
+  document.getElementById('answer-reveal').classList.remove('show');
+  document.getElementById('feedback-msg').textContent = '';
+  document.getElementById('feedback-msg').className = '';
+
+  const skipBtn = document.getElementById('skip-btn');
+  skipBtn.disabled = isRetryRound;
+  skipBtn.title = isRetryRound ? 'Cannot skip in retry round' : 'Skip this question (-2 💎)';
+
+  const img = document.getElementById("question-img"); img.src = data.image;
+  document.getElementById('img-label').textContent = '🔤 ' + data.hint;
+
+  const row = document.getElementById('answer-row');
+  row.innerHTML = '';
+  for (let i = 0; i < answerLength; i++) {
+    const slot = document.createElement('div');
+    slot.className = 'answer-slot';
+    slot.dataset.idx = i;
+    slot.onclick = () => returnLetter(i);
+    row.appendChild(slot);
+  }
+
+  const pool = document.getElementById('letter-pool');
+  pool.innerHTML = '';
+  const shuffled = [...data.letters].sort(() => Math.random() - 0.5);
+  shuffled.forEach((letter, ti) => {
+    const tile = document.createElement('div');
+    tile.className = 'letter-tile';
+    tile.textContent = letter;
+    tile.dataset.tileIdx = ti;
+    tile.onclick = () => placeLetter(tile, letter);
+    pool.appendChild(tile);
+  });
+
+  updateHeader();
+}
+
+// ─────────────────────────────────────────────
+//  PLACE / RETURN LETTER
+// ─────────────────────────────────────────────
+function placeLetter(tile, letter) {
+  if (tile.classList.contains('used')) return;
+  const nextSlotIdx = slottedLetters.length;
+  if (nextSlotIdx >= answerLength) return;
+
+  playTileClick();
+  tile.classList.add('used');
+
+  slottedLetters.push({ letter, tileEl: tile, slotIdx: nextSlotIdx });
+
+  const slot = document.querySelector(`.answer-slot[data-idx="${nextSlotIdx}"]`);
+  slot.textContent = letter;
+  slot.classList.add('filled');
+  slot.dataset.tileIdx = tile.dataset.tileIdx;
+
+  if (slottedLetters.length === answerLength) {
+    setTimeout(checkAnswer, 200);
+  }
+}
+
+function returnLetter(slotIdx) {
+  const entry = slottedLetters.find(e => e.slotIdx === slotIdx);
+  if (!entry) return;
+
+  const removeFrom = slottedLetters.indexOf(entry);
+  const removed = slottedLetters.splice(removeFrom);
+  removed.forEach(e => {
+    const slot = document.querySelector(`.answer-slot[data-idx="${e.slotIdx}"]`);
+    slot.textContent = '';
+    slot.classList.remove('filled');
+    e.tileEl.classList.remove('used');
+    e.tileEl.classList.add('bounce-back');
+    setTimeout(() => e.tileEl.classList.remove('bounce-back'), 500);
+  });
+}
+
+document.getElementById('clear-btn').onclick = () => {
+  const all = [...slottedLetters];
+  slottedLetters = [];
+  all.forEach(e => {
+    const slot = document.querySelector(`.answer-slot[data-idx="${e.slotIdx}"]`);
+    slot.textContent = '';
+    slot.classList.remove('filled');
+    e.tileEl.classList.remove('used');
+    e.tileEl.classList.add('bounce-back');
+    setTimeout(() => e.tileEl.classList.remove('bounce-back'), 500);
+  });
+};
+
+// ─────────────────────────────────────────────
+//  SKIP BUTTON
+// ─────────────────────────────────────────────
+document.getElementById('skip-btn').onclick = () => {
+  if (isRetryRound) {
+    showFeedback('⚠️ No skipping in retry round!', 'wrong-msg');
+    setTimeout(() => { document.getElementById('feedback-msg').textContent = ''; }, 1500);
+    return;
+  }
+
+  const qIdx = current;
+  playSkip();
+
+  currentGems -= 2;
+  totalSkips++;
+  totalWrongClicks++;
+
+  firstAttemptCorrect[qIdx] = false;
+  skippedQuestions.push(qIdx);
+
+  currentStreak = 0;
+
+  const flash = document.getElementById('skip-flash');
+  const stamp = document.getElementById('skipped-stamp');
+  flash.classList.add('show');
+  stamp.classList.add('show');
+
+  const all = [...slottedLetters];
+  slottedLetters = [];
+  all.forEach(e => {
+    const slot = document.querySelector(`.answer-slot[data-idx="${e.slotIdx}"]`);
+    if (slot) { slot.textContent = ''; slot.classList.remove('filled'); }
+    e.tileEl.classList.remove('used');
+  });
+
+  showFeedback('⏭️ Skipped! Will return in retry round.', 'wrong-msg');
+  showFlyingGem(false, 2);
+  updateHeader();
+
+  setTimeout(() => {
+    flash.classList.remove('show');
+    stamp.classList.remove('show');
+    document.getElementById('feedback-msg').textContent = '';
+    current++;
+    globalQCounter++;
+    updateHeader();
+    loadQuestion();
+  }, 900);
+};
+
+// ─────────────────────────────────────────────
+//  CHECK ANSWER
+// ─────────────────────────────────────────────
+function checkAnswer() {
+  const qIdx = isRetryRound ? questionsToRetry[current] : current;
+  const data = quizData[qIdx];
+  guessesPerQuestion[qIdx]++;
+
+  const typed = slottedLetters.map(e => e.letter).join('');
+  const isCorrect = typed === data.answer;
+
+  if (isCorrect) {
+    const slots = document.querySelectorAll('.answer-slot');
+    slots.forEach(s => s.classList.add('correct-flash'));
+    playCorrect();
+    createSparks();
+    showWordOverlay();
+
+    if (currentQuestionFirstAttempt) {
+      firstAttemptCorrect[qIdx] = true;
+      currentGems += 1;
+      showFlyingGem(true);
+    }
+
+    currentStreak++;
+    if (currentStreak > highestStreak) highestStreak = currentStreak;
+    if (currentStreak >= 3) createConfetti();
+    timePerQuestion[qIdx] = Math.floor((Date.now() - timePerQuestion[qIdx]) / 1000);
+
+    showFeedback('✅ Correct!', 'correct-msg');
+
+    document.getElementById('answer-reveal-text').textContent = data.answer;
+    setTimeout(() => document.getElementById('answer-reveal').classList.add('show'), 400);
+
+    setTimeout(() => {
+      document.getElementById('next-btn').style.display = 'block';
+      updateHeader();
+    }, 800);
+
+  } else {
+    if (currentQuestionFirstAttempt) {
+      firstAttemptCorrect[qIdx] = false;
+      currentQuestionFirstAttempt = false;
+      totalWrongClicks++;
+      if (!isRetryRound) { totalQCount++; }
+    }
+
+    playWrong();
+    currentStreak = 0;
+    showFlyingGem(false);
+
+    const slots = document.querySelectorAll('.answer-slot');
+    slots.forEach(s => { s.classList.add('shake'); setTimeout(() => s.classList.remove('shake'), 450); });
+    showFeedback('❌ Try again!', 'wrong-msg');
+
+    setTimeout(() => {
+      document.getElementById('clear-btn').click();
+      document.getElementById('feedback-msg').textContent = '';
+    }, 600);
+
+    updateHeader();
+  }
+}
+
+// ─────────────────────────────────────────────
+//  NEXT BUTTON
+// ─────────────────────────────────────────────
+document.getElementById('next-btn').onclick = () => {
+  current++;
+  globalQCounter++;
+  document.getElementById('next-btn').style.display = 'none';
+  document.getElementById('answer-reveal').classList.remove('show');
+  document.querySelector('#answer-row').innerHTML = '';
+  document.getElementById('letter-pool').innerHTML = '';
+  slottedLetters = [];
+  updateHeader();
+  loadQuestion();
+};
+
+// ─────────────────────────────────────────────
+//  SCORE SCREEN
+// ─────────────────────────────────────────────
+function showScore() {
+  clearInterval(timerInterval);
+  playVictory();
+  const totalTime = Math.floor((Date.now() - startTime) / 1000);
+  const allCorrect = firstAttemptCorrect.every(v => v === true);
+
+  document.getElementById('game-board').style.display = 'none';
+  document.getElementById('header-bar').classList.add('hidden');
+  document.getElementById('score-screen').style.display = 'block';
+
+  document.getElementById('score-name').textContent = `👤 ${playerName} | 🏢 ${playerDept}`;
+  document.getElementById('score-status').innerHTML = allCorrect
+    ? '✅ <span style="color:#a5d6a7">All correct on first attempt!</span>'
+    : '🔄 <span style="color:#ef9a9a">Completed with retries</span>';
+  document.getElementById('score-gems').textContent = `💎 Gems: ${currentGems}`;
+  document.getElementById('score-streak').textContent = `🔥 Peak Streak: ${highestStreak}  |  ⏭️ Skipped: ${totalSkips}`;
+  document.getElementById('score-time').textContent = `⏱️ Time: ${Math.floor(totalTime/60)}m ${totalTime%60}s`;
+
+  createConfetti();
+
+  sendToSupabase({ student_name: playerName, department: playerDept,
+    correct: firstAttemptCorrect.filter(v=>v===true).length,
+    wrong: totalWrongClicks, time_spent: totalTime, quest_id: "Story 162" });
+}
+
+function goToNextQuest() { window.location.href = NEXT_QUEST_URL; }
+
+// ─────────────────────────────────────────────
+//  SUPABASE
+// ─────────────────────────────────────────────
+async function sendToSupabase(payload) {
+  try {
+    await fetch("https://ahezssoczvpbkteffcgz.supabase.co/functions/v1/logQuest", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+  } catch(e) {}
+}
+
+// ─────────────────────────────────────────────
+//  ANIMATIONS
+// ─────────────────────────────────────────────
+function showFeedback(msg, cls) {
+  const el = document.getElementById('feedback-msg');
+  el.textContent = msg;
+  el.className = cls;
+}
+
+function showWordOverlay() {
+  const o = document.getElementById('word-correct-overlay');
+  o.classList.add('show');
+  setTimeout(() => o.classList.remove('show'), 1100);
+}
+
+function showFlyingGem(isGain, amount = 1) {
+  const pill = document.getElementById('gem-pill');
+  const rect = pill.getBoundingClientRect();
+  const el = document.createElement('span');
+  el.className = `flying-gem ${isGain ? 'plus' : 'minus'}`;
+  el.textContent = isGain ? `+${amount} 💎` : `-${amount} 💎`;
+  el.style.cssText = `left:${rect.left+rect.width/2}px;top:${rect.top}px;`;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 900);
+
+  document.getElementById('gem-val').textContent = currentGems;
+  if (isGain) {
+    pill.classList.add('gem-pulse');
+    setTimeout(() => pill.classList.remove('gem-pulse'), 400);
+  }
+}
+
+function createSparks() {
+  const slots = document.querySelectorAll('.answer-slot');
+  if (!slots.length) return;
+  const last = slots[slots.length-1].getBoundingClientRect();
+  const cx = last.left + last.width/2, cy = last.top + last.height/2;
+  const cols = ['#ffd600','#ffe082','#fff176','#fffde7','#ffecb3'];
+  for (let i = 0; i < 18; i++) {
+    const s = document.createElement('div');
+    s.className = 'spark';
+    const angle = (Math.PI * 2 * i) / 18;
+    const v = 60 + Math.random() * 50;
+    s.style.cssText = `left:${cx}px;top:${cy}px;background:${cols[i%cols.length]};
+      --tx:${Math.cos(angle)*v}px;--ty:${Math.sin(angle)*v}px;
+      animation-delay:${Math.random()*0.1}s;`;
+    document.body.appendChild(s);
+    setTimeout(() => s.remove(), 900);
+  }
+}
+
+function createConfetti() {
+  const cols = ['#ff1744','#00e5ff','#ffd600','#00e676','#d500f9','#ff6d00'];
+  for (let i = 0; i < 25; i++) {
+    const c = document.createElement('div');
+    c.className = 'confetti-piece';
+    c.style.cssText = `
+      left:${10+Math.random()*80}%;
+      top:${10+Math.random()*30}%;
+      background:${cols[i%cols.length]};
+      border-radius:${Math.random()>0.5?'50%':'2px'};
+      animation-delay:${Math.random()*0.5}s;
+    `;
+    document.body.appendChild(c);
+    setTimeout(() => c.remove(), 2000);
+  }
+}
+
+// ─────────────────────────────────────────────
+//  PDF REPORT
+// ─────────────────────────────────────────────
+function downloadPDFReport() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  const totalTime = Math.floor((Date.now() - startTime) / 1000);
+  const reportDate = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+
+  doc.setFillColor(25,25,60);
+  doc.rect(0,0,210,50,'F');
+  doc.setDrawColor(184,134,11); doc.setLineWidth(1);
+  doc.line(20,48,190,48); doc.setLineWidth(0.5); doc.line(20,50,190,50);
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(18); doc.setFont('times','bold');
+  doc.text('SRM VALLIAMMAI ENGINEERING COLLEGE',105,18,{align:'center'});
+  doc.setFontSize(11); doc.setFont('times','italic');
+  doc.text('(Autonomous)',105,26,{align:'center'});
+  doc.setFontSize(16); doc.setFont('times','normal');
+  doc.text('Department of English',105,34,{align:'center'});
+  doc.setFontSize(14); doc.setFont('times','bold'); doc.setTextColor(212,175,55);
+  doc.text('4 Pics 1 Word — Quest Performance Report',105,43,{align:'center'});
+
+  doc.setTextColor(0,0,0);
+  doc.setFontSize(11); doc.setFont('times','bold');
+  doc.text('CANDIDATE INFORMATION',20,58);
+  doc.setDrawColor(184,134,11); doc.setLineWidth(0.5);
+  doc.line(20,60,190,60);
+
+  doc.autoTable({
+    startY:64,
+    body:[['Student Name',playerName],['Department',playerDept],['Date',reportDate]],
+    theme:'plain',
+    styles:{fontSize:11,font:'times',cellPadding:3},
+    columnStyles:{0:{fontStyle:'bold',cellWidth:50,textColor:[70,70,70]},1:{cellWidth:130}},
+    margin:{left:20}
+  });
+
+  let y = doc.lastAutoTable.finalY+12;
+  doc.setFontSize(11); doc.setFont('times','bold');
+  doc.text('PERFORMANCE METRICS',20,y);
+  doc.line(20,y+2,190,y+2); y+=8;
+
+  const allCorrect = firstAttemptCorrect.every(v=>v===true);
+  doc.autoTable({
+    startY:y,
+    body:[
+      ['Final Status', allCorrect?'Passed — First Attempt':'Passed — With Retries'],
+      ['Total Questions', totalQCount.toString()],
+      ['Gems Earned', `💎 ${currentGems}`],
+      ['Total Wrong Clicks', totalWrongClicks.toString()],
+      ['Questions Skipped', totalSkips.toString()],
+      ['Peak Streak', highestStreak.toString()],
+      ['Total Time', `${Math.floor(totalTime/60)}m ${totalTime%60}s`]
+    ],
+    theme:'striped',
+    styles:{fontSize:10,font:'times',cellPadding:3},
+    columnStyles:{0:{fontStyle:'bold',cellWidth:70,textColor:[70,70,70]},1:{cellWidth:110}},
+    margin:{left:20}
+  });
+
+  y = doc.lastAutoTable.finalY+15;
+  if(y>250){doc.addPage();y=20;}
+  doc.setFontSize(11); doc.setFont('times','bold');
+  doc.text('QUESTION BREAKDOWN',20,y);
+  doc.line(20,y+2,190,y+2); y+=10;
+
+  quizData.forEach((item,idx) => {
+    if(y>240){doc.addPage();y=20;}
+    doc.setFontSize(10); doc.setFont('times','bold'); doc.setTextColor(25,25,60);
+    doc.text(`Q${idx+1}: ${item.hint}`,20,y);
+    y+=6;
+    doc.setFont('times','normal'); doc.setTextColor(0,100,0);
+    doc.text(`Answer: ${item.answer}`,25,y);
+    y+=5;
+    doc.setTextColor(150,0,0);
+    const wasSkipped = skippedQuestions.includes(idx);
+    const attemptInfo = wasSkipped
+      ? `Skipped ⏭️  |  Answered in retry round`
+      : `Attempts: ${guessesPerQuestion[idx]||'N/A'}  |  First Attempt: ${firstAttemptCorrect[idx]===true?'✓ Correct':'✗ Wrong'}`;
+    doc.text(attemptInfo, 25, y);
+    y+=8;
+    doc.setDrawColor(220,220,220); doc.setLineWidth(0.3);
+    doc.line(20,y,190,y); y+=6;
+  });
+
+  doc.setDrawColor(184,134,11); doc.setLineWidth(0.5); doc.line(20,280,190,280);
+  doc.setFontSize(8); doc.setTextColor(128,128,128); doc.setFont('times','italic');
+  doc.text('System-generated report — SRM VEC English Quest',105,287,{align:'center'});
+
+  doc.save(`${playerName.replace(/[^a-zA-Z0-9]/g,'_')}_Quest174_Report.pdf`);
+}
+</script>
+</body>
+</html>

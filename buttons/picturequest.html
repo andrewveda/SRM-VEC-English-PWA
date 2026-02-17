@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>V for Video! 🌌</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+width: 100%;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: radial-gradient(ellipse at bottom, #0b0c1b 0%, #000000 100%);
+      color: white;
+      text-align: center;
+    }
+    .container {
+      width: 100%;
+      margin: 2rem auto;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 2rem;
+      border-radius: 15px;
+      box-shadow: 0 0 30px rgba(255, 255, 255, 0.1);
+    }
+    .question {
+      font-size: 1.5rem;
+      margin-bottom: 1rem;
+    }
+    .options {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    button {
+      padding: 1rem;
+      border: none;
+      border-radius: 10px;
+      font-size: 1rem;
+      cursor: pointer;
+      background-color: #1f1f2e;
+      color: white;
+      transition: background-color 0.3s ease;
+    }
+    button:hover {
+      background-color: #343454;
+    }
+    .correct {
+      background-color: green !important;
+    }
+    .wrong {
+      background-color: red !important;
+    }
+    #scoreCard {
+      margin-top: 2rem;
+      font-size: 1.2rem;
+    }
+    #timer, #wrongCounter, #progressTracker {
+      font-size: 1rem;
+      margin-bottom: 1rem;
+      color: #ffd700;
+    }
+    #restartBtn {
+      margin-top: 2rem;
+      padding: 0.7rem 2rem;
+      font-size: 1.1rem;
+      background-color: #444466;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      color: white;
+    }
+    #nameForm {
+      margin-bottom: 1.5rem;
+    }
+    #nameInput {
+      padding: 0.5rem;
+      font-size: 1rem;
+      border-radius: 5px;
+      border: none;
+      margin-right: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container" id="quizContainer">
+    <div id="nameForm">
+      <input type="text" id="nameInput" placeholder="Enter your name" />
+      <button onclick="beginQuiz()">Start Quiz</button>
+    </div>
+
+    <div id="quizContent" style="display:none;">
+      <div id="timer">⏳ Time: 0s</div>
+      <div id="wrongCounter">❌ Wrong Attempts: 0</div>
+      <div id="progressTracker">📍 Question 1 of 5</div>
+      <div class="question" id="question">Loading...</div>
+      <div class="options" id="options"></div>
+      <div id="scoreCard"></div>
+      <button id="restartBtn" style="display: none;">Restart</button>
+    </div>
+  </div>
+
+  <script>
+    const quizData = [
+{
+  q: "Why don’t advertisements like trailers follow a single template?",
+  options: [
+    "Because they adapt to different audiences and storytelling goals",
+    "Because they always use the same style to save time",
+    "Because repetition is the only effective strategy",
+    "Because they avoid creativity to stay safe"
+  ],
+  correct: 0,
+  img:"https://raw.githubusercontent.com/andrewveda/asterix/refs/heads/main/RCO001_1663947548.jpg"
+},
+{
+  q: "What is the main purpose of a presentation?",
+  options: [
+    "To entertain without any clear message",
+    "To confuse the audience with complex jargon",
+    "To read text slides verbatim without interaction",
+    "To convince the audience of the validity of our Point of View (POV)"
+  ],
+  correct: 3,
+ img: "https://raw.githubusercontent.com/andrewveda/asterix/refs/heads/main/RCO004_1663947548.jpg"
+},
+{
+  q: "What are the three key components commonly used in advertising, trailers, and presentations?",
+  options: [
+    "Logos: appeal to logic and facts",
+    "Pathos: appeal to emotions",
+    "Ethos: ethics, appeal to trustworthiness",
+    "All the above"
+  ],
+  correct: 3,
+ img: "https://raw.githubusercontent.com/andrewveda/asterix/refs/heads/main/RCO005_1663947548.jpg"
+},
+{
+  q: "What happens in every conversation?",
+  options: [
+    "We are only giving facts",
+    "We are always listening",
+    "We are always responding",
+    "We are being exposed to advertising campaigns of different Points of View (POV)" 
+  ],
+  correct: 3,
+img:"https://raw.githubusercontent.com/andrewveda/asterix/refs/heads/main/RCO053_1663947548.jpg"
+},
+    {
+  q: "In this panel from 'Obelix & Co.', Obelix defeats a century of Roman crack troops. He is clearly proving he is the victor. What is he not focussed on doing?",
+  options: [
+    "Beating them in battle until they surrender.",
+    "Outthinking them with powerful blows.",
+    "Winning them over as a friend.",
+    "Proving to them he is physically stronger."
+  ],
+  correct: 2,
+  img: "https://raw.githubusercontent.com/andrewveda/asterix/refs/heads/main/Screenshot%202025-08-12%206.56.26%20PM.png"
+},
+{
+  q: "Which option is a takeaway from this quote: 'To defeat your enemy, you have to become their friend. If not, how can you stab them in the back?'",
+  options: [
+    "In The Godfather, Don Corleone says, 'Keep your friends close, but your enemies closer.'",
+    "In Harry Potter and the Goblet of Fire, the imposter Crouch Jr., posing as Alastor Moody, barks 'CONSTANT VIGILANCE!' to be alert all the time.",
+    "“When there is no enemy within, the enemy outside can do no harm” - an African proverb reminding us that unity and inner strength prevent external defeat.",
+    "All of the above."
+  ],
+  correct: 3
+},
+{
+  q: "Why is Julius Caesar preparing a campaign instead of sending more soldiers?",
+  options: [
+    "To brainstorm — pause and think of a smarter plan.",
+    "To find another easy way — avoid repeating costly failures.",
+    "To outthink the enemy — win with brains, not brawn.",
+    "All of the above."
+  ],
+  correct: 3,
+  img: "https://raw.githubusercontent.com/andrewveda/asterix/refs/heads/main/Screenshot%202025-08-07%206.17.07%20PM.png"
+},
+{
+  q: "If Caesar plans to defeat them using gold, what’s the crucial tactic?",
+  options: [
+    "Get your enemies to play your game i.e., controlling terms shifts power to you.",
+    "Get your enemies to play by your rules - letting them follow your lead puts you in charge.",
+    "Get your enemies to forget their game and rules.",
+    "All of the above."
+  ],
+  correct: 3,
+  img: "https://raw.githubusercontent.com/andrewveda/asterix/refs/heads/main/Screenshot%202025-08-12%207.30.44%20PM.png"
+},
+{
+  q: "What can we learn about Preposterus from this conversation?",
+  options: [
+    "He speaks on his own terms, controlling the conversation flow.",
+    "He refuses to accept or even consider alternative views, shutting down any opposing opinions.",
+    "He subtly imposes his point of view on others, using influence instead of persuasion.",
+    "All of the above."
+  ],
+  correct: 3,
+  img: "https://raw.githubusercontent.com/andrewveda/asterix/refs/heads/main/Screenshot%202025-08-07%206.19.31%20PM.png"
+},
+{
+  q: "Which sentence spoken by Obelix shows us the point of view that he and the other Gauls had about something 'ordinary' like a menhir?",
+  options: [
+    "'It’s ONLY a menhir.'",
+    "'But there’s nothing behind me.'",
+    "'Oh yes, I forgot.'",
+    "All of the above."
+  ],
+  correct: 3,
+  img: "https://raw.githubusercontent.com/andrewveda/asterix/refs/heads/main/Screenshot%202025-08-07%206.19.31%20PM.png"
+},
+{
+  q: "What point of view is Preposterus conveying to Obelix here?",
+  options: [
+    "Having more money is good - wealth can open doors.",
+    "Having more influence is good - power changes minds.",
+    "Having more resources is good - control comes from capacity.",
+    "I hope you’re paying attention to every single option because each one’s been crafted as a lesson. And yes, this one’s another “all of the above” moment!"
+  ],
+  correct: 3,
+  img: "https://raw.githubusercontent.com/andrewveda/asterix/refs/heads/main/Screenshot%202025-08-12%207.44.45%20PM.png"
+},
+{
+  q: "Which sentence shows that Obelix clearly does not accept Preposterus’s viewpoint?",
+  options: [
+    "'NOOOO! I’m not a legionary, I’m only staying there!'",
+    "'Here you are!'",
+    "'Look at that!'",
+    "'The relief?'",
+    "All of the above."
+  ],
+  correct: 0,
+    img: "https://raw.githubusercontent.com/andrewveda/asterix/refs/heads/main/Screenshot%202025-08-12%207.51.48%20PM.png"
+ },
+{
+  q: "Which sentence clearly shows that Obelix is being perceived as a dangerous enemy?",
+  options: [
+    "'Here you are!'",
+    "'Look at that!'",
+    "'NO! The big, fat brute!'",
+    "All of the above."
+  ],
+  correct: 2,
+    img: "https://raw.githubusercontent.com/andrewveda/asterix/refs/heads/main/Screenshot%202025-08-12%207.51.48%20PM.png"
+},
+{
+  q: "Which sentence clearly shows that Obelix’s point of view has shifted towards an economic mindset?",
+  options: [
+    "'I’ve got work to do.' — Reflects the shift from leisure to economic productivity.",
+    "'I don’t have time to fool around.' —  rejects his older POV by mentioning 'fool around'.",
+    "'I’m busy.' — sees his time as an economic resource.",
+    "All of the above — Each line reveals a change from carefree living to a mindset where time and effort are tied to economic purpose."
+  ],
+  correct: 3,
+  img: "https://raw.githubusercontent.com/andrewveda/asterix/refs/heads/main/Screenshot%202025-08-12%208.06.11%20PM.png"
+},
+{
+  q: "Which line marks the complete rejection of Obelix’s old value system of leisure, friendship, and carefree living?",
+  options: [
+    "'Go and play with Asterix, Dogmatix.' Rejects companionship and shared joy, a core part of his old values.",
+    "I’m fine Rejects companionship and shared joy, a core part of his old values.",
+    "'Aren’t you well?' - Rejects companionship and shared joy, a core part of his old values.",
+    "All of the above."
+  ],
+  correct: 0,
+  img: "https://raw.githubusercontent.com/andrewveda/asterix/refs/heads/main/Screenshot%202025-08-12%208.06.11%20PM.png"
+},
+{
+  q: "What does Preposterus’s explanation of inflation indicate?",
+  options: [
+    "That he’s not willing to explain it in detail to Obelix — withholding information maintains a power imbalance, a classic control tactic.",
+    "He does not even want to explain the rules of the new game — keeping the other player in the dark reduces their ability to challenge the system.",
+    "He wants Obelix to feel like he’s winning the new game — exploiting the brain’s reward system to keep him engaged and compliant.",
+    "All of the above."
+  ],
+  correct: 3,
+  img: "https://raw.githubusercontent.com/andrewveda/asterix/refs/heads/main/Screenshot%202025-08-12%208.17.07%20PM.png"
+},
+{
+  q: "What is Obelix doing in this panel?",
+  options: [
+    "He is following Preposterus’s technique even without fully understanding it — blindly imitating a strategy.",
+    "He is carefully planning his moves based on deep understanding — showing strategic mastery.",
+    "He is refusing to change and sticking to old habits — resisting new ideas entirely.",
+    "All of the above."
+  ],
+  correct: 0,
+ img: "https://raw.githubusercontent.com/andrewveda/asterix/refs/heads/main/Screenshot%202025-08-12%208.24.03%20PM.png"
+},
+{
+  q: "Which line in this panel clearly shows how effectively Obelix’s point of view has changed?",
+  options: [
+    "'I can’t stop! I’ve got work to do!' - shows a new urgency.",
+    "'Dinner time!' - reflects routine, and clearly signals a value shift.",
+    "'I love money!' - expresses desire and a changed mindset.",
+    "All of the above"
+  ],
+  correct: 0,
+  img: "https://raw.githubusercontent.com/andrewveda/asterix/refs/heads/main/Screenshot%202025-08-12%208.32.52%20PM.png"
+},
+{
+  q: "Which line clearly shows that even Roman soldiers have started perceiving Obelix as harmless?",
+  options: [
+    "The big, fat brute!",
+    "That human with Dogmatix!",
+    "It's the menhir delivery man.",
+    "All the above"
+  ],
+  correct: 2,
+  img: "https://raw.githubusercontent.com/andrewveda/asterix/refs/heads/main/Screenshot%202025-08-12%208.41.10%20PM.png"
+},
+{
+  q: "What can we learn about the power of perception from Obelix’s change?",
+  options: [
+    "People’s perception of you can change if you change how you act.",
+    "How people see you is very important for your success.",
+    "Your words and actions must match to build trust and respect.",
+    "All of the above."
+  ],
+  correct: 3,
+},
+{
+  q: "How do we know that the Gauls have been effectively colonized (defeated) by the Romans?",
+  options: [
+    "'Hands off' means don't touch or interfere — shows individual pursuit, not the collective fun they had earlier.",
+    "What was once an enjoyable hobby is now treated like work.",
+    "Everyone is now working against each other instead of together.",
+    "All of the above."
+  ],
+  correct: 3,
+  img: "https://raw.githubusercontent.com/andrewveda/asterix/refs/heads/main/Screenshot%202025-08-12%208.49.34%20PM.png"
+},
+{
+  q: "Which line is a complete betrayal of the old point of view?",
+  options: [
+    "'The menhir business has never had it so good.'",
+    "'Are you nuts or what?'",
+    "'Come and work for me, Asterix.'",
+    "'I'll be able to hunt boars again.'"
+  ],
+  correct: 2,
+  img: "https://raw.githubusercontent.com/andrewveda/asterix/refs/heads/main/Screenshot%202025-08-12%209.09.21%20PM.png"
+},
+{
+  q: "Why is the sentence 'It’s not the way for a man who’s doing so well to dress' effective in persuasion?",
+  options: [
+    "It uses subtle judgment instead of direct criticism, so the listener doesn’t feel attacked.",
+    "It creates social pressure by implying how successful people should behave and dress.",
+    "It appeals to the listener’s pride and desire to be seen as successful.",
+    "All of the above. Are you sure?"
+  ],
+  correct: 3,
+  img: "https://raw.githubusercontent.com/andrewveda/asterix/refs/heads/main/Screenshot%202025-08-12%209.16.48%20PM.png"
+},
+{
+  q: "Why does Preposterous start with hints but later become bold and direct with Obelix?",
+  options: [
+    "People resist big changes all at once, so small steps help them adjust gradually.",
+    "Baby steps - starting with small steps builds trust.",
+    "Small victories give confidence.",
+    "All these steps contribute to a change in behaviour."
+  ],
+  correct: 3,
+   img: "https://raw.githubusercontent.com/andrewveda/asterix/refs/heads/main/Screenshot%202025-08-12%209.23.21%20PM.png"
+},
+
+{
+  q: "Looking at Obelix dressed in extravagant clothes, what can we say?",
+  options: [
+    "HA HA HA! The transformation.",
+    "He he he is ",
+    "Ho ho ho complete!",
+    "You came straight here, didn't you?."
+  ],
+  correct: 3,
+   img:"https://raw.githubusercontent.com/andrewveda/asterix/refs/heads/main/Screenshot%202025-08-12%209.31.35%20PM.png"
+},
+{
+  q: "At the start of this comic, Preposterous showed that if you can’t beat your enemy, the next best move is to join them so as to be able to beat them effectively! What is happening in this strip?",
+  options: [
+    "Asterix is following the same technique of joining the enemy to gain power from within.",
+    "The Gauls are uniting as seen in the use of the pronoun 'OUR village'.",
+    "Despite not knowing all the rules, they are determined to be united to win.",
+    "All the above is true."
+  ],
+  correct: 3,
+   img:"https://raw.githubusercontent.com/andrewveda/asterix/refs/heads/main/Screenshot%202025-08-12%209.39.19%20PM.png"
+},
+{
+  q: "Identify all the slogans in this strip:",
+  options: [
+    "Best menhirs in the village",
+    "Specially matured menhirs",
+    "All the above"
+  ],
+  correct: 2,
+     img:"https://raw.githubusercontent.com/andrewveda/asterix/refs/heads/main/RCO032_1663947548.jpg"
+},
+{
+  q: "What is the allusion in this strip?",
+  options: [
+    "'Veni, vidi, vici' — 'I came, I saw, I conquered' said by Julius Caesar after winning a battle.",
+    "'Et tu, Brute?' — Julius Caesar’s last words as he was betrayed.",
+    "'Alea iacta est' — The die is cast, said by Caesar before crossing the Rubicon.",
+    "'Carpe diem' — Seize the day, a famous Latin phrase encouraging action."
+  ],
+  correct: 0,
+     img:"https://raw.githubusercontent.com/andrewveda/asterix/refs/heads/main/Screenshot%202025-08-12%209.56.30%20PM.png"
+},
+
+{
+  q: "What does the term 'strategy' mean?",
+  options: [
+    "In advertising, it’s the plan to influence the target audience to buy what we sell.",
+    "In war, it’s the plan to defeat the enemy to do what we say.",
+    "In presentations, it’s the plan to organize content and deliver it an audience to convince them of our POV.",
+    "All of the above."
+  ],
+  correct: 3,
+  img:"https://raw.githubusercontent.com/andrewveda/asterix/refs/heads/main/RCO036_1663947548.jpg"
+},
+{
+  q: "What does the term 'target' mean in advertising, war, and presentations?",
+  options: [
+    "In advertising, it’s the specific group of people you want to reach.",
+    "In war, it’s the enemy or objective you aim to defeat or capture.",
+    "In presentations, it’s the specific POV you want to influence or change.",
+    "All of the above."
+  ],
+  correct: 3,
+    img:"https://raw.githubusercontent.com/andrewveda/asterix/refs/heads/main/RCO036_1663947548.jpg"
+},
+{
+  q: "What does the term 'campaign' mean in the context of advertising, war, and presentations?",
+  options: [
+    "In advertising, it’s a planned series of 'attacks' to promote a product or idea.",
+    "In war, it’s a planned series of 'attacks' to achieve a goal.",
+    "In presentations, it’s a planned series of statements to deliver a POV.",
+    "All of the above."
+  ],
+  correct: 3,
+    img:"https://raw.githubusercontent.com/andrewveda/asterix/refs/heads/main/RCO036_1663947548.jpg"
+},
+{
+  q: "What is said in the first panel of this strip?",
+  options: [
+    "A sarcastic comment that nobody is selling useless products in the modern age.",
+    "A true comment about the start of modern technology.",
+    "An advertisement to sell a menhir.",
+    "All of the above. Should I even try?"
+  ],
+  correct: 0,
+img:"https://raw.githubusercontent.com/andrewveda/asterix/refs/heads/main/RCO037_1663947548.jpg"
+},
+{
+  q: "What do advertisers do to make us remember their advertisements?",
+  options: [
+    "Something useful.",
+    "Something that's fun.",
+    "Use intensive repetition.",
+    "All the above. Just for fun at this point."
+  ],
+  correct: 2,
+img:"https://raw.githubusercontent.com/andrewveda/asterix/refs/heads/main/RCO037_1663947548.jpg"
+},
+{
+q: "What is shown in this strip?",
+options: [
+"A Strategy",
+"A Slogan",
+"A Target",
+"A campaign"
+],
+correct: 3,
+img:"https://raw.githubusercontent.com/andrewveda/asterix/refs/heads/main/RCO038_1663947548.jpg"
+},
+{
+  q: "What does this advertisement 'Your dearest wish... a menhir!' NOT do?",
+  options: [
+    "Create desire for the product.",
+    "Make the menhir seem special and valuable.",
+    "Provide detailed technical information about the menhir.",
+    "Use emotional appeal to attract buyers."
+  ],
+  correct: 2,
+  img:"https://raw.githubusercontent.com/andrewveda/asterix/refs/heads/main/Screenshot%202025-08-12%2010.38.07%20PM.png"
+},
+{
+  q: "Why is this advertisement 'It's big. It's beautiful. It's a menhir.' effective?",
+  options: [
+    "It uses simple, clear language that's easy to remember.",
+    "It mentions attractive qualities in the same sentence structure.",
+    "The use of same sentence structure makes the audience associate 'menhir' with 'big' and 'beautiful'",
+    "All of the above."
+  ],
+  correct: 3,
+  img:"https://raw.githubusercontent.com/andrewveda/asterix/refs/heads/main/Screenshot%202025-08-12%2010.38.20%20PM.png"
+},
+{
+  q: "You may own a villa, a chariot, and slaves, but do you own a menhir? Which of the following reasons is NOT why this type of questions are effective in advertising?",
+  options: [
+    "It makes people feel like they’re missing something important.",
+    "It connects ownership to personal identity and status.",
+    "It tells people where to buy menhirs.",
+    "It creates a feeling of 'lacking in social prestige'."
+  ],
+  correct: 2,
+  img:"https://raw.githubusercontent.com/andrewveda/asterix/refs/heads/main/Screenshot%202025-08-12%2010.38.39%20PM.png"
+},
+{
+  q: "Why does the phrase 'It’s the right one, it’s not the light one, it’s a menhir' work like a catchy song lyric or jingle?",
+  options: [
+    "It has a memorable rhythm",
+    "Contrast makes it seem like an all-rounder ‘it's the right’ and 'it's not the light'",
+    "The rule of three makes it catchy",
+    "All of the above."
+  ],
+  correct: 3,  
+  img:"https://raw.githubusercontent.com/andrewveda/asterix/refs/heads/main/Screenshot%202025-08-12%2010.39.21%20PM.png"
+},
+{
+  q: "What is the main strategy behind using merchandise in advertising?",
+  options: [
+    "To create practical tools for everyday use",
+    "To establish brand identity and increase product visibility",
+    "To replace traditional advertising methods entirely",
+    "To serve as sacred religious relics"
+  ],
+  correct: 1,
+  img:"https://raw.githubusercontent.com/andrewveda/asterix/refs/heads/main/RCO038_1663947548.jpg"
+},
+{
+  q: "What is the framing technique used around menhirs in this campaign?",
+  options: [
+    "As sacred religious relics",
+    "As fashionable luxury status symbols",
+    "As building materials for temples",
+    "As practical household tools"
+  ],
+  correct: 1,
+  img:"https://raw.githubusercontent.com/andrewveda/asterix/refs/heads/main/RCO038_1663947548.jpg"
+},
+{
+  q: "In this campaign, how are menhirs framed?",
+  options: [
+    "Presenting them as a rare, prestigious item owned by the elite",
+    "Advertising their practical building uses",
+    "Selling them as cheap alternatives to Roman stone",
+    "Giving them away for free as promotions"
+  ],
+  correct: 0,
+    img:"https://raw.githubusercontent.com/andrewveda/asterix/refs/heads/main/RCO038_1663947548.jpg"
+},
+{
+  q: "In Meretricious' campaign, what is the framing technique around menhirs?",
+  options: [
+    "Presenting them as a rare, prestigious item owned by the elite",
+    "Advertising their practical building uses",
+    "Selling them as cheap alternatives to Gaulish menhirs",
+    "Giving them away for free as promotions"
+  ],
+  correct: 2,
+    img:"https://raw.githubusercontent.com/andrewveda/asterix/refs/heads/main/RCO039_1663947548.jpg"
+},
+{
+  q: "Which idiom best shows what Meretricious' campaign is centered on?",
+  options: [
+    "People are jumping on the menhir bandwagon",
+    "People look at advertisements once in a blue moon",
+    "People are reluctant to aim for the stars",
+    "All the above"
+  ],
+  correct: 0,
+    img:"https://raw.githubusercontent.com/andrewveda/asterix/refs/heads/main/RCO040_1663947548.jpg"
+},
+{
+  q: "Describe the audience in menhir advertising campaigns?",
+  options: [
+    "Young adults seeking trendy products",
+    "Elderly customers looking for practical tools",
+    "Collectors interested in sacred relics",
+    "Uninterested people having no idea what a menhir is and who have no use for it"
+  ],
+  correct: 3,
+img: "https://raw.githubusercontent.com/andrewveda/asterix/refs/heads/main/RCO041_1663947548.jpg"
+},
+{
+  q: "In this advertisment, what is the strategy?",
+  options: [
+    "Presenting them as a rare, prestigious item owned by the elite",
+    "Advertising their practical building uses",
+    "Selling them as cheap alternatives to Roman menhirs",
+    "Giving them away for free as promotions"
+  ],
+  correct: 2,
+    img:"https://raw.githubusercontent.com/andrewveda/asterix/refs/heads/main/Screenshot%202025-08-13%208.28.06%20AM.png"
+},
+{
+  q: "How can the 'free slaves with a menhir' offer teach presenters to improve their delivery?",
+  options: [
+    "By focusing on creating a clear call-to-action",
+    "By using complex technical details",
+    "By avoiding audience questions",
+    "By speaking in a monotone voice"
+  ],
+  correct: 0,
+    img:"https://raw.githubusercontent.com/andrewveda/asterix/refs/heads/main/Screenshot%202025-08-13%208.28.46%20AM.png"
+},
+{
+  q: "Which advertising strategy is employed in this panel?",
+  options: [
+    "Asking a question with an exotic appeal to create interest",
+    "Applying fear appeal to create urgency",
+    "Asking a question with celebrity endorsements to build trust",
+    "Using technical jargon to establish authority"
+  ],
+  correct: 0,
+img:"https://raw.githubusercontent.com/andrewveda/asterix/refs/heads/main/Screenshot%202025-08-13%208.29.01%20AM.png"
+},
+{
+  q: "In the Parable of the Mexican Fisherman, what do sufficiency and deficiency represent?",
+  options: [
+    "Fisherman = sufficiency (enough is enough); Businessman = deficiency (always wants more)",
+    "Fisherman = deficiency (wants less); Businessman = sufficiency (aims high)",
+    "Both show sufficiency by enjoying life",
+    "Sufficiency and deficiency don’t matter here"
+  ],
+  correct: 0,
+  img:"https://raw.githubusercontent.com/andrewveda/asterix/refs/heads/main/Screenshot%202025-08-13%208.43.57%20AM.png"
+},
+{
+  q: "Why does Obelix decide to come back to hunting boars?",
+  options: [
+    "He wants to impress the Romans with his skills",
+    "He believes hunting will earn him more money",
+    "He feels pressured by others to return",
+        "He has finally started critically thinking about what he really likes"
+  ],
+  correct: 3,
+  img:"https://raw.githubusercontent.com/andrewveda/asterix/refs/heads/main/RCO043_1663947548.jpg"
+},
+{
+  q: "What is the pun behind the name 'Asterix'?",
+  options: [
+    "It refers to an asterisk (*), a small star symbol, highlighting him as the 'star' hero",
+    "It means 'big rock' reflecting his strength",
+    "It is a Roman soldier’s name",
+    "It means 'fast runner' in Latin"
+  ],
+  correct: 0
+},
+{
+  q: "What does the name 'Obelix' refer to?",
+  options: [
+    "Obelix is a type of fish that help deliver menhirs",
+    "A Roman title",
+    "A Celtic god",
+    "Obelisk, a tall stone monument, relating to his job carrying menhirs"  
+  ],
+  correct: 3
+},
+{
+  q: "What does the name 'Cacofonix' (the bard) play on?",
+  options: [
+    "‘Cacophony,’ meaning harsh or unpleasant sound, reflecting his terrible singing",
+    "Euphony means pleasant sound",
+    "A Roman festival",
+    "A kind of dance"
+  ],
+  correct: 0
+},
+{
+  q: "What does 'Preposterous' mean?",
+  options: [
+    "Very serious and wise",
+    "Normal and expected",
+    "Calm and peaceful",
+        "Ridiculous or absurd"
+  ],
+  correct: 3
+}
+
+
+
+];
+
+    let current = 0;
+    let correctCount = 0;
+    let totalWrongGuesses = 0;
+    let startTime;
+    let timerInterval;
+    let playerName = "";
+    let guessesPerQuestion = [];
+
+    const questionEl = document.getElementById("question");
+    const optionsEl = document.getElementById("options");
+    const timerEl = document.getElementById("timer");
+    const wrongCounterEl = document.getElementById("wrongCounter");
+    const progressTracker = document.getElementById("progressTracker");
+    const scoreCard = document.getElementById("scoreCard");
+    const restartBtn = document.getElementById("restartBtn");
+
+    function beginQuiz() {
+      const nameField = document.getElementById("nameInput");
+      if (!nameField.value.trim()) {
+        alert("Please enter your name!");
+        return;
+      }
+      playerName = nameField.value.trim();
+      document.getElementById("nameForm").style.display = "none";
+      document.getElementById("quizContent").style.display = "block";
+      startQuiz();
+    }
+
+    function startQuiz() {
+      current = 0;
+      correctCount = 0;
+      totalWrongGuesses = 0;
+      guessesPerQuestion = [];
+      startTime = Date.now();
+      timerEl.innerText = "⏳ Time: 0s";
+      wrongCounterEl.innerText = `❌ Wrong Attempts: 0`;
+      scoreCard.innerHTML = "";
+      restartBtn.style.display = "none";
+      loadQuestion();
+      startTimer();
+    }
+function loadQuestion() {
+  if (current >= quizData.length) {
+    return showScore();
+  }
+  const data = quizData[current];
+  guessesPerQuestion[current] = 0;
+
+  let html = `${data.q}<br><br>`;
+  if (data.img) {
+    html += `<img src="${data.img}" alt="Question Image" style="max-width:100%; border-radius:10px;">`;
+  }
+  
+  questionEl.innerHTML = html;
+  progressTracker.innerText = `📍 Question ${current + 1} of ${quizData.length}`;
+  optionsEl.innerHTML = "";
+
+  data.options.forEach((option, index) => {
+    const btn = document.createElement("button");
+    btn.innerText = option;
+    const correctAnswerString = data.options[data.correct];
+    btn.onclick = () => handleAnswer(btn, correctAnswerString);
+    optionsEl.appendChild(btn);
+  });
+}
+    function handleAnswer(button, correctAnswer) {
+      guessesPerQuestion[current]++;
+      const isCorrect = button.innerText === correctAnswer;
+
+      if (isCorrect) {
+        correctCount++;
+        button.classList.add("correct");
+        setTimeout(() => {
+          current++;
+          loadQuestion();
+        }, 500);
+      } else {
+        totalWrongGuesses++;
+        wrongCounterEl.innerText = `❌ Wrong Attempts: ${totalWrongGuesses}`;
+        button.classList.add("wrong");
+        setTimeout(() => {
+          button.classList.remove("wrong");
+        }, 500);
+      }
+    }
+
+    function showScore() {
+      clearInterval(timerInterval);
+      const totalTime = Math.floor((Date.now() - startTime) / 1000);
+      questionEl.innerText = "🎉 Quiz Completed!";
+      optionsEl.innerHTML = "";
+      progressTracker.innerText = "";
+      scoreCard.innerHTML = `
+        <p>👤 Player: ${playerName}</p>
+        <p>✅ Correct Answers: ${correctCount} / ${quizData.length}</p>
+        <p>❌ Wrong Attempts: ${totalWrongGuesses}</p>
+        <p>⏱️ Time Taken: ${totalTime} seconds</p>
+        <p>📝 Guesses per Question: ${guessesPerQuestion.join(", ")}</p>
+      `;
+      restartBtn.style.display = "inline-block";
+
+      fetch("https://script.google.com/macros/s/AKfycbzUQqf6TgN2pN9I82YVUPJinvO4Qt3wBPP1UEjHylTjtQFkGau0CImeuOQ9gybtjulOeQ/exec", {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: playerName,
+          correct: correctCount,
+          wrong: totalWrongGuesses,
+          time: totalTime,
+          guesses: guessesPerQuestion // <-- send as an array, not a string
+        })
+      });
+    }
+
+    function startTimer() {
+      timerInterval = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - startTime) / 1000);
+        timerEl.innerText = `⏳ Time: ${elapsed}s`;
+      }, 1000);
+    }
+
+    restartBtn.onclick = () => {
+      document.getElementById("quizContent").style.display = "none";
+      document.getElementById("nameForm").style.display = "block";
+      document.getElementById("nameInput").value = "";
+    };
+  </script>
+</body>
+</html>

@@ -185,27 +185,23 @@
     /* Image display */
     #image-box {
       width: 100%;
-      aspect-ratio: 1 / 0.75;
       border-radius: 18px;
       overflow: hidden;
       border: 4px solid var(--wood-light);
       box-shadow: 0 8px 30px rgba(0,0,0,0.5), inset 0 0 0 2px rgba(255,255,255,0.1);
-      background: #111;
+      background: transparent;
+      display: flex;
+      justify-content: center;
+      align-items: center;
       position: relative;
     }
 
     #question-img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  background: black;  
-}
-
-
-    /* Placeholder canvas for when no real image */
-    #placeholder-canvas {
-      width: 100%;
-      height: 100%;
+      max-width: 100%;
+      max-height: 100%;
+      width: auto;
+      height: auto;
+      display: block;
     }
 
     /* Hint label */
@@ -653,104 +649,11 @@
       50% { transform: scale(1.25); filter: brightness(1.5); }
     }
 
-    /* Word label in image */
-    .word-tag {
-      font-family: 'Fredoka One', cursive;
-      font-size: 0.9rem;
-      color: white;
-      background: rgba(0,0,0,0.55);
-      padding: 3px 12px;
-      border-radius: 20px;
-      backdrop-filter: blur(4px);
-    }
-
     /* responsive */
     @media (max-width: 400px) {
       .letter-tile { width: 42px; height: 48px; font-size: 1.3rem; }
       .answer-slot { width: 40px; height: 46px; font-size: 1.3rem; }
     }
-    #image-box {
-  width: 100%;
-  aspect-ratio: 1 / 0.75;
-  border-radius: 18px;
-  overflow: hidden;
-  position: relative;
-
-  display: flex;              /* ADD THIS */
-  align-items: center;        /* ADD THIS */
-  justify-content: center;    /* ADD THIS */
-
-  background: #000;
-}
-#question-img {
-  width: 100%;
-  height: 100%;
-
-  object-fit: contain;        /* full image */
-  max-width: 100%;
-  max-height: 100%;
-
-  flex-shrink: 1;
-}
-    /* ─────────────────────────────────────────────
-   IMAGE BEHAVIOUR — UNIFORM IMAGE MODE
-   ───────────────────────────────────────────── */
-
-#image-box {
-  width: 100%;
-  border-radius: 18px;
-  overflow: hidden;
-  border: 4px solid var(--wood-light);
-  box-shadow: 0 8px 30px rgba(0,0,0,0.5),
-              inset 0 0 0 2px rgba(255,255,255,0.1);
-
-  background: transparent;   /* ✅ No black bars */
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-#question-img {
-  width: 100%;
-  height: auto;              /* ✅ Image defines height */
-  display: block;
-
-  border-radius: 12px;       /* ✨ Optional polish */
-}
-#question-img {
-  width: 100%;
-  height: auto;
-  border-radius: 12px;
-}
-/* ─────────────────────────────────────────────
-   IMAGE PERFECT FIT MODE
-   ───────────────────────────────────────────── */
-
-#image-box {
-  width: 100%;
-  border-radius: 18px;
-  overflow: hidden;
-  border: 4px solid var(--wood-light);
-  box-shadow: 0 8px 30px rgba(0,0,0,0.5),
-              inset 0 0 0 2px rgba(255,255,255,0.1);
-
-  background: transparent;
-
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-/* MAGIC PART */
-#question-img {
-  max-width: 100%;
-  max-height: 100%;
-
-  width: auto;
-  height: auto;
-
-  display: block;
-}
   </style>
 </head>
 <body>
@@ -832,14 +735,18 @@
 
   <!-- Score Screen -->
   <div id="score-screen">
-  <div class="score-portal">
-    <p style="font-family:'Fredoka One',cursive;font-size:1.6rem;color:#ffe082;">🏆 Apple!</p>
-    <p id="score-name" style="margin-top:8px;color:#ccc;font-size:0.95rem;"></p>
-    <button class="next-quest-btn" onclick="goToNextQuest()">🚀 Next Quest</button>
-  </div>
+    <div class="score-portal">
+      <p style="font-family:'Fredoka One',cursive;font-size:1.6rem;color:#ffe082;">🏆 Quest Complete!</p>
+      <p id="score-name" style="margin-top:8px;color:#ccc;font-size:0.95rem;"></p>
+      <p id="score-status" style="margin-top:6px;font-size:0.9rem;"></p>
+      <p id="score-gems" style="margin-top:6px;font-size:0.9rem;color:#00e5ff;"></p>
+      <p id="score-streak" style="margin-top:6px;font-size:0.9rem;color:#ffd600;"></p>
+      <p id="score-time" style="margin-top:6px;font-size:0.9rem;color:#80cbc4;"></p>
+      <button class="next-quest-btn" onclick="goToNextQuest()">🚀 Next Quest</button>
+    </div>
     <button id="restart-btn">🔄 Play Again</button>
-  
-</div>
+  </div>
+
 </div><!-- /game-wrapper -->
 
 <script>
@@ -853,7 +760,6 @@ const quizData = [
     letters: ["Q","A","I","E","K","L","Y","T","P","O","S","P"],
     image: "https://raw.githubusercontent.com/andrewveda/SRM-VEC-English-PWA/main/IMG-20260217-WA0027.jpg",
   }
-  
 ];
 
 // ─────────────────────────────────────────────
@@ -880,7 +786,7 @@ let totalSkips = 0;
 let skippedQuestions = [];
 
 // Slot state
-let slottedLetters = [];   // [{letter, tileEl, slotIdx}]
+let slottedLetters = [];
 let answerLength = 0;
 
 const NEXT_QUEST_URL = "https://andrewveda.github.io/SRM-VEC-English-PWA/semII/picsdraft";
@@ -940,63 +846,35 @@ document.getElementById('mute-btn').onclick = () => {
 };
 
 // ─────────────────────────────────────────────
-//  PLACEHOLDER CANVAS IMAGE
-// ─────────────────────────────────────────────
-function drawPlaceholder(data) {
-  const canvas = document.getElementById('placeholder-canvas');
-  const w = canvas.offsetWidth || 460;
-  const h = canvas.offsetHeight || 345;
-  canvas.width = w;
-  canvas.height = h;
-  const ctx = canvas.getContext('2d');
-
-  // 2×2 grid
-  const cw = w / 2, ch = h / 2;
-  const colors = data.placeholderColors;
-  const words = data.placeholderWords;
-
-  [[0,0],[1,0],[0,1],[1,1]].forEach(([col, row], i) => {
-    const x = col * cw, y = row * ch;
-    ctx.fillStyle = colors[i];
-    ctx.fillRect(x, y, cw, ch);
-
-    // Noise texture
-    for (let p = 0; p < 300; p++) {
-      ctx.fillStyle = `rgba(0,0,0,${Math.random()*0.08})`;
-      ctx.fillRect(x + Math.random()*cw, y + Math.random()*ch, 2, 2);
-    }
-
-    // Icon/word
-    ctx.fillStyle = 'rgba(255,255,255,0.92)';
-    ctx.font = `bold ${Math.floor(cw*0.18)}px Fredoka One, cursive`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.shadowColor = 'rgba(0,0,0,0.4)';
-    ctx.shadowBlur = 8;
-    ctx.fillText(words[i] || '?', x + cw/2, y + ch/2);
-    ctx.shadowBlur = 0;
-
-    // border
-    ctx.strokeStyle = 'rgba(0,0,0,0.2)';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(x, y, cw, ch);
-  });
-
-  // Dividing lines
-  ctx.strokeStyle = 'rgba(0,0,0,0.3)';
-  ctx.lineWidth = 4;
-  ctx.beginPath(); ctx.moveTo(w/2,0); ctx.lineTo(w/2,h); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(0,h/2); ctx.lineTo(w,h/2); ctx.stroke();
-}
-
-// ─────────────────────────────────────────────
 //  START FLOW
 // ─────────────────────────────────────────────
-// Autofill
+
+function startGame(name, dept) {
+  playerName = name; playerDept = dept;
+  try { localStorage.setItem('pName', name); localStorage.setItem('pDept', dept); } catch(e){}
+  document.getElementById('name-screen').style.display = 'none';
+  document.getElementById('game-board').style.display = 'flex';
+  document.getElementById('game-board').style.flexDirection = 'column';
+  document.getElementById('game-board').style.gap = '12px';
+  document.getElementById('header-bar').classList.remove('hidden');
+  initQuiz();
+}
+
+// ── Auto-skip name screen if localStorage has data ──
 try {
-  const sn = localStorage.getItem('pName'), sd = localStorage.getItem('pDept');
-  if (sn) document.getElementById('name-input').value = sn;
-  if (sd) document.getElementById('dept-select').value = sd;
+  const sn = localStorage.getItem('pName');
+  const sd = localStorage.getItem('pDept');
+  if (sn && sd) {
+    // Pre-fill the form (in case they use "Play Again")
+    document.getElementById('name-input').value = sn;
+    document.getElementById('dept-select').value = sd;
+    // Skip straight to the game
+    startGame(sn, sd);
+  } else {
+    // Partially pre-fill whatever we have
+    if (sn) document.getElementById('name-input').value = sn;
+    if (sd) document.getElementById('dept-select').value = sd;
+  }
 } catch(e) {}
 
 document.getElementById('start-btn').onclick = () => {
@@ -1004,20 +882,15 @@ document.getElementById('start-btn').onclick = () => {
   const d = document.getElementById('dept-select').value;
   if (!d) { alert('Please select your department!'); return; }
   if (!n) { alert('Please enter your name!'); return; }
-  playerName = n; playerDept = d;
-  try { localStorage.setItem('pName', n); localStorage.setItem('pDept', d); } catch(e){}
-  document.getElementById('name-screen').style.display = 'none';
-  document.getElementById('game-board').style.display = 'flex';
-  document.getElementById('game-board').style.flexDirection = 'column';
-  document.getElementById('game-board').style.gap = '12px';
-  document.getElementById('header-bar').classList.remove('hidden');
-  initQuiz();
+  startGame(n, d);
 };
 
 document.getElementById('restart-btn').onclick = () => {
   document.getElementById('score-screen').style.display = 'none';
   document.getElementById('name-screen').style.display = 'block';
   document.getElementById('header-bar').classList.add('hidden');
+  // Clear localStorage so the name screen shows next time too
+  try { localStorage.removeItem('pName'); localStorage.removeItem('pDept'); } catch(e){}
   document.getElementById('name-input').value = '';
   document.getElementById('dept-select').selectedIndex = 0;
 };
@@ -1065,7 +938,6 @@ function updateHeader() {
 //  LOAD QUESTION
 // ─────────────────────────────────────────────
 function loadQuestion() {
-  // Done with main round?
   if (!isRetryRound && current >= quizData.length) {
     questionsToRetry = quizData.map((_,i) => i).filter(i => firstAttemptCorrect[i] === false);
     if (questionsToRetry.length > 0) {
@@ -1082,7 +954,6 @@ function loadQuestion() {
     }
   }
 
-  // Done with retry round?
   if (isRetryRound && current >= questionsToRetry.length) {
     const still = questionsToRetry.filter(i => firstAttemptCorrect[i] === false);
     if (still.length > 0) {
@@ -1106,22 +977,18 @@ function loadQuestion() {
   if (!guessesPerQuestion[qIdx]) guessesPerQuestion[qIdx] = 0;
   if (!timePerQuestion[qIdx]) timePerQuestion[qIdx] = Date.now();
 
-  // Hide next btn, reveal, feedback
   document.getElementById('next-btn').style.display = 'none';
   document.getElementById('answer-reveal').classList.remove('show');
   document.getElementById('feedback-msg').textContent = '';
   document.getElementById('feedback-msg').className = '';
 
-  // Disable skip in retry round
   const skipBtn = document.getElementById('skip-btn');
   skipBtn.disabled = isRetryRound;
   skipBtn.title = isRetryRound ? 'Cannot skip in retry round' : 'Skip this question (-2 💎)';
 
-  // Draw image
   const img = document.getElementById("question-img"); img.src = data.image;
   document.getElementById('img-label').textContent = '🔤 ' + data.hint;
 
-  // Build answer slots
   const row = document.getElementById('answer-row');
   row.innerHTML = '';
   for (let i = 0; i < answerLength; i++) {
@@ -1132,7 +999,6 @@ function loadQuestion() {
     row.appendChild(slot);
   }
 
-  // Build letter tiles
   const pool = document.getElementById('letter-pool');
   pool.innerHTML = '';
   const shuffled = [...data.letters].sort(() => Math.random() - 0.5);
@@ -1166,18 +1032,15 @@ function placeLetter(tile, letter) {
   slot.classList.add('filled');
   slot.dataset.tileIdx = tile.dataset.tileIdx;
 
-  // Auto-check when all filled
   if (slottedLetters.length === answerLength) {
     setTimeout(checkAnswer, 200);
   }
 }
 
 function returnLetter(slotIdx) {
-  // Find if a letter occupies this slot
   const entry = slottedLetters.find(e => e.slotIdx === slotIdx);
   if (!entry) return;
 
-  // Remove all letters from this slot onward
   const removeFrom = slottedLetters.indexOf(entry);
   const removed = slottedLetters.splice(removeFrom);
   removed.forEach(e => {
@@ -1190,7 +1053,6 @@ function returnLetter(slotIdx) {
   });
 }
 
-// Clear all
 document.getElementById('clear-btn').onclick = () => {
   const all = [...slottedLetters];
   slottedLetters = [];
@@ -1208,7 +1070,6 @@ document.getElementById('clear-btn').onclick = () => {
 //  SKIP BUTTON
 // ─────────────────────────────────────────────
 document.getElementById('skip-btn').onclick = () => {
-  // No skipping in retry round
   if (isRetryRound) {
     showFeedback('⚠️ No skipping in retry round!', 'wrong-msg');
     setTimeout(() => { document.getElementById('feedback-msg').textContent = ''; }, 1500);
@@ -1218,25 +1079,20 @@ document.getElementById('skip-btn').onclick = () => {
   const qIdx = current;
   playSkip();
 
-  // Deduct 2 gems (can go negative)
   currentGems -= 2;
   totalSkips++;
   totalWrongClicks++;
 
-  // Mark as wrong first attempt (sends to retry)
   firstAttemptCorrect[qIdx] = false;
   skippedQuestions.push(qIdx);
 
-  // Reset streak
   currentStreak = 0;
 
-  // Flash the image orange + show stamp
   const flash = document.getElementById('skip-flash');
   const stamp = document.getElementById('skipped-stamp');
   flash.classList.add('show');
   stamp.classList.add('show');
 
-  // Clear slots visually
   const all = [...slottedLetters];
   slottedLetters = [];
   all.forEach(e => {
@@ -1249,7 +1105,6 @@ document.getElementById('skip-btn').onclick = () => {
   showFlyingGem(false, 2);
   updateHeader();
 
-  // After brief pause, move to next question
   setTimeout(() => {
     flash.classList.remove('show');
     stamp.classList.remove('show');
@@ -1273,7 +1128,6 @@ function checkAnswer() {
   const isCorrect = typed === data.answer;
 
   if (isCorrect) {
-    // Flash slots green
     const slots = document.querySelectorAll('.answer-slot');
     slots.forEach(s => s.classList.add('correct-flash'));
     playCorrect();
@@ -1293,33 +1147,26 @@ function checkAnswer() {
 
     showFeedback('✅ Correct!', 'correct-msg');
 
-    // Reveal answer on image
     document.getElementById('answer-reveal-text').textContent = data.answer;
     setTimeout(() => document.getElementById('answer-reveal').classList.add('show'), 400);
 
-    // Show next btn
     setTimeout(() => {
       document.getElementById('next-btn').style.display = 'block';
       updateHeader();
     }, 800);
 
   } else {
-    // Wrong
     if (currentQuestionFirstAttempt) {
       firstAttemptCorrect[qIdx] = false;
       currentQuestionFirstAttempt = false;
       totalWrongClicks++;
-      // Only increment total count on first wrong
-      if (!isRetryRound) {
-        totalQCount++;
-      }
+      if (!isRetryRound) { totalQCount++; }
     }
 
     playWrong();
     currentStreak = 0;
     showFlyingGem(false);
 
-    // Shake slots then clear
     const slots = document.querySelectorAll('.answer-slot');
     slots.forEach(s => { s.classList.add('shake'); setTimeout(() => s.classList.remove('shake'), 450); });
     showFeedback('❌ Try again!', 'wrong-msg');
@@ -1468,7 +1315,6 @@ function downloadPDFReport() {
   const totalTime = Math.floor((Date.now() - startTime) / 1000);
   const reportDate = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
 
-  // Header
   doc.setFillColor(25,25,60);
   doc.rect(0,0,210,50,'F');
   doc.setDrawColor(184,134,11); doc.setLineWidth(1);
@@ -1546,7 +1392,6 @@ function downloadPDFReport() {
     doc.line(20,y,190,y); y+=6;
   });
 
-  // Footer
   doc.setDrawColor(184,134,11); doc.setLineWidth(0.5); doc.line(20,280,190,280);
   doc.setFontSize(8); doc.setTextColor(128,128,128); doc.setFont('times','italic');
   doc.text('System-generated report — SRM VEC English Quest',105,287,{align:'center'});

@@ -376,6 +376,9 @@ canvas.fx { position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:no
 <canvas id="fireworkCanvas" class="fx"></canvas>
 <canvas id="confettiCanvas" class="fx"></canvas>
 
+<!-- Hidden canvas for stats image generation -->
+<canvas id="statsCanvas" style="display:none;"></canvas>
+
 <!-- SOLVED FLASH -->
 <div id="solvedFlash">
   <div class="solved-word" id="solvedWordText"></div>
@@ -599,6 +602,196 @@ function shuffleArray(arr){
 }
 
 /* ============================================================
+   STATS IMAGE GENERATION
+============================================================ */
+function generateStatsImage(s, playerName, playerDept) {
+  const canvas = document.getElementById('statsCanvas');
+  const ctx = canvas.getContext('2d');
+  
+  // Set canvas size
+  canvas.width = 1080;
+  canvas.height = 1350;
+  
+  // Background gradient
+  const bgGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+  bgGrad.addColorStop(0, '#080e1a');
+  bgGrad.addColorStop(1, '#0d1a2e');
+  ctx.fillStyle = bgGrad;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  // Grid pattern
+  ctx.strokeStyle = 'rgba(0, 198, 255, 0.03)';
+  ctx.lineWidth = 1;
+  for (let x = 0; x < canvas.width; x += 40) {
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, canvas.height);
+    ctx.stroke();
+  }
+  for (let y = 0; y < canvas.height; y += 40) {
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(canvas.width, y);
+    ctx.stroke();
+  }
+  
+  // Title
+  ctx.font = 'bold 80px Rajdhani, sans-serif';
+  const titleGrad = ctx.createLinearGradient(0, 0, canvas.width, 0);
+  titleGrad.addColorStop(0, '#00c6ff');
+  titleGrad.addColorStop(1, '#ffd700');
+  ctx.fillStyle = titleGrad;
+  ctx.textAlign = 'center';
+  ctx.fillText('⚡ WORDLE BLITZ', canvas.width / 2, 120);
+  
+  // Subtitle
+  ctx.font = '32px Nunito, sans-serif';
+  ctx.fillStyle = '#7a93b8';
+  ctx.fillText('5-MINUTE SPEED CHALLENGE', canvas.width / 2, 180);
+  
+  // Player info
+  if (playerName && playerDept) {
+    ctx.font = 'bold 40px Rajdhani, sans-serif';
+    ctx.fillStyle = '#ffd700';
+    ctx.fillText(`👤 ${playerName} · ${playerDept}`, canvas.width / 2, 250);
+  }
+  
+  // Main stats box
+  const boxY = 300;
+  ctx.fillStyle = 'rgba(13, 21, 37, 0.8)';
+  ctx.strokeStyle = 'rgba(0, 198, 255, 0.3)';
+  ctx.lineWidth = 3;
+  roundRect(ctx, 60, boxY, canvas.width - 120, 280, 20);
+  ctx.fill();
+  ctx.stroke();
+  
+  // Score
+  ctx.font = 'bold 120px Rajdhani, sans-serif';
+  ctx.fillStyle = '#ffd700';
+  ctx.fillText(s.score, canvas.width / 2, boxY + 130);
+  
+  ctx.font = '32px Nunito, sans-serif';
+  ctx.fillStyle = '#7a93b8';
+  ctx.fillText('TOTAL SCORE', canvas.width / 2, boxY + 175);
+  
+  // Sub stats
+  const subY = boxY + 230;
+  ctx.font = 'bold 48px Rajdhani, sans-serif';
+  ctx.fillStyle = '#00c6ff';
+  
+  ctx.fillText(s.wordsSolved, canvas.width / 2 - 250, subY);
+  ctx.fillText(s.failedCount, canvas.width / 2 + 250, subY);
+  
+  ctx.font = '20px Nunito, sans-serif';
+  ctx.fillStyle = '#7a93b8';
+  ctx.fillText('SOLVED', canvas.width / 2 - 250, subY + 35);
+  ctx.fillText('FAILED', canvas.width / 2 + 250, subY + 35);
+  
+  // Performance metrics
+  const metricsY = 640;
+  const metrics = [
+    { label: 'Perfect Solves', value: s.perfectSolves, emoji: '🎯' },
+    { label: 'Longest Streak', value: s.longestStreak, emoji: '🔥' },
+    { label: 'Fastest Solve', value: s.fastestSolveSec > 0 ? s.fastestSolveSec + 's' : 'N/A', emoji: '⚡' },
+    { label: 'Time Bonus', value: '+' + s.totalTimeBonus + 's', emoji: '⏰' },
+    { label: 'Avg Attempts', value: s.wordsSolved > 0 ? (s.totalAttempts / s.wordsSolved).toFixed(1) : 'N/A', emoji: '📊' },
+    { label: 'Time Played', value: Math.floor(s.timeSpent / 60) + 'm ' + (s.timeSpent % 60) + 's', emoji: '⏱️' }
+  ];
+  
+  const cols = 2;
+  const rows = Math.ceil(metrics.length / cols);
+  const metricBoxW = 450;
+  const metricBoxH = 120;
+  const gapX = 80;
+  const gapY = 30;
+  const startX = (canvas.width - (cols * metricBoxW + (cols - 1) * gapX)) / 2;
+  
+  metrics.forEach((m, i) => {
+    const col = i % cols;
+    const row = Math.floor(i / cols);
+    const x = startX + col * (metricBoxW + gapX);
+    const y = metricsY + row * (metricBoxH + gapY);
+    
+    // Metric box
+    ctx.fillStyle = 'rgba(17, 30, 48, 0.8)';
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+    ctx.lineWidth = 2;
+    roundRect(ctx, x, y, metricBoxW, metricBoxH, 15);
+    ctx.fill();
+    ctx.stroke();
+    
+    // Emoji
+    ctx.font = '40px sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText(m.emoji, x + 25, y + 65);
+    
+    // Value
+    ctx.font = 'bold 48px Rajdhani, sans-serif';
+    ctx.fillStyle = '#00c6ff';
+    ctx.textAlign = 'right';
+    ctx.fillText(String(m.value), x + metricBoxW - 25, y + 60);
+    
+    // Label
+    ctx.font = '18px Nunito, sans-serif';
+    ctx.fillStyle = '#7a93b8';
+    ctx.textAlign = 'right';
+    ctx.fillText(m.label.toUpperCase(), x + metricBoxW - 25, y + 90);
+  });
+  
+  // Word grids section
+  const gridsY = metricsY + rows * (metricBoxH + gapY) + 50;
+  ctx.font = '24px Nunito, sans-serif';
+  ctx.fillStyle = '#7a93b8';
+  ctx.textAlign = 'center';
+  ctx.fillText('SOLVED WORDS', canvas.width / 2, gridsY);
+  
+  // Display up to 5 words
+  const displayWords = s.solvedLog.filter(e => !e.failed).slice(0, 5);
+  displayWords.forEach((entry, i) => {
+    const wordY = gridsY + 50 + i * 65;
+    
+    ctx.font = 'bold 32px Rajdhani, sans-serif';
+    ctx.fillStyle = '#e8f0fe';
+    ctx.textAlign = 'left';
+    ctx.fillText(entry.word.toUpperCase(), 100, wordY);
+    
+    ctx.font = '28px monospace';
+    ctx.textAlign = 'center';
+    const gridLine = entry.grid.split('\n')[0];
+    ctx.fillText(gridLine, canvas.width / 2 + 50, wordY);
+    
+    ctx.font = 'bold 28px Rajdhani, sans-serif';
+    ctx.fillStyle = '#ffd700';
+    ctx.textAlign = 'right';
+    ctx.fillText('+' + entry.pts + ' pts', canvas.width - 100, wordY);
+  });
+  
+  // Footer
+  const footerY = canvas.height - 60;
+  ctx.font = '24px Nunito, sans-serif';
+  ctx.fillStyle = '#7a93b8';
+  ctx.textAlign = 'center';
+  ctx.fillText('Play at: andrewveda.github.io/SRM-VEC-English-PWA/buttons/wordle', canvas.width / 2, footerY);
+  
+  return canvas.toDataURL('image/png');
+}
+
+// Helper function for rounded rectangles
+function roundRect(ctx, x, y, width, height, radius) {
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.lineTo(x + width - radius, y);
+  ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+  ctx.lineTo(x + width, y + height - radius);
+  ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+  ctx.lineTo(x + radius, y + height);
+  ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+  ctx.lineTo(x, y + radius);
+  ctx.quadraticCurveTo(x, y, x + radius, y);
+  ctx.closePath();
+}
+
+/* ============================================================
    BOARD & KEYBOARD
 ============================================================ */
 function createBoard(){
@@ -691,7 +884,7 @@ function submitGuess(){
      evaluateGuess(currentInput);
   }catch(e){
      console.error("❌ submitGuess crash:", e);
-     accepting = true;   // ⭐ FAILSAFE UNLOCK
+     accepting = true;
   }
 
   currentInput = '';
@@ -778,7 +971,7 @@ function evaluateGuess(guess){
 
      }catch(e){
         console.error("❌ Post-eval crash:", e);
-        accepting = true;   // ⭐ FAILSAFE UNLOCK
+        accepting = true;
      }
   }, DONE);
 }
@@ -838,21 +1031,17 @@ function buildGrid(word, guessList){
    WORD SOLVED / FAILED
 ============================================================ */
 function onWordSolved(){
-   console.log("✅ onWordSolved TRIGGERED");
+  console.log("✅ onWordSolved TRIGGERED");
   console.log("✅ WORD SOLVED");
-console.log("Word:", currentWord);
-console.log("Guesses:", guesses);
-console.log("Tries:", guesses.length);
-
+  console.log("Word:", currentWord);
+  console.log("Guesses:", guesses);
+  console.log("Tries:", guesses.length);
 
   const elapsed = Math.round((Date.now() - wordStartTime) / 1000);
   const tries   = guesses.length;
 
-  /* ✅ STATS FIRST — CRITICAL FIX */
   totalAttempts += tries;
-
   if (tries === 1) perfectSolves++;
-
   fastestSolveSec = Math.min(fastestSolveSec, elapsed);
 
   const bonus = calcTimeBonus(tries);
@@ -860,23 +1049,22 @@ console.log("Tries:", guesses.length);
 
   currentStreak++;
   longestStreak = Math.max(longestStreak, currentStreak);
-console.log("📊 UPDATED STATS:");
-console.log("tries:", tries);
-console.log("elapsed:", elapsed);
-console.log("totalAttempts:", totalAttempts);
-console.log("perfectSolves:", perfectSolves);
-console.log("fastestSolveSec:", fastestSolveSec);
-console.log("totalTimeBonus:", totalTimeBonus);
-console.log("currentStreak:", currentStreak);
-console.log("longestStreak:", longestStreak);
-  /* ✅ SCORING */
-  const pts = calcScore(tries, elapsed);
 
+  console.log("📊 UPDATED STATS:");
+  console.log("tries:", tries);
+  console.log("elapsed:", elapsed);
+  console.log("totalAttempts:", totalAttempts);
+  console.log("perfectSolves:", perfectSolves);
+  console.log("fastestSolveSec:", fastestSolveSec);
+  console.log("totalTimeBonus:", totalTimeBonus);
+  console.log("currentStreak:", currentStreak);
+  console.log("longestStreak:", longestStreak);
+
+  const pts = calcScore(tries, elapsed);
   score += pts;
   wordsSolved++;
   wordAttempts += tries;
 
-  /* ✅ END SCREEN LOG */
   solvedLog.push({
     word: currentWord,
     guesses: [...guesses],
@@ -884,7 +1072,6 @@ console.log("longestStreak:", longestStreak);
     grid: buildGrid(currentWord, guesses)
   });
 
-  /* ✅ TILE JUMP */
   const row = document.getElementById('board').children[tries - 1];
   if(row){
     Array.from(row.children).forEach((t, i) =>
@@ -892,62 +1079,46 @@ console.log("longestStreak:", longestStreak);
     );
   }
 
-  /* ✅ TIME BONUS */
   if (bonus > 0) {
     timeLeft = Math.min(timeLeft + bonus, TOTAL_TIME);
     updateArc();
     showTimeBonusFlash('+' + bonus + 's');
   }
 
-  /* ✅ SCORE DISPLAY */
   document.getElementById('scoreVal').textContent = score;
   document.getElementById('wordsVal').textContent =
     wordsSolved + ' word' + (wordsSolved !== 1 ? 's' : '') + ' solved';
 
-  /* ✅ FIREWORKS */
   const board = document.getElementById('board');
   const br = board.getBoundingClientRect();
-
   launchFireworks(br.left + br.width / 2, br.top + br.height / 2);
   setTimeout(launchConfetti, 300);
 
-  /* ✅ SOLVED FLASH */
   flashSolved(currentWord.toUpperCase(), pts, bonus);
-
-  /* ✅ TRIVIA */
   setTimeout(showTrivia, 600);
-
-  /* ✅ NEXT WORD */
   setTimeout(nextWord, 1800);
 }
 
-
 function onWordFailed(){
-  // Show answer briefly then move on
   showHint('Answer: '+currentWord.toUpperCase());
   solvedLog.push({word:currentWord,guesses:[...guesses],pts:0,grid:buildGrid(currentWord,guesses),failed:true});
   setTimeout(()=>{showTrivia();setTimeout(nextWord,1600);},800);
-currentStreak = 0;
-totalAttempts += Math.max(1, guesses.length);
+  currentStreak = 0;
+  totalAttempts += Math.max(1, guesses.length);
 }
 
 function nextWord(){
-
   if(!gameActive || transitioning) return;
 
   transitioning = true;
   accepting = false;
 
   const boardEl = document.getElementById('board');
-
   boardEl.classList.add('slide-out');
 
   boardEl.addEventListener('animationend',()=>{
-
      try{
-
         boardEl.classList.remove('slide-out');
-
         guesses = [];
         currentInput = '';
 
@@ -956,27 +1127,24 @@ function nextWord(){
         renderKeyboard();
 
         boardEl.classList.add('slide-in');
-document.getElementById('wordNumVal').textContent =
-   wordsSolved + solvedLog.filter(e => e.failed).length + 1;
+        document.getElementById('wordNumVal').textContent =
+           wordsSolved + solvedLog.filter(e => e.failed).length + 1;
 
         boardEl.addEventListener('animationend',()=>{
            boardEl.classList.remove('slide-in');
            accepting = true;
-           transitioning = false;   // ⭐ RELEASE LOCK
+           transitioning = false;
         },{once:true});
 
      }catch(e){
         console.error("❌ Transition crash:", e);
         accepting = true;
-        transitioning = false;      // ⭐ FAILSAFE RELEASE
+        transitioning = false;
      }
-
   },{once:true});
 }
 
-
 function loadNextWord(){
-
   if(!WORDS.length){
      console.error("❌ loadNextWord → WORDS empty");
      accepting = true;
@@ -995,7 +1163,6 @@ function loadNextWord(){
   }
 
   wordStartTime = Date.now();
-
   document.getElementById('hint').textContent='';
 }
 
@@ -1054,31 +1221,24 @@ function updateArc(){
 }
 function formatTime(s){return Math.floor(s/60)+':'+(s%60<10?'0':'')+s%60;}
 function startTimer(){
-
   clearInterval(timerInterval);
-
   timerInterval = setInterval(()=>{
-
     if(!gameActive) return;
-
     timeLeft--;
     document.getElementById('timerText').textContent = formatTime(timeLeft);
     updateArc();
-
     if(timeLeft <= 0) endGame();
-
   },1000);
 }
 
-
 function startGame(){
- transitioning = false; 
+  transitioning = false; 
   totalAttempts = 0;
-perfectSolves = 0;
-fastestSolveSec = 999;
-totalTimeBonus = 0;
-longestStreak = 0;
-currentStreak = 0;
+  perfectSolves = 0;
+  fastestSolveSec = 999;
+  totalTimeBonus = 0;
+  longestStreak = 0;
+  currentStreak = 0;
 
   if(!WORDS.length){
      console.error("❌ startGame blocked → WORDS empty");
@@ -1117,38 +1277,35 @@ function endGame(){
   clearInterval(timerInterval);
   document.removeEventListener('keydown',keydownHandler);
 
- const failedCount = solvedLog.filter(e => e.failed).length;
-_frozenStats = {
-  score:             Number(score) || 0,
-  wordsSolved:       Number(wordsSolved) || 0,
-  wordAttempts:      Number(wordAttempts) || 0,
-  totalAttempts:     Number(totalAttempts) || 0,
-  perfectSolves:     Number(perfectSolves) || 0,
+  const failedCount = solvedLog.filter(e => e.failed).length;
+  _frozenStats = {
+    score:             Number(score) || 0,
+    wordsSolved:       Number(wordsSolved) || 0,
+    wordAttempts:      Number(wordAttempts) || 0,
+    totalAttempts:     Number(totalAttempts) || 0,
+    perfectSolves:     Number(perfectSolves) || 0,
+    fastestSolveSec:   fastestSolveSec === 999 ? 0 : Number(fastestSolveSec),
+    totalTimeBonus:    Number(totalTimeBonus) || 0,
+    longestStreak:     Number(longestStreak) || 0,
+    failedCount:       Number(failedCount) || 0,
+    timeSpent:         Number(TOTAL_TIME - timeLeft) || 0,
+    solvedLog:         [...solvedLog]
+  };
+  _frozenStats = Object.freeze(_frozenStats); 
+  setTimeout(showEndScreen, 600);
+}
 
-  /* ⭐ CRITICAL FIX */
-  fastestSolveSec:   fastestSolveSec === 999 ? 0 : Number(fastestSolveSec),
-
-  totalTimeBonus:    Number(totalTimeBonus) || 0,
-  longestStreak:     Number(longestStreak) || 0,
-  failedCount:       Number(failedCount) || 0,
-  timeSpent:         Number(TOTAL_TIME - timeLeft) || 0,
-
-  solvedLog:         [...solvedLog]
-};
-_frozenStats = Object.freeze(_frozenStats); 
-setTimeout(showEndScreen, 600);
-  }
 /* ============================================================
    END SCREEN
 ============================================================ */
 function showEndScreen(){
-  const s = _frozenStats;  // ← ADD THIS — local alias to frozen snapshot
+  const s = _frozenStats;
 
   document.getElementById('gameScreen').style.display='none';
   document.getElementById('endScreen').style.display='flex';
 
   let displayed=0;
-  const target = s.score;  // ← was: score (global)
+  const target = s.score;
   const step=Math.max(1,Math.ceil(target/40));
   const iv=setInterval(()=>{
     displayed=Math.min(displayed+step,target);
@@ -1156,8 +1313,8 @@ function showEndScreen(){
     if(displayed>=target)clearInterval(iv);
   },30);
 
-  document.getElementById('endWords').textContent = s.wordsSolved;  // ← was: wordsSolved
-  const avg = s.wordsSolved>0 ? (s.wordAttempts/s.wordsSolved).toFixed(1) : '–';  // ← was globals
+  document.getElementById('endWords').textContent = s.wordsSolved;
+  const avg = s.wordsSolved>0 ? (s.wordAttempts/s.wordsSolved).toFixed(1) : '–';
   document.getElementById('endAvg').textContent=avg;
 
   const titles=['⏱️ TIME\'S UP!','🔥 BLITZ DONE!','⚡ NICE RUN!'];
@@ -1165,7 +1322,7 @@ function showEndScreen(){
 
   const list=document.getElementById('wordsList'); list.innerHTML='';
   if(s.solvedLog.length===0){ list.innerHTML='<p style="color:var(--muted);text-align:center;padding:10px;">No words solved — try again!</p>'; }
-  s.solvedLog.forEach((entry,i)=>{  // ← was: solvedLog (global)
+  s.solvedLog.forEach((entry,i)=>{
     const div=document.createElement('div'); div.className='word-entry';
     div.style.animationDelay=(i*0.07)+'s';
     div.innerHTML=`<span class="we-word">${entry.word.toUpperCase()}</span><span class="we-grid">${entry.grid.split('\n')[0]}${entry.guesses.length>1?'…':''}</span><span class="we-pts">${entry.failed?'<span style="color:var(--danger)">✗</span>':'+'+entry.pts+' pts'}</span>`;
@@ -1183,23 +1340,23 @@ function showEndScreen(){
     badge.style.opacity=0; badge.style.transform="translateY(-4px)";
     setTimeout(()=>{ badge.textContent=`👤 ${storedName} · ${storedDept}`; badge.style.opacity=1; badge.style.transform="translateY(0)"; },180);
     document.getElementById('leaderboardText').textContent=`Score recorded for ${storedName}`;
-    submitScore(storedName, storedDept, s);  // ← 3 args now
+    submitScore(storedName, storedDept, s);
   } else {
     badge.textContent="👤 New Player";
     nameBox.style.display="block"; deptBox.style.display="block";
     nameBox.value=''; deptBox.value='';
     nameBox.focus();
-    nameBox.onchange = () => saveFallbackIdentity(s);  // ← pass s
-    deptBox.onchange = () => saveFallbackIdentity(s);  // ← pass s
+    nameBox.onchange = () => saveFallbackIdentity(s);
+    deptBox.onchange = () => saveFallbackIdentity(s);
   }
 
   launchFireworks(innerWidth/2,innerHeight/3);
   document.getElementById('playAgainBtn').onclick=startGame;
   document.getElementById('leaderboardBtn').onclick=()=>window.open('https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/leaderboard_live','_blank');
-  document.getElementById('shareBtn').onclick = () => shareOnWhatsApp(s);  // ← pass s
+  document.getElementById('shareBtn').onclick = () => shareOnWhatsApp(s, storedName, storedDept);
 }
-function saveFallbackIdentity(frozenStats){ 
 
+function saveFallbackIdentity(frozenStats){ 
    const name = document.getElementById('fallbackName').value.trim();
    const dept = document.getElementById('fallbackDept').value;
 
@@ -1212,7 +1369,6 @@ function saveFallbackIdentity(frozenStats){
    document.getElementById('fallbackDept').style.display = "none";
 
    const badge = document.getElementById('playerIdentity');
-
    badge.style.opacity = 0;
    badge.style.transform = "translateY(-4px)";
 
@@ -1222,31 +1378,23 @@ function saveFallbackIdentity(frozenStats){
       badge.style.transform = "translateY(0)";
    }, 180);
 
-   document.getElementById('leaderboardText').textContent =
-      `Score recorded for ${name}`;
-submitScore(name, dept, frozenStats);
-
+   document.getElementById('leaderboardText').textContent = `Score recorded for ${name}`;
+   submitScore(name, dept, frozenStats);
 }
 
 function submitScore(name, dept, s) {
-
   const payload = {
     student_name:      name,
     department:        dept,
-
     score:             Number(s.score),
     correct:           Number(s.wordsSolved),
     wrong:             Number(s.failedCount),
-
-    /* ⭐ KEY FIX */
     time_spent:        String(s.timeSpent),
-
     total_attempts:    Number(s.totalAttempts),
     perfect_solves:    Number(s.perfectSolves),
     fastest_solve_sec: Number(s.fastestSolveSec),
     total_time_bonus:  Number(s.totalTimeBonus),
     longest_streak:    Number(s.longestStreak),
-
     quest_id:          "Wordleblitz"
   };
 
@@ -1262,12 +1410,53 @@ function submitScore(name, dept, s) {
   .catch(e => console.error("❌ Submit failed:", e));
 }
 
-
-function shareOnWhatsApp(s){
-  const grids=s.solvedLog.filter(e=>!e.failed).map(e=>`${e.word.toUpperCase()}: ${e.grid.split('\n')[0]}`).join('\n');
-  const msg=`⚡ Wordle Blitz — I solved ${s.wordsSolved} words and scored ${s.score} pts in 5 minutes!\n\n${grids}\n\n🎯 Try it: https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/wordle`;
-  window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`,'_blank');
+function shareOnWhatsApp(s, playerName, playerDept){
+  // Generate stats image
+  const imageDataUrl = generateStatsImage(s, playerName, playerDept);
+  
+  // Convert data URL to blob
+  fetch(imageDataUrl)
+    .then(res => res.blob())
+    .then(blob => {
+      // Create a file from the blob
+      const file = new File([blob], 'wordle-blitz-stats.png', { type: 'image/png' });
+      
+      // Try to use Web Share API if available (works on mobile)
+      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+        const grids = s.solvedLog.filter(e => !e.failed).map(e => `${e.word.toUpperCase()}: ${e.grid.split('\n')[0]}`).join('\n');
+        const msg = `⚡ Wordle Blitz — I solved ${s.wordsSolved} words and scored ${s.score} pts in 5 minutes!\n\n${grids}\n\n🎯 Try it: https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/wordle`;
+        
+        navigator.share({
+          title: 'Wordle Blitz Stats',
+          text: msg,
+          files: [file]
+        }).catch(err => {
+          console.log('Share failed:', err);
+          fallbackShare(s);
+        });
+      } else {
+        // Fallback for desktop or browsers without Web Share API
+        fallbackShare(s);
+        
+        // Also download the image
+        const a = document.createElement('a');
+        a.href = imageDataUrl;
+        a.download = 'wordle-blitz-stats.png';
+        a.click();
+      }
+    })
+    .catch(err => {
+      console.error('Image generation failed:', err);
+      fallbackShare(s);
+    });
 }
+
+function fallbackShare(s) {
+  const grids = s.solvedLog.filter(e => !e.failed).map(e => `${e.word.toUpperCase()}: ${e.grid.split('\n')[0]}`).join('\n');
+  const msg = `⚡ Wordle Blitz — I solved ${s.wordsSolved} words and scored ${s.score} pts in 5 minutes!\n\n${grids}\n\n🎯 Try it: https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/wordle`;
+  window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+}
+
 /* ============================================================
    SKIP
 ============================================================ */
@@ -1277,7 +1466,6 @@ document.getElementById('skipBtn').onclick=()=>{
   solvedLog.push({word:currentWord,guesses:[...guesses],pts:0,grid:buildGrid(currentWord,guesses),failed:true});
   accepting=false;setTimeout(nextWord,700);
   currentStreak = 0;
-
 };
 
 /* ============================================================
@@ -1286,14 +1474,11 @@ document.getElementById('skipBtn').onclick=()=>{
 document.getElementById('startBtn').onclick=startGame;
 
 (async function init(){
-
   try{
-
     const r = await fetch(CSV_URL);
     const txt = await r.text();
-
     WORDS = parseCSV(txt);
-WORD_SET = new Set(WORDS);
+    WORD_SET = new Set(WORDS);
 
     if(!WORDS.length){
        startBtn.textContent = "⚠️ Word list failed";
@@ -1302,25 +1487,18 @@ WORD_SET = new Set(WORDS);
     }
 
     console.log("✅ WORDS loaded:", WORDS.length);
-
     startBtn.disabled = false;
     startBtn.textContent = "⚡ START BLITZ";
     startBtn.style.opacity = "1";
-
   }catch(e){
-
     console.error("❌ CSV LOAD FAILED:", e);
     startBtn.textContent = "⚠️ Load failed";
-
   }
-
 })();
 
 (function(){
-
   const box = document.createElement('div');
   box.id = 'debugConsole';
-
   box.style.position = 'fixed';
   box.style.bottom = '0';
   box.style.left = '0';
@@ -1335,7 +1513,6 @@ WORD_SET = new Set(WORDS);
   box.style.zIndex = '99999';
   box.style.borderTop = '2px solid #00c6ff';
   box.style.display = 'none';
-
   document.body.appendChild(box);
 
   const btn = document.createElement('div');
@@ -1351,11 +1528,9 @@ WORD_SET = new Set(WORDS);
   btn.style.fontWeight = 'bold';
   btn.style.zIndex = '100000';
   btn.style.cursor = 'pointer';
-
   btn.onclick = () => {
     box.style.display = box.style.display === 'none' ? 'block' : 'none';
   };
-
   document.body.appendChild(btn);
 
   function log(msg, isError=false){
@@ -1368,33 +1543,28 @@ WORD_SET = new Set(WORDS);
     box.scrollTop = box.scrollHeight;
   }
 
-  /* 🔴 Capture ALL JS errors */
   window.onerror = function(message, source, lineno, colno, error){
     log(`❌ ERROR: ${message}`, true);
     if(source) log(`📄 ${source}:${lineno}:${colno}`, true);
     if(error?.stack) log(error.stack, true);
   };
 
-  /* 🔴 Capture Promise / async crashes */
   window.addEventListener('unhandledrejection', function(event){
     log(`❌ PROMISE ERROR: ${event.reason}`, true);
     if(event.reason?.stack) log(event.reason.stack, true);
   });
 
-  /* 🟢 Optional: intercept console.log */
   const origLog = console.log;
   console.log = function(...args){
     origLog.apply(console, args);
     log('🟢 LOG: ' + args.join(' '));
   };
 
-  /* 🟠 Optional: intercept console.error */
   const origErr = console.error;
   console.error = function(...args){
     origErr.apply(console, args);
     log('❌ CONSOLE ERROR: ' + args.join(' '), true);
   };
-
 })();
 </script>
 </body>

@@ -1358,6 +1358,36 @@ body::before {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--gold);
 }
+/* ─── STUDENT STRIP ─── */
+.student-strip {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px 6px;
+  font-size: 0.65rem;
+  letter-spacing: 1.2px;
+  background: transparent;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.student-name {
+  font-family: 'Playfair Display', serif;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: 0.5px;
+  text-transform: none;
+}
+
+.student-divider {
+  opacity: 0.35;
+}
+
+.student-dept {
+  color: var(--gold);
+  letter-spacing: 1.5px;
+}
 
 </style>
 </head>
@@ -1525,6 +1555,8 @@ body::before {
         <span>📝 <span class="stat-num" id="statQuest">—</span></span>
         <span>🎥 <span class="stat-num" id="statVideo">—</span></span>
         <span>📚 <span class="stat-num" id="statStory">—</span></span>
+        <span>⏱ <span class="stat-num" id="statTime"></span></span>
+        
       </div>
       <div class="avatar-btn" id="avatarBtn" onclick="openDrawer()">?</div>
     </div>
@@ -1547,6 +1579,11 @@ body::before {
       <span class="ticker-item"><span class="dot"></span>VOCABULARY — LEARN EVERY DAY</span>
     </div>
   </div>
+<div class="student-strip" id="studentStrip">
+  <span class="student-name" id="studentName">—</span>
+  <span class="student-divider">•</span>
+  <span class="student-dept" id="studentDept">—</span>
+</div>
 
   <div class="main">
 
@@ -1571,6 +1608,11 @@ body::before {
               <span class="val" id="heroStory">—</span>
               <span class="lbl">Stories</span>
             </div>
+            <div class="hero-stat">
+  <span class="val" id="heroTime"></span>
+  <span class="lbl">Time</span>
+</div>
+
           </div>
         </div>
         <div class="hero-right">
@@ -1746,10 +1788,16 @@ async function init() {
 
 async function fetchInitialData(name) {
   try {
-    const [s, l] = await Promise.all([
-      supabase.from('summary_import').select('*'),
-      supabase.from('leaderboard').select('*')
-    ]);
+   const [s, l, timeRow] = await Promise.all([
+  supabase.from('summary_import').select('*'),
+  supabase.from('leaderboard').select('*'),
+  supabase
+    .from("report_card_view")
+    .select("total_time")
+    .ilike("name", name)
+    .maybeSingle()
+]);
+
     if (s.error) throw s.error;
     if (l.error) throw l.error;
 
@@ -1761,6 +1809,9 @@ async function fetchInitialData(name) {
 
     localStorage.setItem('cachedUserData', JSON.stringify(userData));
     localStorage.setItem('cachedProfileData', JSON.stringify(userProfileData));
+    const totalTime = timeRow.data?.total_time ?? 0;
+localStorage.setItem("cached_total_time", totalTime);
+
   } catch (err) {
     console.error('Error loading:', err);
     showConfirm('Could not load data. Check your connection and try again.', null, null, true);
@@ -1770,10 +1821,16 @@ async function fetchInitialData(name) {
 async function refreshData(name) {
   if (!name) return;
   try {
-    const [s, l] = await Promise.all([
-      supabase.from('summary_import').select('*'),
-      supabase.from('leaderboard').select('*')
-    ]);
+   const [s, l, timeRow] = await Promise.all([
+  supabase.from('summary_import').select('*'),
+  supabase.from('leaderboard').select('*'),
+  supabase
+    .from("report_card_view")
+    .select("total_time")
+    .ilike("name", name)
+    .maybeSingle()
+]);
+
     if (s.error || l.error) throw new Error('Fetch failed');
 
     const su = s.data.find(u => u.student_name && u.student_name.toUpperCase().includes(name.toUpperCase()));
@@ -1781,6 +1838,8 @@ async function refreshData(name) {
 
     const pu = l.data.find(u => u.Name && u.Name.trim().toLowerCase() === name.trim().toLowerCase());
     if (pu) { userProfileData = pu; localStorage.setItem('cachedProfileData', JSON.stringify(userProfileData)); }
+const totalTime = timeRow.data?.total_time ?? 0;
+localStorage.setItem("cached_total_time", totalTime);
 
     updateAllUI();
   } catch (err) {
@@ -1795,6 +1854,37 @@ function showApp() {
   document.getElementById('appShell').style.display = 'flex';
   updateAllUI();
 }
+function formatTime(seconds) {
+  if (!seconds && seconds !== 0) return `
+    <span class="time-block">
+      <span class="time-num">0</span><span class="time-unit h">h</span>
+    </span>
+    <span class="time-block">
+      <span class="time-num">0</span><span class="time-unit m">m</span>
+    </span>
+    <span class="time-block">
+      <span class="time-num">0</span><span class="time-unit s">s</span>
+    </span>
+  `;
+
+  seconds = Math.round(seconds);
+
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+
+  return `
+    <span class="time-block">
+      <span class="time-num">${h}</span><span class="time-unit h">h</span>
+    </span>
+    <span class="time-block">
+      <span class="time-num">${m}</span><span class="time-unit m">m</span>
+    </span>
+    <span class="time-block">
+      <span class="time-num">${s}</span><span class="time-unit s">s</span>
+    </span>
+  `;
+}
 
 function updateAllUI() {
   if (!userData && !userProfileData) return;
@@ -1807,6 +1897,12 @@ function updateAllUI() {
   document.getElementById('drawerName').textContent = name;
   document.getElementById('drawerDept').textContent = dept;
   document.getElementById('calUserLabel').textContent = name;
+  const stripName = document.getElementById("studentName");
+const stripDept = document.getElementById("studentDept");
+
+if (stripName) stripName.textContent = name;
+if (stripDept) stripDept.textContent = dept;
+
 
   const qc = parseList(userData?.quest_list).length;
   const vc = parseList(userData?.video_list).length;
@@ -1818,6 +1914,14 @@ function updateAllUI() {
   document.getElementById('heroQuest').textContent = qc;
   document.getElementById('heroVideo').textContent = vc;
   document.getElementById('heroStory').textContent = sc;
+  const totalTime = +localStorage.getItem("cached_total_time") || 0;
+
+const statTimeEl = document.getElementById("statTime");
+const heroTimeEl = document.getElementById("heroTime");
+
+if (statTimeEl) statTimeEl.innerHTML = formatTime(totalTime);
+if (heroTimeEl) heroTimeEl.innerHTML = formatTime(totalTime);
+
 
   // Build streak bar (last 14 quest days)
   buildStreakBar();

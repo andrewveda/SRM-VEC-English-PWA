@@ -1,0 +1,2122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SRM VEC English — Command Centre</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0a0a0f">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;900&family=DM+Mono:wght@300;400;500&family=Crimson+Pro:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --obsidian: #0a0a0f;
+  --deep: #111118;
+  --surface: #16161f;
+  --surface2: #1e1e2a;
+  --gold: #c9a84c;
+  --gold-light: #e8c97a;
+  --gold-dim: rgba(201,168,76,0.15);
+  --crimson: #7A0019;
+  --crimson-glow: rgba(122,0,25,0.3);
+  --text: #e8e4d9;
+  --text-muted: #8a8580;
+  --text-dim: #555060;
+  --green: #3a7d44;
+  --green-light: #4CAF50;
+  --border: rgba(201,168,76,0.18);
+  --border-dim: rgba(255,255,255,0.06);
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  font-family: 'DM Mono', monospace;
+  background: var(--obsidian);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ─── NOISE TEXTURE OVERLAY ─── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.035'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.6;
+}
+
+/* ─── AMBIENT BACKGROUND ─── */
+.ambient {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+.ambient::before {
+  content: '';
+  position: absolute;
+  top: -20%;
+  left: -10%;
+  width: 60vw;
+  height: 60vw;
+  background: radial-gradient(circle, rgba(122,0,25,0.08) 0%, transparent 70%);
+  animation: breathe 8s ease-in-out infinite;
+}
+.ambient::after {
+  content: '';
+  position: absolute;
+  bottom: -10%;
+  right: -10%;
+  width: 50vw;
+  height: 50vw;
+  background: radial-gradient(circle, rgba(201,168,76,0.06) 0%, transparent 70%);
+  animation: breathe 10s ease-in-out infinite reverse;
+}
+@keyframes breathe {
+  0%,100% { transform: scale(1); opacity: 0.5; }
+  50% { transform: scale(1.15); opacity: 1; }
+}
+
+/* ─── MAIN WRAPPER ─── */
+.app {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ─── TOP BAR ─── */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  background: rgba(10,10,15,0.85);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.topbar-brand {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.topbar-brand .org {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.52rem;
+  font-weight: 500;
+  letter-spacing: 2.5px;
+  color: var(--gold);
+  text-transform: uppercase;
+}
+
+.topbar-brand .dept {
+  font-family: 'Playfair Display', serif;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: 0.5px;
+}
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.stats-pill {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+.stats-pill:hover { border-color: var(--gold); }
+
+.stats-pill .stat-num {
+  color: var(--gold-light);
+  font-weight: 500;
+}
+
+.avatar-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--gold-dim);
+  border: 1.5px solid var(--gold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: all 0.2s;
+  color: var(--gold-light);
+  font-family: 'Playfair Display', serif;
+  font-weight: 700;
+}
+.avatar-btn:hover {
+  background: var(--gold);
+  color: var(--obsidian);
+}
+
+/* ─── STATUS TICKER ─── */
+.status-ticker {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border-dim);
+  padding: 6px 20px;
+  overflow: hidden;
+  position: relative;
+}
+
+.ticker-track {
+  display: flex;
+  gap: 60px;
+  animation: ticker 30s linear infinite;
+  white-space: nowrap;
+}
+
+.ticker-track:hover { animation-play-state: paused; }
+
+.ticker-item {
+  font-size: 0.6rem;
+  letter-spacing: 1.5px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ticker-item .dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--gold);
+  opacity: 0.5;
+}
+
+@keyframes ticker {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+/* ─── MAIN CONTENT ─── */
+.main {
+  flex: 1;
+  padding: 20px 16px 120px;
+  max-width: 600px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* ─── SECTION HEADER ─── */
+.section-label {
+  font-size: 0.55rem;
+  letter-spacing: 3px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  margin-bottom: 10px;
+  margin-top: 24px;
+  padding-left: 2px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.section-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border-dim);
+}
+
+/* ─── HERO MISSION TILE (Calendar) ─── */
+.hero-tile {
+  background: linear-gradient(135deg, var(--surface2) 0%, var(--surface) 100%);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 20px;
+  cursor: pointer;
+  transition: all 0.3s;
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 4px;
+}
+
+.hero-tile::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  opacity: 0.6;
+}
+
+.hero-tile:hover {
+  border-color: var(--gold);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.4), 0 0 0 1px var(--gold-dim);
+}
+
+.hero-tile-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.hero-left {}
+
+.hero-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.1;
+  margin-bottom: 4px;
+}
+
+.hero-sub {
+  font-size: 0.6rem;
+  letter-spacing: 2px;
+  color: var(--gold);
+  text-transform: uppercase;
+}
+
+.hero-meta {
+  margin-top: 12px;
+  display: flex;
+  gap: 16px;
+}
+
+.hero-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.hero-stat .val {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.4rem;
+  font-weight: 900;
+  color: var(--gold-light);
+  line-height: 1;
+}
+
+.hero-stat .lbl {
+  font-size: 0.52rem;
+  letter-spacing: 1.5px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+}
+
+.hero-right {
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.open-btn {
+  background: var(--gold);
+  color: var(--obsidian);
+  border: none;
+  border-radius: 10px;
+  padding: 10px 18px;
+  font-family: 'DM Mono', monospace;
+  font-size: 0.65rem;
+  font-weight: 500;
+  letter-spacing: 1px;
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.open-btn:hover {
+  background: var(--gold-light);
+  transform: scale(1.04);
+}
+
+/* Mini streak bar */
+.streak-bar {
+  display: flex;
+  gap: 3px;
+  margin-top: 14px;
+}
+
+.streak-day {
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--surface2);
+  transition: background 0.3s;
+}
+
+.streak-day.done { background: var(--gold); }
+.streak-day.missed { background: rgba(122,0,25,0.5); }
+.streak-day.today { background: var(--gold); box-shadow: 0 0 6px var(--gold); }
+
+/* ─── MISSION GRID ─── */
+.mission-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.mission-tile {
+  background: var(--surface);
+  border: 1px solid var(--border-dim);
+  border-radius: 14px;
+  padding: 16px 14px;
+  cursor: pointer;
+  transition: all 0.25s;
+  position: relative;
+  overflow: hidden;
+  text-decoration: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 90px;
+}
+
+.mission-tile::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.03), transparent);
+  pointer-events: none;
+}
+
+.mission-tile:hover {
+  transform: translateY(-3px);
+  border-color: var(--gold);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.35);
+}
+
+.mission-tile .tile-icon {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.mission-tile .tile-label {
+  font-family: 'Playfair Display', serif;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.2;
+}
+
+.mission-tile .tile-sub {
+  font-size: 0.55rem;
+  letter-spacing: 1.2px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+}
+
+/* Accent corners */
+.mission-tile.accent-gold { border-color: rgba(201,168,76,0.3); }
+.mission-tile.accent-red { border-color: rgba(122,0,25,0.4); }
+.mission-tile.accent-blue { border-color: rgba(33,150,243,0.25); }
+.mission-tile.accent-green { border-color: rgba(76,175,80,0.25); }
+.mission-tile.accent-purple { border-color: rgba(156,39,176,0.3); }
+
+.mission-tile.accent-gold:hover { border-color: var(--gold); box-shadow: 0 8px 25px rgba(201,168,76,0.1); }
+.mission-tile.accent-red:hover { border-color: #c0392b; box-shadow: 0 8px 25px rgba(122,0,25,0.15); }
+.mission-tile.accent-blue:hover { border-color: #2196F3; box-shadow: 0 8px 25px rgba(33,150,243,0.1); }
+.mission-tile.accent-green:hover { border-color: var(--green-light); box-shadow: 0 8px 25px rgba(76,175,80,0.1); }
+.mission-tile.accent-purple:hover { border-color: #9C27B0; box-shadow: 0 8px 25px rgba(156,39,176,0.1); }
+
+/* Full-width tile variant */
+.mission-tile.wide {
+  grid-column: span 2;
+  flex-direction: row;
+  align-items: center;
+  min-height: 64px;
+  gap: 12px;
+}
+
+.mission-tile.wide .tile-text { flex: 1; }
+
+/* ─── QUOTE STRIP ─── */
+.quote-strip {
+  background: var(--surface);
+  border: 1px solid var(--border-dim);
+  border-radius: 12px;
+  padding: 14px 16px;
+  font-family: 'Crimson Pro', serif;
+  font-style: italic;
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+  position: relative;
+  transition: opacity 0.8s ease;
+}
+
+.quote-strip::before {
+  content: '"';
+  position: absolute;
+  top: -8px;
+  left: 14px;
+  font-size: 2.5rem;
+  color: var(--gold);
+  line-height: 1;
+  font-family: 'Playfair Display', serif;
+  opacity: 0.6;
+}
+
+.quote-attr {
+  margin-top: 6px;
+  font-size: 0.58rem;
+  letter-spacing: 1.5px;
+  color: var(--gold);
+  font-style: normal;
+  font-family: 'DM Mono', monospace;
+  text-transform: uppercase;
+}
+
+/* ─── LOGIN SCREEN ─── */
+.login-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10,10,15,0.95);
+  backdrop-filter: blur(20px);
+}
+
+.login-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 36px 28px;
+  width: 90%;
+  max-width: 400px;
+  position: relative;
+  overflow: hidden;
+}
+
+.login-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--crimson), var(--gold), var(--crimson));
+}
+
+.login-card .card-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 4px;
+  text-align: center;
+}
+
+.login-card .card-org {
+  font-size: 0.6rem;
+  letter-spacing: 2px;
+  color: var(--gold);
+  text-align: center;
+  text-transform: uppercase;
+  margin-bottom: 28px;
+}
+
+.field-group {
+  margin-bottom: 14px;
+}
+
+.field-group label {
+  display: block;
+  font-size: 0.58rem;
+  letter-spacing: 2px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.field-group input,
+.field-group select {
+  width: 100%;
+  background: var(--deep);
+  border: 1px solid var(--border-dim);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-family: 'DM Mono', monospace;
+  font-size: 0.85rem;
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.2s;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.field-group select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23c9a84c' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 36px;
+  cursor: pointer;
+}
+
+.field-group select option {
+  background: var(--surface2);
+  color: var(--text);
+}
+
+.field-group input:focus,
+.field-group select:focus {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px var(--gold-dim);
+}
+
+.login-btn {
+  width: 100%;
+  background: var(--gold);
+  color: var(--obsidian);
+  border: none;
+  border-radius: 10px;
+  padding: 14px;
+  font-family: 'DM Mono', monospace;
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: 8px;
+}
+
+.login-btn:hover {
+  background: var(--gold-light);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(201,168,76,0.25);
+}
+
+.login-quick-links {
+  margin-top: 20px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.quick-link-btn {
+  background: var(--deep);
+  border: 1px solid var(--border-dim);
+  border-radius: 10px;
+  padding: 10px 8px;
+  font-family: 'DM Mono', monospace;
+  font-size: 0.6rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+  text-decoration: none;
+  display: block;
+  letter-spacing: 0.5px;
+}
+
+.quick-link-btn:hover {
+  border-color: var(--gold);
+  color: var(--gold-light);
+}
+
+/* ─── CALENDAR OVERLAY ─── */
+.cal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 400;
+  background: rgba(10,10,15,0.97);
+  backdrop-filter: blur(20px);
+  display: none;
+  flex-direction: column;
+}
+
+.cal-overlay.open { display: flex; }
+
+.cal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  flex-shrink: 0;
+}
+
+.cal-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cal-header-left .cal-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.cal-header-left .cal-user {
+  font-size: 0.58rem;
+  letter-spacing: 1.5px;
+  color: var(--gold);
+  text-transform: uppercase;
+}
+
+.cal-close {
+  background: var(--surface2);
+  border: 1px solid var(--border-dim);
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 1.1rem;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.cal-close:hover {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+.cal-type-tabs {
+  display: flex;
+  gap: 8px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-dim);
+  flex-shrink: 0;
+  background: var(--deep);
+}
+
+.type-tab {
+  flex: 1;
+  padding: 9px 6px;
+  background: var(--surface);
+  border: 1px solid var(--border-dim);
+  border-radius: 10px;
+  font-family: 'DM Mono', monospace;
+  font-size: 0.62rem;
+  letter-spacing: 1px;
+  color: var(--text-muted);
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: all 0.2s;
+  text-align: center;
+}
+
+.type-tab.active {
+  background: var(--gold-dim);
+  border-color: var(--gold);
+  color: var(--gold-light);
+}
+
+.type-tab:hover:not(.active) {
+  border-color: var(--border);
+  color: var(--text);
+}
+
+.cal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+}
+
+.cal-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.cal-nav-btn {
+  background: var(--surface);
+  border: 1px solid var(--border-dim);
+  border-radius: 8px;
+  padding: 8px 14px;
+  color: var(--text-muted);
+  font-family: 'DM Mono', monospace;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.cal-nav-btn:hover {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+.cal-month-label {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.cal-dow {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  margin-bottom: 6px;
+  text-align: center;
+}
+
+.cal-dow div {
+  font-size: 0.55rem;
+  letter-spacing: 1.5px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  padding: 4px 0;
+}
+
+.cal-days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.cal-day {
+  aspect-ratio: 1;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid transparent;
+  font-family: 'DM Mono', monospace;
+  position: relative;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.cal-day:hover:not(.disabled) {
+  transform: scale(1.08);
+  z-index: 1;
+}
+
+.cal-day.disabled {
+  opacity: 0.2;
+  cursor: default;
+}
+
+.cal-day.done {
+  background: linear-gradient(135deg, rgba(58,125,68,0.3), rgba(76,175,80,0.15));
+  border-color: rgba(76,175,80,0.4);
+  color: #81c784;
+}
+
+.cal-day.done::after {
+  content: '🔥';
+  font-size: 0.5rem;
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+}
+
+.cal-day.missed {
+  background: rgba(122,0,25,0.1);
+  border-color: rgba(122,0,25,0.2);
+  color: rgba(220,80,80,0.6);
+}
+
+.cal-day.today-available {
+  border-color: var(--gold);
+  color: var(--gold-light);
+  background: var(--gold-dim);
+  font-weight: 500;
+  box-shadow: 0 0 10px rgba(201,168,76,0.15);
+}
+
+.cal-day.future {
+  background: var(--surface);
+  color: var(--text-dim);
+  border-color: var(--border-dim);
+}
+
+/* ─── DRAWER ─── */
+.drawer-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 300;
+  display: none;
+  backdrop-filter: blur(4px);
+}
+.drawer-overlay.open { display: block; }
+
+.drawer {
+  position: fixed;
+  top: 0;
+  right: -340px;
+  width: 320px;
+  max-width: 90vw;
+  height: 100%;
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  z-index: 310;
+  transition: right 0.3s ease;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.drawer.open { right: 0; }
+
+.drawer-top {
+  padding: 20px;
+  border-bottom: 1px solid var(--border-dim);
+  background: var(--deep);
+}
+
+.drawer-name {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 2px;
+}
+
+.drawer-dept {
+  font-size: 0.58rem;
+  letter-spacing: 1.5px;
+  color: var(--gold);
+  text-transform: uppercase;
+}
+
+.drawer-body { padding: 16px; flex: 1; }
+
+.drawer-section-title {
+  font-size: 0.55rem;
+  letter-spacing: 2.5px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  margin-bottom: 10px;
+  margin-top: 16px;
+}
+
+.drawer-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border-dim);
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 0.75rem;
+  margin-bottom: 6px;
+  transition: all 0.2s;
+  background: var(--deep);
+}
+
+.drawer-link:hover {
+  border-color: var(--gold);
+  color: var(--gold-light);
+  background: var(--gold-dim);
+}
+
+.drawer-link .dl-icon { font-size: 0.9rem; }
+
+.drawer-footer {
+  padding: 16px;
+  border-top: 1px solid var(--border-dim);
+}
+
+.logout-btn {
+  width: 100%;
+  background: rgba(122,0,25,0.15);
+  border: 1px solid rgba(122,0,25,0.3);
+  border-radius: 10px;
+  padding: 11px;
+  color: rgba(220,80,80,0.8);
+  font-family: 'DM Mono', monospace;
+  font-size: 0.68rem;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.logout-btn:hover {
+  background: rgba(122,0,25,0.3);
+  border-color: rgba(220,80,80,0.5);
+  color: #ff6b6b;
+}
+
+/* ─── OFFLINE BANNER ─── */
+.offline-banner {
+  background: rgba(255,152,0,0.15);
+  border-bottom: 1px solid rgba(255,152,0,0.3);
+  padding: 8px 16px;
+  text-align: center;
+  font-size: 0.65rem;
+  letter-spacing: 1px;
+  color: #ffb74d;
+  text-transform: uppercase;
+  display: none;
+}
+.offline-banner.show { display: block; }
+
+/* ─── CONFIRM MODAL ─── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 600;
+  background: rgba(0,0,0,0.7);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(8px);
+}
+.modal-overlay.show { display: flex; }
+
+.modal-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 28px;
+  width: 90%;
+  max-width: 360px;
+  text-align: center;
+}
+
+.modal-box p {
+  font-family: 'Crimson Pro', serif;
+  font-size: 1.05rem;
+  color: var(--text);
+  line-height: 1.5;
+  margin-bottom: 24px;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.modal-btn {
+  flex: 1;
+  padding: 11px;
+  border-radius: 10px;
+  border: none;
+  font-family: 'DM Mono', monospace;
+  font-size: 0.68rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.modal-cancel {
+  background: var(--surface2);
+  color: var(--text-muted);
+  border: 1px solid var(--border-dim);
+}
+.modal-cancel:hover { color: var(--text); }
+
+.modal-confirm {
+  background: rgba(122,0,25,0.2);
+  border: 1px solid rgba(122,0,25,0.4);
+  color: #ff6b6b;
+}
+.modal-confirm:hover { background: rgba(122,0,25,0.4); }
+
+/* ─── LOADING ─── */
+.loading-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 700;
+  background: var(--obsidian);
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+}
+.loading-screen.show { display: flex; }
+
+.loader-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.loader-ring {
+  width: 44px;
+  height: 44px;
+  border: 2px solid var(--border-dim);
+  border-top-color: var(--gold);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.loader-credit {
+  font-size: 0.6rem;
+  letter-spacing: 1.5px;
+  color: var(--text-dim);
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.loader-credit a {
+  color: var(--gold);
+  text-decoration: none;
+}
+
+/* ─── FOOTER ─── */
+.footer {
+  text-align: center;
+  padding: 12px;
+  font-size: 0.58rem;
+  letter-spacing: 1px;
+  color: var(--text-dim);
+}
+
+.footer a { color: var(--gold); text-decoration: none; }
+
+/* ─── SCROLLBAR ─── */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: var(--gold); }
+
+/* ─── MOBILE ADJUST ─── */
+@media (max-width: 380px) {
+  .mission-grid { grid-template-columns: 1fr 1fr; }
+  .hero-title { font-size: 1.3rem; }
+  .stats-pill { display: none; }
+}
+  :root {
+  --obsidian: #ffffff;
+  --deep: #faf7f2;
+  --surface: #ffffff;
+  --surface2: #f5efe6;
+
+  --gold: #c9a84c;
+  --gold-light: #e8c97a;
+  --gold-dim: rgba(201,168,76,0.12);
+
+  --crimson: #7A0019;
+  --crimson-glow: rgba(122,0,25,0.12);
+
+  --text: #2a2a2a;
+  --text-muted: #7a766f;
+  --text-dim: #b0a99f;
+
+  --green: #3a7d44;
+  --green-light: #4CAF50;
+
+  --border: rgba(201,168,76,0.35);
+  --border-dim: rgba(0,0,0,0.06);
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  font-family: 'DM Mono', monospace;
+  background: var(--obsidian);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ─── NOISE TEXTURE ─── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.015'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.35;
+}
+
+/* ─── AMBIENT GOLD GLOW ─── */
+.ambient {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+.ambient::before {
+  content:'';
+  position:absolute;
+  top:-20%;
+  left:-10%;
+  width:60vw;
+  height:60vw;
+  background: radial-gradient(circle, rgba(201,168,76,0.08), transparent 70%);
+  animation:breathe 10s ease-in-out infinite;
+}
+.ambient::after {
+  content:'';
+  position:absolute;
+  bottom:-10%;
+  right:-10%;
+  width:50vw;
+  height:50vw;
+  background: radial-gradient(circle, rgba(201,168,76,0.05), transparent 70%);
+  animation:breathe 12s ease-in-out infinite reverse;
+}
+
+@keyframes breathe {
+  0%,100% { transform: scale(1); opacity: 0.4; }
+  50% { transform: scale(1.15); opacity: 1; }
+}
+
+/* ─── MAIN WRAPPER ─── */
+.app {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ─── TOP BAR ─── */
+.topbar {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:14px 20px;
+  background: rgba(255,255,255,0.85);
+  backdrop-filter: blur(18px);
+  border-bottom: 1px solid var(--border-dim);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.topbar-brand .org {
+  font-size:0.52rem;
+  letter-spacing:2.5px;
+  color: var(--gold);
+  text-transform: uppercase;
+}
+
+.topbar-brand .dept {
+  font-family:'Playfair Display', serif;
+  font-size:1rem;
+  font-weight:700;
+  color:#1f1f1f;
+}
+
+.stats-pill {
+  background: var(--surface);
+  border: 1px solid var(--border-dim);
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  transition: all 0.2s;
+}
+.stats-pill:hover {
+  border-color: var(--gold);
+  box-shadow: 0 4px 15px rgba(201,168,76,0.18);
+}
+
+.stat-num { color: var(--gold); }
+
+.avatar-btn {
+  background: var(--gold-dim);
+  border: 1.5px solid var(--gold);
+  color: var(--gold);
+}
+.avatar-btn:hover {
+  background: linear-gradient(135deg, var(--gold), var(--gold-light));
+  color: white;
+}
+
+/* ─── HERO TILE ─── */
+.hero-tile {
+  background: linear-gradient(145deg, #ffffff, #f8f2e8);
+  border: 1px solid var(--border-dim);
+  border-radius: 16px;
+  transition: all 0.3s;
+}
+
+.hero-tile:hover {
+  border-color: var(--gold);
+  box-shadow: 0 12px 35px rgba(201,168,76,0.18);
+}
+
+.hero-title {
+  font-family:'Playfair Display', serif;
+  color:#1f1f1f;
+}
+
+.hero-sub { color: var(--gold); }
+
+.hero-stat .val { color: var(--gold); }
+.hero-stat .lbl { color: var(--text-dim); }
+
+/* ─── BUTTONS ─── */
+.open-btn,
+.login-btn {
+  background: linear-gradient(135deg, var(--gold), var(--gold-light));
+  color: white;
+  box-shadow: 0 4px 12px rgba(201,168,76,0.25);
+}
+
+.open-btn:hover,
+.login-btn:hover {
+  filter: brightness(1.05);
+  box-shadow: 0 6px 18px rgba(201,168,76,0.35);
+}
+
+/* ─── MISSION TILES ─── */
+.mission-tile {
+  background: linear-gradient(145deg, #ffffff, #f8f2e8);
+  border: 1px solid var(--border-dim);
+}
+
+.mission-tile:hover {
+  border-color: var(--gold);
+  box-shadow: 0 10px 30px rgba(201,168,76,0.12);
+}
+
+/* ─── QUOTE STRIP ─── */
+.quote-strip {
+  background: linear-gradient(145deg, #ffffff, #f6efe5);
+  border: 1px solid var(--border-dim);
+  color: var(--text-muted);
+}
+
+.quote-strip::before {
+  color: var(--gold);
+}
+
+/* ─── CALENDAR ─── */
+.cal-overlay {
+  background: rgba(255,255,255,0.96);
+}
+
+.cal-day.done {
+  background: linear-gradient(135deg, rgba(201,168,76,0.22), rgba(201,168,76,0.08));
+  border-color: rgba(201,168,76,0.45);
+  color: #9c7b2f;
+}
+
+.cal-day.missed {
+  background: rgba(122,0,25,0.05);
+  color: rgba(122,0,25,0.45);
+}
+
+.cal-day.today-available {
+  background: var(--gold-dim);
+  border-color: var(--gold);
+  box-shadow: 0 0 12px rgba(201,168,76,0.35);
+}
+
+/* ─── DRAWER ─── */
+.drawer {
+  background: linear-gradient(145deg, #ffffff, #f7f1e7);
+  box-shadow: -8px 0 30px rgba(0,0,0,0.06);
+}
+
+/* ─── MODALS ─── */
+.modal-box,
+.login-card {
+  background: linear-gradient(145deg, #ffffff, #f8f2e8);
+  border: 1px solid var(--border-dim);
+  box-shadow: 0 12px 35px rgba(0,0,0,0.08);
+}
+
+/* ─── SCROLLBAR ─── */
+::-webkit-scrollbar-thumb {
+  background: rgba(201,168,76,0.35);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--gold);
+}
+
+</style>
+</head>
+<body>
+
+<div class="ambient"></div>
+
+<!-- ─── LOADING ─── -->
+<div class="loading-screen" id="loadingScreen">
+  <div class="loader-ring"></div>
+  <p class="loader-title">Initialising Mission Control</p>
+  <p class="loader-credit">
+    Created with ♥ by <a href="https://andrewveda.github.io/" target="_blank">Andrew Veda</a><br>
+    SRM Valliammai Engineering College
+  </p>
+</div>
+
+<!-- ─── CONFIRM MODAL ─── -->
+<div class="modal-overlay" id="confirmModal">
+  <div class="modal-box">
+    <p id="modalMsg">Are you sure?</p>
+    <div class="modal-actions">
+      <button class="modal-btn modal-cancel" id="modalCancel">Cancel</button>
+      <button class="modal-btn modal-confirm" id="modalConfirm">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── LOGIN OVERLAY ─── -->
+<div class="login-overlay" id="loginOverlay">
+  <div class="login-card">
+    <h1 class="card-title">English Dept</h1>
+    <p class="card-org">SRM Valliammai Engineering College</p>
+
+    <div class="field-group">
+      <label>Your Name</label>
+      <input type="text" id="nameInput" placeholder="Enter your name…">
+    </div>
+
+    <div class="field-group">
+      <label>Department</label>
+      <select id="deptSelect">
+        <option value="">-- Select Department --</option>
+      <option value="Guest">Guest</option>
+      <option value="Cyber Security">Cyber Security</option>
+      <option value="EIE">EIE</option>
+      <option value="CSE-1">CSE-1</option>
+      <option value="CSE-2">CSE-2</option>
+      <option value="CSE-3">CSE-3</option>
+      <option value="Mechanical Engineering">Mechanical Engineering</option>
+      <option value="ECE-1">ECE-1</option>
+      <option value="ECE-2">ECE-2</option>
+      <option value="ECE-3">ECE-3</option>
+      <option value="AI DS-1">AI DS-1</option>
+      <option value="AI DS-2">AI DS-2</option>
+      <option value="Agri and Civil">Agri and Civil</option>
+      <option value="EEE">EEE</option>
+      <option value="Medical Electronics">Medical Electronics</option>
+      <option value="IT-1">IT-1</option>
+      <option value="IT-2">IT-2</option>
+        </select>
+    </div>
+
+    <button class="login-btn" onclick="saveAndLogin()">Enter Command Centre →</button>
+
+    <div class="login-quick-links">
+      <a class="quick-link-btn" href="https://sites.google.com/view/srm-vec-english/daily-vocabulary">📚 Vocabulary</a>
+      <a class="quick-link-btn" href="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/leaderboard">😎 Leaderboard</a>
+      <a class="quick-link-btn" href="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/fun">👽 Wordle!</a>
+      <a class="quick-link-btn" href="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/ELLL.html">📝 ELLL Record</a>
+    </div>
+  </div>
+</div>
+
+<!-- ─── CALENDAR OVERLAY ─── -->
+<div class="cal-overlay" id="calOverlay">
+  <div class="cal-header">
+    <div class="cal-header-left">
+      <span class="cal-title">Quest Calendar</span>
+      <span class="cal-user" id="calUserLabel">—</span>
+    </div>
+    <button class="cal-close" onclick="closeCalendar()">✕</button>
+  </div>
+
+  <div id="offlineBanner" class="offline-banner">📡 Offline — syncing when back online</div>
+
+  <div class="cal-type-tabs">
+    <button class="type-tab active" onclick="switchType('quest',this)">📝 Quests</button>
+    <button class="type-tab" onclick="switchType('video',this)">🎥 Videos</button>
+    <button class="type-tab" onclick="switchType('story',this)">📚 Stories</button>
+  </div>
+
+  <div class="cal-body">
+    <div class="cal-nav">
+      <button class="cal-nav-btn" onclick="changeMonth(-1)">◀</button>
+      <span class="cal-month-label" id="calMonthLabel"></span>
+      <button class="cal-nav-btn" onclick="changeMonth(1)">▶</button>
+    </div>
+
+    <div class="cal-dow">
+      <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div>
+      <div>Thu</div><div>Fri</div><div>Sat</div>
+    </div>
+
+    <div class="cal-days" id="calDays"></div>
+
+    <div class="footer" style="margin-top:24px;">
+      Created with ♥ by <a href="https://andrewveda.github.io/" target="_blank">Andrew Veda</a> · SRM VEC
+    </div>
+  </div>
+</div>
+
+<!-- ─── PROFILE DRAWER ─── -->
+<div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-top">
+    <div class="drawer-name" id="drawerName">—</div>
+    <div class="drawer-dept" id="drawerDept">—</div>
+  </div>
+
+  <div class="drawer-body">
+    <div class="drawer-section-title">Quick Links</div>
+
+    <a class="drawer-link" href="https://sites.google.com/view/srm-vec-english/daily-vocabulary">
+      <span class="dl-icon">📚</span> Daily Vocabulary
+    </a>
+    <a class="drawer-link" href="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/brochure1">
+      <span class="dl-icon">🎯</span> Mystic Summit
+    </a>
+    <a class="drawer-link" href="https://andrewveda.github.io/videoquest">
+      <span class="dl-icon">🎥</span> Video Quests
+    </a>
+    <a class="drawer-link" href="https://andrewveda.github.io/SRM-VEC-English-PWA/directory">
+      <span class="dl-icon">🗺</span> Quest Directory
+    </a>
+    <a class="drawer-link" href="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/leaderboard">
+      <span class="dl-icon">😎</span> Leaderboard
+    </a>
+    <a class="drawer-link" href="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/ELLL.html">
+      <span class="dl-icon">📝</span> ELLL Record
+    </a>
+    <a class="drawer-link" href="https://andrewveda.github.io/a-quote-a-day/">
+      <span class="dl-icon">💬</span> A Quote a Day
+    </a>
+    <a class="drawer-link" href="https://andrewveda.github.io/cryptic/">
+      <span class="dl-icon">🔍</span> Cryptic Crossword
+    </a>
+  </div>
+
+  <div class="drawer-footer">
+    <button class="logout-btn" onclick="logout()">🚪 Logout</button>
+  </div>
+</div>
+
+<!-- ─── MAIN APP ─── -->
+<div class="app" id="appShell" style="display:none;">
+
+  <div class="topbar">
+    <div class="topbar-brand">
+      <span class="org">SRM Valliammai Engg. College</span>
+      <span class="dept">Dept. of English</span>
+    </div>
+    <div class="topbar-right">
+      <div class="stats-pill" onclick="openCalendar()" title="View Calendar">
+        <span>📝 <span class="stat-num" id="statQuest">—</span></span>
+        <span>🎥 <span class="stat-num" id="statVideo">—</span></span>
+        <span>📚 <span class="stat-num" id="statStory">—</span></span>
+      </div>
+      <div class="avatar-btn" id="avatarBtn" onclick="openDrawer()">?</div>
+    </div>
+  </div>
+
+  <!-- Ticker -->
+  <div class="status-ticker">
+    <div class="ticker-track" id="tickerTrack">
+      <span class="ticker-item"><span class="dot"></span>QUEST — REACH FOR THE STARS</span>
+      <span class="ticker-item"><span class="dot"></span>VIDEOS — IMMERSE AND GROW</span>
+      <span class="ticker-item"><span class="dot"></span>WORDLE — PLAY DAILY</span>
+      <span class="ticker-item"><span class="dot"></span>LEADERBOARD — VENI VIDI VICI</span>
+      <span class="ticker-item"><span class="dot"></span>CRYPTIC — SOLVE THE MYSTERY</span>
+      <span class="ticker-item"><span class="dot"></span>VOCABULARY — LEARN EVERY DAY</span>
+      <span class="ticker-item"><span class="dot"></span>QUEST — REACH FOR THE STARS</span>
+      <span class="ticker-item"><span class="dot"></span>VIDEOS — IMMERSE AND GROW</span>
+      <span class="ticker-item"><span class="dot"></span>WORDLE — PLAY DAILY</span>
+      <span class="ticker-item"><span class="dot"></span>LEADERBOARD — VENI VIDI VICI</span>
+      <span class="ticker-item"><span class="dot"></span>CRYPTIC — SOLVE THE MYSTERY</span>
+      <span class="ticker-item"><span class="dot"></span>VOCABULARY — LEARN EVERY DAY</span>
+    </div>
+  </div>
+
+  <div class="main">
+
+    <!-- Hero Calendar Tile -->
+    <div class="section-label">Your Progress</div>
+
+    <div class="hero-tile" onclick="openCalendar()">
+      <div class="hero-tile-inner">
+        <div class="hero-left">
+          <div class="hero-title">Quest<br>Calendar</div>
+          <div class="hero-sub">Track every day</div>
+          <div class="hero-meta">
+            <div class="hero-stat">
+              <span class="val" id="heroQuest">—</span>
+              <span class="lbl">Quests</span>
+            </div>
+            <div class="hero-stat">
+              <span class="val" id="heroVideo">—</span>
+              <span class="lbl">Videos</span>
+            </div>
+            <div class="hero-stat">
+              <span class="val" id="heroStory">—</span>
+              <span class="lbl">Stories</span>
+            </div>
+          </div>
+        </div>
+        <div class="hero-right">
+          <button class="open-btn">Open ↗</button>
+        </div>
+      </div>
+      <div class="streak-bar" id="streakBar"></div>
+    </div>
+
+    <!-- Mission Tiles -->
+    <div class="section-label">Missions</div>
+
+    <div class="mission-grid">
+
+      <a class="mission-tile accent-gold" href="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/leaderboard_live">
+        <span class="tile-icon">🏆</span>
+        <div class="tile-label">Leaderboard</div>
+        <div class="tile-sub">Veni Vidi Vici</div>
+      </a>
+
+      <a class="mission-tile accent-red" href="https://andrewveda.github.io/SRM-VEC-English-PWA/cat-a">
+        <span class="tile-icon">🔥</span>
+        <div class="tile-label">Quest Directory</div>
+        <div class="tile-sub">All Missions</div>
+      </a>
+
+      <a class="mission-tile accent-blue" href="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/videoquests">
+        <span class="tile-icon">🎥</span>
+        <div class="tile-label">Video Quests</div>
+        <div class="tile-sub">Songs & Ideas</div>
+      </a>
+
+      <a class="mission-tile accent-green" href="https://sites.google.com/view/srm-vec-english/daily-vocabulary">
+        <span class="tile-icon">📚</span>
+        <div class="tile-label">Vocabulary</div>
+        <div class="tile-sub">Daily Words</div>
+      </a>
+
+      <a class="mission-tile accent-purple" href="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/wordle">
+        <span class="tile-icon">🟩</span>
+        <div class="tile-label">Wordle!</div>
+        <div class="tile-sub">Word Puzzle</div>
+      </a>
+
+      <a class="mission-tile" href="https://andrewveda.github.io/cryptic/">
+        <span class="tile-icon">🔍</span>
+        <div class="tile-label">Cryptic</div>
+        <div class="tile-sub">221B Case</div>
+      </a>
+
+      <a class="mission-tile wide accent-gold" href="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/brochure1">
+        <span class="tile-icon" style="font-size:1.4rem;">🎯</span>
+        <div class="tile-text">
+          <div class="tile-label">Mystic Summit</div>
+          <div class="tile-sub">Register Now</div>
+        </div>
+        <span style="color:var(--gold); font-size:0.8rem; margin-left:auto;">→</span>
+      </a>
+
+      <a class="mission-tile wide" href="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/ELLL.html">
+        <span class="tile-icon" style="font-size:1.4rem;">📝</span>
+        <div class="tile-text">
+          <div class="tile-label">ELLL Virtual Record</div>
+          <div class="tile-sub">Your learning log</div>
+        </div>
+        <span style="color:var(--text-dim); font-size:0.8rem; margin-left:auto;">→</span>
+      </a>
+
+      <a class="mission-tile wide" href="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/leaderboard_dept">
+        <span class="tile-icon" style="font-size:1.4rem;">🌐</span>
+        <div class="tile-text">
+          <div class="tile-label">Mission Control</div>
+          <div class="tile-sub">Dept. analytics</div>
+        </div>
+        <span style="color:var(--text-dim); font-size:0.8rem; margin-left:auto;">→</span>
+      </a>
+
+      <a class="mission-tile wide" href="https://andrewveda.github.io/a-quote-a-day/">
+        <span class="tile-icon" style="font-size:1.4rem;">💬</span>
+        <div class="tile-text">
+          <div class="tile-label">A Quote a Day</div>
+          <div class="tile-sub">Wisdom, daily</div>
+        </div>
+        <span style="color:var(--text-dim); font-size:0.8rem; margin-left:auto;">→</span>
+      </a>
+
+    </div>
+
+    <!-- Quote strip -->
+    <div class="section-label" style="margin-top:20px;">Today's Thought</div>
+    <div class="quote-strip" id="quoteStrip">
+      <div id="quoteText">Ever tried. Ever failed. No matter. Try again. Fail again. Fail better.</div>
+      <div class="quote-attr" id="quoteAttr">Samuel Beckett</div>
+    </div>
+
+    <div class="footer" style="margin-top:20px;">
+      Created with ♥ by <a href="https://andrewveda.github.io/" target="_blank">Andrew Veda</a> · SRM Valliammai Engineering College
+    </div>
+
+  </div>
+</div>
+
+<script type="module">
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+// ─── GLOBAL RESET ───
+const RESET_VERSION = "2025-11-29-v1";
+if (localStorage.getItem("RESET_VERSION") !== RESET_VERSION) {
+  localStorage.removeItem("cachedProfileData");
+  localStorage.removeItem("cachedUserData");
+  localStorage.removeItem("userName");
+  localStorage.removeItem("userDept");
+  localStorage.removeItem("pendingSync");
+  localStorage.setItem("RESET_VERSION", RESET_VERSION);
+}
+
+const supabase = createClient(
+  "https://ahezssoczvpbkteffcgz.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoZXpzc29jenZwYmt0ZWZmY2d6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI4NTk1ODUsImV4cCI6MjA3ODQzNTU4NX0.2ZlqXnZxv0opkhynAT7OlK4S-xPygcc7ETUyTXRfGHE"
+);
+
+// ─── STATE ───
+let userData = null;
+let userProfileData = null;
+let sessionStartTime = Date.now();
+let currentMonth = new Date().getMonth();
+let currentYear = new Date().getFullYear();
+let currentType = 'quest';
+const startDate = new Date(2025, 7, 25);
+
+// ─── QUEST LINKS (unchanged from original) ───
+const questLinks = {
+  1:"https://andrewveda.github.io/SRM-VEC-English-PWA/quests/quest1",2:"https://sites.google.com/view/srm-vec-english/quest/wh-questions-1",3:"https://sites.google.com/view/cys-english/self-introduction-1",4:"https://sites.google.com/view/srm-vec-english/quest/one-word-substitution-1",5:"https://sites.google.com/view/cys-english/self-introduction-3",6:"https://sites.google.com/view/srm-vec-english/quest/film-review",7:"https://sites.google.com/view/srm-vec-english/quest/pronouns-1",8:"https://sites.google.com/view/srm-vec-english/quest/pronouns-2",9:"https://sites.google.com/view/srm-vec-english/quest/parts-of-speech-1",10:"https://sites.google.com/view/srm-vec-english/quest/question-tags-1",11:"https://sites.google.com/view/srm-vec-english/quest/question-tags-2",12:"https://sites.google.com/view/srm-vec-english/quest/subject-verb-agreement",13:"https://sites.google.com/view/srm-vec-english/quest/comparative-1",14:"https://sites.google.com/view/srm-vec-english/quest/comparative-2",15:"https://sites.google.com/view/srm-vec-english/quest/discourse-markers",16:"https://sites.google.com/view/srm-vec-english/quest/past-1",17:"https://sites.google.com/view/cys-english/questyesno1",18:"https://sites.google.com/view/srm-vec-english/quest/yesno-2",19:"https://sites.google.com/view/srm-vec-english/quest/one-word-substitution-2",20:"https://sites.google.com/view/cys-english/match1",21:"https://sites.google.com/view/cys-english/match2",22:"https://sites.google.com/view/cys-english/past",23:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/MCQ/Homophone1",24:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/MCQ/Homophone2",25:"https://sites.google.com/view/cys-english/comparisons1",26:"https://sites.google.com/view/cys-english/comparisons2",27:"https://sites.google.com/view/cys-english/discoursemarkers",28:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/MCQ/article1",29:"https://sites.google.com/view/cys-english/synonym1",30:"https://sites.google.com/view/cys-english/synonym2",31:"https://sites.google.com/view/cys-english/antonym1",32:"https://sites.google.com/view/cys-english/antonym2",33:"https://sites.google.com/view/cys-english/prep1",34:"https://sites.google.com/view/cys-english/prep2",35:"https://sites.google.com/view/cys-english/past2",36:"https://sites.google.com/view/cys-english/prep3",37:"https://sites.google.com/view/cys-english/match3",38:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/MCQ/article2",39:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/MCQ/article3",40:"https://sites.google.com/view/cys-english/quest40",41:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/MCQ/present1",42:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/MCQ/tense1",43:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/MCQ/tense2",44:"https://sites.google.com/view/cys-english/quest44",45:"https://sites.google.com/view/cys-english/quest45",46:"https://sites.google.com/view/cys-english/quest46",47:"https://sites.google.com/view/cys-english/quest47",48:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/MCQ/collocation1",49:"https://sites.google.com/view/cys-english/quest49",50:"https://sites.google.com/view/cys-english/quest50",51:"https://sites.google.com/view/cys-english/quest51",52:"https://sites.google.com/view/cys-english/quest52",53:"https://sites.google.com/view/cys-english/quest53",54:"https://sites.google.com/view/cys-english/quest54",55:"https://sites.google.com/view/cys-english/quest55",56:"https://sites.google.com/view/cys-english/quest56",57:"https://sites.google.com/view/cys-english/quest57",58:"https://sites.google.com/view/cys-english/quest58",59:"https://sites.google.com/view/cys-english/quest59",60:"https://sites.google.com/view/cys-english/quest60",61:"https://sites.google.com/view/cys-english/quest61",62:"https://sites.google.com/view/cys-english/quest62",63:"https://sites.google.com/view/cys-english/full-streak-wh-questions",64:"https://sites.google.com/view/cys-english/full-streak-single-word",65:"https://sites.google.com/view/cys-english/full-streak-3",66:"https://sites.google.com/view/cys-english/full-streak-4",67:"https://sites.google.com/view/cys-english/full-streak-5",68:"https://sites.google.com/view/cys-english/full-streak-6",69:"https://sites.google.com/view/cys-english/full-streak-7",70:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/bookreview1",71:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/bookreview2",72:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/bookreview3",73:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/bookreview4",74:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/blog1",75:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/blog2",76:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/blog3",77:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/blog4",78:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/blog5",79:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/blog6",80:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/blog7",81:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/blog8",82:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/blog9",83:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/blog10",84:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/blog11",85:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/blog12",86:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/blog13",87:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/blog14",88:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/blog15",89:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/blog16",90:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/blog17",91:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/blog18",92:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/instructions1",93:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/instructions2",94:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/expandcompoundnoun",95:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/report1",96:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/report2",97:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/report3",98:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/report4",99:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/report5",100:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/report6",101:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/report7",102:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/MCQ/questions1",103:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/MCQ/negative",104:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/MCQ/compound",105:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/MCQ/compound2",106:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/MCQ/punctuation1",107:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/MCQ/punctuation2",108:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/MCQ/functionwords1",109:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/MCQ/functionwords2",110:"https://andrewveda.github.io/3/Pygmalion",111:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/videoqueststed",112:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/videoquestspodcast",113:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/invention1",114:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/invention2",115:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/invention3",116:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/invention4",117:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/invention5",118:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/invention6",119:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/invention7",120:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/MCQ/tensematch1",121:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/MCQ/tensematch2",122:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/MCQ/tensematch3",123:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/MCQ/tensematch4",124:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/MCQ/tensematch5",125:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/MCQ/tensematch6",126:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/MCQ/t4",127:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/MCQ/t3",128:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/MCQ/t2negquesprestense",129:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/MCQ/homophonearticles",130:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/Quotes1",131:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/quotes2",132:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/MCQ/idiom1",133:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/MCQ/idiom2",134:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/MCQ/idiom3",135:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/MCQ/idiom4",171:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/verb",172:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/prep",173:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/3",174:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/4",175:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/5",176:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/6",177:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/7",178:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/8",179:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/9",180:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/10",181:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/11",182:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/12",183:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/13",184:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/14",185:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/15"
+};
+const videoLink = "https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/videoquests";
+const storyLinks = {69:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story1",70:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story2",71:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story3",72:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story4",73:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story5",74:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story6",75:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story7",76:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story8",77:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story9",78:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story10",79:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story11",80:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story12",81:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story13",82:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story14",83:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story15",84:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story16",85:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story17",86:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story18",87:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story19",88:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story20",89:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story21",90:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story22",91:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story23",92:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story24",93:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story25",94:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story26",95:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story27",96:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story28",97:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story29",98:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story30",99:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story31"};
+
+// ─── QUOTES ───
+const quotes = [
+  { text: "Ever tried. Ever failed. No matter. Try again. Fail again. Fail better.", attr: "Samuel Beckett" },
+  { text: "Do or do not. There is no try.", attr: "Yoda" },
+  { text: "The opposite of a profound truth may well be another profound truth.", attr: "Niels Bohr" },
+  { text: "The opposite of a good idea is another good idea.", attr: "Rory Sutherland" },
+  { text: "Language is the road map of a culture. It tells you where its people come from and where they are going.", attr: "Rita Mae Brown" },
+  { text: "One language sets you in a corridor for life. Two languages open every door along the way.", attr: "Frank Smith" }
+];
+
+// ─── INIT ───
+async function init() {
+  setupEventListeners();
+  setupQuoteCarousel();
+  checkOnlineStatus();
+
+  const savedName = localStorage.getItem('userName');
+  if (savedName) {
+    const cachedUser = localStorage.getItem('cachedUserData');
+    const cachedProfile = localStorage.getItem('cachedProfileData');
+    if (cachedUser && cachedProfile) {
+      userData = JSON.parse(cachedUser);
+      userProfileData = JSON.parse(cachedProfile);
+      showApp();
+      refreshData(savedName);
+    } else {
+      document.getElementById('loadingScreen').classList.add('show');
+      await fetchInitialData(savedName);
+      document.getElementById('loadingScreen').classList.remove('show');
+      showApp();
+    }
+  } else {
+    document.getElementById('loginOverlay').style.display = 'flex';
+  }
+}
+
+async function fetchInitialData(name) {
+  try {
+    const [s, l] = await Promise.all([
+      supabase.from('summary_import').select('*'),
+      supabase.from('leaderboard').select('*')
+    ]);
+    if (s.error) throw s.error;
+    if (l.error) throw l.error;
+
+    userData = s.data.find(u => u.student_name && u.student_name.toUpperCase().includes(name.toUpperCase()))
+      || { student_name: name.toUpperCase(), quest_list: "", video_list: "", story_list: "" };
+
+    const profileUser = l.data.find(u => u.Name && u.Name.trim().toLowerCase() === name.trim().toLowerCase());
+    userProfileData = profileUser || { Name: name, Correct: 0, Wrong: 0 };
+
+    localStorage.setItem('cachedUserData', JSON.stringify(userData));
+    localStorage.setItem('cachedProfileData', JSON.stringify(userProfileData));
+  } catch (err) {
+    console.error('Error loading:', err);
+    showConfirm('Could not load data. Check your connection and try again.', null, null, true);
+  }
+}
+
+async function refreshData(name) {
+  if (!name) return;
+  try {
+    const [s, l] = await Promise.all([
+      supabase.from('summary_import').select('*'),
+      supabase.from('leaderboard').select('*')
+    ]);
+    if (s.error || l.error) throw new Error('Fetch failed');
+
+    const su = s.data.find(u => u.student_name && u.student_name.toUpperCase().includes(name.toUpperCase()));
+    if (su) { userData = su; localStorage.setItem('cachedUserData', JSON.stringify(userData)); }
+
+    const pu = l.data.find(u => u.Name && u.Name.trim().toLowerCase() === name.trim().toLowerCase());
+    if (pu) { userProfileData = pu; localStorage.setItem('cachedProfileData', JSON.stringify(userProfileData)); }
+
+    updateAllUI();
+  } catch (err) {
+    console.error('Refresh error:', err);
+    document.getElementById('offlineBanner').classList.add('show');
+  }
+}
+
+// ─── UI HELPERS ───
+function showApp() {
+  document.getElementById('loginOverlay').style.display = 'none';
+  document.getElementById('appShell').style.display = 'flex';
+  updateAllUI();
+}
+
+function updateAllUI() {
+  if (!userData && !userProfileData) return;
+
+  const name = userProfileData?.Name || userData?.student_name || '—';
+  const dept = localStorage.getItem('userDept') || '—';
+  const initials = name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
+
+  document.getElementById('avatarBtn').textContent = initials || '?';
+  document.getElementById('drawerName').textContent = name;
+  document.getElementById('drawerDept').textContent = dept;
+  document.getElementById('calUserLabel').textContent = name;
+
+  const qc = parseList(userData?.quest_list).length;
+  const vc = parseList(userData?.video_list).length;
+  const sc = parseList(userData?.story_list).length;
+
+  document.getElementById('statQuest').textContent = qc;
+  document.getElementById('statVideo').textContent = vc;
+  document.getElementById('statStory').textContent = sc;
+  document.getElementById('heroQuest').textContent = qc;
+  document.getElementById('heroVideo').textContent = vc;
+  document.getElementById('heroStory').textContent = sc;
+
+  // Build streak bar (last 14 quest days)
+  buildStreakBar();
+
+  // Re-render calendar if open
+  if (document.getElementById('calOverlay').classList.contains('open')) {
+    renderCalendar(currentMonth, currentYear, currentType);
+  }
+}
+
+function buildStreakBar() {
+  const bar = document.getElementById('streakBar');
+  if (!bar) return;
+  const list = parseList(userData?.quest_list || '');
+  const today = new Date(); today.setHours(0,0,0,0);
+  bar.innerHTML = '';
+  for (let i = 13; i >= 0; i--) {
+    const d = new Date(today); d.setDate(today.getDate() - i);
+    const diff = Math.floor((d - startDate) / 86400000);
+    const qn = diff >= 0 ? `quest${diff+1}` : null;
+    const div = document.createElement('div');
+    div.className = 'streak-day';
+    if (qn && list.includes(qn)) div.classList.add('done');
+    else if (d < today) div.classList.add('missed');
+    else if (d.getTime() === today.getTime()) div.classList.add('today');
+    bar.appendChild(div);
+  }
+}
+
+function parseList(raw) {
+  if (!raw) return [];
+  return raw.split(',').map(x => x.trim().replace(/\s+/g,'').toLowerCase()).filter(Boolean);
+}
+
+// ─── LOGIN ───
+window.saveAndLogin = async function() {
+  const name = document.getElementById('nameInput').value.trim();
+  const dept = document.getElementById('deptSelect').value;
+  if (!name) { alert('Please enter your name!'); return; }
+
+  const upperName = name.toUpperCase();
+  localStorage.setItem('userName', upperName);
+  localStorage.setItem('userDept', dept || 'Unknown');
+
+  document.getElementById('loginOverlay').style.display = 'none';
+  document.getElementById('loadingScreen').classList.add('show');
+
+  await fetchInitialData(upperName);
+  document.getElementById('loadingScreen').classList.remove('show');
+  showApp();
+};
+
+// ─── CALENDAR ───
+window.openCalendar = function() {
+  document.getElementById('calOverlay').classList.add('open');
+  renderCalendar(currentMonth, currentYear, currentType);
+};
+
+window.closeCalendar = function() {
+  document.getElementById('calOverlay').classList.remove('open');
+};
+
+window.changeMonth = function(dir) {
+  currentMonth += dir;
+  if (currentMonth < 0) { currentMonth = 11; currentYear--; }
+  else if (currentMonth > 11) { currentMonth = 0; currentYear++; }
+  renderCalendar(currentMonth, currentYear, currentType);
+};
+
+window.switchType = function(type, btn) {
+  currentType = type;
+  document.querySelectorAll('.type-tab').forEach(t => t.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderCalendar(currentMonth, currentYear, currentType);
+};
+
+function renderCalendar(month, year, type) {
+  const grid = document.getElementById('calDays');
+  const label = document.getElementById('calMonthLabel');
+  if (!grid || !label) return;
+
+  label.textContent = new Date(year, month).toLocaleString('default', { month:'long' }) + ' ' + year;
+  grid.innerHTML = '';
+
+  const daysInMonth = new Date(year, month+1, 0).getDate();
+  const firstDay = new Date(year, month, 1).getDay();
+  const today = new Date(); today.setHours(0,0,0,0);
+
+  let rawList = '';
+  if (type === 'quest') rawList = userData?.quest_list || '';
+  else if (type === 'video') rawList = userData?.video_list || '';
+  else rawList = userData?.story_list || '';
+
+  const list = parseList(rawList);
+
+  // Empty prefix cells
+  for (let i = 0; i < firstDay; i++) {
+    const e = document.createElement('div');
+    e.className = 'cal-day disabled';
+    grid.appendChild(e);
+  }
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const date = new Date(year, month, d);
+    const diff = Math.floor((date - startDate) / 86400000);
+    const qn = diff >= 0 ? diff + 1 : null;
+
+    const div = document.createElement('div');
+    div.className = 'cal-day';
+    div.textContent = d;
+
+    if (!qn) {
+      div.classList.add('disabled');
+      grid.appendChild(div);
+      continue;
+    }
+
+    const key = type === 'quest' ? `quest${qn}` : type === 'video' ? `video${qn}` : `story${qn}`;
+    const done = list.includes(key);
+
+    if (done) div.classList.add('done');
+    else if (date < today) div.classList.add('missed');
+    else if (date.getTime() === today.getTime()) div.classList.add('today-available');
+    else div.classList.add('future');
+
+    div.onclick = () => {
+      let link = null;
+      if (type === 'quest') link = questLinks[qn];
+      else if (type === 'video') link = videoLink;
+      else link = storyLinks[qn];
+      if (link) window.location.href = link;
+    };
+
+    grid.appendChild(div);
+  }
+}
+
+// ─── DRAWER ───
+window.openDrawer = function() {
+  document.getElementById('drawer').classList.add('open');
+  document.getElementById('drawerOverlay').classList.add('open');
+};
+
+window.closeDrawer = function() {
+  document.getElementById('drawer').classList.remove('open');
+  document.getElementById('drawerOverlay').classList.remove('open');
+};
+
+// ─── LOGOUT ───
+window.logout = function() {
+  showConfirm('Are you sure you want to logout?', () => {
+    syncData();
+    ['userName','userDept','cachedUserData','cachedProfileData','pendingSync'].forEach(k => localStorage.removeItem(k));
+    window.location.reload();
+  });
+};
+
+// ─── CONFIRM MODAL ───
+function showConfirm(msg, onOk, onCancel, okOnly = false) {
+  document.getElementById('modalMsg').textContent = msg;
+  document.getElementById('confirmModal').classList.add('show');
+
+  const okBtn = document.getElementById('modalConfirm');
+  const cancelBtn = document.getElementById('modalCancel');
+
+  const cleanup = () => document.getElementById('confirmModal').classList.remove('show');
+
+  okBtn.onclick = () => { cleanup(); onOk && onOk(); };
+  cancelBtn.onclick = () => { cleanup(); onCancel && onCancel(); };
+  if (okOnly) cancelBtn.style.display = 'none';
+  else cancelBtn.style.display = '';
+}
+
+// ─── SYNC ───
+async function syncData() {
+  if (!userData) return;
+  const dur = Math.floor((Date.now() - sessionStartTime) / 1000);
+  if (dur < 10) return;
+  if (!navigator.onLine) {
+    const p = JSON.parse(localStorage.getItem('pendingSync') || '[]');
+    p.push({ name: userData.student_name, dur, dept: localStorage.getItem('userDept') || 'Unknown' });
+    localStorage.setItem('pendingSync', JSON.stringify(p));
+    return;
+  }
+  try {
+    await supabase.from('quest_submissions').insert([{
+      student_name: userData.student_name,
+      time_spent: dur,
+      quest_id: 'SessionSync',
+      department: localStorage.getItem('userDept') || 'Unknown'
+    }]);
+  } catch (e) { console.error('Sync error:', e); }
+}
+
+// ─── ONLINE/OFFLINE ───
+function checkOnlineStatus() {
+  if (!navigator.onLine) document.getElementById('offlineBanner').classList.add('show');
+}
+
+window.addEventListener('online', async () => {
+  document.getElementById('offlineBanner').classList.remove('show');
+  const pending = JSON.parse(localStorage.getItem('pendingSync') || '[]');
+  for (const p of pending) {
+    try {
+      await supabase.from('quest_submissions').insert([{
+        student_name: p.name, time_spent: p.dur, quest_id: 'OfflineSync', department: p.dept
+      }]);
+    } catch(e) {}
+  }
+  if (pending.length) localStorage.removeItem('pendingSync');
+  const n = localStorage.getItem('userName');
+  if (n) refreshData(n);
+});
+
+window.addEventListener('offline', () => document.getElementById('offlineBanner').classList.add('show'));
+window.addEventListener('beforeunload', syncData);
+
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) {
+    sessionStartTime = Date.now();
+    const n = localStorage.getItem('userName');
+    if (n) refreshData(n);
+  } else syncData();
+});
+
+// ─── QUOTE CAROUSEL ───
+function setupQuoteCarousel() {
+  let qi = 0;
+  setInterval(() => {
+    const q = quotes[(qi = (qi+1) % quotes.length)];
+    const strip = document.getElementById('quoteStrip');
+    if (!strip) return;
+    strip.style.opacity = 0;
+    setTimeout(() => {
+      document.getElementById('quoteText').textContent = q.text;
+      document.getElementById('quoteAttr').textContent = q.attr;
+      strip.style.opacity = 1;
+    }, 800);
+  }, 6000);
+}
+
+// ─── EVENT LISTENERS ───
+function setupEventListeners() {
+  document.getElementById('modalConfirm').addEventListener('click', () => {
+    document.getElementById('confirmModal').classList.remove('show');
+  });
+  document.getElementById('modalCancel').addEventListener('click', () => {
+    document.getElementById('confirmModal').classList.remove('show');
+  });
+}
+
+// ─── REALTIME ───
+supabase.channel('realtime-updates')
+  .on('postgres_changes', { event:'*', schema:'public', table:'leaderboard' }, () => {
+    const n = localStorage.getItem('userName');
+    if (n) refreshData(n);
+  })
+  .on('postgres_changes', { event:'*', schema:'public', table:'summary_import' }, () => {
+    const n = localStorage.getItem('userName');
+    if (n) refreshData(n);
+  })
+  .subscribe();
+
+init();
+</script>
+
+<script>
+// Service worker
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('service-worker.js')
+      .then(r => console.log('✅ SW:', r.scope))
+      .catch(e => console.error('❌ SW:', e));
+  });
+}
+
+// PWA install
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  if (document.getElementById('installBtn')) return;
+  const btn = document.createElement('button');
+  btn.id = 'installBtn';
+  btn.textContent = '⬇ Install App';
+  Object.assign(btn.style, {
+    position:'fixed', bottom:'16px', right:'16px', padding:'10px 16px',
+    background:'#c9a84c', color:'#0a0a0f', border:'none', borderRadius:'10px',
+    cursor:'pointer', zIndex:'9998', fontWeight:'600', fontSize:'0.75rem',
+    letterSpacing:'1px', fontFamily:'DM Mono,monospace', boxShadow:'0 4px 15px rgba(0,0,0,0.4)'
+  });
+  btn.addEventListener('click', async () => {
+    btn.remove();
+    deferredPrompt.prompt();
+    await deferredPrompt.userChoice;
+    deferredPrompt = null;
+  });
+  document.body.appendChild(btn);
+});
+</script>
+</body>
+</html>

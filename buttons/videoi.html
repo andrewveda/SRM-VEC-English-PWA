@@ -619,7 +619,7 @@ function rebuildFeed(){
     clearInterval(watchIntervals[id]);
     try{ ytPlayers[id].destroy(); }catch(_){}
   });
-  ytPlayers={}; watchIntervals={};
+  ytPlayers={}; watchIntervals={}; playStartTimes={};
   currentVisible=null;
   buildFeed(activeCategory);
 }
@@ -766,38 +766,62 @@ function tryPlay(qid){
   try{ ytPlayers[qid]?.playVideo(); }catch(_){}
 }
 function pausePlayer(qid){
-  clearInterval(watchIntervals[qid]);
-  watchIntervals[qid]=null;
+  stopWatchInterval(qid);
   try{ ytPlayers[qid]?.pauseVideo(); }catch(_){}
 }
 
-function onSlidePlayerState(event, qid){
-  if(event.data===YT.PlayerState.PLAYING){
-    if(!watchIntervals[qid]){
-      watchIntervals[qid]=setInterval(()=>tickWatch(qid),1000);
-    }
-  } else {
+function stopWatchInterval(qid){
+  if(watchIntervals[qid]){
     clearInterval(watchIntervals[qid]);
     watchIntervals[qid]=null;
   }
 }
 
+// Track when each video started playing (wall-clock time)
+let playStartTimes={};
+
+function onSlidePlayerState(event, qid){
+  if(event.data===YT.PlayerState.PLAYING){
+    // Always clear any existing interval first — prevents stacking
+    stopWatchInterval(qid);
+    playStartTimes[qid]=Date.now();
+    // Use a single interval; calculate real elapsed seconds from wall clock
+    watchIntervals[qid]=setInterval(()=>tickWatch(qid),1000);
+  } else {
+    // On pause/end/buffer — commit real elapsed time, stop interval
+    if(playStartTimes[qid]){
+      const elapsed=Math.floor((Date.now()-playStartTimes[qid])/1000);
+      watchedMap[qid]=(watchedMap[qid]||0)+elapsed;
+      playStartTimes[qid]=null;
+      refreshSlideUI(qid);
+    }
+    stopWatchInterval(qid);
+  }
+}
+
 function tickWatch(qid){
-  watchedMap[qid]=(watchedMap[qid]||0)+1;
-  const watched=watchedMap[qid];
+  if(!playStartTimes[qid]) return;
+  // Calculate real seconds from wall clock since play started
+  const sessionSecs=Math.floor((Date.now()-playStartTimes[qid])/1000);
+  const base=watchedMap[qid]||0; // seconds before this play session
+  const watched=base+sessionSecs;
+  refreshSlideUI(qid, watched);
+}
+
+function refreshSlideUI(qid, watched){
+  if(watched===undefined) watched=watchedMap[qid]||0;
   const slide=document.querySelector(`.video-slide[data-quest-id="${qid}"]`);
   if(!slide) return;
   const target=parseInt(slide.dataset.watchTarget)||1;
   const pct=Math.min((watched/target)*100,100);
 
-  // Update progress bar
   const fill=document.getElementById(`pfill-${qid}`);
   const time=document.getElementById(`ptime-${qid}`);
   if(fill){ fill.style.width=pct+'%'; fill.classList.toggle('done',pct>=100); }
   if(time) time.textContent=`${watched}s / ${target}s`;
   updateSaveAllBtn();
 
-  // Unlock save button when target reached
+  // Unlock heart button when target reached
   if(watched>=target && !savedSet.has(qid)){
     const btn=document.getElementById(`savebtn-${qid}`);
     if(btn && btn.classList.contains('locked')){
@@ -805,7 +829,6 @@ function tickWatch(qid){
       btn.classList.add('unlocked');
       btn.innerHTML=saveBtnIcon(false,true);
       btn.nextElementSibling.textContent='save';
-      // pulse glow hint
       showToast('🎯 Target reached! Tap ♥ to save.');
     }
   }
@@ -813,6 +836,12 @@ function tickWatch(qid){
 
 /* ════════ SINGLE SAVE (heart button) ════════ */
 function handleSingleSave(qid){
+  // Commit any in-progress play time before reading the total
+  if(playStartTimes[qid]){
+    const elapsed=Math.floor((Date.now()-playStartTimes[qid])/1000);
+    watchedMap[qid]=(watchedMap[qid]||0)+elapsed;
+    playStartTimes[qid]=Date.now(); // reset so ongoing play doesn't double-count
+  }
   const watched=watchedMap[qid]||0;
   const slide=document.querySelector(`.video-slide[data-quest-id="${qid}"]`);
   const target=parseInt(slide?.dataset.watchTarget)||0;
@@ -847,6 +876,14 @@ window.handleSingleSave=handleSingleSave;
 
 /* ════════ SAVE ALL ════════ */
 function saveAll(){
+  // Commit any in-progress play sessions before totalling
+  Object.keys(playStartTimes).forEach(qid=>{
+    if(playStartTimes[qid]){
+      const elapsed=Math.floor((Date.now()-playStartTimes[qid])/1000);
+      watchedMap[qid]=(watchedMap[qid]||0)+elapsed;
+      playStartTimes[qid]=Date.now(); // reset so ongoing play doesn't double-count
+    }
+  });
   const total=Object.values(watchedMap).reduce((a,b)=>a+b,0);
   if(total===0){ showToast('Nothing watched yet!'); return; }
 

@@ -28,64 +28,75 @@
             <div class="text-center py-20 text-slate-500 animate-pulse">Fetching legends...</div>
         </div>
     </div>
-
-    <script>
-        // 1. INITIALIZE SUPABASE
+<script>
         const SUPABASE_URL = 'https://ahezssoczvpbkteffcgz.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoZXpzc29jenZwYmt0ZWZmY2d6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI4NTk1ODUsImV4cCI6MjA3ODQzNTU4NX0.2ZlqXnZxv0opkhynAT7OlK4S-xPygcc7ETUyTXRfGHE';
-        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        async function loadLeaderboard() {
-            const { data, error } = await supabase
-                .from('leaderboard_wordleblitz')
-                .select('*')
-                .order('best_score', { ascending: false });
+const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-            if (error) {
-                console.error(error);
-                return;
-            }
+async function loadLeaderboard() {
 
-            const container = document.getElementById('leaderboard');
-            container.innerHTML = '';
+    const container = document.getElementById('leaderboard');
 
-            data.forEach((player, index) => {
-                const isTop3 = index < 3;
-                const rankEmoji = ['🥇', '🥈', '🥉'][index] || `#${index + 1}`;
-                
-                // Dynamic Badges
-                let badge = "";
-                if (player.accuracy > 90) badge = "🎯 Surgeon";
-                else if (player.best_speed < 20) badge = "⚡ Flash";
-                else if (player.total_sessions > 10) badge = "🔥 On Fire";
+    container.innerHTML = `
+        <div class="text-center py-20 text-slate-500 animate-pulse">
+            Talking to Supabase...
+        </div>`;
 
-                const card = `
-                    <div class="animate__animated animate__fadeInUp glass p-4 rounded-2xl flex items-center justify-between ${index === 0 ? 'gold-glow bg-yellow-500/10' : ''}">
-                        <div class="flex items-center gap-4">
-                            <span class="text-2xl font-bold w-8">${rankEmoji}</span>
-                            <div>
-                                <h3 class="font-bold text-lg leading-tight">${player.student_name}</h3>
-                                <p class="text-xs text-slate-400 uppercase tracking-widest">${player.department}</p>
-                                ${badge ? `<span class="mt-1 inline-block bg-white/10 px-2 py-0.5 rounded text-[10px] font-bold text-yellow-400">${badge}</span>` : ''}
-                            </div>
-                        </div>
-                        <div class="text-right">
-                            <div class="text-2xl font-black text-white">${Math.round(player.best_score)}</div>
-                            <div class="text-[10px] text-slate-400 uppercase">Best Score</div>
-                        </div>
-                    </div>
+    try {
 
-                    <div class="flex justify-between px-4 -mt-2 mb-4 text-[10px] text-slate-500 font-medium">
-                        <span>ACC: ${player.accuracy}%</span>
-                        <span>SPEED: ${player.best_speed}s</span>
-                        <span>EFF: ${player.efficiency} 🔥</span>
-                    </div>
-                `;
-                container.innerHTML += card;
-            });
+        const { data, error } = await client
+            .from('leaderboard_wordleblitz')
+            .select('*');
+
+        if (error) throw error;
+
+        console.log("Supabase Response:", data);
+
+        if (!data || data.length === 0) {
+            container.innerHTML = `
+                <div class="text-center py-20 text-slate-500">
+                    No data returned 👀
+                </div>`;
+            return;
         }
 
-        loadLeaderboard();
-    </script>
+        let html = "";
+
+        data.forEach((player, index) => {
+
+            const score = Number(player.best_score) || 0;
+            const accuracy = Number(player.accuracy) || 0;
+            const speed = Number(player.best_speed) || 0;
+
+            const rankEmoji = ['🥇','🥈','🥉'][index] || `#${index+1}`;
+
+            html += `
+                <div class="glass p-4 rounded-2xl flex justify-between">
+                    <div>
+                        <div>${rankEmoji} ${player.student_name}</div>
+                        <div class="text-xs text-slate-400">${player.department}</div>
+                    </div>
+                    <div class="text-xl">${score}</div>
+                </div>
+            `;
+        });
+
+        container.innerHTML = html;
+
+    } catch (err) {
+
+        console.error("Leaderboard Crash:", err);
+
+        container.innerHTML = `
+            <div class="text-center py-20 text-red-400">
+                Crash detected ⚠️ <br><br>
+                Open console (F12)
+            </div>`;
+    }
+}
+
+loadLeaderboard();
+</script>
 </body>
 </html>

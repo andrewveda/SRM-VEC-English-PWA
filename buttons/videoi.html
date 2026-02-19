@@ -795,6 +795,7 @@ function tickWatch(qid){
   const time=document.getElementById(`ptime-${qid}`);
   if(fill){ fill.style.width=pct+'%'; fill.classList.toggle('done',pct>=100); }
   if(time) time.textContent=`${watched}s / ${target}s`;
+  updateSaveAllBtn();
 
   // Unlock save button when target reached
   if(watched>=target && !savedSet.has(qid)){
@@ -846,30 +847,15 @@ window.handleSingleSave=handleSingleSave;
 
 /* ════════ SAVE ALL ════════ */
 function saveAll(){
-  // Collect all videos that have hit watchTarget and aren't saved yet
-  const toSave=getFilteredData().filter(v=>{
-    const w=watchedMap[v.questId]||0;
-    return w>=v.watchTarget && !savedSet.has(v.questId);
-  });
-
-  if(toSave.length===0){
-    // If nothing pending, submit everything watched (even < target) as total time
-    submitTotalWatchTime();
-    return;
-  }
-
-  toSave.forEach(v=>{ handleSingleSave(v.questId); });
-  submitTotalWatchTime();
-}
-window.saveAll=saveAll;
-
-function submitTotalWatchTime(){
-  // Sum all watched seconds across all videos
   const total=Object.values(watchedMap).reduce((a,b)=>a+b,0);
   if(total===0){ showToast('Nothing watched yet!'); return; }
 
+  const btn=document.getElementById('saveAllBtn');
+  btn.disabled=true;
+  btn.textContent='⏳ Submitting…';
+
   const client=window.supabase;
-  if(!client) return;
+  if(!client){ btn.textContent='❌ Error'; return; }
 
   client.from('Quests').insert([{
     student_name: playerName,
@@ -879,10 +865,37 @@ function submitTotalWatchTime(){
     time_spent:   total,
     quest_id:     'TOTAL_SESSION'
   }]).then(({error})=>{
-    if(error) console.error('Supabase total:', error);
-    else showToast(`📊 Total watch time saved: ${total}s`);
+    if(error){
+      console.error('Supabase total:', error);
+      btn.disabled=false;
+      btn.textContent='❌ Failed — Retry';
+    } else {
+      showToast(`📊 ${total}s total watch time submitted!`);
+      // Reset — wipe watchedMap so the next session starts fresh
+      watchedMap={};
+      savedSet=new Set();
+      // Reset all progress bars and heart buttons in the feed
+      document.querySelectorAll('.video-slide').forEach(slide=>{
+        const qid=slide.dataset.questId;
+        const target=parseInt(slide.dataset.watchTarget)||1;
+        const fill=document.getElementById(`pfill-${qid}`);
+        const time=document.getElementById(`ptime-${qid}`);
+        const savebtn=document.getElementById(`savebtn-${qid}`);
+        const label=savebtn?.nextElementSibling;
+        if(fill){ fill.style.width='0%'; fill.classList.remove('done'); }
+        if(time) time.textContent=`0s / ${target}s`;
+        if(savebtn){
+          savebtn.className='save-btn locked';
+          savebtn.innerHTML=saveBtnIcon(false,false);
+        }
+        if(label) label.textContent='';
+      });
+      btn.disabled=true;
+      btn.textContent='💾 Submit All';
+    }
   });
 }
+window.saveAll=saveAll;
 
 function pushToSupabase(qid, watched){
   const client=window.supabase;
@@ -896,9 +909,9 @@ function pushToSupabase(qid, watched){
 
 function updateSaveAllBtn(){
   const btn=document.getElementById('saveAllBtn');
-  const unsaved=getFilteredData().filter(v=>(watchedMap[v.questId]||0)>=v.watchTarget && !savedSet.has(v.questId)).length;
-  btn.disabled=unsaved===0;
-  btn.textContent=unsaved>0?`💾 Submit All (${unsaved})`:'💾 Submit All';
+  const total=Object.values(watchedMap).reduce((a,b)=>a+b,0);
+  btn.disabled=total===0;
+  btn.textContent=total>0?`💾 Submit All (${total}s)`:'💾 Submit All';
 }
 
 /* ════════ TOAST ════════ */

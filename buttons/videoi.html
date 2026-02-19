@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <title>V for Video 🌌</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700&display=swap">
+  <script src="https://www.youtube.com/iframe_api"></script>
+  <style>
+    :root {
+      --bg: #08090e;
+      --card: #0f1118;
+      --border: rgba(255,255,255,0.08);
+      --gold: #f0b429;
+      --gold-glow: rgba(240,180,41,0.35);
+      --accent: #e040fb;
+      --accent2: #00e5ff;
+      --green: #00e676;
+      --red: #ff1744;
+      --text: #f0eeff;
+      --muted: rgba(255,255,255,0.42);
+      --font-display: 'Bebas Neue', cursive;
+      --font-body: 'Outfit', sans-serif;
+      --nav-h: 56px;
+      --chips-h: 52px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%; width: 100%;
+      overflow: hidden;
+      font-family: var(--font-body);
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    /* ── Stars ── */
+    #stars { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+    .star {
+      position: absolute; border-radius: 50%; background: #fff;
+      animation: tw var(--d,3s) ease-in-out infinite var(--dl,0s);
+    }
+    @keyframes tw { 0%,100%{opacity:var(--lo,.05)} 50%{opacity:var(--hi,.7)} }
+
+    /* ══════════════════════════════
+       LOGIN SCREEN
+    ══════════════════════════════ */
+    #loginScreen {
+      position: fixed; inset: 0; z-index: 200;
+      display: flex; align-items: center; justify-content: center;
+      background: radial-gradient(ellipse at 30% 20%, rgba(224,64,251,.12) 0%, transparent 55%),
+                  radial-gradient(ellipse at 70% 80%, rgba(0,229,255,.08) 0%, transparent 55%),
+                  var(--bg);
+    }
+    .login-box {
+      width: 100%; max-width: 420px;
+      margin: 1rem;
+      background: rgba(15,17,24,0.92);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 2.5rem 2rem;
+      backdrop-filter: blur(20px);
+      box-shadow: 0 0 80px rgba(0,0,0,.7), 0 0 0 1px rgba(255,255,255,.05);
+      animation: popIn .5s cubic-bezier(.34,1.56,.64,1) forwards;
+    }
+    @keyframes popIn {
+      from { opacity:0; transform:scale(.9) translateY(20px); }
+      to   { opacity:1; transform:scale(1) translateY(0); }
+    }
+    .login-wordmark {
+      font-family: var(--font-display);
+      font-size: 3rem;
+      letter-spacing: .12em;
+      text-align: center;
+      margin-bottom: .2rem;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      filter: drop-shadow(0 0 20px rgba(224,64,251,.4));
+    }
+    .login-sub {
+      text-align: center;
+      font-size: .78rem;
+      color: var(--muted);
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      margin-bottom: 2rem;
+    }
+    .quotes { display:flex; flex-direction:column; gap:.6rem; margin-bottom:1.8rem; }
+    .quote {
+      font-size: .78rem; color: rgba(240,180,41,.6);
+      border-left: 2px solid rgba(240,180,41,.25);
+      padding: .3rem .8rem; font-style: italic; line-height:1.5;
+    }
+    .quote em { font-style:normal; color:rgba(240,180,41,.4); font-size:.72rem; }
+    .field-lbl {
+      font-size:.7rem; letter-spacing:.12em; text-transform:uppercase;
+      color:var(--muted); display:block; margin-bottom:.4rem; margin-top:1rem;
+    }
+    select, input[type=text] {
+      width:100%; padding:.75rem 1rem;
+      background:rgba(255,255,255,.05);
+      border:1px solid var(--border);
+      border-radius:12px; color:var(--text);
+      font-family:var(--font-body); font-size:.9rem;
+      outline:none; appearance:none;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    select:focus, input:focus {
+      border-color:var(--accent);
+      box-shadow:0 0 0 3px rgba(224,64,251,.2);
+    }
+    select option { background:#151720; }
+    .btn-enter {
+      width:100%; margin-top:1.6rem; padding:.9rem;
+      background: linear-gradient(135deg, var(--accent), #7c4dff);
+      color:#fff; font-family:var(--font-body); font-size:1rem; font-weight:700;
+      border:none; border-radius:12px; cursor:pointer;
+      letter-spacing:.04em;
+      box-shadow: 0 4px 24px rgba(224,64,251,.45);
+      transition: all .2s;
+    }
+    .btn-enter:hover:not(:disabled) { transform:translateY(-2px); box-shadow:0 8px 32px rgba(224,64,251,.6); }
+    .btn-enter:disabled { opacity:.5; cursor:not-allowed; }
+
+    /* ══════════════════════════════
+       MAIN APP (feed)
+    ══════════════════════════════ */
+    #appShell {
+      position: fixed; inset: 0; z-index: 1;
+      display: none;
+      flex-direction: column;
+    }
+    #appShell.visible { display: flex; }
+
+    /* ── Top nav ── */
+    .top-nav {
+      position: relative; z-index: 50;
+      height: var(--nav-h);
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 1.2rem;
+      background: rgba(8,9,14,.75);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-logo {
+      font-family: var(--font-display);
+      font-size: 1.6rem; letter-spacing: .12em;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .nav-right {
+      display: flex; align-items: center; gap: .5rem;
+    }
+    .nav-pill {
+      font-size: .75rem; color: var(--muted);
+      background: rgba(255,255,255,.06);
+      border: 1px solid var(--border);
+      border-radius: 99px; padding: .3rem .8rem;
+      white-space: nowrap; overflow: hidden;
+      max-width: 160px; text-overflow: ellipsis;
+    }
+    .nav-pill strong { color: var(--text); }
+
+    /* ── Save-all button in nav ── */
+    #saveAllBtn {
+      padding: .32rem .9rem;
+      background: linear-gradient(135deg, var(--gold), #ff9800);
+      color: #1a0e00; font-family: var(--font-body);
+      font-size: .78rem; font-weight: 700;
+      border: none; border-radius: 99px; cursor: pointer;
+      box-shadow: 0 0 14px var(--gold-glow);
+      transition: all .2s; white-space: nowrap;
+    }
+    #saveAllBtn:hover:not(:disabled) { transform:scale(1.05); box-shadow:0 0 22px var(--gold-glow); }
+    #saveAllBtn:disabled { opacity:.4; cursor:not-allowed; }
+
+    /* ── Category chips ── */
+    .chips-bar {
+      flex-shrink: 0;
+      height: var(--chips-h);
+      display: flex; align-items: center;
+      gap: .55rem;
+      padding: 0 1rem;
+      overflow-x: auto;
+      scrollbar-width: none;
+      background: rgba(8,9,14,.6);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+    .chips-bar::-webkit-scrollbar { display:none; }
+    .chip {
+      flex-shrink: 0;
+      padding: .38rem 1rem;
+      border-radius: 99px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.05);
+      color: var(--muted);
+      font-family: var(--font-body); font-size: .8rem;
+      cursor: pointer; transition: all .2s;
+      white-space: nowrap;
+    }
+    .chip:hover { border-color:rgba(224,64,251,.5); color:var(--text); }
+    .chip.active {
+      border-color: var(--accent);
+      background: rgba(224,64,251,.15);
+      color: #fff;
+      box-shadow: 0 0 12px rgba(224,64,251,.25);
+    }
+
+    /* ── Feed container ── */
+    #feed {
+      flex: 1;
+      overflow-y: scroll;
+      overflow-x: hidden;
+      scroll-snap-type: y mandatory;
+      scrollbar-width: none;
+      position: relative;
+    }
+    #feed::-webkit-scrollbar { display:none; }
+
+    /* ── Category section header ── */
+    .cat-section-header {
+      scroll-snap-align: start;
+      height: calc(100vh - var(--nav-h) - var(--chips-h));
+      display: flex; align-items: center; justify-content: center;
+      position: relative; overflow: hidden;
+      background: var(--bg);
+      flex-shrink: 0;
+    }
+    .cat-section-bg {
+      position: absolute; inset: 0;
+      background: radial-gradient(ellipse at center, rgba(224,64,251,.12) 0%, transparent 70%);
+    }
+    .cat-section-content {
+      position: relative; z-index: 1;
+      text-align: center;
+    }
+    .cat-section-label {
+      font-size: .72rem; letter-spacing: .25em; text-transform: uppercase;
+      color: var(--muted); margin-bottom: .5rem;
+    }
+    .cat-section-name {
+      font-family: var(--font-display);
+      font-size: clamp(2.5rem, 10vw, 5rem);
+      letter-spacing: .08em;
+      line-height: 1;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+      filter: drop-shadow(0 0 30px rgba(224,64,251,.4));
+    }
+    .cat-section-count {
+      margin-top: .8rem; font-size: .82rem; color: var(--muted);
+    }
+    .cat-scroll-hint {
+      position: absolute; bottom: 2rem; left:50%; transform:translateX(-50%);
+      display:flex; flex-direction:column; align-items:center; gap:.3rem;
+      color:var(--muted); font-size:.75rem; letter-spacing:.1em;
+      animation: bounce 1.5s ease-in-out infinite;
+    }
+    @keyframes bounce { 0%,100%{transform:translateX(-50%) translateY(0)} 50%{transform:translateX(-50%) translateY(6px)} }
+    .cat-scroll-hint svg { opacity:.5; }
+
+    /* ── Video slide ── */
+    .video-slide {
+      scroll-snap-align: start;
+      height: calc(100vh - var(--nav-h) - var(--chips-h));
+      position: relative;
+      flex-shrink: 0;
+      background: #000;
+      display: flex; align-items: center; justify-content: center;
+      overflow: hidden;
+    }
+
+    /* YouTube iframe fills the slide */
+    .slide-player-wrap {
+      position: absolute; inset: 0;
+      pointer-events: auto;
+    }
+    .slide-player-wrap iframe,
+    .slide-player-wrap > div {
+      position: absolute; inset: 0;
+      width: 100% !important;
+      height: 100% !important;
+    }
+
+    /* Gradient overlays for readability */
+    .slide-gradient-top {
+      position: absolute; top:0; left:0; right:0; height:120px;
+      background: linear-gradient(to bottom, rgba(0,0,0,.7) 0%, transparent 100%);
+      z-index: 5; pointer-events:none;
+    }
+    .slide-gradient-bot {
+      position: absolute; bottom:0; left:0; right:0; height:180px;
+      background: linear-gradient(to top, rgba(0,0,0,.85) 0%, transparent 100%);
+      z-index: 5; pointer-events:none;
+    }
+
+    /* ── Bottom info overlay ── */
+    .slide-info {
+      position: absolute; bottom: 0; left: 0; right: 72px;
+      z-index: 10; padding: 1rem 1rem 1.3rem;
+    }
+    .slide-category {
+      display: inline-block;
+      font-size: .7rem; letter-spacing: .14em; text-transform: uppercase;
+      color: var(--accent2); margin-bottom: .4rem;
+      text-shadow: 0 1px 4px rgba(0,0,0,.8);
+    }
+    .slide-title {
+      font-family: var(--font-display);
+      font-size: clamp(1.3rem, 4vw, 2rem);
+      letter-spacing: .04em;
+      line-height: 1.1;
+      text-shadow: 0 2px 12px rgba(0,0,0,.9);
+      margin-bottom: .7rem;
+    }
+
+    /* Mini progress bar in slide */
+    .slide-progress-row {
+      display: flex; align-items: center; gap: .7rem;
+    }
+    .slide-progress-track {
+      flex: 1; height: 4px;
+      background: rgba(255,255,255,.18);
+      border-radius: 99px; overflow: hidden;
+    }
+    .slide-progress-fill {
+      height: 100%; border-radius: 99px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      transition: width .8s ease;
+      width: 0%;
+    }
+    .slide-progress-fill.done {
+      background: linear-gradient(90deg, var(--green), #69ffb4);
+      box-shadow: 0 0 6px rgba(0,230,118,.6);
+    }
+    .slide-progress-time {
+      font-size: .72rem; color:rgba(255,255,255,.6);
+      white-space: nowrap; font-variant-numeric: tabular-nums;
+      min-width: 52px; text-align: right;
+    }
+
+    /* ── Right action column ── */
+    .slide-actions {
+      position: absolute; right: 0; bottom: 0;
+      z-index: 10;
+      width: 72px;
+      padding-bottom: 1.2rem;
+      display: flex; flex-direction: column; align-items: center; gap: 1.1rem;
+    }
+
+    /* Save / heart button */
+    .save-btn {
+      width: 52px; height: 52px;
+      border-radius: 50%; border: none;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: all .2s;
+      position: relative;
+    }
+    .save-btn.locked {
+      background: rgba(255,255,255,.1);
+      backdrop-filter: blur(8px);
+    }
+    .save-btn.unlocked {
+      background: rgba(240,180,41,.15);
+      border: 1.5px solid var(--gold);
+      box-shadow: 0 0 18px var(--gold-glow);
+      animation: pulseGold 2s ease-in-out infinite;
+    }
+    .save-btn.saved {
+      background: rgba(0,230,118,.2);
+      border: 1.5px solid var(--green);
+      box-shadow: 0 0 18px rgba(0,230,118,.4);
+      animation: none;
+    }
+    @keyframes pulseGold {
+      0%,100% { box-shadow: 0 0 12px var(--gold-glow); }
+      50%      { box-shadow: 0 0 28px rgba(240,180,41,.55); }
+    }
+    .save-btn svg { transition: transform .15s; }
+    .save-btn:active svg { transform: scale(.85); }
+    .save-btn-label {
+      font-size: .62rem; color: rgba(255,255,255,.6);
+      text-align: center; margin-top: -.6rem;
+      letter-spacing: .03em;
+    }
+
+    /* Number indicator */
+    .slide-num {
+      font-size: .65rem; color: rgba(255,255,255,.3);
+      letter-spacing: .08em;
+    }
+
+    /* ── Burst animation on save ── */
+    .burst {
+      position: absolute; inset:0; pointer-events:none; z-index:20;
+      display:flex; align-items:center; justify-content:center;
+    }
+    .burst-heart {
+      font-size: 5rem;
+      opacity: 0;
+      animation: burstAnim .7s ease forwards;
+    }
+    @keyframes burstAnim {
+      0%   { opacity:0; transform:scale(.4); }
+      40%  { opacity:1; transform:scale(1.3); }
+      70%  { opacity:.9; transform:scale(1); }
+      100% { opacity:0; transform:scale(1.1); }
+    }
+
+    /* ── Toast ── */
+    #toast {
+      position: fixed; bottom: 2rem; left:50%; transform:translateX(-50%);
+      z-index: 300;
+      background: rgba(15,17,24,.95);
+      border: 1px solid var(--border);
+      border-radius: 99px;
+      padding: .65rem 1.4rem;
+      font-size: .85rem; color: var(--text);
+      backdrop-filter: blur(16px);
+      box-shadow: 0 8px 32px rgba(0,0,0,.5);
+      opacity: 0; pointer-events:none;
+      transition: opacity .3s ease;
+      white-space: nowrap;
+    }
+    #toast.show { opacity:1; }
+
+    /* ── Spinner ── */
+    .spinner {
+      display:inline-block; width:13px; height:13px;
+      border:2px solid rgba(255,255,255,.2); border-top-color:#fff;
+      border-radius:50%; animation:spin .6s linear infinite;
+      vertical-align:middle; margin-right:.3rem;
+    }
+    @keyframes spin { to{transform:rotate(360deg)} }
+
+    /* ── No videos placeholder ── */
+    .empty-state {
+      height: calc(100vh - var(--nav-h) - var(--chips-h));
+      display:flex; align-items:center; justify-content:center;
+      flex-direction:column; gap:1rem; color:var(--muted);
+      scroll-snap-align:start;
+    }
+    .empty-state svg { opacity:.3; }
+  </style>
+</head>
+<body>
+
+<div id="stars"></div>
+
+<!-- ══ LOGIN ══ -->
+<div id="loginScreen">
+  <div class="login-box">
+    <div class="login-wordmark">V FOR VIDEO</div>
+    <div class="login-sub">✦ the learning archive ✦</div>
+    <div class="quotes">
+      <div class="quote">"Ever tried. Ever failed. No matter. Try again. Fail again. Fail better." <em>— Beckett</em></div>
+      <div class="quote">"Try not. Do. Or do not. There is no try." <em>— Yoda</em></div>
+      <div class="quote">"The opposite of a good idea is another good idea." <em>— Niels Bohr</em></div>
+    </div>
+    <label class="field-lbl" for="deptSel">Department</label>
+    <select id="deptSel">
+      <option value="">— Select your department —</option>
+      <option>Cyber Security</option><option>CSE-1</option><option>CSE-2</option><option>CSE-3</option>
+      <option>Mechanical Engineering</option><option>ECE-1</option><option>ECE-2</option><option>ECE-3</option>
+      <option>AI DS-1</option><option>AI DS-2</option><option>Civil</option><option>Agri</option>
+      <option>EEE</option><option>EIE</option><option>Medical Electronics</option><option>IT-1</option><option>IT-2</option>
+    </select>
+    <label class="field-lbl" for="nameIn">Your Name</label>
+    <input type="text" id="nameIn" placeholder="Enter your name" autocomplete="name"/>
+    <button class="btn-enter" id="enterBtn" onclick="handleEnter()">Enter the Feed 🚀</button>
+  </div>
+</div>
+
+<!-- ══ APP SHELL ══ -->
+<div id="appShell">
+
+  <!-- Nav -->
+  <div class="top-nav">
+    <div class="nav-logo">VFV</div>
+    <div class="nav-right">
+      <div class="nav-pill"><strong id="navName">—</strong> · <span id="navDept">—</span></div>
+      <button id="saveAllBtn" onclick="saveAll()" disabled>💾 Submit All</button>
+    </div>
+  </div>
+
+  <!-- Category chips -->
+  <div class="chips-bar" id="chipsBar"></div>
+
+  <!-- Feed -->
+  <div id="feed"></div>
+
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<!-- Supabase -->
+<script type="module">
+  import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+  window.supabase = createClient(
+    'https://ahezssoczvpbkteffcgz.supabase.co',
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoZXpzc29jenZwYmt0ZWZmY2d6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI4NTk1ODUsImV4cCI6MjA3ODQzNTU4NX0.2ZlqXnZxv0opkhynAT7OlK4S-xPygcc7ETUyTXRfGHE'
+  );
+</script>
+
+<script>
+/* ════════ STARS ════════ */
+(()=>{
+  const c=document.getElementById('stars');
+  for(let i=0;i<110;i++){
+    const s=document.createElement('div'); s.className='star';
+    const sz=Math.random()*2+.3;
+    s.style.cssText=`width:${sz}px;height:${sz}px;top:${Math.random()*100}%;left:${Math.random()*100}%;--d:${(Math.random()*4+2).toFixed(1)}s;--dl:-${(Math.random()*6).toFixed(1)}s;--lo:${(Math.random()*.08).toFixed(2)};--hi:${(Math.random()*.55+.2).toFixed(2)}`;
+    c.appendChild(s);
+  }
+})();
+
+/* ════════ STATE ════════ */
+let ytReady=false;
+window.onYouTubeIframeAPIReady=()=>{ ytReady=true; };
+
+let quizData=[];
+let playerName='', playerDept='';
+let activeCategory='all';
+// watchedMap: questId -> seconds watched in this session
+let watchedMap={};
+// savedSet: questIds already saved to Supabase this session
+let savedSet=new Set();
+// ytPlayers: questId -> YT.Player instance
+let ytPlayers={};
+// watchIntervals: questId -> setInterval id
+let watchIntervals={};
+// currentVisible: questId of slide currently in viewport
+let currentVisible=null;
+
+/* ════════ PRELOAD DATA ════════ */
+const dataPromise=(async()=>{
+  try{
+    const c=sessionStorage.getItem('vfv_data');
+    if(c){ quizData=JSON.parse(c); return quizData; }
+  }catch(_){}
+  const r=await fetch("https://script.google.com/macros/s/AKfycbyUgtinZaRqkRl2BAxPxxpjPsnzQAZkd7IivO2wbiCOqrv7mil9es6r05IdJKVELPYE/exec");
+  quizData=await r.json();
+  try{ sessionStorage.setItem('vfv_data',JSON.stringify(quizData)); }catch(_){}
+  return quizData;
+})();
+
+/* ════════ RESTORE SAVED INPUTS ════════ */
+window.addEventListener('DOMContentLoaded',()=>{
+  try{
+    const n=localStorage.getItem('vfv_name');
+    const d=localStorage.getItem('vfv_dept');
+    if(n) document.getElementById('nameIn').value=n;
+    if(d) document.getElementById('deptSel').value=d;
+  }catch(_){}
+});
+
+/* ════════ ENTER ════════ */
+async function handleEnter(){
+  const n=document.getElementById('nameIn').value.trim();
+  const d=document.getElementById('deptSel').value;
+  if(!n){alert('Please enter your name!');return;}
+  if(!d){alert('Please select your department!');return;}
+  playerName=n; playerDept=d;
+  try{localStorage.setItem('vfv_name',n);localStorage.setItem('vfv_dept',d);}catch(_){}
+
+  const btn=document.getElementById('enterBtn');
+  btn.disabled=true; btn.innerHTML='<span class="spinner"></span> Loading…';
+
+  try{
+    await dataPromise;
+    document.getElementById('navName').textContent=playerName;
+    document.getElementById('navDept').textContent=playerDept;
+    buildChips();
+    buildFeed('all');
+    document.getElementById('loginScreen').style.display='none';
+    document.getElementById('appShell').classList.add('visible');
+    initIntersectionObserver();
+  }catch(e){
+    alert('Failed to load. Please refresh.');
+    btn.disabled=false; btn.innerHTML='Enter the Feed 🚀';
+  }
+}
+window.handleEnter=handleEnter;
+
+/* ════════ CHIPS ════════ */
+function buildChips(){
+  const bar=document.getElementById('chipsBar');
+  bar.innerHTML='';
+  const cats=['all',...new Set(quizData.map(q=>q.category))];
+  cats.forEach(cat=>{
+    const chip=document.createElement('button');
+    chip.className='chip'+(cat===activeCategory?' active':'');
+    chip.textContent=cat==='all'?'⭐ All':cat;
+    chip.onclick=()=>{ activeCategory=cat; updateChips(); rebuildFeed(); };
+    bar.appendChild(chip);
+  });
+}
+function updateChips(){
+  const cats=['all',...new Set(quizData.map(q=>q.category))];
+  document.querySelectorAll('.chip').forEach((c,i)=>c.classList.toggle('active',cats[i]===activeCategory));
+}
+
+/* ════════ FEED ════════ */
+function getFilteredData(){
+  return activeCategory==='all' ? quizData : quizData.filter(q=>q.category===activeCategory);
+}
+
+function rebuildFeed(){
+  // Destroy all existing players
+  Object.keys(ytPlayers).forEach(id=>{
+    clearInterval(watchIntervals[id]);
+    try{ ytPlayers[id].destroy(); }catch(_){}
+  });
+  ytPlayers={}; watchIntervals={};
+  currentVisible=null;
+  buildFeed(activeCategory);
+}
+
+function buildFeed(){
+  const feed=document.getElementById('feed');
+  feed.innerHTML='';
+
+  const filtered=getFilteredData();
+  if(filtered.length===0){
+    feed.innerHTML=`<div class="empty-state"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg><p>No videos in this category</p></div>`;
+    return;
+  }
+
+  // Group by category
+  const groups={};
+  filtered.forEach(v=>{
+    if(!groups[v.category]) groups[v.category]=[];
+    groups[v.category].push(v);
+  });
+
+  Object.entries(groups).forEach(([cat,videos])=>{
+    // Category header slide (only if showing all or single cat with multiple)
+    if(activeCategory==='all'){
+      const header=document.createElement('div');
+      header.className='cat-section-header';
+      header.innerHTML=`
+        <div class="cat-section-bg"></div>
+        <div class="cat-section-content">
+          <div class="cat-section-label">category</div>
+          <div class="cat-section-name">${escHtml(cat)}</div>
+          <div class="cat-section-count">${videos.length} video${videos.length!==1?'s':''}</div>
+        </div>
+        <div class="cat-scroll-hint">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+          scroll
+        </div>`;
+      feed.appendChild(header);
+    }
+
+    videos.forEach((vid,idx)=>{
+      feed.appendChild(createSlide(vid, idx+1, videos.length));
+    });
+  });
+}
+
+function createSlide(vid, idx, total){
+  const videoId=extractId(vid.video);
+  const watched=watchedMap[vid.questId]||0;
+  const pct=vid.watchTarget>0?Math.min((watched/vid.watchTarget)*100,100):0;
+  const isSaved=savedSet.has(vid.questId);
+  const isUnlocked=watched>=vid.watchTarget;
+
+  const slide=document.createElement('div');
+  slide.className='video-slide';
+  slide.dataset.questId=vid.questId;
+  slide.dataset.videoId=videoId;
+  slide.dataset.watchTarget=vid.watchTarget;
+
+  slide.innerHTML=`
+    <div class="slide-player-wrap" id="player-wrap-${vid.questId}">
+      <div id="yt-${vid.questId}"></div>
+    </div>
+    <div class="slide-gradient-top"></div>
+    <div class="slide-gradient-bot"></div>
+    <div class="burst" id="burst-${vid.questId}"></div>
+
+    <!-- Bottom info -->
+    <div class="slide-info">
+      <div class="slide-category">${escHtml(vid.category)}</div>
+      <div class="slide-title">${escHtml(vid.title)}</div>
+      <div class="slide-progress-row">
+        <div class="slide-progress-track">
+          <div class="slide-progress-fill${isUnlocked||isSaved?' done':''}" id="pfill-${vid.questId}" style="width:${Math.min(pct,100)}%"></div>
+        </div>
+        <div class="slide-progress-time" id="ptime-${vid.questId}">${watched}s / ${vid.watchTarget}s</div>
+      </div>
+    </div>
+
+    <!-- Right actions -->
+    <div class="slide-actions">
+      <div>
+        <button class="save-btn ${isSaved?'saved':isUnlocked?'unlocked':'locked'}"
+                id="savebtn-${vid.questId}"
+                onclick="handleSingleSave('${vid.questId}')"
+                title="${isSaved?'Saved!':isUnlocked?'Save score':'Keep watching to unlock'}">
+          ${saveBtnIcon(isSaved,isUnlocked)}
+        </button>
+        <div class="save-btn-label">${isSaved?'saved':isUnlocked?'save':''}</div>
+      </div>
+      <div class="slide-num">${idx}/${total}</div>
+    </div>`;
+
+  return slide;
+}
+
+function saveBtnIcon(saved,unlocked){
+  if(saved) return `<svg width="24" height="24" viewBox="0 0 24 24" fill="${'#00e676'}" stroke="none"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>`;
+  if(unlocked) return `<svg width="24" height="24" viewBox="0 0 24 24" fill="${'#f0b429'}" stroke="none"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>`;
+  return `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="2"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>`;
+}
+
+/* ════════ INTERSECTION OBSERVER (play/pause on scroll) ════════ */
+let observer=null;
+function initIntersectionObserver(){
+  if(observer) observer.disconnect();
+  observer=new IntersectionObserver((entries)=>{
+    entries.forEach(entry=>{
+      const slide=entry.target;
+      const qid=slide.dataset.questId;
+      if(!qid) return;
+
+      if(entry.isIntersecting && entry.intersectionRatio>0.7){
+        // Came into view — init player if needed, then play
+        currentVisible=qid;
+        ensurePlayer(slide, qid).then(()=>{ tryPlay(qid); });
+      } else {
+        // Left view — pause
+        pausePlayer(qid);
+      }
+    });
+  },{threshold:[0,.7]});
+
+  document.querySelectorAll('.video-slide').forEach(s=>observer.observe(s));
+}
+
+async function ensurePlayer(slide, qid){
+  if(ytPlayers[qid]) return; // already created
+  if(!ytReady){ let t=0; while(!ytReady&&t<80){await new Promise(r=>setTimeout(r,100));t++;} }
+
+  return new Promise(resolve=>{
+    ytPlayers[qid]=new YT.Player(`yt-${qid}`,{
+      videoId: slide.dataset.videoId,
+      playerVars:{ autoplay:0, controls:1, rel:0, modestbranding:1, playsinline:1 },
+      events:{
+        onReady: ()=>resolve(),
+        onStateChange: (e)=>onSlidePlayerState(e, qid)
+      }
+    });
+  });
+}
+
+function tryPlay(qid){
+  try{ ytPlayers[qid]?.playVideo(); }catch(_){}
+}
+function pausePlayer(qid){
+  clearInterval(watchIntervals[qid]);
+  watchIntervals[qid]=null;
+  try{ ytPlayers[qid]?.pauseVideo(); }catch(_){}
+}
+
+function onSlidePlayerState(event, qid){
+  if(event.data===YT.PlayerState.PLAYING){
+    if(!watchIntervals[qid]){
+      watchIntervals[qid]=setInterval(()=>tickWatch(qid),1000);
+    }
+  } else {
+    clearInterval(watchIntervals[qid]);
+    watchIntervals[qid]=null;
+  }
+}
+
+function tickWatch(qid){
+  watchedMap[qid]=(watchedMap[qid]||0)+1;
+  const watched=watchedMap[qid];
+  const slide=document.querySelector(`.video-slide[data-quest-id="${qid}"]`);
+  if(!slide) return;
+  const target=parseInt(slide.dataset.watchTarget)||1;
+  const pct=Math.min((watched/target)*100,100);
+
+  // Update progress bar
+  const fill=document.getElementById(`pfill-${qid}`);
+  const time=document.getElementById(`ptime-${qid}`);
+  if(fill){ fill.style.width=pct+'%'; fill.classList.toggle('done',pct>=100); }
+  if(time) time.textContent=`${watched}s / ${target}s`;
+
+  // Unlock save button when target reached
+  if(watched>=target && !savedSet.has(qid)){
+    const btn=document.getElementById(`savebtn-${qid}`);
+    if(btn && btn.classList.contains('locked')){
+      btn.classList.remove('locked');
+      btn.classList.add('unlocked');
+      btn.innerHTML=saveBtnIcon(false,true);
+      btn.nextElementSibling.textContent='save';
+      // pulse glow hint
+      showToast('🎯 Target reached! Tap ♥ to save.');
+    }
+  }
+}
+
+/* ════════ SINGLE SAVE (heart button) ════════ */
+function handleSingleSave(qid){
+  const watched=watchedMap[qid]||0;
+  const slide=document.querySelector(`.video-slide[data-quest-id="${qid}"]`);
+  const target=parseInt(slide?.dataset.watchTarget)||0;
+
+  if(watched<target){
+    showToast(`⏳ Watch ${target-watched}s more to unlock!`);
+    return;
+  }
+  if(savedSet.has(qid)){
+    showToast('✅ Already saved!');
+    return;
+  }
+
+  // Burst animation
+  const burst=document.getElementById(`burst-${qid}`);
+  if(burst){ burst.innerHTML='<div class="burst-heart">💛</div>'; setTimeout(()=>{ burst.innerHTML=''; },800); }
+
+  // Mark saved locally right away (optimistic)
+  savedSet.add(qid);
+  const btn=document.getElementById(`savebtn-${qid}`);
+  if(btn){
+    btn.classList.remove('unlocked'); btn.classList.add('saved');
+    btn.innerHTML=saveBtnIcon(true,true);
+    btn.nextElementSibling.textContent='saved';
+  }
+
+  pushToSupabase(qid, watched);
+  showToast('💾 Score saved!');
+  updateSaveAllBtn();
+}
+window.handleSingleSave=handleSingleSave;
+
+/* ════════ SAVE ALL ════════ */
+function saveAll(){
+  // Collect all videos that have hit watchTarget and aren't saved yet
+  const toSave=getFilteredData().filter(v=>{
+    const w=watchedMap[v.questId]||0;
+    return w>=v.watchTarget && !savedSet.has(v.questId);
+  });
+
+  if(toSave.length===0){
+    // If nothing pending, submit everything watched (even < target) as total time
+    submitTotalWatchTime();
+    return;
+  }
+
+  toSave.forEach(v=>{ handleSingleSave(v.questId); });
+  submitTotalWatchTime();
+}
+window.saveAll=saveAll;
+
+function submitTotalWatchTime(){
+  // Sum all watched seconds across all videos
+  const total=Object.values(watchedMap).reduce((a,b)=>a+b,0);
+  if(total===0){ showToast('Nothing watched yet!'); return; }
+
+  const client=window.supabase;
+  if(!client) return;
+
+  client.from('Quests').insert([{
+    student_name: playerName,
+    department:   playerDept,
+    correct:      10,
+    wrong:        0,
+    time_spent:   total,
+    quest_id:     'TOTAL_SESSION'
+  }]).then(({error})=>{
+    if(error) console.error('Supabase total:', error);
+    else showToast(`📊 Total watch time saved: ${total}s`);
+  });
+}
+
+function pushToSupabase(qid, watched){
+  const client=window.supabase;
+  if(!client) return;
+  client.from('Quests').insert([{
+    student_name: playerName, department: playerDept,
+    correct: 10, wrong: 0,
+    time_spent: watched, quest_id: qid
+  }]).then(({error})=>{ if(error){ console.error('Supabase:', error); } });
+}
+
+function updateSaveAllBtn(){
+  const btn=document.getElementById('saveAllBtn');
+  const unsaved=getFilteredData().filter(v=>(watchedMap[v.questId]||0)>=v.watchTarget && !savedSet.has(v.questId)).length;
+  btn.disabled=unsaved===0;
+  btn.textContent=unsaved>0?`💾 Submit All (${unsaved})`:'💾 Submit All';
+}
+
+/* ════════ TOAST ════════ */
+let toastTimer=null;
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove('show'),2500);
+}
+
+/* ════════ UTILS ════════ */
+function extractId(url){
+  if(!url) return '';
+  const m=url.match(/[?&]v=([^&]+)/);
+  return m?m[1]:url;
+}
+function escHtml(str){
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>

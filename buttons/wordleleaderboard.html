@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Wordleblitz — Neural Command Deck</title>
+<title>Wordleblitz Leaderboard</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
@@ -13,8 +13,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const supabase = createClient(
   "https://ahezssoczvpbkteffcgz.supabase.co",
-"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoZXpzc29jenZwYmt0ZWZmY2d6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI4NTk1ODUsImV4cCI6MjA3ODQzNTU4NX0.2ZlqXnZxv0opkhynAT7OlK4S-xPygcc7ETUyTXRfGHE"
-
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoZXpzc29jenZwYmt0ZWZmY2d6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI4NTk1ODUsImV4cCI6MjA3ODQzNTU4NX0.2ZlqXnZxv0opkhynAT7OlK4S-xPygcc7ETUyTXRfGHE"
 );
 
 let reportData = [];
@@ -23,6 +22,7 @@ let currentSort = "best_score";
 let sortAscending = false;
 
 async function loadData() {
+
   document.getElementById("loader").style.display = "flex";
 
   const { data, error } = await supabase
@@ -32,8 +32,9 @@ async function loadData() {
   document.getElementById("loader").style.display = "none";
 
   if (error) {
+    console.error(error);
     document.getElementById("error").textContent =
-      "⚠ Neural uplink failure.";
+      "⚠ Telemetry failure.";
     return;
   }
 
@@ -44,6 +45,7 @@ async function loadData() {
 }
 
 function sortData(key) {
+
   if (currentSort === key) sortAscending = !sortAscending;
   else {
     currentSort = key;
@@ -51,8 +53,10 @@ function sortData(key) {
   }
 
   filteredData.sort((a, b) => {
+
     let A = Number(a[key] || 0);
     let B = Number(b[key] || 0);
+
     return sortAscending ? A - B : B - A;
   });
 
@@ -61,6 +65,7 @@ function sortData(key) {
 }
 
 function updateButtons() {
+
   document.querySelectorAll(".sort-btn").forEach(btn => {
     btn.classList.remove("active");
     btn.querySelector(".indicator").textContent = "";
@@ -74,11 +79,26 @@ function updateButtons() {
   }
 }
 
+function formatValue(player) {
+
+  const value = player[currentSort];
+
+  if (currentSort === "accuracy") return `${value}%`;
+  if (currentSort === "total_time_played")
+    return `${Math.round(value / 60)} mins`;
+  if (currentSort === "best_speed")
+    return `${value}s`;
+
+  return value;
+}
+
 function renderLeaderboard() {
+
   const container = document.getElementById("leaderboard");
   container.innerHTML = "";
 
   filteredData.forEach((p, idx) => {
+
     const row = document.createElement("div");
     row.className = "leaderboard-row";
 
@@ -87,50 +107,19 @@ function renderLeaderboard() {
     else if (idx === 2) row.classList.add("bronze");
 
     row.innerHTML = `
-      <div class="rank">${idx < 3 ? ["⚡","🔥","💀"][idx] : idx + 1}</div>
+      <div class="rank">${idx + 1}</div>
       <div class="name">
-        <div class="player-name">${p.student_name}</div>
+        <div class="player">${p.student_name}</div>
         <div class="dept">${p.department}</div>
       </div>
-      <div class="score">${p[currentSort]}</div>
+      <div class="score">${formatValue(p)}</div>
     `;
 
-    row.onclick = () => showDetail(p);
     container.appendChild(row);
   });
 }
 
-function showDetail(p) {
-  const modal = document.getElementById("modal");
-  const content = document.getElementById("modal-content");
-
-  content.innerHTML = `
-    <h2>${p.student_name}</h2>
-    <div class="modal-grid">
-
-      <div><label>Sessions</label><value>${p.total_sessions}</value></div>
-      <div><label>Time Played</label><value>${Math.round(p.total_time_played / 60)} mins</value></div>
-      <div><label>Correct</label><value>${p.total_correct}</value></div>
-      <div><label>Wrong</label><value>${p.total_wrong}</value></div>
-      <div><label>Best Score</label><value>${p.best_score}</value></div>
-      <div><label>Best Streak</label><value>${p.best_streak}</value></div>
-      <div><label>Best Speed</label><value>${p.best_speed}s</value></div>
-      <div><label>Accuracy</label><value>${p.accuracy}%</value></div>
-      <div><label>Efficiency</label><value>${p.efficiency}</value></div>
-
-    </div>
-    <button onclick="closeModal()">DISENGAGE</button>
-  `;
-
-  modal.style.display = "flex";
-}
-
-function closeModal() {
-  document.getElementById("modal").style.display = "none";
-}
-
 window.sortData = sortData;
-window.closeModal = closeModal;
 window.onload = loadData;
 </script>
 
@@ -138,90 +127,71 @@ window.onload = loadData;
 :root {
   --cyan: #22D3EE;
   --purple: #A855F7;
-  --pink: #F472B6;
-  --bg: #03040A;
 }
 
 body {
-  background: radial-gradient(circle at top, #0B1020, #020308);
+  background: #020617;
   font-family: 'Inter', sans-serif;
   color: white;
 }
 
 .command-frame {
-  max-width: 900px;
+  max-width: 960px;
   margin: auto;
-  background: rgba(10,10,15,0.9);
-  border: 1px solid rgba(34,211,238,0.3);
   border-radius: 18px;
-  box-shadow: 0 0 40px rgba(34,211,238,0.2);
-  overflow: hidden;
+  background: black;
+  border: 1px solid rgba(34,211,238,0.3);
 }
 
-/* HEADER */
 .header {
-  padding: 20px;
+  padding: 18px;
   border-bottom: 1px solid rgba(168,85,247,0.3);
 }
 
 .title {
-  font-size: 26px;
+  font-size: 22px;
   font-weight: 900;
-  background: linear-gradient(90deg, var(--cyan), var(--purple));
-  -webkit-background-clip: text;
-  color: transparent;
+  color: var(--cyan);
 }
 
 /* SORT PANEL */
 .sort-panel {
-  padding: 14px;
+  padding: 12px;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
-  background: rgba(0,0,0,0.35);
+  gap: 6px;
 }
 
 .sort-btn {
   background: black;
-  border: 1px solid rgba(34,211,238,0.35);
+  border: 1px solid rgba(34,211,238,0.4);
   border-radius: 999px;
   padding: 6px;
-  font-size: 11px;
-  text-transform: uppercase;
-  cursor: pointer;
+  font-size: 10px;
   color: var(--cyan);
+  cursor: pointer;
 }
 
 .sort-btn.active {
-  background: linear-gradient(90deg, var(--cyan), var(--purple));
+  background: var(--cyan);
   color: black;
-  box-shadow: 0 0 12px var(--cyan);
 }
 
 /* BOARD */
-.board {
-  padding: 10px;
-}
-
 .leaderboard-row {
   display: grid;
   grid-template-columns: 50px 1fr auto;
-  padding: 10px;
+  padding: 10px 14px;
   border-bottom: 1px solid rgba(255,255,255,0.05);
-  cursor: pointer;
-}
-
-.leaderboard-row:hover {
-  background: rgba(34,211,238,0.08);
 }
 
 .rank {
-  font-weight: 800;
   text-align: center;
   color: var(--purple);
+  font-weight: 700;
 }
 
-.player-name {
+.player {
   font-weight: 700;
 }
 
@@ -235,48 +205,15 @@ body {
   color: var(--cyan);
 }
 
-/* MODAL */
-#modal {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.75);
-  justify-content: center;
-  align-items: center;
-}
-
-#modal-content {
-  background: black;
-  padding: 20px;
-  border-radius: 16px;
-  border: 1px solid var(--cyan);
-  width: 90%;
-  max-width: 500px;
-}
-
-.modal-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-  margin: 16px 0;
-}
-
-label {
-  font-size: 10px;
-  color: grey;
-  text-transform: uppercase;
-}
-
-value {
-  font-weight: 700;
-  color: var(--cyan);
-}
+.gold { border-left: 3px solid gold; }
+.silver { border-left: 3px solid silver; }
+.bronze { border-left: 3px solid orange; }
 
 /* Loader */
 #loader {
   display: none;
   justify-content: center;
-  padding: 30px;
+  padding: 20px;
 }
 
 .spinner {
@@ -289,39 +226,46 @@ value {
 }
 
 @keyframes spin { to { transform: rotate(360deg); } }
+
+#error {
+  color: red;
+  text-align: center;
+  padding: 10px;
+}
 </style>
 </head>
 
 <body>
+
 <div class="command-frame">
 
   <div class="header">
-    <div class="title">WORDLEBLITZ COMMAND</div>
+    <div class="title">WORDLEBLITZ TELEMETRY BOARD</div>
   </div>
 
   <div class="sort-panel">
 
-    <button class="sort-btn" data-sort="best_score" onclick="sortData('best_score')">Score <span class="indicator"></span></button>
-    <button class="sort-btn" data-sort="accuracy" onclick="sortData('accuracy')">Accuracy <span class="indicator"></span></button>
-    <button class="sort-btn" data-sort="best_streak" onclick="sortData('best_streak')">Streak <span class="indicator"></span></button>
-    <button class="sort-btn" data-sort="best_speed" onclick="sortData('best_speed')">Speed <span class="indicator"></span></button>
-
     <button class="sort-btn" data-sort="total_sessions" onclick="sortData('total_sessions')">Sessions <span class="indicator"></span></button>
-    <button class="sort-btn" data-sort="total_time_played" onclick="sortData('total_time_played')">Time <span class="indicator"></span></button>
+    <button class="sort-btn" data-sort="total_time_played" onclick="sortData('total_time_played')">Time Played <span class="indicator"></span></button>
     <button class="sort-btn" data-sort="total_correct" onclick="sortData('total_correct')">Correct <span class="indicator"></span></button>
+    <button class="sort-btn" data-sort="total_wrong" onclick="sortData('total_wrong')">Wrong <span class="indicator"></span></button>
+
+    <button class="sort-btn" data-sort="best_score" onclick="sortData('best_score')">Best Score <span class="indicator"></span></button>
+    <button class="sort-btn" data-sort="best_streak" onclick="sortData('best_streak')">Best Streak <span class="indicator"></span></button>
+    <button class="sort-btn" data-sort="best_speed" onclick="sortData('best_speed')">Best Speed <span class="indicator"></span></button>
+    <button class="sort-btn" data-sort="total_bonus" onclick="sortData('total_bonus')">Bonus <span class="indicator"></span></button>
+
+    <button class="sort-btn" data-sort="total_perfect_solves" onclick="sortData('total_perfect_solves')">Perfect Solves <span class="indicator"></span></button>
+    <button class="sort-btn" data-sort="accuracy" onclick="sortData('accuracy')">Accuracy <span class="indicator"></span></button>
     <button class="sort-btn" data-sort="efficiency" onclick="sortData('efficiency')">Efficiency <span class="indicator"></span></button>
 
   </div>
 
-  <div class="board" id="leaderboard"></div>
-
   <div id="loader"><div class="spinner"></div></div>
   <div id="error"></div>
 
-</div>
+  <div id="leaderboard"></div>
 
-<div id="modal">
-  <div id="modal-content"></div>
 </div>
 
 </body>

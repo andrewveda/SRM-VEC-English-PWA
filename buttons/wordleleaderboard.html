@@ -1,102 +1,225 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wordleblitz Hall of Fame</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet">
-    <style>
-        .glass { background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); }
-        .gold-glow { box-shadow: 0 0 20px rgba(255, 215, 0, 0.5); border: 2px solid #ffd700; }
-        @keyframes pulse-fire { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-        .fire-anim { animation: pulse-fire 1s infinite; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wordleblitz — Combat Analytics</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+
+<style>
+body {
+    background: radial-gradient(circle at top, #050510, #010103);
+    color: white;
+}
+
+.neon {
+    text-shadow: 0 0 8px rgba(0,255,255,0.6);
+}
+
+.panel {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(0,255,255,0.15);
+    backdrop-filter: blur(10px);
+}
+
+.row {
+    transition: all 0.25s ease;
+}
+
+.row:hover {
+    background: rgba(0,255,255,0.06);
+}
+
+.badge {
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 999px;
+    letter-spacing: 0.08em;
+}
+</style>
 </head>
-<body class="bg-slate-900 text-white min-h-screen font-sans">
 
-    <div class="max-w-md mx-auto px-4 py-8">
-        <header class="text-center mb-10">
-            <h1 class="text-4xl font-black italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-500 uppercase">
-                Wordleblitz
-            </h1>
-            <p class="text-slate-400 text-sm">Real-time Global Rankings</p>
-        </header>
+<body class="min-h-screen font-mono">
 
-        <div id="leaderboard" class="space-y-4">
-            <div class="text-center py-20 text-slate-500 animate-pulse">Fetching legends...</div>
-        </div>
+<div class="max-w-6xl mx-auto px-4 py-10">
+
+    <header class="text-center mb-10">
+        <h1 class="text-5xl font-black neon text-cyan-400">
+            WORDLEBLITZ
+        </h1>
+        <p class="text-slate-500">Neural Performance Matrix</p>
+    </header>
+
+    <div class="panel rounded-2xl overflow-hidden">
+
+        <table class="w-full text-sm">
+            <thead class="bg-cyan-900/20 text-cyan-300">
+                <tr>
+                    <th class="p-3 cursor-pointer" onclick="sortTable('student_name')">PLAYER</th>
+                    <th class="p-3 cursor-pointer" onclick="sortTable('best_score')">SCORE</th>
+                    <th class="p-3 cursor-pointer" onclick="sortTable('accuracy')">ACCURACY</th>
+                    <th class="p-3 cursor-pointer" onclick="sortTable('total_sessions')">SESSIONS</th>
+                    <th class="p-3 cursor-pointer" onclick="sortTable('best_streak')">STREAK</th>
+                    <th class="p-3 cursor-pointer" onclick="sortTable('efficiency')">EFFICIENCY</th>
+                </tr>
+            </thead>
+
+            <tbody id="leaderboard">
+                <tr>
+                    <td colspan="6" class="text-center py-20 text-slate-600 animate-pulse">
+                        Establishing uplink...
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+
     </div>
+</div>
+
 <script>
-        const SUPABASE_URL = 'https://ahezssoczvpbkteffcgz.supabase.co';
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoZXpzc29jenZwYmt0ZWZmY2d6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI4NTk1ODUsImV4cCI6MjA3ODQzNTU4NX0.2ZlqXnZxv0opkhynAT7OlK4S-xPygcc7ETUyTXRfGHE';
+const SUPABASE_URL = 'https://ahezssoczvpbkteffcgz.supabase.co';
+ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoZXpzc29jenZwYmt0ZWZmY2d6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI4NTk1ODUsImV4cCI6MjA3ODQzNTU4NX0.2ZlqXnZxv0opkhynAT7OlK4S-xPygcc7ETUyTXRfGHE';
 
 const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-async function loadLeaderboard() {
+let players = [];
+let sortDirection = 1;
+let lastSort = null;
+
+function computeBadge(player) {
+
+    if (player.accuracy > 85) 
+        return '<span class="badge bg-green-500/20 text-green-400">PRECISION</span>';
+
+    if (player.best_streak >= 10) 
+        return '<span class="badge bg-purple-500/20 text-purple-400">STREAK LORD</span>';
+
+    if (player.best_speed <= 5) 
+        return '<span class="badge bg-cyan-500/20 text-cyan-400">LIGHTNING</span>';
+
+    return '<span class="badge bg-slate-700 text-slate-400">OPERATIVE</span>';
+}
+
+function renderTable() {
 
     const container = document.getElementById('leaderboard');
+    let html = "";
 
-    container.innerHTML = `
-        <div class="text-center py-20 text-slate-500 animate-pulse">
-            Talking to Supabase...
-        </div>`;
+    players.forEach((p, i) => {
+
+        html += `
+        <tr class="row border-b border-slate-900 cursor-pointer" onclick="toggleRow(${i})">
+            <td class="p-3">
+                <div class="flex items-center gap-2">
+                    <span class="text-cyan-400">${p.student_name}</span>
+                    ${computeBadge(p)}
+                </div>
+                <div class="text-xs text-slate-500">${p.department}</div>
+            </td>
+
+            <td class="p-3 text-yellow-400 font-bold">${p.best_score}</td>
+            <td class="p-3">${p.accuracy}%</td>
+            <td class="p-3">${p.total_sessions}</td>
+            <td class="p-3">${p.best_streak}</td>
+            <td class="p-3 text-cyan-400">${p.efficiency}</td>
+        </tr>
+
+        <tr id="expand-${i}" class="hidden bg-black/40">
+            <td colspan="6" class="p-4 text-xs text-slate-400">
+
+                <div class="grid grid-cols-4 gap-4">
+
+                    <div>
+                        <div class="text-slate-500">TIME PLAYED</div>
+                        <div>${Math.round(p.total_time_played / 60)} mins</div>
+                    </div>
+
+                    <div>
+                        <div class="text-slate-500">CORRECT</div>
+                        <div>${p.total_correct}</div>
+                    </div>
+
+                    <div>
+                        <div class="text-slate-500">WRONG</div>
+                        <div>${p.total_wrong}</div>
+                    </div>
+
+                    <div>
+                        <div class="text-slate-500">BONUS</div>
+                        <div>${p.total_bonus}</div>
+                    </div>
+
+                    <div>
+                        <div class="text-slate-500">BEST SPEED</div>
+                        <div>${p.best_speed}s</div>
+                    </div>
+
+                    <div>
+                        <div class="text-slate-500">PERFECT SOLVES</div>
+                        <div>${p.total_perfect_solves}</div>
+                    </div>
+
+                </div>
+
+            </td>
+        </tr>`;
+    });
+
+    container.innerHTML = html;
+}
+
+function toggleRow(index) {
+    const row = document.getElementById(`expand-${index}`);
+    row.classList.toggle("hidden");
+}
+
+function sortTable(field) {
+
+    if (lastSort === field) sortDirection *= -1;
+    else sortDirection = -1;
+
+    lastSort = field;
+
+    players.sort((a,b) => 
+        (Number(a[field]) > Number(b[field]) ? 1 : -1) * sortDirection
+    );
+
+    renderTable();
+}
+
+async function loadLeaderboard() {
 
     try {
-
         const { data, error } = await client
             .from('leaderboard_wordleblitz')
             .select('*');
 
         if (error) throw error;
 
-        console.log("Supabase Response:", data);
+        players = data.map(p => ({
+            ...p,
+            accuracy: Number(p.accuracy || 0),
+            efficiency: Number(p.efficiency || 0)
+        }));
 
-        if (!data || data.length === 0) {
-            container.innerHTML = `
-                <div class="text-center py-20 text-slate-500">
-                    No data returned 👀
-                </div>`;
-            return;
-        }
-
-        let html = "";
-
-        data.forEach((player, index) => {
-
-            const score = Number(player.best_score) || 0;
-            const accuracy = Number(player.accuracy) || 0;
-            const speed = Number(player.best_speed) || 0;
-
-            const rankEmoji = ['🥇','🥈','🥉'][index] || `#${index+1}`;
-
-            html += `
-                <div class="glass p-4 rounded-2xl flex justify-between">
-                    <div>
-                        <div>${rankEmoji} ${player.student_name}</div>
-                        <div class="text-xs text-slate-400">${player.department}</div>
-                    </div>
-                    <div class="text-xl">${score}</div>
-                </div>
-            `;
-        });
-
-        container.innerHTML = html;
+        sortTable('best_score');
 
     } catch (err) {
-
-        console.error("Leaderboard Crash:", err);
-
-        container.innerHTML = `
-            <div class="text-center py-20 text-red-400">
-                Crash detected ⚠️ <br><br>
-                Open console (F12)
-            </div>`;
+        document.getElementById('leaderboard').innerHTML = `
+            <tr>
+                <td colspan="6" class="text-center py-20 text-red-400">
+                    SYSTEM FAILURE ⚠️
+                </td>
+            </tr>`;
     }
 }
 
 loadLeaderboard();
 </script>
+
 </body>
 </html>
+
+

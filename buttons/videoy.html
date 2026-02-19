@@ -393,6 +393,14 @@
           </div>
           <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
           <div class="watch-status" id="watchStatus">▶ Press play to begin</div>
+          <button id="saveBtn" disabled onclick="manualSave()" style="
+            width:100%; margin-top:1rem; padding:.8rem;
+            background: linear-gradient(135deg, #23d18b, #16a34a);
+            color:#04200e; font-family:var(--font-body); font-size:.92rem; font-weight:700;
+            border:none; border-radius:var(--r); cursor:pointer;
+            box-shadow: 0 4px 18px rgba(35,209,139,.3);
+            transition: all .2s; letter-spacing:.03em;
+          ">💾 Save Score</button>
         </div>
         <hr class="divider">
         <div class="up-next-label">Up Next</div>
@@ -565,8 +573,13 @@ async function openPlayer(vid) {
 
   const alreadyDone = completedSet.has(vid.questId);
   const statusEl = document.getElementById('watchStatus');
-  statusEl.textContent = alreadyDone ? '✅ Already completed!' : '▶ Press play to begin';
+  statusEl.textContent = alreadyDone ? '✅ Already saved!' : '▶ Press play to begin';
   statusEl.className = 'watch-status' + (alreadyDone ? ' ready' : '');
+
+  const saveBtn = document.getElementById('saveBtn');
+  saveBtn.disabled = !alreadyDone;
+  saveBtn.textContent = alreadyDone ? '✅ Score Saved' : '💾 Save Score';
+  saveBtn.style.opacity = alreadyDone ? '.6' : '1';
 
   const pct = vid.watchTarget > 0 ? Math.min((watchTime / vid.watchTarget) * 100, 100) : 0;
   const fill = document.getElementById('progressFill');
@@ -603,12 +616,14 @@ function onPlayerState(event) {
         document.getElementById('progressFill').classList.toggle('done', pct >= 100);
         document.getElementById('watchVal').textContent = `${watchTime}s / ${currentVideo.watchTarget}s`;
 
+        // Unlock save button once target reached (but don't auto-save)
         if (watchTime >= currentVideo.watchTarget && !completedSet.has(currentVideo.questId)) {
-          completedSet.add(currentVideo.questId);
           const s = document.getElementById('watchStatus');
-          s.textContent = '✅ Quest complete!';
+          s.textContent = '✅ Target reached! Save when ready.';
           s.className = 'watch-status ready';
-          saveCompletion();
+          const saveBtn = document.getElementById('saveBtn');
+          saveBtn.disabled = false;
+          saveBtn.style.opacity = '1';
         }
       }, 1000);
     }
@@ -620,15 +635,35 @@ function onPlayerState(event) {
   }
 }
 
-function saveCompletion() {
+function manualSave() {
+  if (!currentVideo || completedSet.has(currentVideo.questId)) return;
+
+  const saveBtn = document.getElementById('saveBtn');
+  saveBtn.disabled = true;
+  saveBtn.textContent = '⏳ Saving…';
+
   const client = window.supabase;
-  if (!client || !currentVideo) return;
+  if (!client) { saveBtn.textContent = '❌ Error'; return; }
+
   client.from('Quests').insert([{
     student_name: playerName, department: playerDept,
     correct: 10, wrong: 0,
     time_spent: watchTime, quest_id: currentVideo.questId
-  }]).then(({error}) => { if(error) console.error('Supabase:', error); });
+  }]).then(({error}) => {
+    if (error) {
+      console.error('Supabase:', error);
+      saveBtn.disabled = false;
+      saveBtn.textContent = '❌ Failed — Try Again';
+    } else {
+      completedSet.add(currentVideo.questId);
+      saveBtn.textContent = '✅ Score Saved';
+      saveBtn.style.opacity = '.6';
+      document.getElementById('watchStatus').textContent = '✅ Score saved!';
+      renderGrid(); // update thumbnail badges
+    }
+  });
 }
+window.manualSave = manualSave;
 
 function buildNextList(current) {
   const list = document.getElementById('nextList');

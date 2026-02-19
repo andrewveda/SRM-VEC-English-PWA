@@ -1,225 +1,328 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Wordleblitz — Combat Analytics</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Wordleblitz — Neural Command Deck</title>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+
+<script type="module">
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const supabase = createClient(
+  "https://ahezssoczvpbkteffcgz.supabase.co",
+"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoZXpzc29jenZwYmt0ZWZmY2d6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI4NTk1ODUsImV4cCI6MjA3ODQzNTU4NX0.2ZlqXnZxv0opkhynAT7OlK4S-xPygcc7ETUyTXRfGHE";
+
+);
+
+let reportData = [];
+let filteredData = [];
+let currentSort = "best_score";
+let sortAscending = false;
+
+async function loadData() {
+  document.getElementById("loader").style.display = "flex";
+
+  const { data, error } = await supabase
+    .from("leaderboard_wordleblitz")
+    .select("*");
+
+  document.getElementById("loader").style.display = "none";
+
+  if (error) {
+    document.getElementById("error").textContent =
+      "⚠ Neural uplink failure.";
+    return;
+  }
+
+  reportData = data || [];
+  filteredData = [...reportData];
+
+  sortData(currentSort);
+}
+
+function sortData(key) {
+  if (currentSort === key) sortAscending = !sortAscending;
+  else {
+    currentSort = key;
+    sortAscending = false;
+  }
+
+  filteredData.sort((a, b) => {
+    let A = Number(a[key] || 0);
+    let B = Number(b[key] || 0);
+    return sortAscending ? A - B : B - A;
+  });
+
+  updateButtons();
+  renderLeaderboard();
+}
+
+function updateButtons() {
+  document.querySelectorAll(".sort-btn").forEach(btn => {
+    btn.classList.remove("active");
+    btn.querySelector(".indicator").textContent = "";
+  });
+
+  const active = document.querySelector(`[data-sort="${currentSort}"]`);
+  if (active) {
+    active.classList.add("active");
+    active.querySelector(".indicator").textContent =
+      sortAscending ? "▲" : "▼";
+  }
+}
+
+function renderLeaderboard() {
+  const container = document.getElementById("leaderboard");
+  container.innerHTML = "";
+
+  filteredData.forEach((p, idx) => {
+    const row = document.createElement("div");
+    row.className = "leaderboard-row";
+
+    if (idx === 0) row.classList.add("gold");
+    else if (idx === 1) row.classList.add("silver");
+    else if (idx === 2) row.classList.add("bronze");
+
+    row.innerHTML = `
+      <div class="rank">${idx < 3 ? ["⚡","🔥","💀"][idx] : idx + 1}</div>
+      <div class="name">
+        <div class="player-name">${p.student_name}</div>
+        <div class="dept">${p.department}</div>
+      </div>
+      <div class="score">${p[currentSort]}</div>
+    `;
+
+    row.onclick = () => showDetail(p);
+    container.appendChild(row);
+  });
+}
+
+function showDetail(p) {
+  const modal = document.getElementById("modal");
+  const content = document.getElementById("modal-content");
+
+  content.innerHTML = `
+    <h2>${p.student_name}</h2>
+    <div class="modal-grid">
+
+      <div><label>Sessions</label><value>${p.total_sessions}</value></div>
+      <div><label>Time Played</label><value>${Math.round(p.total_time_played / 60)} mins</value></div>
+      <div><label>Correct</label><value>${p.total_correct}</value></div>
+      <div><label>Wrong</label><value>${p.total_wrong}</value></div>
+      <div><label>Best Score</label><value>${p.best_score}</value></div>
+      <div><label>Best Streak</label><value>${p.best_streak}</value></div>
+      <div><label>Best Speed</label><value>${p.best_speed}s</value></div>
+      <div><label>Accuracy</label><value>${p.accuracy}%</value></div>
+      <div><label>Efficiency</label><value>${p.efficiency}</value></div>
+
+    </div>
+    <button onclick="closeModal()">DISENGAGE</button>
+  `;
+
+  modal.style.display = "flex";
+}
+
+function closeModal() {
+  document.getElementById("modal").style.display = "none";
+}
+
+window.sortData = sortData;
+window.closeModal = closeModal;
+window.onload = loadData;
+</script>
 
 <style>
+:root {
+  --cyan: #22D3EE;
+  --purple: #A855F7;
+  --pink: #F472B6;
+  --bg: #03040A;
+}
+
 body {
-    background: radial-gradient(circle at top, #050510, #010103);
-    color: white;
+  background: radial-gradient(circle at top, #0B1020, #020308);
+  font-family: 'Inter', sans-serif;
+  color: white;
 }
 
-.neon {
-    text-shadow: 0 0 8px rgba(0,255,255,0.6);
+.command-frame {
+  max-width: 900px;
+  margin: auto;
+  background: rgba(10,10,15,0.9);
+  border: 1px solid rgba(34,211,238,0.3);
+  border-radius: 18px;
+  box-shadow: 0 0 40px rgba(34,211,238,0.2);
+  overflow: hidden;
 }
 
-.panel {
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(0,255,255,0.15);
-    backdrop-filter: blur(10px);
+/* HEADER */
+.header {
+  padding: 20px;
+  border-bottom: 1px solid rgba(168,85,247,0.3);
 }
 
-.row {
-    transition: all 0.25s ease;
+.title {
+  font-size: 26px;
+  font-weight: 900;
+  background: linear-gradient(90deg, var(--cyan), var(--purple));
+  -webkit-background-clip: text;
+  color: transparent;
 }
 
-.row:hover {
-    background: rgba(0,255,255,0.06);
+/* SORT PANEL */
+.sort-panel {
+  padding: 14px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  background: rgba(0,0,0,0.35);
 }
 
-.badge {
-    font-size: 10px;
-    padding: 2px 6px;
-    border-radius: 999px;
-    letter-spacing: 0.08em;
+.sort-btn {
+  background: black;
+  border: 1px solid rgba(34,211,238,0.35);
+  border-radius: 999px;
+  padding: 6px;
+  font-size: 11px;
+  text-transform: uppercase;
+  cursor: pointer;
+  color: var(--cyan);
 }
+
+.sort-btn.active {
+  background: linear-gradient(90deg, var(--cyan), var(--purple));
+  color: black;
+  box-shadow: 0 0 12px var(--cyan);
+}
+
+/* BOARD */
+.board {
+  padding: 10px;
+}
+
+.leaderboard-row {
+  display: grid;
+  grid-template-columns: 50px 1fr auto;
+  padding: 10px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  cursor: pointer;
+}
+
+.leaderboard-row:hover {
+  background: rgba(34,211,238,0.08);
+}
+
+.rank {
+  font-weight: 800;
+  text-align: center;
+  color: var(--purple);
+}
+
+.player-name {
+  font-weight: 700;
+}
+
+.dept {
+  font-size: 10px;
+  color: grey;
+}
+
+.score {
+  font-weight: 800;
+  color: var(--cyan);
+}
+
+/* MODAL */
+#modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.75);
+  justify-content: center;
+  align-items: center;
+}
+
+#modal-content {
+  background: black;
+  padding: 20px;
+  border-radius: 16px;
+  border: 1px solid var(--cyan);
+  width: 90%;
+  max-width: 500px;
+}
+
+.modal-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin: 16px 0;
+}
+
+label {
+  font-size: 10px;
+  color: grey;
+  text-transform: uppercase;
+}
+
+value {
+  font-weight: 700;
+  color: var(--cyan);
+}
+
+/* Loader */
+#loader {
+  display: none;
+  justify-content: center;
+  padding: 30px;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(255,255,255,0.2);
+  border-top-color: var(--cyan);
+  border-radius: 999px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
 </style>
 </head>
 
-<body class="min-h-screen font-mono">
+<body>
+<div class="command-frame">
 
-<div class="max-w-6xl mx-auto px-4 py-10">
+  <div class="header">
+    <div class="title">WORDLEBLITZ COMMAND</div>
+  </div>
 
-    <header class="text-center mb-10">
-        <h1 class="text-5xl font-black neon text-cyan-400">
-            WORDLEBLITZ
-        </h1>
-        <p class="text-slate-500">Neural Performance Matrix</p>
-    </header>
+  <div class="sort-panel">
 
-    <div class="panel rounded-2xl overflow-hidden">
+    <button class="sort-btn" data-sort="best_score" onclick="sortData('best_score')">Score <span class="indicator"></span></button>
+    <button class="sort-btn" data-sort="accuracy" onclick="sortData('accuracy')">Accuracy <span class="indicator"></span></button>
+    <button class="sort-btn" data-sort="best_streak" onclick="sortData('best_streak')">Streak <span class="indicator"></span></button>
+    <button class="sort-btn" data-sort="best_speed" onclick="sortData('best_speed')">Speed <span class="indicator"></span></button>
 
-        <table class="w-full text-sm">
-            <thead class="bg-cyan-900/20 text-cyan-300">
-                <tr>
-                    <th class="p-3 cursor-pointer" onclick="sortTable('student_name')">PLAYER</th>
-                    <th class="p-3 cursor-pointer" onclick="sortTable('best_score')">SCORE</th>
-                    <th class="p-3 cursor-pointer" onclick="sortTable('accuracy')">ACCURACY</th>
-                    <th class="p-3 cursor-pointer" onclick="sortTable('total_sessions')">SESSIONS</th>
-                    <th class="p-3 cursor-pointer" onclick="sortTable('best_streak')">STREAK</th>
-                    <th class="p-3 cursor-pointer" onclick="sortTable('efficiency')">EFFICIENCY</th>
-                </tr>
-            </thead>
+    <button class="sort-btn" data-sort="total_sessions" onclick="sortData('total_sessions')">Sessions <span class="indicator"></span></button>
+    <button class="sort-btn" data-sort="total_time_played" onclick="sortData('total_time_played')">Time <span class="indicator"></span></button>
+    <button class="sort-btn" data-sort="total_correct" onclick="sortData('total_correct')">Correct <span class="indicator"></span></button>
+    <button class="sort-btn" data-sort="efficiency" onclick="sortData('efficiency')">Efficiency <span class="indicator"></span></button>
 
-            <tbody id="leaderboard">
-                <tr>
-                    <td colspan="6" class="text-center py-20 text-slate-600 animate-pulse">
-                        Establishing uplink...
-                    </td>
-                </tr>
-            </tbody>
-        </table>
+  </div>
 
-    </div>
+  <div class="board" id="leaderboard"></div>
+
+  <div id="loader"><div class="spinner"></div></div>
+  <div id="error"></div>
+
 </div>
 
-<script>
-const SUPABASE_URL = 'https://ahezssoczvpbkteffcgz.supabase.co';
- const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoZXpzc29jenZwYmt0ZWZmY2d6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI4NTk1ODUsImV4cCI6MjA3ODQzNTU4NX0.2ZlqXnZxv0opkhynAT7OlK4S-xPygcc7ETUyTXRfGHE';
-
-const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-let players = [];
-let sortDirection = 1;
-let lastSort = null;
-
-function computeBadge(player) {
-
-    if (player.accuracy > 85) 
-        return '<span class="badge bg-green-500/20 text-green-400">PRECISION</span>';
-
-    if (player.best_streak >= 10) 
-        return '<span class="badge bg-purple-500/20 text-purple-400">STREAK LORD</span>';
-
-    if (player.best_speed <= 5) 
-        return '<span class="badge bg-cyan-500/20 text-cyan-400">LIGHTNING</span>';
-
-    return '<span class="badge bg-slate-700 text-slate-400">OPERATIVE</span>';
-}
-
-function renderTable() {
-
-    const container = document.getElementById('leaderboard');
-    let html = "";
-
-    players.forEach((p, i) => {
-
-        html += `
-        <tr class="row border-b border-slate-900 cursor-pointer" onclick="toggleRow(${i})">
-            <td class="p-3">
-                <div class="flex items-center gap-2">
-                    <span class="text-cyan-400">${p.student_name}</span>
-                    ${computeBadge(p)}
-                </div>
-                <div class="text-xs text-slate-500">${p.department}</div>
-            </td>
-
-            <td class="p-3 text-yellow-400 font-bold">${p.best_score}</td>
-            <td class="p-3">${p.accuracy}%</td>
-            <td class="p-3">${p.total_sessions}</td>
-            <td class="p-3">${p.best_streak}</td>
-            <td class="p-3 text-cyan-400">${p.efficiency}</td>
-        </tr>
-
-        <tr id="expand-${i}" class="hidden bg-black/40">
-            <td colspan="6" class="p-4 text-xs text-slate-400">
-
-                <div class="grid grid-cols-4 gap-4">
-
-                    <div>
-                        <div class="text-slate-500">TIME PLAYED</div>
-                        <div>${Math.round(p.total_time_played / 60)} mins</div>
-                    </div>
-
-                    <div>
-                        <div class="text-slate-500">CORRECT</div>
-                        <div>${p.total_correct}</div>
-                    </div>
-
-                    <div>
-                        <div class="text-slate-500">WRONG</div>
-                        <div>${p.total_wrong}</div>
-                    </div>
-
-                    <div>
-                        <div class="text-slate-500">BONUS</div>
-                        <div>${p.total_bonus}</div>
-                    </div>
-
-                    <div>
-                        <div class="text-slate-500">BEST SPEED</div>
-                        <div>${p.best_speed}s</div>
-                    </div>
-
-                    <div>
-                        <div class="text-slate-500">PERFECT SOLVES</div>
-                        <div>${p.total_perfect_solves}</div>
-                    </div>
-
-                </div>
-
-            </td>
-        </tr>`;
-    });
-
-    container.innerHTML = html;
-}
-
-function toggleRow(index) {
-    const row = document.getElementById(`expand-${index}`);
-    row.classList.toggle("hidden");
-}
-
-function sortTable(field) {
-
-    if (lastSort === field) sortDirection *= -1;
-    else sortDirection = -1;
-
-    lastSort = field;
-
-    players.sort((a,b) => 
-        (Number(a[field]) > Number(b[field]) ? 1 : -1) * sortDirection
-    );
-
-    renderTable();
-}
-
-async function loadLeaderboard() {
-
-    try {
-        const { data, error } = await client
-            .from('leaderboard_wordleblitz')
-            .select('*');
-
-        if (error) throw error;
-
-        players = data.map(p => ({
-            ...p,
-            accuracy: Number(p.accuracy || 0),
-            efficiency: Number(p.efficiency || 0)
-        }));
-
-        sortTable('best_score');
-
-    } catch (err) {
-        document.getElementById('leaderboard').innerHTML = `
-            <tr>
-                <td colspan="6" class="text-center py-20 text-red-400">
-                    SYSTEM FAILURE ⚠️
-                </td>
-            </tr>`;
-    }
-}
-
-loadLeaderboard();
-</script>
+<div id="modal">
+  <div id="modal-content"></div>
+</div>
 
 </body>
 </html>
-
-

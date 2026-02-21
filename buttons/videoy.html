@@ -72,13 +72,61 @@
       color: var(--gold);
       text-shadow: 0 0 18px rgba(245,200,66,.45);
     }
-    .nav-user {
-      font-size: .82rem;
-      color: var(--muted);
+
+    /* ── MENU BUTTON ── */
+    .menu-btn {
       display: none;
-      align-items: center; gap: .6rem;
+      align-items: center; justify-content: center;
+      width: 40px; height: 40px;
+      background: rgba(255,255,255,.05);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all .2s;
+      position: relative;
     }
-    .nav-user span { color: var(--text); font-weight: 600; }
+    .menu-btn:hover { border-color: var(--gold); background: var(--gold-dim); }
+    .menu-btn svg { transition: transform .2s; }
+    .menu-btn.open svg { transform: rotate(90deg); }
+
+    .menu-dropdown {
+      display: none;
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      min-width: 200px;
+      background: #1a1c35;
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: .6rem;
+      box-shadow: 0 16px 40px rgba(0,0,0,.6);
+      animation: dropIn .18s ease forwards;
+    }
+    .menu-dropdown.open { display: block; }
+    @keyframes dropIn {
+      from { opacity:0; transform:translateY(-6px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+    .menu-dropdown-header {
+      padding: .5rem .75rem .4rem;
+      font-size: .7rem;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+      margin-bottom: .4rem;
+    }
+    .menu-user-name {
+      padding: .45rem .75rem;
+      font-size: .88rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .menu-user-dept {
+      padding: .2rem .75rem .5rem;
+      font-size: .78rem;
+      color: var(--gold);
+    }
 
     /* Wrap */
     .wrap {
@@ -333,8 +381,21 @@
 
 <nav>
   <div class="logo">✦ V FOR VIDEO</div>
-  <div class="nav-user" id="navUser">
-    👤 <span id="navName"></span> &nbsp;·&nbsp; <span id="navDept" style="color:var(--muted)"></span>
+
+  <!-- MENU BUTTON (hidden until logged in) -->
+  <div style="position:relative;" id="menuWrap">
+    <button class="menu-btn" id="menuBtn" aria-label="Menu" aria-expanded="false">
+      <svg width="18" height="14" viewBox="0 0 18 14" fill="none">
+        <rect width="18" height="2" rx="1" fill="rgba(245,200,66,0.85)"/>
+        <rect y="6" width="12" height="2" rx="1" fill="rgba(245,200,66,0.85)"/>
+        <rect y="12" width="16" height="2" rx="1" fill="rgba(245,200,66,0.85)"/>
+      </svg>
+    </button>
+    <div class="menu-dropdown" id="menuDropdown">
+      <div class="menu-dropdown-header">Logged in as</div>
+      <div class="menu-user-name" id="menuName">—</div>
+      <div class="menu-user-dept" id="menuDept">—</div>
+    </div>
   </div>
 </nav>
 
@@ -432,6 +493,22 @@
   }
 })();
 
+/* MENU TOGGLE */
+const menuBtn = document.getElementById('menuBtn');
+const menuDropdown = document.getElementById('menuDropdown');
+menuBtn.addEventListener('click', () => {
+  const open = menuDropdown.classList.toggle('open');
+  menuBtn.classList.toggle('open', open);
+  menuBtn.setAttribute('aria-expanded', open);
+});
+document.addEventListener('click', (e) => {
+  if (!document.getElementById('menuWrap').contains(e.target)) {
+    menuDropdown.classList.remove('open');
+    menuBtn.classList.remove('open');
+    menuBtn.setAttribute('aria-expanded', false);
+  }
+});
+
 /* STATE */
 let youtubeReady = false;
 window.onYouTubeIframeAPIReady = () => { youtubeReady = true; };
@@ -439,7 +516,7 @@ window.onYouTubeIframeAPIReady = () => { youtubeReady = true; };
 let quizData = [];
 let playerName = '', playerDept = '';
 let activeCategory = 'all';
-let watchedMap = {};    // questId -> seconds accumulated
+let watchedMap = {};
 let completedSet = new Set();
 let ytPlayer = null, watchInterval = null;
 let currentVideo = null;
@@ -488,9 +565,10 @@ async function handleLaunch() {
 
   try {
     await dataPromise;
-    document.getElementById('navName').textContent = playerName;
-    document.getElementById('navDept').textContent = playerDept;
-    document.getElementById('navUser').style.display = 'flex';
+    // Populate menu dropdown
+    document.getElementById('menuName').textContent = playerName;
+    document.getElementById('menuDept').textContent = playerDept;
+    document.getElementById('menuBtn').style.display = 'flex';
     buildLibrary();
     showScreen('screenLibrary');
   } catch(e) {
@@ -616,7 +694,6 @@ function onPlayerState(event) {
         document.getElementById('progressFill').classList.toggle('done', pct >= 100);
         document.getElementById('watchVal').textContent = `${watchTime}s / ${currentVideo.watchTarget}s`;
 
-        // Unlock save button once target reached (but don't auto-save)
         if (watchTime >= currentVideo.watchTarget && !completedSet.has(currentVideo.questId)) {
           const s = document.getElementById('watchStatus');
           s.textContent = '✅ Target reached! Save when ready.';
@@ -659,7 +736,7 @@ function manualSave() {
       saveBtn.textContent = '✅ Score Saved';
       saveBtn.style.opacity = '.6';
       document.getElementById('watchStatus').textContent = '✅ Score saved!';
-      renderGrid(); // update thumbnail badges
+      renderGrid();
     }
   });
 }

@@ -295,7 +295,7 @@ startBtn.style.opacity = "0.6";
 
 let WORDS = [], WORD_SET = new Set(), wordQueue = [], gameActive = false;
 let timeLeft = TOTAL_TIME, timerInterval = null;
-let score = 0, wordsSolved = 0, wordAttempts = 0, wordStartTime = 0;
+let score = 0, wordsSolved = 0, wordAttempts = 0, wordStartTime = 0, gameStartTime = 0;
 let currentWord = '', guesses = [], currentInput = '';
 let solvedLog = [];
 let accepting = true, transitioning = false;
@@ -600,7 +600,7 @@ function startGame(){
   document.getElementById('introScreen').style.display='none';
   document.getElementById('endScreen').style.display='none';
   document.getElementById('gameScreen').style.display='flex';
-  clearInterval(timerInterval);startTimer();
+  clearInterval(timerInterval);gameStartTime=Date.now();startTimer();
   document.addEventListener('keydown',keydownHandler);
 }
 
@@ -619,7 +619,7 @@ function endGame(){
     totalAttempts:Number(totalAttempts)||0,perfectSolves:Number(perfectSolves)||0,
     fastestSolveSec:fastestSolveSec===999?0:Number(fastestSolveSec),
     totalTimeBonus:Number(totalTimeBonus)||0,longestStreak:Number(longestStreak)||0,
-    failedCount:Number(failedCount)||0,timeSpent:Number(TOTAL_TIME-timeLeft)||0,solvedLog:[...solvedLog]
+    failedCount:Number(failedCount)||0,timeSpent:Math.round((Date.now()-gameStartTime)/1000),solvedLog:[...solvedLog]
   });
   setTimeout(showEndScreen,600);
 }
@@ -673,7 +673,7 @@ function saveFallbackIdentity(fs){
 }
 
 function submitScore(name,dept,s){
-  const p={student_name:name,department:dept,score:Number(s.score),correct:Number(s.wordsSolved),wrong:Number(s.failedCount),time_spent:String(s.timeSpent),total_attempts:Number(s.totalAttempts),perfect_solves:Number(s.perfectSolves),fastest_solve_sec:Number(s.fastestSolveSec),total_time_bonus:Number(s.totalTimeBonus),longest_streak:Number(s.longestStreak),quest_id:"Wordleblitz"};
+  const p={student_name:name,department:dept,score:Number(s.score),correct:Number(s.wordsSolved),wrong:Number(s.failedCount),time_spent:Number(s.timeSpent),total_attempts:Number(s.totalAttempts),perfect_solves:Number(s.perfectSolves),fastest_solve_sec:Number(s.fastestSolveSec),total_time_bonus:Number(s.totalTimeBonus),longest_streak:Number(s.longestStreak),quest_id:"Wordleblitz"};
   fetch(EDGE_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)})
     .then(r=>r.json()).then(d=>console.log("✅ Submitted:",d)).catch(e=>console.error("❌ Submit:",e));
 }

@@ -6,7 +6,576 @@
 <title>Wordleblitz Leaderboard</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800;900&family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --bg:       #050810;
+  --surface:  #0c1120;
+  --card:     #101828;
+  --border:   rgba(255,255,255,0.07);
+  --cyan:     #00FFD1;
+  --purple:   #9B6DFF;
+  --amber:    #FFB347;
+  --red:      #FF5670;
+  --text:     #E8EDF5;
+  --muted:    #5A6580;
+  --gold:     #FFD700;
+  --silver:   #C0C8D8;
+  --bronze:   #CD7F32;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  font-family: 'DM Sans', sans-serif;
+  color: var(--text);
+  min-height: 100vh;
+  padding: 20px 16px 60px;
+  overflow-x: hidden;
+}
+
+/* Subtle grid background */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(0,255,209,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,255,209,0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Glow blobs */
+body::after {
+  content: '';
+  position: fixed;
+  top: -200px; left: -200px;
+  width: 600px; height: 600px;
+  background: radial-gradient(circle, rgba(155,109,255,0.08) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.page {
+  position: relative;
+  z-index: 1;
+  max-width: 780px;
+  margin: 0 auto;
+}
+
+/* ===== HEADER ===== */
+.header {
+  margin-bottom: 28px;
+}
+
+.header-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+
+.brand {
+  font-family: 'Syne', sans-serif;
+  font-size: clamp(22px, 5vw, 34px);
+  font-weight: 900;
+  letter-spacing: -0.5px;
+  line-height: 1;
+  color: var(--text);
+}
+
+.brand span {
+  color: var(--cyan);
+}
+
+.badge {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  background: rgba(0,255,209,0.1);
+  border: 1px solid rgba(0,255,209,0.25);
+  color: var(--cyan);
+  padding: 4px 10px;
+  border-radius: 999px;
+  letter-spacing: 1px;
+  white-space: nowrap;
+  margin-top: 6px;
+}
+
+.subtitle {
+  font-size: 13px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+/* ===== SEARCH ===== */
+.search-wrap {
+  position: relative;
+  margin-bottom: 16px;
+}
+
+.search-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted);
+  font-size: 15px;
+  pointer-events: none;
+}
+
+#search {
+  width: 100%;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 11px 14px 11px 40px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+#search::placeholder { color: var(--muted); }
+#search:focus { border-color: rgba(0,255,209,0.4); }
+
+/* ===== SORT PANEL ===== */
+.sort-panel {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin-bottom: 20px;
+}
+
+@media (max-width: 480px) {
+  .sort-panel { grid-template-columns: repeat(3, 1fr); }
+}
+
+.sort-btn {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 7px 4px;
+  font-family: 'DM Mono', monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.3px;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: center;
+  line-height: 1.4;
+}
+
+.sort-btn:hover {
+  border-color: rgba(0,255,209,0.3);
+  color: var(--cyan);
+}
+
+.sort-btn.active {
+  background: rgba(0,255,209,0.12);
+  border-color: var(--cyan);
+  color: var(--cyan);
+}
+
+.indicator { margin-left: 2px; font-size: 9px; }
+
+/* ===== STATS BAR ===== */
+.stats-bar {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 16px;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--muted);
+  align-items: center;
+}
+
+.stats-bar .count {
+  color: var(--cyan);
+  font-weight: 500;
+}
+
+/* ===== LEADERBOARD ===== */
+.lb-header {
+  display: grid;
+  grid-template-columns: 52px 1fr auto;
+  padding: 6px 16px;
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 1px;
+  color: var(--muted);
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
+}
+
+.leaderboard-row {
+  display: grid;
+  grid-template-columns: 52px 1fr auto;
+  align-items: center;
+  padding: 12px 16px;
+  border-radius: 12px;
+  margin-bottom: 4px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  background: var(--card);
+  position: relative;
+  overflow: hidden;
+}
+
+.leaderboard-row::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: transparent;
+  border-radius: 3px 0 0 3px;
+  transition: background 0.15s;
+}
+
+.leaderboard-row.gold::before   { background: var(--gold); }
+.leaderboard-row.silver::before { background: var(--silver); }
+.leaderboard-row.bronze::before { background: var(--bronze); }
+
+.leaderboard-row:hover {
+  border-color: rgba(0,255,209,0.2);
+  background: rgba(0,255,209,0.04);
+  transform: translateX(2px);
+}
+
+.rank-cell {
+  text-align: center;
+}
+
+.rank-num {
+  font-family: 'Syne', sans-serif;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--muted);
+}
+
+.rank-medal {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.player-name {
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--text);
+  letter-spacing: -0.2px;
+}
+
+.player-dept {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.score-cell {
+  text-align: right;
+}
+
+.score-value {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: 18px;
+  color: var(--cyan);
+}
+
+.score-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  color: var(--muted);
+  margin-top: 1px;
+  text-align: right;
+}
+
+/* ===== EMPTY STATE ===== */
+.empty {
+  text-align: center;
+  padding: 50px 20px;
+  color: var(--muted);
+}
+
+.empty-icon { font-size: 36px; margin-bottom: 10px; }
+.empty-text { font-size: 14px; }
+
+/* ===== LOADER ===== */
+#loader {
+  display: none;
+  justify-content: center;
+  align-items: center;
+  padding: 60px 20px;
+  gap: 12px;
+}
+
+.spinner {
+  width: 32px; height: 32px;
+  border: 2px solid rgba(255,255,255,0.1);
+  border-top-color: var(--cyan);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.loader-text {
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  color: var(--muted);
+  letter-spacing: 1px;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+#error { color: var(--red); text-align: center; padding: 20px; font-size: 14px; }
+
+/* ===== MODAL ===== */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(5,8,16,0.85);
+  backdrop-filter: blur(6px);
+  z-index: 100;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.modal-overlay.open { display: flex; }
+
+.modal {
+  background: var(--card);
+  border: 1px solid rgba(0,255,209,0.2);
+  border-radius: 20px;
+  width: 100%;
+  max-width: 480px;
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: slideUp 0.2s ease;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.modal-header {
+  padding: 22px 22px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.modal-player-name {
+  font-family: 'Syne', sans-serif;
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.modal-player-dept {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 3px;
+}
+
+.modal-rank-badge {
+  font-family: 'Syne', sans-serif;
+  font-size: 13px;
+  font-weight: 800;
+  background: rgba(0,255,209,0.1);
+  border: 1px solid rgba(0,255,209,0.2);
+  color: var(--cyan);
+  padding: 4px 12px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 20px;
+  cursor: pointer;
+  line-height: 1;
+  margin-left: 8px;
+  transition: color 0.15s;
+}
+.close-btn:hover { color: var(--text); }
+
+.modal-body {
+  padding: 20px 22px 24px;
+}
+
+.stat-section-title {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 10px;
+  margin-top: 20px;
+}
+
+.stat-section-title:first-child { margin-top: 0; }
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.stat-grid.three { grid-template-columns: repeat(3, 1fr); }
+
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+
+.stat-card-val {
+  font-family: 'Syne', sans-serif;
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--cyan);
+  line-height: 1;
+}
+
+.stat-card-val.purple { color: var(--purple); }
+.stat-card-val.amber  { color: var(--amber); }
+.stat-card-val.red    { color: var(--red); }
+
+.stat-card-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  color: var(--muted);
+  margin-top: 4px;
+  letter-spacing: 0.5px;
+}
+
+/* accuracy bar */
+.acc-bar-wrap {
+  margin-top: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+
+.acc-bar-label {
+  display: flex;
+  justify-content: space-between;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  margin-bottom: 8px;
+  color: var(--muted);
+}
+
+.acc-bar-label span { color: var(--cyan); font-weight: 500; }
+
+.acc-bar {
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.07);
+  overflow: hidden;
+}
+
+.acc-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--purple), var(--cyan));
+  transition: width 0.6s cubic-bezier(0.4,0,0.2,1);
+}
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-top">
+      <div>
+        <div class="brand">WORDLE<span>BLITZ</span></div>
+        <div class="subtitle">Live telemetry · All time records</div>
+      </div>
+      <div class="badge">LIVE BOARD</div>
+    </div>
+  </div>
+
+  <!-- SEARCH -->
+  <div class="search-wrap">
+    <span class="search-icon">⌕</span>
+    <input id="search" type="text" placeholder="Search by name or department…" oninput="handleSearch()" />
+  </div>
+
+  <!-- SORT PANEL -->
+  <div class="sort-panel">
+    <button class="sort-btn" data-sort="best_score"           onclick="sortData('best_score')">Best Score <span class="indicator"></span></button>
+    <button class="sort-btn" data-sort="best_streak"          onclick="sortData('best_streak')">Streak <span class="indicator"></span></button>
+    <button class="sort-btn" data-sort="best_speed"           onclick="sortData('best_speed')">Speed <span class="indicator"></span></button>
+    <button class="sort-btn" data-sort="accuracy"             onclick="sortData('accuracy')">Accuracy <span class="indicator"></span></button>
+    <button class="sort-btn" data-sort="total_sessions"       onclick="sortData('total_sessions')">Sessions <span class="indicator"></span></button>
+    <button class="sort-btn" data-sort="total_time_played"    onclick="sortData('total_time_played')">Time Played <span class="indicator"></span></button>
+    <button class="sort-btn" data-sort="total_correct"        onclick="sortData('total_correct')">Correct <span class="indicator"></span></button>
+    <button class="sort-btn" data-sort="total_wrong"          onclick="sortData('total_wrong')">Wrong <span class="indicator"></span></button>
+    <button class="sort-btn" data-sort="total_bonus"          onclick="sortData('total_bonus')">Bonus <span class="indicator"></span></button>
+    <button class="sort-btn" data-sort="total_perfect_solves" onclick="sortData('total_perfect_solves')">Perfect <span class="indicator"></span></button>
+    <button class="sort-btn" data-sort="efficiency"           onclick="sortData('efficiency')">Efficiency <span class="indicator"></span></button>
+  </div>
+
+  <!-- STATS BAR -->
+  <div class="stats-bar" id="stats-bar"></div>
+
+  <!-- LOADER -->
+  <div id="loader">
+    <div class="spinner"></div>
+    <div class="loader-text">LOADING TELEMETRY…</div>
+  </div>
+
+  <div id="error"></div>
+
+  <!-- BOARD HEADER -->
+  <div class="lb-header" id="lb-header" style="display:none;">
+    <div>Rank</div>
+    <div>Player</div>
+    <div style="text-align:right">Score</div>
+  </div>
+
+  <!-- LEADERBOARD -->
+  <div id="leaderboard"></div>
+
+</div>
+
+<!-- PLAYER PROFILE MODAL -->
+<div class="modal-overlay" id="modal" onclick="closeModal(event)">
+  <div class="modal" id="modal-content">
+    <div class="modal-header">
+      <div>
+        <div class="modal-player-name" id="m-name"></div>
+        <div class="modal-player-dept" id="m-dept"></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div class="modal-rank-badge" id="m-rank"></div>
+        <button class="close-btn" onclick="document.getElementById('modal').classList.remove('open')">✕</button>
+      </div>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
 
 <script type="module">
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -16,257 +585,239 @@ const supabase = createClient(
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoZXpzc29jenZwYmt0ZWZmY2d6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI4NTk1ODUsImV4cCI6MjA3ODQzNTU4NX0.2ZlqXnZxv0opkhynAT7OlK4S-xPygcc7ETUyTXRfGHE"
 );
 
-let reportData = [];
+let reportData   = [];
 let filteredData = [];
-let currentSort = "best_score";
+let currentSort  = "best_score";
 let sortAscending = false;
+let searchQuery  = "";
+
+const SORT_LABELS = {
+  best_score:          "Best Score",
+  best_streak:         "Best Streak",
+  best_speed:          "Best Speed (s)",
+  accuracy:            "Accuracy (%)",
+  total_sessions:      "Sessions",
+  total_time_played:   "Time Played",
+  total_correct:       "Correct",
+  total_wrong:         "Wrong",
+  total_bonus:         "Bonus",
+  total_perfect_solves:"Perfect Solves",
+  efficiency:          "Efficiency",
+};
 
 async function loadData() {
-
   document.getElementById("loader").style.display = "flex";
-
-  const { data, error } = await supabase
-    .from("leaderboard_wordleblitz")
-    .select("*");
-
+  const { data, error } = await supabase.from("leaderboard_wordleblitz").select("*");
   document.getElementById("loader").style.display = "none";
 
   if (error) {
-    console.error(error);
-    document.getElementById("error").textContent =
-      "⚠ Telemetry failure.";
+    document.getElementById("error").textContent = "⚠ Telemetry failure — " + error.message;
     return;
   }
 
   reportData = data || [];
-  filteredData = [...reportData];
-
-  sortData(currentSort);
+  applyFiltersAndSort();
 }
 
-function sortData(key) {
-
-  if (currentSort === key) sortAscending = !sortAscending;
-  else {
-    currentSort = key;
-    sortAscending = false;
-  }
+function applyFiltersAndSort() {
+  const q = searchQuery.toLowerCase().trim();
+  filteredData = q
+    ? reportData.filter(p =>
+        p.student_name.toLowerCase().includes(q) ||
+        (p.department || "").toLowerCase().includes(q)
+      )
+    : [...reportData];
 
   filteredData.sort((a, b) => {
-
-    let A = Number(a[key] || 0);
-    let B = Number(b[key] || 0);
-
+    const A = Number(a[currentSort] || 0);
+    const B = Number(b[currentSort] || 0);
     return sortAscending ? A - B : B - A;
   });
 
   updateButtons();
+  updateStatsBar();
   renderLeaderboard();
 }
 
-function updateButtons() {
+function sortData(key) {
+  if (currentSort === key) sortAscending = !sortAscending;
+  else { currentSort = key; sortAscending = false; }
+  applyFiltersAndSort();
+}
 
+function updateButtons() {
   document.querySelectorAll(".sort-btn").forEach(btn => {
     btn.classList.remove("active");
     btn.querySelector(".indicator").textContent = "";
   });
-
   const active = document.querySelector(`[data-sort="${currentSort}"]`);
   if (active) {
     active.classList.add("active");
-    active.querySelector(".indicator").textContent =
-      sortAscending ? "▲" : "▼";
+    active.querySelector(".indicator").textContent = sortAscending ? "▲" : "▼";
   }
 }
 
-function formatValue(player) {
+function updateStatsBar() {
+  const bar = document.getElementById("stats-bar");
+  bar.innerHTML = `<span class="count">${filteredData.length}</span>&nbsp;players &nbsp;·&nbsp; sorted by&nbsp;<span class="count">${SORT_LABELS[currentSort] || currentSort}</span>`;
+  document.getElementById("lb-header").style.display = filteredData.length ? "grid" : "none";
+}
 
-  const value = player[currentSort];
+function formatValue(player, key) {
+  const v = player[key];
+  if (key === "accuracy")          return `${v}%`;
+  if (key === "total_time_played") return `${Math.round(v / 60)}m`;
+  if (key === "best_speed")        return `${v}s`;
+  return v;
+}
 
-  if (currentSort === "accuracy") return `${value}%`;
-  if (currentSort === "total_time_played")
-    return `${Math.round(value / 60)} mins`;
-  if (currentSort === "best_speed")
-    return `${value}s`;
-
-  return value;
+function getRankEmoji(idx) {
+  if (idx === 0) return "🥇";
+  if (idx === 1) return "🥈";
+  if (idx === 2) return "🥉";
+  return null;
 }
 
 function renderLeaderboard() {
-
   const container = document.getElementById("leaderboard");
   container.innerHTML = "";
 
-  filteredData.forEach((p, idx) => {
+  if (!filteredData.length) {
+    container.innerHTML = `<div class="empty"><div class="empty-icon">🔍</div><div class="empty-text">No players match your search.</div></div>`;
+    return;
+  }
 
+  filteredData.forEach((p, idx) => {
     const row = document.createElement("div");
     row.className = "leaderboard-row";
-
     if (idx === 0) row.classList.add("gold");
     else if (idx === 1) row.classList.add("silver");
     else if (idx === 2) row.classList.add("bronze");
 
+    const medal = getRankEmoji(idx);
+    const rankHTML = medal
+      ? `<div class="rank-medal">${medal}</div>`
+      : `<div class="rank-num">${idx + 1}</div>`;
+
     row.innerHTML = `
-      <div class="rank">${idx + 1}</div>
-      <div class="name">
-        <div class="player">${p.student_name}</div>
-        <div class="dept">${p.department}</div>
+      <div class="rank-cell">${rankHTML}</div>
+      <div>
+        <div class="player-name">${p.student_name}</div>
+        <div class="player-dept">${p.department || "—"}</div>
       </div>
-      <div class="score">${formatValue(p)}</div>
+      <div class="score-cell">
+        <div class="score-value">${formatValue(p, currentSort)}</div>
+        <div class="score-label">${SORT_LABELS[currentSort] || currentSort}</div>
+      </div>
     `;
 
+    row.addEventListener("click", () => openModal(p, idx + 1));
     container.appendChild(row);
   });
 }
 
-window.sortData = sortData;
-window.onload = loadData;
+/* ===== MODAL ===== */
+function openModal(p, rank) {
+  document.getElementById("m-name").textContent = p.student_name;
+  document.getElementById("m-dept").textContent = p.department || "Unknown dept";
+  document.getElementById("m-rank").textContent = `#${rank}`;
+
+  const timePlayed = `${Math.round((p.total_time_played || 0) / 60)}m`;
+  const accuracy   = p.accuracy != null ? `${p.accuracy}%` : "—";
+  const speed      = p.best_speed != null ? `${p.best_speed}s` : "—";
+  const accNum     = p.accuracy || 0;
+
+  document.getElementById("modal-body").innerHTML = `
+    <div class="stat-section-title">Personal Bests</div>
+    <div class="stat-grid three">
+      <div class="stat-card">
+        <div class="stat-card-val">${p.best_score ?? "—"}</div>
+        <div class="stat-card-label">Best Score</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-val purple">${p.best_streak ?? "—"}</div>
+        <div class="stat-card-label">Best Streak</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-val amber">${speed}</div>
+        <div class="stat-card-label">Best Speed</div>
+      </div>
+    </div>
+
+    <div class="stat-section-title">All-Time Stats</div>
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-card-val">${p.total_sessions ?? "—"}</div>
+        <div class="stat-card-label">Sessions</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-val purple">${timePlayed}</div>
+        <div class="stat-card-label">Time Played</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-val">${p.total_correct ?? "—"}</div>
+        <div class="stat-card-label">Correct</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-val red">${p.total_wrong ?? "—"}</div>
+        <div class="stat-card-label">Wrong</div>
+      </div>
+    </div>
+
+    <div class="stat-section-title">Performance</div>
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-card-val amber">${p.total_bonus ?? "—"}</div>
+        <div class="stat-card-label">Total Bonus</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-val purple">${p.total_perfect_solves ?? "—"}</div>
+        <div class="stat-card-label">Perfect Solves</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-val">${p.efficiency ?? "—"}</div>
+        <div class="stat-card-label">Efficiency</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-val">${accuracy}</div>
+        <div class="stat-card-label">Accuracy</div>
+      </div>
+    </div>
+
+    <div class="acc-bar-wrap">
+      <div class="acc-bar-label">Accuracy <span>${accuracy}</span></div>
+      <div class="acc-bar"><div class="acc-bar-fill" id="acc-fill" style="width:0%"></div></div>
+    </div>
+  `;
+
+  document.getElementById("modal").classList.add("open");
+  // Animate bar after paint
+  setTimeout(() => {
+    const fill = document.getElementById("acc-fill");
+    if (fill) fill.style.width = `${accNum}%`;
+  }, 50);
+}
+
+function closeModal(e) {
+  if (e.target === document.getElementById("modal")) {
+    document.getElementById("modal").classList.remove("open");
+  }
+}
+
+/* ESC key closes modal */
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") document.getElementById("modal").classList.remove("open");
+});
+
+/* Search handler */
+window.handleSearch = () => {
+  searchQuery = document.getElementById("search").value;
+  applyFiltersAndSort();
+};
+
+window.sortData   = sortData;
+window.closeModal = closeModal;
+window.onload     = loadData;
 </script>
-
-<style>
-:root {
-  --cyan: #22D3EE;
-  --purple: #A855F7;
-}
-
-body {
-  background: #020617;
-  font-family: 'Inter', sans-serif;
-  color: white;
-}
-
-.command-frame {
-  max-width: 960px;
-  margin: auto;
-  border-radius: 18px;
-  background: black;
-  border: 1px solid rgba(34,211,238,0.3);
-}
-
-.header {
-  padding: 18px;
-  border-bottom: 1px solid rgba(168,85,247,0.3);
-}
-
-.title {
-  font-size: 22px;
-  font-weight: 900;
-  color: var(--cyan);
-}
-
-/* SORT PANEL */
-.sort-panel {
-  padding: 12px;
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 6px;
-}
-
-.sort-btn {
-  background: black;
-  border: 1px solid rgba(34,211,238,0.4);
-  border-radius: 999px;
-  padding: 6px;
-  font-size: 10px;
-  color: var(--cyan);
-  cursor: pointer;
-}
-
-.sort-btn.active {
-  background: var(--cyan);
-  color: black;
-}
-
-/* BOARD */
-.leaderboard-row {
-  display: grid;
-  grid-template-columns: 50px 1fr auto;
-  padding: 10px 14px;
-  border-bottom: 1px solid rgba(255,255,255,0.05);
-}
-
-.rank {
-  text-align: center;
-  color: var(--purple);
-  font-weight: 700;
-}
-
-.player {
-  font-weight: 700;
-}
-
-.dept {
-  font-size: 10px;
-  color: grey;
-}
-
-.score {
-  font-weight: 800;
-  color: var(--cyan);
-}
-
-.gold { border-left: 3px solid gold; }
-.silver { border-left: 3px solid silver; }
-.bronze { border-left: 3px solid orange; }
-
-/* Loader */
-#loader {
-  display: none;
-  justify-content: center;
-  padding: 20px;
-}
-
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid rgba(255,255,255,0.2);
-  border-top-color: var(--cyan);
-  border-radius: 999px;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin { to { transform: rotate(360deg); } }
-
-#error {
-  color: red;
-  text-align: center;
-  padding: 10px;
-}
-</style>
-</head>
-
-<body>
-
-<div class="command-frame">
-
-  <div class="header">
-    <div class="title">WORDLEBLITZ TELEMETRY BOARD</div>
-  </div>
-
-  <div class="sort-panel">
-
-    <button class="sort-btn" data-sort="total_sessions" onclick="sortData('total_sessions')">Sessions <span class="indicator"></span></button>
-    <button class="sort-btn" data-sort="total_time_played" onclick="sortData('total_time_played')">Time Played <span class="indicator"></span></button>
-    <button class="sort-btn" data-sort="total_correct" onclick="sortData('total_correct')">Correct <span class="indicator"></span></button>
-    <button class="sort-btn" data-sort="total_wrong" onclick="sortData('total_wrong')">Wrong <span class="indicator"></span></button>
-
-    <button class="sort-btn" data-sort="best_score" onclick="sortData('best_score')">Best Score <span class="indicator"></span></button>
-    <button class="sort-btn" data-sort="best_streak" onclick="sortData('best_streak')">Best Streak <span class="indicator"></span></button>
-    <button class="sort-btn" data-sort="best_speed" onclick="sortData('best_speed')">Best Speed <span class="indicator"></span></button>
-    <button class="sort-btn" data-sort="total_bonus" onclick="sortData('total_bonus')">Bonus <span class="indicator"></span></button>
-
-    <button class="sort-btn" data-sort="total_perfect_solves" onclick="sortData('total_perfect_solves')">Perfect Solves <span class="indicator"></span></button>
-    <button class="sort-btn" data-sort="accuracy" onclick="sortData('accuracy')">Accuracy <span class="indicator"></span></button>
-    <button class="sort-btn" data-sort="efficiency" onclick="sortData('efficiency')">Efficiency <span class="indicator"></span></button>
-
-  </div>
-
-  <div id="loader"><div class="spinner"></div></div>
-  <div id="error"></div>
-
-  <div id="leaderboard"></div>
-
-</div>
-
 </body>
 </html>

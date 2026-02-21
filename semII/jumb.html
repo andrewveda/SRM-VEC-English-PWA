@@ -16,7 +16,7 @@
     body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(99,179,237,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(99,179,237,0.04) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0;}
     body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(99,179,237,0.08) 0%,transparent 70%);pointer-events:none;z-index:0;}
 
-    /* HEADER — progress + q count only */
+    /* HEADER */
     #header-bar{width:100%;max-width:520px;background:var(--surface);border-bottom:2px solid var(--border);padding:8px 14px;display:flex;align-items:center;gap:10px;z-index:100;position:sticky;top:0;}
     #header-bar.hidden{display:none;}
     #q-progress-bar{flex:1;height:6px;background:rgba(255,255,255,0.06);border-radius:6px;overflow:hidden;}
@@ -49,7 +49,6 @@
     /* GAME BOARD */
     #game-board{display:none;flex-direction:column;gap:10px;}
 
-    /* TOPIC PILL — small, subtle */
     #topic-pill{display:flex;align-items:center;gap:8px;padding:6px 12px;background:rgba(246,173,85,0.08);border:1px solid rgba(246,173,85,0.2);border-radius:20px;align-self:flex-start;font-size:0.78rem;font-weight:700;letter-spacing:1px;color:var(--accent2);text-transform:uppercase;}
 
     /* SENTENCE LIST */
@@ -65,47 +64,47 @@
       -webkit-user-select:none;user-select:none;
       transition:border-color 0.2s, background 0.2s, transform 0.12s, box-shadow 0.15s, opacity 0.2s;
     }
-
-    /* Inactive — not yet tapped */
     .sent-card.inactive{opacity:0.38;filter:grayscale(0.3);}
     .sent-card.active{opacity:1;filter:none;}
 
-    /* Tap-selected (first tap) */
+    /* Tap-selected */
     .sent-card.selected{
       border-color:var(--accent);
       box-shadow:0 0 0 3px rgba(99,179,237,0.22);
       transform:scale(1.018);
     }
 
-    /* After interaction — position correct */
+    /* Permanently correct — green border + lock */
     .sent-card.pos-correct{
       border-color:var(--accent3);
       background:rgba(104,211,145,0.09);
+      cursor:default;
+      opacity:1;
+      filter:none;
     }
-    /* After interaction — position wrong */
-    .sent-card.pos-wrong{
+
+    /* Brief wrong flash — red border only, removed quickly via JS */
+    .sent-card.wrong-flash{
       border-color:var(--danger);
       background:rgba(252,129,129,0.07);
     }
 
-    /* Swap flash animation */
-    @keyframes swapFlash{0%,100%{transform:scale(1);}50%{transform:scale(1.04);}}
-    .swap-flash{animation:swapFlash 0.25s ease;}
+    /* Swap flash */
+    @keyframes swapPop{0%,100%{transform:scale(1);}50%{transform:scale(1.04);}}
+    .swap-pop{animation:swapPop 0.22s ease;}
 
     /* Position number dot */
     .pos-dot{
       min-width:26px;height:26px;border-radius:50%;
       display:flex;align-items:center;justify-content:center;
       font-family:'Russo One',sans-serif;font-size:0.72rem;flex-shrink:0;
-      background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.3);
+      background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.28);
       transition:background 0.2s,color 0.2s;
     }
     .pos-dot.c{background:rgba(104,211,145,0.22);color:var(--accent3);}
-    .pos-dot.w{background:rgba(252,129,129,0.2);color:var(--danger);}
 
     .sent-text{flex:1;font-size:0.9rem;font-weight:600;line-height:1.5;color:white;}
 
-    /* ✅ / ❌ badge */
     .pos-badge{font-size:1rem;flex-shrink:0;min-width:20px;text-align:center;}
 
     /* FEEDBACK */
@@ -176,7 +175,6 @@
 <div id="word-correct-overlay"><div class="big-correct-text">⚡ CORRECT!</div></div>
 <div id="time-bonus-flash">⚡ SPEED BONUS!</div>
 
-<!-- minimal header: just progress bar + Q counter -->
 <div id="header-bar" class="hidden">
   <div id="q-progress-bar"><div id="q-progress-fill" style="width:0%"></div></div>
   <div id="q-label"><span id="q-current">1</span>/<span id="q-total">?</span></div>
@@ -217,19 +215,14 @@
       <span id="topic-icon">📝</span>
       <span id="topic-name">—</span>
     </div>
-
     <div id="sentence-list"></div>
-
     <div id="feedback-msg"></div>
-
     <button id="submit-btn">✅ SUBMIT ORDER</button>
     <button id="next-btn">NEXT →</button>
-
     <div id="explanation-panel">
       <div class="exp-header">📖 Explanation</div>
       <div id="exp-body"></div>
     </div>
-
     <div class="action-row">
       <button class="action-btn btn-reset" id="reset-btn">🔄 RESET</button>
       <button class="action-btn btn-hint"  id="hint-btn">💡 HINT <span style="font-size:0.67rem;opacity:0.7">(-1💎)</span></button>
@@ -259,13 +252,12 @@
 </div>
 
 <script>
-/* ══ SUPABASE ══ */
 const SUPABASE_URL="https://ahezssoczvpbkteffcgz.supabase.co/functions/v1/logQuest";
 
-/* ══════════════════════════════════════════
+/* ══════════════════════════════════════════════
    QUEST DATA
-   correctOrder[i] = index into sentences[] that belongs at position i
-══════════════════════════════════════════ */
+   correctOrder[i] = index into sentences[] for position i
+══════════════════════════════════════════════ */
 const QUEST={
   id:"sentence-rearrange-01", title:"Paragraph Order Quest",
   questions:[
@@ -399,20 +391,28 @@ const QUEST={
 let playerName="",playerDept="";
 let current=0,currentGems=0,currentStreak=0,highestStreak=0;
 let totalCorrectFirst=0,totalWrong=0;
-let startTime,timerInterval,qStartTime;
+let startTime,qStartTime;
 let isMuted=false,audioCtx;
-let displayOrder=[];   // displayOrder[pos] = sentence index
-let tapSelected=null;  // currently highlighted card position
-let movedCards=new Set(); // positions that have been tapped at least once
+
+// displayOrder[pos] = sentence index at visual position pos
+let displayOrder=[];
+// Set of positions that are permanently locked correct
+let lockedPositions=new Set();
+// Currently selected card position (first tap)
+let tapSelected=null;
+// Whether first attempt on this question
 let firstAttemptThisQ=true;
+// Whether submission has happened (for explanation)
+let submitted=false;
 
 /* ══ AUDIO ══ */
 function getAC(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();return audioCtx;}
 function tone(f,d,t='sine',v=0.09){if(isMuted)return;try{const c=getAC(),o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.type=t;o.frequency.setValueAtTime(f,c.currentTime);g.gain.setValueAtTime(v,c.currentTime);g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+d);o.start(c.currentTime);o.stop(c.currentTime+d);}catch(e){}}
-const sfxTap=()=>tone(440,0.07,'sine',0.05);
+const sfxTap=()=>tone(500,0.06,'sine',0.05);
 const sfxSwap=()=>{tone(520,0.08,'sine',0.06);setTimeout(()=>tone(680,0.08),70);};
+const sfxLock=()=>{tone(660,0.15);setTimeout(()=>tone(880,0.2),120);};
 const sfxCorrect=()=>{tone(523,0.28);setTimeout(()=>tone(659,0.22),100);setTimeout(()=>tone(784,0.28),210);};
-const sfxWrong=()=>tone(220,0.3,'sine',0.08);
+const sfxWrong=()=>tone(220,0.25,'sine',0.07);
 const sfxVictory=()=>{[440,523,587,659,784,880].forEach((f,i)=>setTimeout(()=>tone(f,0.3,'sine',0.12),i*110));};
 document.getElementById('mute-btn').onclick=()=>{isMuted=!isMuted;document.getElementById('mute-btn').textContent=isMuted?'🔇 SFX':'🔊 SFX';};
 
@@ -440,17 +440,29 @@ function initGame(){
   current=0;currentGems=0;currentStreak=0;highestStreak=0;
   totalCorrectFirst=0;totalWrong=0;
   startTime=Date.now();
-  clearInterval(timerInterval);
-  timerInterval=setInterval(()=>{},1000); // keep timer running silently for Supabase
   loadQuestion();
 }
 
-function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+/* Shuffle that guarantees NO sentence starts in its correct position */
+function shuffleNoFixed(n, correctOrder){
+  // correctOrder[pos] = sentIdx that belongs at pos
+  // We want displayOrder such that displayOrder[pos] !== correctOrder[pos] for all pos
+  const indices=[...Array(n).keys()];
+  let attempts=0;
+  do {
+    for(let i=indices.length-1;i>0;i--){
+      const j=Math.floor(Math.random()*(i+1));
+      [indices[i],indices[j]]=[indices[j],indices[i]];
+    }
+    attempts++;
+  } while(indices.some((v,p)=>v===correctOrder[p]) && attempts<200);
+  return indices;
+}
 
 function loadQuestion(){
   if(current>=QUEST.questions.length){showScore();return;}
   const q=QUEST.questions[current];
-  firstAttemptThisQ=true;tapSelected=null;movedCards=new Set();
+  firstAttemptThisQ=true;tapSelected=null;lockedPositions=new Set();submitted=false;
   qStartTime=Date.now();
 
   document.getElementById('q-progress-fill').style.width=(current/QUEST.questions.length*100)+'%';
@@ -463,7 +475,7 @@ function loadQuestion(){
   document.getElementById('feedback-msg').textContent='';
   document.getElementById('feedback-msg').className='';
 
-  displayOrder=shuffle([...Array(q.sentences.length).keys()]);
+  displayOrder=shuffleNoFixed(q.sentences.length, q.correctOrder);
   renderList(q);
 }
 
@@ -471,44 +483,58 @@ function loadQuestion(){
 function renderList(q){
   const list=document.getElementById('sentence-list');
   list.innerHTML='';
+
   displayOrder.forEach((sentIdx,pos)=>{
-    const touched=movedCards.has(pos);
-    const isCorrect=sentIdx===q.correctOrder[pos];
+    const locked=lockedPositions.has(pos);
+    const isSelected=tapSelected===pos;
 
     const card=document.createElement('div');
-    card.className='sent-card '+(touched?'active':'inactive');
-    if(touched) card.classList.add(isCorrect?'pos-correct':'pos-wrong');
-    if(tapSelected===pos) card.classList.add('selected');
+    // Base classes
+    card.className='sent-card';
+    if(locked){
+      card.classList.add('pos-correct');
+    } else {
+      card.classList.add('active');
+      if(isSelected) card.classList.add('selected');
+    }
     card.dataset.pos=pos;
 
+    // Position number dot
     const dot=document.createElement('div');
-    dot.className='pos-dot'+(touched?(isCorrect?' c':' w'):'');
+    dot.className='pos-dot'+(locked?' c':'');
     dot.textContent=pos+1;
 
+    // Sentence text
     const text=document.createElement('div');
     text.className='sent-text';
     text.textContent=q.sentences[sentIdx];
 
+    // Badge: only show ✅ for locked correct
     const badge=document.createElement('div');
     badge.className='pos-badge';
-    badge.textContent=touched?(isCorrect?'✅':'❌'):'';
+    badge.textContent=locked?'✅':'';
 
     card.appendChild(dot);
     card.appendChild(text);
     card.appendChild(badge);
 
-    card.addEventListener('click',()=>handleTap(pos,q));
+    if(!locked){
+      card.addEventListener('click',()=>handleTap(pos,q));
+    }
+
     list.appendChild(card);
   });
 }
 
 /* ══ TAP-TO-SWAP ══ */
 function handleTap(pos,q){
+  // Ignore locked positions
+  if(lockedPositions.has(pos)) return;
+
   sfxTap();
-  movedCards.add(pos);
 
   if(tapSelected===null){
-    // First tap — select
+    // First tap — select this card
     tapSelected=pos;
     renderList(q);
     return;
@@ -521,66 +547,132 @@ function handleTap(pos,q){
     return;
   }
 
-  // Second tap — swap
+  // Second tap on a different card — swap
   const a=tapSelected, b=pos;
   tapSelected=null;
-  movedCards.add(a);movedCards.add(b);
   [displayOrder[a],displayOrder[b]]=[displayOrder[b],displayOrder[a]];
   if(firstAttemptThisQ) firstAttemptThisQ=false;
+
   sfxSwap();
   renderList(q);
 
-  // Flash swapped cards
+  // Brief swap pop animation
   setTimeout(()=>{
     const cards=document.querySelectorAll('.sent-card');
-    [cards[a],cards[b]].forEach(c=>{if(c){c.classList.add('swap-flash');setTimeout(()=>c.classList.remove('swap-flash'),260);}});
-  },20);
+    [cards[a],cards[b]].forEach(c=>{if(c){c.classList.add('swap-pop');setTimeout(()=>c.classList.remove('swap-pop'),230);}});
+  },10);
 
-  // Check if everything looks correct
-  const allDone=displayOrder.every((s,p)=>s===q.correctOrder[p]);
-  if(allDone) showFeedback('🎉 Looks perfect! Hit Submit!','correct-msg');
-  else document.getElementById('feedback-msg').textContent='';
+  // After swap: check each position — lock any newly correct ones, briefly flash wrong ones
+  checkAndLock(q);
 }
 
-/* ══ SUBMIT ══ */
-document.getElementById('submit-btn').onclick=()=>{
-  const q=QUEST.questions[current];
-  // Reveal indicators for all cards
-  displayOrder.forEach((_,p)=>movedCards.add(p));
-  renderList(q);
+/* ══ CHECK AND LOCK ══ */
+function checkAndLock(q){
+  const cards=document.querySelectorAll('.sent-card');
+  let newLocks=0;
 
-  const isCorrect=displayOrder.every((s,p)=>s===q.correctOrder[p]);
+  displayOrder.forEach((sentIdx,pos)=>{
+    if(lockedPositions.has(pos)) return;
+    if(sentIdx===q.correctOrder[pos]){
+      // Lock it!
+      lockedPositions.add(pos);
+      newLocks++;
+      // Re-render this card as locked immediately
+      const card=cards[pos];
+      if(card){
+        card.classList.remove('active','selected','wrong-flash');
+        card.classList.add('pos-correct');
+        card.querySelector('.pos-dot').classList.add('c');
+        card.querySelector('.pos-badge').textContent='✅';
+        card.style.cursor='default';
+        card.replaceWith(card.cloneNode(true)); // remove event listeners
+      }
+      sfxLock();
+    }
+  });
 
-  if(isCorrect){
-    sfxCorrect();createSparks();showWordOverlay();
-    const qTime=Math.floor((Date.now()-qStartTime)/1000);
-    let gems=2;
-    if(qTime<8)gems+=2; else if(qTime<15)gems+=1;
-    if(gems>2) flashSpeedBonus();
-    currentStreak++;
-    if(currentStreak>highestStreak) highestStreak=currentStreak;
-    if(currentStreak%3===0){createConfetti();gems++;showFeedback(`🔥 ${currentStreak} STREAK! +${gems}💎`,'correct-msg');}
-    else showFeedback('✅ PERFECT ORDER!','correct-msg');
-    totalCorrectFirst++;currentGems+=gems;showFlyingGem(true,gems);
-    document.getElementById('next-btn').style.display='block';
-    document.getElementById('submit-btn').style.display='none';
-  } else {
-    sfxWrong();currentStreak=0;totalWrong++;
-    currentGems=Math.max(0,currentGems-1);showFlyingGem(false,1);
-    if(firstAttemptThisQ) firstAttemptThisQ=false;
-    showFeedback('❌ Not quite — tap two sentences to swap and try again!','wrong-msg');
+  // Re-render fully if we locked anything (to keep state clean)
+  if(newLocks>0) renderList(q);
+
+  // Check if all locked (question complete via tapping)
+  if(lockedPositions.size===q.sentences.length){
+    onAllCorrect(q);
+    return;
   }
 
-  showExplanation(q);
+  // Clear old feedback
+  document.getElementById('feedback-msg').textContent='';
+}
+
+/* ══ ALL CORRECT (every card locked) ══ */
+function onAllCorrect(q){
+  sfxCorrect();createSparks();showWordOverlay();
+  const qTime=Math.floor((Date.now()-qStartTime)/1000);
+  let gems=2;
+  if(qTime<8) gems+=2; else if(qTime<15) gems+=1;
+  if(gems>2) flashSpeedBonus();
+  currentStreak++;
+  if(currentStreak>highestStreak) highestStreak=currentStreak;
+  if(currentStreak%3===0){createConfetti();gems++;showFeedback(`🔥 ${currentStreak} STREAK! +${gems}💎`,'correct-msg');}
+  else showFeedback('✅ PERFECT ORDER!','correct-msg');
+  totalCorrectFirst++;currentGems+=gems;showFlyingGem(true,gems);
+  document.getElementById('next-btn').style.display='block';
+  document.getElementById('submit-btn').style.display='none';
+  showExplanation(q, true);
+}
+
+/* ══ SUBMIT (for partial / wrong attempts) ══ */
+document.getElementById('submit-btn').onclick=()=>{
+  const q=QUEST.questions[current];
+
+  // Lock any correct positions
+  displayOrder.forEach((sentIdx,pos)=>{
+    if(sentIdx===q.correctOrder[pos]) lockedPositions.add(pos);
+  });
+
+  const allCorrect=lockedPositions.size===q.sentences.length;
+
+  if(allCorrect){
+    onAllCorrect(q);
+    return;
+  }
+
+  // Not all correct — brief red flash on wrong cards, then clear
+  sfxWrong();
+  if(firstAttemptThisQ){firstAttemptThisQ=false;totalWrong++;currentGems=Math.max(0,currentGems-1);showFlyingGem(false,1);}
+  currentStreak=0;
+
+  renderList(q); // re-render to show newly locked correct ones
+
+  // Flash wrong cards briefly
+  const cards=document.querySelectorAll('.sent-card');
+  displayOrder.forEach((sentIdx,pos)=>{
+    if(!lockedPositions.has(pos)){
+      const card=cards[pos];
+      if(card){
+        card.classList.add('wrong-flash');
+        setTimeout(()=>card.classList.remove('wrong-flash'),600);
+      }
+    }
+  });
+
+  showFeedback('❌ Some are wrong — keep swapping!','wrong-msg');
+  setTimeout(()=>{
+    const fb=document.getElementById('feedback-msg');
+    if(fb.classList.contains('wrong-msg')) fb.textContent='';
+  },1800);
+
+  showExplanation(q, false);
 };
 
 /* ══ EXPLANATION ══ */
-function showExplanation(q){
+function showExplanation(q, isFullyCorrect){
   const panel=document.getElementById('explanation-panel');
   const body=document.getElementById('exp-body');
   body.innerHTML='';panel.style.display='block';
+
   q.correctOrder.forEach((correctSentIdx,pos)=>{
-    const ok=displayOrder[pos]===correctSentIdx;
+    const ok=lockedPositions.has(pos); // correct if locked
     const exp=q.explanations[pos];
     const row=document.createElement('div');
     row.className=`exp-row ${ok?'c':'w'}`;
@@ -608,8 +700,8 @@ document.getElementById('next-btn').onclick=()=>{
 /* ══ RESET ══ */
 document.getElementById('reset-btn').onclick=()=>{
   const q=QUEST.questions[current];
-  displayOrder=shuffle([...Array(q.sentences.length).keys()]);
-  tapSelected=null;movedCards=new Set();
+  displayOrder=shuffleNoFixed(q.sentences.length,q.correctOrder);
+  tapSelected=null;lockedPositions=new Set();firstAttemptThisQ=true;
   document.getElementById('feedback-msg').textContent='';
   document.getElementById('explanation-panel').style.display='none';
   document.getElementById('submit-btn').style.display='block';
@@ -622,21 +714,21 @@ document.getElementById('hint-btn').onclick=()=>{
   if(currentGems<1){showFeedback('💎 Not enough gems!','wrong-msg');return;}
   const q=QUEST.questions[current];
   for(let pos=0;pos<displayOrder.length;pos++){
-    if(displayOrder[pos]!==q.correctOrder[pos]){
+    if(!lockedPositions.has(pos)){
       currentGems=Math.max(0,currentGems-1);showFlyingGem(false,1);
       firstAttemptThisQ=false;
-      showFeedback(`💡 Position ${pos+1} is wrong — tap it to start a swap!`,'info-msg');
+      showFeedback(`💡 Position ${pos+1} needs fixing — tap it!`,'info-msg');
       const cards=[...document.querySelectorAll('.sent-card')];
       if(cards[pos]){cards[pos].style.outline='3px solid var(--accent2)';setTimeout(()=>cards[pos].style.outline='',1500);}
       return;
     }
   }
-  showFeedback('💡 Looks good — hit Submit!','info-msg');
+  showFeedback('💡 Looks good!','info-msg');
 };
 
 /* ══ SCORE ══ */
 function showScore(){
-  clearInterval(timerInterval);sfxVictory();createConfetti();
+  sfxVictory();createConfetti();
   const t=Math.floor((Date.now()-startTime)/1000);
   const acc=Math.round((totalCorrectFirst/QUEST.questions.length)*100);
   document.getElementById('score-trophy').textContent=acc>=90?'🏆':acc>=70?'🥈':acc>=50?'🥉':'🎮';
@@ -659,7 +751,7 @@ function showOnly(id){
   ['loading-screen','lobby-screen','game-board','score-screen'].forEach(sid=>{
     const el=document.getElementById(sid);
     if(sid==='loading-screen') el.style.display=sid===id?'block':'none';
-    else{ el.style.display=sid===id?'flex':'none'; if(sid===id)el.style.flexDirection='column'; }
+    else{el.style.display=sid===id?'flex':'none';if(sid===id)el.style.flexDirection='column';}
   });
 }
 function showFeedback(msg,cls){const el=document.getElementById('feedback-msg');el.textContent=msg;el.className=cls;}

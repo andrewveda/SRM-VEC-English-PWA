@@ -701,145 +701,258 @@ const totalCryptic = reportData.reduce((sum, s) => sum + (s.cryptic_completed ||
 })();
 
 async function downloadProfilePDF(studentObj) {
-  const { jsPDF } = window.jspdf;
-
-  // 1) Fetch extra stats (same fields used in index.html miniPowerDeck)
-  let totalTimeSeconds = 0;
-  try {
-    const { data, error } = await supabase
-      .from("report_card_view")
-      .select("total_time")
-      .eq("name", studentObj.name)
-      .maybeSingle();
-
-    if (!error && data && data.total_time) {
-      totalTimeSeconds = Math.round(data.total_time);
-    }
-  } catch (e) {
-    console.error("PDF stats fetch failed:", e);
+  // Ensure jsPDF is loaded
+  if (!window.jspdf) {
+    await new Promise((resolve, reject) => {
+      const s = document.createElement("script");
+      s.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
+      s.onload = resolve;
+      s.onerror = reject;
+      document.head.appendChild(s);
+    });
   }
 
-  // 2) Count Quests, Videos, Stories
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: "pt", format: "a4" });
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  const margin = 40;
+  const contentW = pageW - margin * 2;
+  let y = margin;
+
+  // ── helpers ──────────────────────────────────────────────
+  function checkPage(needed = 20) {
+    if (y + needed > pageH - margin) {
+      doc.addPage();
+      y = margin;
+    }
+  }
+
+  function drawHRule(color = [220, 185, 80]) {
+    doc.setDrawColor(...color);
+    doc.setLineWidth(0.5);
+    doc.line(margin, y, pageW - margin, y);
+    y += 8;
+  }
+
+  function text(str, x, fontSize = 11, style = "normal", color = [30, 30, 30]) {
+    doc.setFont("helvetica", style);
+    doc.setFontSize(fontSize);
+    doc.setTextColor(...color);
+    doc.text(str, x, y);
+  }
+
+  function centeredText(str, fontSize, style = "normal", color = [30, 30, 30]) {
+    doc.setFont("helvetica", style);
+    doc.setFontSize(fontSize);
+    doc.setTextColor(...color);
+    doc.text(str, pageW / 2, y, { align: "center" });
+  }
+
+  // ── HEADER ───────────────────────────────────────────────
+  // Gold top bar
+  doc.setFillColor(201, 168, 76);
+  doc.rect(0, 0, pageW, 6, "F");
+
+  y = 36;
+  centeredText("SRM VALLIAMMAI ENGINEERING COLLEGE", 14, "bold", [100, 75, 20]);
+  y += 18;
+  centeredText("Department of English", 11, "normal", [120, 95, 40]);
+  y += 10;
+  drawHRule([201, 168, 76]);
+
+  // Mission label
+  centeredText("Mission: Veni, Vidi, Vici! — Pilot Profile", 9, "normal", [160, 130, 60]);
+  y += 18;
+
+  // Student name
+  centeredText(studentObj.name, 22, "bold", [30, 30, 30]);
+  y += 8;
+
+  if (studentObj.department) {
+    centeredText(studentObj.department.toUpperCase(), 9, "normal", [150, 120, 60]);
+    y += 6;
+  }
+
+  drawHRule([201, 168, 76]);
+  y += 4;
+
+  // ── STATS GRID (2×4 boxes) ───────────────────────────────
   const quests = parseItems(studentObj.quest_list);
   const videos = parseItems(studentObj.video_list);
   const stories = parseItems(studentObj.story_list);
 
-  const questCount = quests.length;
-  const videoCount = videos.length;
-  const storyCount = stories.length;
+  const totalSec = Math.round(studentObj.total_time || 0);
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = totalSec % 60;
+  const timeStr = `${h}h ${m}m ${s}s`;
 
-  // Format time like index.html toggle
-  const h = Math.floor(totalTimeSeconds / 3600);
-  const m = Math.floor((totalTimeSeconds % 3600) / 60);
-  const s = totalTimeSeconds % 60;
-  const formattedTime = `${h}h ${m}m ${s}s`;
+  const accuracy = Math.round((studentObj.accuracy || 0) * 100);
 
-  // 3) Create PDF area
-  const pdfArea = document.createElement("div");
-  pdfArea.style.width = "794px";   // A4 width
-  pdfArea.style.padding = "20px";
-  pdfArea.style.fontFamily = "Arial, sans-serif";
-  pdfArea.style.color = "#000";
-  pdfArea.style.background = "#fff";
-  pdfArea.style.lineHeight = "1.4";
+  const stats = [
+    { label: "Total Score",    value: String(studentObj.total_score ?? 0) },
+    { label: "Accuracy",       value: `${accuracy}%` },
+    { label: "Quests",         value: String(quests.length) },
+    { label: "Videos",         value: String(videos.length) },
+    { label: "Stories",        value: String(stories.length) },
+    { label: "Cryptic",        value: String(studentObj.cryptic_completed ?? 0) },
+    { label: "Wordle",         value: String(studentObj.wordle_completed ?? 0) },
+    { label: "Time on Mission",value: timeStr },
+  ];
 
-  pdfArea.innerHTML = `
- <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Cormorant+Garamond:wght@500;600&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet"/>
+  const cols = 4;
+  const boxW = contentW / cols;
+  const boxH = 52;
 
-<h2 style="
-  text-align:center; 
-  margin-bottom:4px; 
-  font-family:'Cinzel', serif;
-">
-  SRM Valliammai Engineering College
-</h2>
+  stats.forEach((stat, i) => {
+    const col = i % cols;
+    const row = Math.floor(i / cols);
+    const bx = margin + col * boxW;
+    const by = y + row * (boxH + 6);
 
-<h3 style="
-  text-align:center; 
-  margin-top:0; 
-  font-family:'Cormorant Garamond', serif;
-">
-  Department of English
-</h3>
+    // Box background
+    doc.setFillColor(250, 245, 235);
+    doc.setDrawColor(201, 168, 76);
+    doc.setLineWidth(0.5);
+    doc.roundedRect(bx, by, boxW - 4, boxH, 4, 4, "FD");
 
-<hr/>
+    // Label
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(150, 120, 60);
+    doc.text(stat.label.toUpperCase(), bx + 8, by + 14);
 
-<h3 style="
-  margin-top:10px; 
-  font-family:'Playfair Display', serif;
-  font-size:22px;
-">
-  ${studentObj.name}
-</h3>
-   <div style="
-      display:flex; 
-      gap:12px; 
-      margin:10px 0 14px 0;
-      font-size:14px;
-      justify-content:space-between;
-    ">
-      <div style="border:1px solid #000; padding:10px; width:22%; text-align:center;">
-        <div style="font-size:22px;">📝</div>
-        <div><b>${questCount}</b> Quests</div>
-      </div>
-      <div style="border:1px solid #000; padding:10px; width:22%; text-align:center;">
-        <div style="font-size:22px;">🎥</div>
-        <div><b>${videoCount}</b> Videos</div>
-      </div>
-      <div style="border:1px solid #000; padding:10px; width:22%; text-align:center;">
-        <div style="font-size:22px;">📚</div>
-        <div><b>${storyCount}</b> Stories</div>
-      </div>
-      <div style="border:1px solid #000; padding:10px; width:22%; text-align:center;">
-        <div style="font-size:22px;">⏱</div>
-        <div><b>${formattedTime}</b></div>
-      </div>
-    </div>
+    // Value
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(stat.value.length > 8 ? 11 : 16);
+    doc.setTextColor(30, 30, 30);
+    doc.text(stat.value, bx + 8, by + 36);
+  });
 
-    <hr/>
+  y += Math.ceil(stats.length / cols) * (boxH + 6) + 10;
 
-  
-    <h4>Activity Calendar</h4>
-    <div id="pdf-mini-calendar" style="display:flex; flex-wrap:wrap; gap:10px;"></div>
-  `;
+  // Last test timestamp
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.setTextColor(120, 100, 60);
+  doc.text(`Last Mission: ${formatDate(studentObj.last_test_taken)}`, margin, y);
+  y += 16;
 
-  // 4) Render Mini Calendar
-  const tempCalendarContainer = pdfArea.querySelector("#pdf-mini-calendar");
+  drawHRule([201, 168, 76]);
+  y += 4;
+
+  // ── ACTIVITY CALENDAR ────────────────────────────────────
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(11);
+  doc.setTextColor(100, 75, 20);
+  doc.text("Activity Calendar", margin, y);
+  y += 5;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8);
+  doc.setTextColor(160, 130, 60);
+  doc.text("🟨 = day with completed Quests, Videos, or Stories", margin, y + 6);
+  y += 18;
+
   const grouped = groupByDate(quests, videos, stories);
 
-  let cursor = new Date(
-  CALENDAR_VISIBLE_START.getFullYear(),
-  CALENDAR_VISIBLE_START.getMonth(),
-  1
-);  const today = new Date();
-  const end = new Date(today.getFullYear(), today.getMonth(), 1);
+  // Render months
+  let cursor = new Date(CALENDAR_VISIBLE_START.getFullYear(), CALENDAR_VISIBLE_START.getMonth(), 1);
+  const today = new Date();
+  const endMonth = new Date(today.getFullYear(), today.getMonth(), 1);
 
-  while (cursor <= end) {
-    const block = document.createElement("div");
-    block.style.width = "48%";
-    block.style.border = "1px solid #000";
-    block.style.padding = "6px";
+  const calCols = 2;
+  const calW = contentW / calCols;
+  const daySize = Math.floor((calW - 12) / 7);
+  const monthH = 12 + 14 + 7 * (daySize + 1); // title + header + rows
+  let calCol = 0;
+  let calRowY = y;
 
-    block.innerHTML = renderOneMonth(cursor, grouped)
-      .replace(/background:[^;"]+;/g, "")  // remove colour
-      .replace(/color:[^;"]+;/g, "color:#000;");
+  while (cursor <= endMonth) {
+    const year = cursor.getFullYear();
+    const month = cursor.getMonth();
+    const firstDay = new Date(year, month, 1).getDay();
+    const numDays = new Date(year, month + 1, 0).getDate();
 
-    tempCalendarContainer.appendChild(block);
+    const bx = margin + calCol * calW;
+    let cy = calRowY;
+
+    // Month title
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
+    doc.setTextColor(100, 75, 20);
+    const monthLabel = cursor.toLocaleString('en-IN', { month: 'long', year: 'numeric' });
+    doc.text(monthLabel, bx + calW / 2 - doc.getTextWidth(monthLabel) / 2, cy + 8);
+    cy += 14;
+
+    // Day headers
+    const dayNames = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(6);
+    doc.setTextColor(130, 100, 50);
+    dayNames.forEach((d, di) => {
+      doc.text(d, bx + 4 + di * (daySize + 1) + (daySize - doc.getTextWidth(d)) / 2, cy + 7);
+    });
+    cy += 10;
+
+    // Day cells
+    let cellX = firstDay;
+    let cellRow = 0;
+
+    for (let d = 1; d <= numDays; d++) {
+      const date = new Date(year, month, d);
+      const key = date.toDateString();
+      const hasActivity = !!grouped[key];
+      const dx = bx + 4 + cellX * (daySize + 1);
+      const dy = cy + cellRow * (daySize + 1);
+
+      // Cell bg
+      if (hasActivity) {
+        doc.setFillColor(248, 224, 140);
+        doc.setDrawColor(201, 168, 76);
+      } else {
+        doc.setFillColor(250, 248, 245);
+        doc.setDrawColor(220, 200, 160);
+      }
+      doc.setLineWidth(0.3);
+      doc.rect(dx, dy, daySize, daySize, "FD");
+
+      // Day number
+      doc.setFont("helvetica", hasActivity ? "bold" : "normal");
+      doc.setFontSize(5.5);
+      doc.setTextColor(hasActivity ? 80 : 160, hasActivity ? 60 : 130, hasActivity ? 10 : 90);
+      const dStr = String(d);
+      doc.text(dStr, dx + (daySize - doc.getTextWidth(dStr)) / 2, dy + daySize * 0.65);
+
+      cellX++;
+      if (cellX === 7) { cellX = 0; cellRow++; }
+    }
+
+    const thisMonthH = cy + (cellRow + (cellX > 0 ? 1 : 0)) * (daySize + 1) - calRowY + 8;
+
+    calCol++;
+    if (calCol >= calCols) {
+      calCol = 0;
+      calRowY += thisMonthH + 10;
+      checkPage(monthH + 20);
+      if (y !== calRowY) calRowY = y; // sync after page break
+    }
+
     cursor.setMonth(cursor.getMonth() + 1);
   }
 
-  // 5) Convert → canvas → PDF
-  document.body.appendChild(pdfArea);
-  await new Promise(r => setTimeout(r, 300));
+  // ── FOOTER ───────────────────────────────────────────────
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8);
+  doc.setTextColor(180, 150, 80);
+  const generated = `Generated: ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}`;
+  doc.text(generated, pageW / 2, pageH - 20, { align: "center" });
 
-  const canvas = await html2canvas(pdfArea, { scale: 2 });
-  const imgData = canvas.toDataURL("image/png");
+  // Gold bottom bar
+  doc.setFillColor(201, 168, 76);
+  doc.rect(0, pageH - 6, pageW, 6, "F");
 
-  const pdf = new jsPDF("p", "pt", "a4");
-  pdf.addImage(imgData, "PNG", 10, 10, 575, 822);
-  pdf.save(`${studentObj.name}_Profile.pdf`);
-
-  pdfArea.remove();
+  doc.save(`${studentObj.name}_Profile.pdf`);
 }
 
   </script>

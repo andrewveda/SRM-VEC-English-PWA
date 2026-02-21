@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Linguathon — Sentence Quest</title>
+  <link href="https://fonts.googleapis.com/css2?family=Russo+One&family=Exo+2:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:#0b0f1a; --surface:#111827; --surface2:#1a2235;
+      --border:rgba(99,179,237,0.18); --accent:#63b3ed; --accent2:#f6ad55;
+      --accent3:#68d391; --danger:#fc8181; --gold:#ffd700; --radius:14px;
+    }
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'Exo 2',sans-serif;background:var(--bg);min-height:100vh;display:flex;flex-direction:column;align-items:center;color:white;overflow-x:hidden;}
+    body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(99,179,237,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(99,179,237,0.04) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0;}
+    body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(99,179,237,0.08) 0%,transparent 70%);pointer-events:none;z-index:0;}
+
+    /* HEADER */
+    #header-bar{width:100%;max-width:560px;background:var(--surface);border-bottom:2px solid var(--border);padding:8px 14px;display:flex;justify-content:space-between;align-items:center;z-index:100;position:sticky;top:0;}
+    #header-bar.hidden{display:none;}
+    .stat-pill{display:flex;align-items:center;gap:4px;font-family:'Russo One',sans-serif;font-size:0.82rem;padding:4px 9px;border-radius:20px;background:rgba(255,255,255,0.05);border:1px solid var(--border);}
+    .stat-pill.gems{color:var(--accent);} .stat-pill.fire{color:var(--accent2);} .stat-pill.prog{color:#b794f4;} .stat-pill.timer{color:var(--accent3);}
+
+    #game-wrapper{width:100%;max-width:560px;padding:12px 12px 40px;position:relative;z-index:1;display:flex;flex-direction:column;gap:11px;}
+
+    /* LOADER */
+    #loading-screen{text-align:center;padding:60px 20px;display:block;}
+    .loader-ring{width:64px;height:64px;border:4px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 0.9s linear infinite;margin:0 auto 20px;}
+    @keyframes spin{to{transform:rotate(360deg);}}
+    .loader-text{font-family:'Russo One',sans-serif;font-size:1rem;color:var(--accent);letter-spacing:2px;}
+
+    /* LOBBY */
+    #lobby-screen{display:none;flex-direction:column;gap:14px;}
+    .lobby-title{font-family:'Russo One',sans-serif;font-size:2rem;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:2px;text-align:center;padding-top:24px;}
+    .lobby-sub{color:rgba(255,255,255,0.45);font-size:0.85rem;text-align:center;margin-top:4px;}
+    .creator-credit{text-align:center;font-size:0.73rem;color:rgba(255,255,255,0.4);line-height:1.9;}
+    .creator-credit strong{color:var(--accent2);}
+    .name-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px;}
+    .name-card label{display:block;font-size:0.73rem;font-weight:700;letter-spacing:1.5px;color:var(--accent);text-transform:uppercase;margin-bottom:6px;}
+    .name-card select,.name-card input{width:100%;padding:11px 14px;font-size:0.95rem;font-family:'Exo 2',sans-serif;border-radius:10px;border:1px solid var(--border);background:var(--surface2);color:white;outline:none;transition:border 0.2s;margin-bottom:12px;}
+    .name-card select option{background:var(--surface);}
+    .name-card input::placeholder{color:rgba(255,255,255,0.3);}
+    .name-card select:focus,.name-card input:focus{border-color:var(--accent);}
+    #start-lobby-btn{padding:15px;font-family:'Russo One',sans-serif;font-size:1.1rem;letter-spacing:2px;border:none;border-radius:var(--radius);background:linear-gradient(135deg,var(--accent),#4299e1);color:var(--bg);cursor:pointer;transition:transform 0.2s,box-shadow 0.2s;box-shadow:0 4px 24px rgba(99,179,237,0.35);}
+    #start-lobby-btn:hover{transform:translateY(-2px);}
+
+    /* GAME */
+    #game-board{display:none;flex-direction:column;gap:11px;}
+    #q-progress-bar{height:3px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden;}
+    #q-progress-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:3px;transition:width 0.5s ease;}
+
+    .topic-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 16px;display:flex;align-items:center;gap:12px;}
+    .topic-icon{font-size:1.5rem;}
+    .topic-label{font-size:0.67rem;font-weight:700;letter-spacing:1.5px;color:var(--accent);text-transform:uppercase;}
+    .topic-name{font-family:'Russo One',sans-serif;font-size:0.98rem;color:white;margin-top:2px;}
+
+    #score-strip{display:flex;gap:6px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:9px 12px;}
+    .score-item{flex:1;text-align:center;font-size:0.67rem;color:rgba(255,255,255,0.4);font-weight:700;letter-spacing:1px;text-transform:uppercase;}
+    .score-item strong{display:block;font-family:'Russo One',sans-serif;font-size:1.05rem;margin-bottom:2px;}
+    .score-item.gems-col strong{color:var(--accent);} .score-item.streak-col strong{color:var(--accent2);} .score-item.acc-col strong{color:var(--accent3);}
+
+    .instructions{background:rgba(99,179,237,0.05);border:1px solid rgba(99,179,237,0.12);border-radius:10px;padding:9px 14px;font-size:0.77rem;color:rgba(255,255,255,0.44);text-align:center;}
+
+    /* ══ SENTENCE LIST ══ */
+    #sentence-list{display:flex;flex-direction:column;gap:8px;}
+
+    .sent-card{
+      display:flex;align-items:center;gap:0;
+      border-radius:12px;
+      border:2px solid rgba(255,255,255,0.07);
+      background:var(--surface2);
+      transition:border-color 0.22s,background 0.22s,transform 0.12s,box-shadow 0.15s,opacity 0.22s;
+      cursor:pointer;
+      position:relative;
+      -webkit-user-select:none;user-select:none;
+      touch-action:none;
+    }
+
+    .sent-card.inactive{opacity:0.38;filter:grayscale(0.35);}
+    .sent-card.active{opacity:1;filter:none;}
+    .sent-card.selected{border-color:var(--accent);box-shadow:0 0 0 3px rgba(99,179,237,0.22);transform:scale(1.015);}
+    .sent-card.pos-correct{border-color:var(--accent3);background:rgba(104,211,145,0.09);}
+    .sent-card.pos-wrong{border-color:var(--danger);background:rgba(252,129,129,0.07);}
+    .sent-card.is-dragging{opacity:0.3;transform:scale(0.97);}
+    .sent-card.drag-over{box-shadow:0 0 0 2px var(--accent2);transform:scale(1.015);}
+
+    .grip{display:flex;align-items:center;justify-content:center;min-width:36px;padding:14px 2px 14px 10px;color:rgba(255,255,255,0.22);font-size:1.1rem;cursor:grab;flex-shrink:0;touch-action:none;}
+    .grip:active{cursor:grabbing;}
+
+    .pos-dot{min-width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Russo One',sans-serif;font-size:0.7rem;margin:0 8px 0 4px;flex-shrink:0;background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.28);transition:background 0.22s,color 0.22s;}
+    .pos-dot.c{background:rgba(104,211,145,0.22);color:var(--accent3);}
+    .pos-dot.w{background:rgba(252,129,129,0.18);color:var(--danger);}
+
+    .sent-text{flex:1;padding:13px 10px 13px 0;font-size:0.87rem;font-weight:600;line-height:1.5;color:white;}
+
+    .pos-badge{font-size:1rem;margin-right:10px;flex-shrink:0;}
+
+    /* FEEDBACK */
+    #feedback-msg{font-family:'Russo One',sans-serif;font-size:0.93rem;min-height:26px;text-align:center;letter-spacing:0.5px;transition:opacity 0.2s;}
+    .correct-msg{color:var(--accent3);} .wrong-msg{color:var(--danger);} .info-msg{color:var(--accent2);}
+
+    /* BUTTONS */
+    #submit-btn{padding:14px;font-family:'Russo One',sans-serif;font-size:1.05rem;letter-spacing:1.5px;border:none;border-radius:var(--radius);background:linear-gradient(135deg,var(--accent),#4299e1);color:var(--bg);cursor:pointer;transition:transform 0.2s,box-shadow 0.2s;box-shadow:0 4px 20px rgba(99,179,237,0.35);}
+    #submit-btn:hover{transform:translateY(-2px);}
+    #submit-btn:disabled{opacity:0.35;cursor:not-allowed;transform:none;}
+    #next-btn{display:none;padding:14px;font-family:'Russo One',sans-serif;font-size:1.05rem;letter-spacing:1.5px;border:none;border-radius:var(--radius);background:linear-gradient(135deg,var(--accent3),#38a169);color:var(--bg);cursor:pointer;box-shadow:0 4px 20px rgba(104,211,145,0.35);}
+    #next-btn:hover{transform:translateY(-2px);}
+
+    .action-row{display:flex;gap:8px;}
+    .action-btn{flex:1;padding:11px 6px;border-radius:10px;border:none;font-family:'Russo One',sans-serif;font-size:0.79rem;cursor:pointer;letter-spacing:0.5px;transition:transform 0.15s;}
+    .action-btn:hover{transform:translateY(-2px);}
+    .btn-reset{background:rgba(252,129,129,0.12);color:var(--danger);border:1px solid rgba(252,129,129,0.3);}
+    .btn-hint{background:rgba(246,173,85,0.1);color:var(--accent2);border:1px solid rgba(246,173,85,0.25);}
+    .btn-mute{background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.6);border:1px solid rgba(255,255,255,0.1);}
+
+    /* EXPLANATION */
+    #explanation-panel{display:none;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:13px;}
+    .exp-header{font-family:'Russo One',sans-serif;font-size:0.78rem;letter-spacing:1px;color:var(--accent2);text-transform:uppercase;margin-bottom:10px;}
+    .exp-row{display:flex;gap:9px;margin-bottom:8px;padding:10px;border-radius:10px;background:var(--surface2);border-left:3px solid var(--border);cursor:pointer;}
+    .exp-row.c{border-left-color:var(--accent3);} .exp-row.w{border-left-color:var(--danger);}
+    .exp-pos{font-family:'Russo One',sans-serif;font-size:0.7rem;min-width:20px;padding-top:2px;color:rgba(255,255,255,0.32);}
+    .exp-sent{font-size:0.81rem;font-weight:600;line-height:1.45;margin-bottom:3px;}
+    .exp-sent.c{color:var(--accent3);} .exp-sent.w{color:var(--danger);}
+    .exp-why{font-size:0.75rem;color:rgba(255,255,255,0.5);line-height:1.5;display:none;padding-top:4px;border-top:1px solid rgba(255,255,255,0.06);margin-top:4px;}
+    .exp-why.open{display:block;}
+    .exp-toggle{font-size:0.67rem;color:var(--accent);letter-spacing:1px;font-weight:700;margin-top:3px;display:block;}
+
+    /* SCORE */
+    #score-screen{display:none;flex-direction:column;gap:13px;}
+    .score-hero{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:26px 18px;text-align:center;}
+    .score-trophy{font-size:3.2rem;margin-bottom:6px;}
+    .score-title{font-family:'Russo One',sans-serif;font-size:1.5rem;background:linear-gradient(135deg,var(--gold),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+    .score-name{margin-top:4px;font-size:0.88rem;color:rgba(255,255,255,0.4);}
+    .score-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;}
+    .score-block{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;text-align:center;}
+    .score-block .val{font-family:'Russo One',sans-serif;font-size:1.8rem;}
+    .score-block .lbl{font-size:0.67rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,0.4);margin-top:3px;}
+    .score-block.gold .val{color:var(--gold);} .score-block.blue .val{color:var(--accent);} .score-block.green .val{color:var(--accent3);} .score-block.orange .val{color:var(--accent2);}
+    .score-bar-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;}
+    .score-bar-label{display:flex;justify-content:space-between;font-size:0.75rem;font-weight:700;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:1px;margin-bottom:7px;}
+    .score-bar-track{height:9px;background:rgba(255,255,255,0.06);border-radius:10px;overflow:hidden;}
+    .score-bar-fill{height:100%;border-radius:10px;transition:width 1s ease;background:linear-gradient(90deg,var(--accent3),#68d391);}
+    #back-lobby-btn{padding:14px;font-family:'Russo One',sans-serif;font-size:1rem;letter-spacing:2px;border:1px solid var(--border);border-radius:var(--radius);background:transparent;color:rgba(255,255,255,0.5);cursor:pointer;}
+
+    /* PARTICLES / OVERLAYS */
+    #word-correct-overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:800;pointer-events:none;opacity:0;transition:opacity 0.25s;}
+    #word-correct-overlay.show{opacity:1;}
+    .big-correct-text{font-family:'Russo One',sans-serif;font-size:3rem;color:var(--gold);text-shadow:0 0 30px rgba(255,215,0,0.8);animation:popIn 0.45s cubic-bezier(0.175,0.885,0.32,1.275);letter-spacing:4px;}
+    @keyframes popIn{0%{transform:scale(0.3);opacity:0;}70%{transform:scale(1.12);}100%{transform:scale(1);opacity:1;}}
+    .flying-gem{position:fixed;font-family:'Russo One',sans-serif;font-size:1.1rem;pointer-events:none;z-index:999;animation:flyGem 0.85s ease-out forwards;}
+    .flying-gem.plus{color:var(--accent);} .flying-gem.minus{color:var(--danger);}
+    @keyframes flyGem{0%{opacity:1;transform:translateY(0) scale(1);}100%{opacity:0;transform:translateY(-65px) scale(1.2);}}
+    .spark{position:fixed;width:6px;height:6px;border-radius:50%;pointer-events:none;z-index:900;animation:sparkFly 0.75s ease-out forwards;}
+    @keyframes sparkFly{0%{opacity:1;transform:translate(0,0) scale(1);}100%{opacity:0;transform:translate(var(--tx),var(--ty)) scale(0);}}
+    .confetti-piece{position:fixed;width:8px;height:8px;pointer-events:none;z-index:901;animation:confettiFall 1.3s ease-out forwards;}
+    @keyframes confettiFall{0%{opacity:1;transform:translateY(0) rotate(0deg);}100%{opacity:0;transform:translateY(260px) rotate(540deg);}}
+    .gem-pulse{animation:gemPulse 0.35s ease;}
+    @keyframes gemPulse{0%,100%{transform:scale(1);}50%{transform:scale(1.3);filter:brightness(1.6);}}
+    #time-bonus-flash{position:fixed;top:60px;left:50%;transform:translateX(-50%);background:rgba(104,211,145,0.15);border:1px solid var(--accent3);border-radius:20px;padding:6px 20px;font-family:'Russo One',sans-serif;font-size:0.95rem;color:var(--accent3);letter-spacing:1px;pointer-events:none;z-index:800;opacity:0;transition:opacity 0.2s;}
+    #time-bonus-flash.show{opacity:1;}
+  </style>
+</head>
+<body>
+
+<div id="word-correct-overlay"><div class="big-correct-text">⚡ CORRECT!</div></div>
+<div id="time-bonus-flash">⚡ SPEED BONUS!</div>
+
+<div id="header-bar" class="hidden">
+  <div class="stat-pill timer">⏱ <span id="time-val">0</span>s</div>
+  <div class="stat-pill gems" id="gem-pill">💎 <span id="gem-val">0</span></div>
+  <div class="stat-pill fire">🔥 <span id="streak-val">0</span></div>
+  <div class="stat-pill prog">📋 <span id="q-current">1</span>/<span id="q-total">?</span></div>
+</div>
+
+<div id="game-wrapper">
+  <div id="loading-screen"><div class="loader-ring"></div><div class="loader-text">LOADING...</div></div>
+
+  <!-- LOBBY -->
+  <div id="lobby-screen">
+    <div class="lobby-title">⚡ Linguathon</div>
+    <div class="lobby-sub">Sentence Rearrangement Quest · Mystic Summit</div>
+    <div class="creator-credit">
+      Student Development Team:<br>
+      <strong>Monesh – Cyber Security</strong> &nbsp;|&nbsp; <strong>Sruthi – ECE 3</strong> &nbsp;|&nbsp; <strong>Subiksha – ECE 3</strong><br>
+      <strong>Pooja – CSE 2</strong> &nbsp;|&nbsp; <strong>Mohana Priya – CSE 2</strong> &nbsp;|&nbsp; <strong>Valan Ezhilan – EIE</strong>
+    </div>
+    <div class="name-card">
+      <label>Department</label>
+      <select id="dept-select">
+        <option value="">-- Select Department --</option>
+        <option>Cyber Security</option><option>CSE-1</option><option>CSE-2</option>
+        <option>CSE-3</option><option>Mechanical Engineering</option><option>ECE-1</option>
+        <option>ECE-2</option><option>ECE-3</option><option>AI DS-1</option>
+        <option>AI DS-2</option><option>Civil</option><option>Agri</option>
+        <option>EEE</option><option>EIE</option><option>Medical Electronics</option>
+        <option>IT-1</option><option>IT-2</option>
+      </select>
+      <label>Your Name</label>
+      <input type="text" id="name-input" placeholder="Enter your full name" style="margin-bottom:0"/>
+    </div>
+    <button id="start-lobby-btn">🚀 START QUEST</button>
+  </div>
+
+  <!-- GAME BOARD -->
+  <div id="game-board">
+    <div id="q-progress-bar"><div id="q-progress-fill" style="width:0%"></div></div>
+    <div class="topic-card">
+      <div class="topic-icon" id="topic-icon">📝</div>
+      <div><div class="topic-label">Topic</div><div class="topic-name" id="topic-name">—</div></div>
+    </div>
+    <div id="score-strip">
+      <div class="score-item gems-col"><strong id="live-gems">0</strong>💎 GEMS</div>
+      <div class="score-item streak-col"><strong id="live-streak">0</strong>🔥 STREAK</div>
+      <div class="score-item acc-col"><strong id="live-acc">—</strong>✅ ACC</div>
+    </div>
+    <div class="instructions">⠿ Drag to reorder &nbsp;·&nbsp; Tap two sentences to swap &nbsp;·&nbsp; Cards turn 🟢/🔴 live</div>
+    <div id="sentence-list"></div>
+    <div id="feedback-msg"></div>
+    <button id="submit-btn">✅ SUBMIT ORDER</button>
+    <button id="next-btn">NEXT →</button>
+    <div id="explanation-panel">
+      <div class="exp-header">📖 Sentence-by-Sentence Explanation</div>
+      <div id="exp-body"></div>
+    </div>
+    <div class="action-row">
+      <button class="action-btn btn-reset" id="reset-btn">🔄 RESET</button>
+      <button class="action-btn btn-hint"  id="hint-btn">💡 HINT <span style="font-size:0.67rem;opacity:0.7">(-1💎)</span></button>
+      <button class="action-btn btn-mute"  id="mute-btn">🔊 SFX</button>
+    </div>
+  </div>
+
+  <!-- SCORE SCREEN -->
+  <div id="score-screen">
+    <div class="score-hero">
+      <div class="score-trophy" id="score-trophy">🏆</div>
+      <div class="score-title">QUEST COMPLETE!</div>
+      <div class="score-name" id="score-name-lbl"></div>
+    </div>
+    <div class="score-grid">
+      <div class="score-block gold"><div class="val" id="sc-gems">0</div><div class="lbl">Total Gems</div></div>
+      <div class="score-block green"><div class="val" id="sc-correct">0</div><div class="lbl">Correct</div></div>
+      <div class="score-block blue"><div class="val" id="sc-streak">0</div><div class="lbl">Best Streak</div></div>
+      <div class="score-block orange"><div class="val" id="sc-time">0s</div><div class="lbl">Total Time</div></div>
+    </div>
+    <div class="score-bar-wrap">
+      <div class="score-bar-label"><span>Accuracy</span><span id="sc-acc-pct">0%</span></div>
+      <div class="score-bar-track"><div class="score-bar-fill" id="sc-acc-bar" style="width:0%"></div></div>
+    </div>
+    <button id="back-lobby-btn">↩ PLAY AGAIN</button>
+  </div>
+</div>
+
+<script>
+/* ══ SUPABASE ══ */
+const SUPABASE_URL="https://ahezssoczvpbkteffcgz.supabase.co/functions/v1/logQuest";
+
+/* ══════════════════════════════════════════════
+   QUEST DATA  (hardcoded – 1 real + 9 placeholders)
+   HOW TO FILL PLACEHOLDERS:
+   • sentences[]     – the 4–8 sentence texts (any order is fine)
+   • correctOrder[]  – indices into sentences[] in the correct sequence
+                       e.g. correctOrder:[2,0,3,1] means sentences[2] is first, sentences[0] second …
+   • explanations[]  – one {pos, why} per POSITION (same length as correctOrder)
+══════════════════════════════════════════════ */
+const QUEST={
+  id:"sentence-rearrange-01", title:"Paragraph Order Quest",
+  questions:[
+
+    /* ── Q1 ── */
+    {topic:"Solar Energy",icon:"☀️",
+     sentences:[
+       "Solar energy is increasingly being adopted as an alternative source of power.",
+       "Solar power is clean and does not cause pollution.",
+       "It can be used to generate electricity as well as heat water.",
+       "Over time, the cost of installation has also decreased significantly.",
+       "Many households are now installing solar panels on their rooftops.",
+       "In addition, governments are offering subsidies to encourage its use.",
+       "This helps reduce dependence on non-renewable energy resources.",
+       "As a result, solar energy is becoming a practical solution for sustainable living."
+     ],
+     correctOrder:[0,1,2,3,4,5,6,7],
+     explanations:[
+       {pos:"1️⃣ Opening",    why:"Introduces the main idea broadly. All other sentences explain why adoption is happening."},
+       {pos:"2️⃣ Advantage",  why:"Primary reason for adoption — clean energy. Flow: Adoption → Reason (clean)."},
+       {pos:"3️⃣ Utility",    why:"Moves from environmental benefit to practical uses. Flow: Benefit → Utility."},
+       {pos:"4️⃣ Cost",       why:"Affordability follows utility. Economic factors confirm feasibility. Flow: Benefits → Cost ↓."},
+       {pos:"5️⃣ Outcome",    why:"Real-world effect of falling costs — more households adopt. Flow: Cost ↓ → Adoption ↑."},
+       {pos:"6️⃣ Policy",     why:"'In addition' layers government support on top of household adoption."},
+       {pos:"7️⃣ Impact",     why:"'This' refers to combined adoption + subsidies, explaining the broader energy consequence."},
+       {pos:"8️⃣ Conclusion", why:"'As a result' synthesises every prior point into a final judgement about sustainability."}
+     ]
+    },
+
+    /* ── Q2 PLACEHOLDER ── */
+    {topic:"Placeholder Topic 2",icon:"📝",
+     sentences:["Sentence A — replace this.","Sentence B — replace this.","Sentence C — replace this.","Sentence D — replace this."],
+     correctOrder:[0,1,2,3],
+     explanations:[
+       {pos:"1️⃣",why:"Why this sentence comes first."},
+       {pos:"2️⃣",why:"Why this sentence comes second."},
+       {pos:"3️⃣",why:"Why this sentence comes third."},
+       {pos:"4️⃣",why:"Why this sentence comes fourth."}
+     ]
+    },
+
+    /* ── Q3 PLACEHOLDER ── */
+    {topic:"Placeholder Topic 3",icon:"📝",
+     sentences:["Sentence A — replace this.","Sentence B — replace this.","Sentence C — replace this.","Sentence D — replace this."],
+     correctOrder:[0,1,2,3],
+     explanations:[
+       {pos:"1️⃣",why:"Why this sentence comes first."},
+       {pos:"2️⃣",why:"Why this sentence comes second."},
+       {pos:"3️⃣",why:"Why this sentence comes third."},
+       {pos:"4️⃣",why:"Why this sentence comes fourth."}
+     ]
+    },
+
+    /* ── Q4 PLACEHOLDER ── */
+    {topic:"Placeholder Topic 4",icon:"📝",
+     sentences:["Sentence A — replace this.","Sentence B — replace this.","Sentence C — replace this.","Sentence D — replace this."],
+     correctOrder:[0,1,2,3],
+     explanations:[
+       {pos:"1️⃣",why:"Why this sentence comes first."},
+       {pos:"2️⃣",why:"Why this sentence comes second."},
+       {pos:"3️⃣",why:"Why this sentence comes third."},
+       {pos:"4️⃣",why:"Why this sentence comes fourth."}
+     ]
+    },
+
+    /* ── Q5 PLACEHOLDER ── */
+    {topic:"Placeholder Topic 5",icon:"📝",
+     sentences:["Sentence A — replace this.","Sentence B — replace this.","Sentence C — replace this.","Sentence D — replace this."],
+     correctOrder:[0,1,2,3],
+     explanations:[
+       {pos:"1️⃣",why:"Why this sentence comes first."},
+       {pos:"2️⃣",why:"Why this sentence comes second."},
+       {pos:"3️⃣",why:"Why this sentence comes third."},
+       {pos:"4️⃣",why:"Why this sentence comes fourth."}
+     ]
+    },
+
+    /* ── Q6 PLACEHOLDER ── */
+    {topic:"Placeholder Topic 6",icon:"📝",
+     sentences:["Sentence A — replace this.","Sentence B — replace this.","Sentence C — replace this.","Sentence D — replace this."],
+     correctOrder:[0,1,2,3],
+     explanations:[
+       {pos:"1️⃣",why:"Why this sentence comes first."},
+       {pos:"2️⃣",why:"Why this sentence comes second."},
+       {pos:"3️⃣",why:"Why this sentence comes third."},
+       {pos:"4️⃣",why:"Why this sentence comes fourth."}
+     ]
+    },
+
+    /* ── Q7 PLACEHOLDER ── */
+    {topic:"Placeholder Topic 7",icon:"📝",
+     sentences:["Sentence A — replace this.","Sentence B — replace this.","Sentence C — replace this.","Sentence D — replace this."],
+     correctOrder:[0,1,2,3],
+     explanations:[
+       {pos:"1️⃣",why:"Why this sentence comes first."},
+       {pos:"2️⃣",why:"Why this sentence comes second."},
+       {pos:"3️⃣",why:"Why this sentence comes third."},
+       {pos:"4️⃣",why:"Why this sentence comes fourth."}
+     ]
+    },
+
+    /* ── Q8 PLACEHOLDER ── */
+    {topic:"Placeholder Topic 8",icon:"📝",
+     sentences:["Sentence A — replace this.","Sentence B — replace this.","Sentence C — replace this.","Sentence D — replace this."],
+     correctOrder:[0,1,2,3],
+     explanations:[
+       {pos:"1️⃣",why:"Why this sentence comes first."},
+       {pos:"2️⃣",why:"Why this sentence comes second."},
+       {pos:"3️⃣",why:"Why this sentence comes third."},
+       {pos:"4️⃣",why:"Why this sentence comes fourth."}
+     ]
+    },
+
+    /* ── Q9 PLACEHOLDER ── */
+    {topic:"Placeholder Topic 9",icon:"📝",
+     sentences:["Sentence A — replace this.","Sentence B — replace this.","Sentence C — replace this.","Sentence D — replace this."],
+     correctOrder:[0,1,2,3],
+     explanations:[
+       {pos:"1️⃣",why:"Why this sentence comes first."},
+       {pos:"2️⃣",why:"Why this sentence comes second."},
+       {pos:"3️⃣",why:"Why this sentence comes third."},
+       {pos:"4️⃣",why:"Why this sentence comes fourth."}
+     ]
+    },
+
+    /* ── Q10 PLACEHOLDER ── */
+    {topic:"Placeholder Topic 10",icon:"📝",
+     sentences:["Sentence A — replace this.","Sentence B — replace this.","Sentence C — replace this.","Sentence D — replace this."],
+     correctOrder:[0,1,2,3],
+     explanations:[
+       {pos:"1️⃣",why:"Why this sentence comes first."},
+       {pos:"2️⃣",why:"Why this sentence comes second."},
+       {pos:"3️⃣",why:"Why this sentence comes third."},
+       {pos:"4️⃣",why:"Why this sentence comes fourth."}
+     ]
+    }
+  ]
+};
+
+/* ══ STATE ══ */
+let playerName="",playerDept="";
+let current=0,currentGems=0,currentStreak=0,highestStreak=0;
+let totalCorrectFirst=0,totalWrong=0;
+let startTime,timerInterval,qStartTime;
+let isMuted=false,audioCtx;
+
+// displayOrder[i] = sentence index currently at visual position i
+let displayOrder=[];
+// Tap-swap
+let tapSelected=null;
+// Whether any move has been made on this question (activates cards)
+let movedCards=new Set(); // set of display positions ever touched
+// Whether first attempt
+let firstAttemptThisQ=true;
+
+/* ══ AUDIO ══ */
+function getAC(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();return audioCtx;}
+function tone(f,d,t='sine',v=0.09){if(isMuted)return;try{const c=getAC(),o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.type=t;o.frequency.setValueAtTime(f,c.currentTime);g.gain.setValueAtTime(v,c.currentTime);g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+d);o.start(c.currentTime);o.stop(c.currentTime+d);}catch(e){}}
+const sfxClick=()=>tone(440,0.07,'sine',0.06);
+const sfxSwap=()=>{tone(520,0.08,'sine',0.06);setTimeout(()=>tone(660,0.08),80);};
+const sfxCorrect=()=>{tone(523,0.3);setTimeout(()=>tone(659,0.25),110);setTimeout(()=>tone(784,0.3),230);};
+const sfxWrong=()=>tone(220,0.35,'sine',0.09);
+const sfxVictory=()=>{[440,523,587,659,784,880].forEach((f,i)=>setTimeout(()=>tone(f,0.3,'sine',0.13),i*120));};
+document.getElementById('mute-btn').onclick=()=>{isMuted=!isMuted;document.getElementById('mute-btn').textContent=isMuted?'🔇 SFX':'🔊 SFX';};
+
+/* ══ BOOT ══ */
+window.onload=()=>{
+  try{const sn=localStorage.getItem('pName'),sd=localStorage.getItem('pDept');if(sn)document.getElementById('name-input').value=sn;if(sd)document.getElementById('dept-select').value=sd;}catch(e){}
+  document.getElementById('q-total').textContent=QUEST.questions.length;
+  showOnly('lobby-screen');
+};
+
+document.getElementById('start-lobby-btn').onclick=()=>{
+  const n=document.getElementById('name-input').value.trim();
+  const d=document.getElementById('dept-select').value;
+  if(!d){alert('Please select your department!');return;}
+  if(!n){alert('Please enter your name!');return;}
+  playerName=n;playerDept=d;
+  try{localStorage.setItem('pName',n);localStorage.setItem('pDept',d);}catch(e){}
+  document.getElementById('header-bar').classList.remove('hidden');
+  showOnly('game-board');
+  initGame();
+};
+
+/* ══ GAME ══ */
+function initGame(){
+  current=0;currentGems=0;currentStreak=0;highestStreak=0;
+  totalCorrectFirst=0;totalWrong=0;
+  startTime=Date.now();
+  clearInterval(timerInterval);
+  timerInterval=setInterval(()=>{document.getElementById('time-val').textContent=Math.floor((Date.now()-startTime)/1000);},1000);
+  loadQuestion();
+}
+
+function shuffleArr(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+function loadQuestion(){
+  if(current>=QUEST.questions.length){showScore();return;}
+  const q=QUEST.questions[current];
+  firstAttemptThisQ=true;tapSelected=null;movedCards=new Set();
+  qStartTime=Date.now();
+
+  document.getElementById('q-progress-fill').style.width=(current/QUEST.questions.length*100)+'%';
+  document.getElementById('q-current').textContent=current+1;
+  document.getElementById('topic-icon').textContent=q.icon||'📝';
+  document.getElementById('topic-name').textContent=q.topic;
+  document.getElementById('next-btn').style.display='none';
+  document.getElementById('submit-btn').style.display='block';
+  document.getElementById('submit-btn').disabled=false;
+  document.getElementById('explanation-panel').style.display='none';
+  document.getElementById('feedback-msg').textContent='';
+  document.getElementById('feedback-msg').className='';
+
+  displayOrder=shuffleArr([...Array(q.sentences.length).keys()]);
+  renderList(q);
+  updateLiveStats();
+}
+
+/* ══ RENDER ══ */
+function renderList(q){
+  const list=document.getElementById('sentence-list');
+  list.innerHTML='';
+
+  displayOrder.forEach((sentIdx,pos)=>{
+    const touched=movedCards.has(pos);
+    const correctSentHere=q.correctOrder[pos];
+    const isCorrect=sentIdx===correctSentHere;
+
+    const card=document.createElement('div');
+    card.className='sent-card'+(touched?' active':' inactive');
+    card.dataset.pos=pos;
+    card.dataset.sentIdx=sentIdx;
+    if(touched) card.classList.add(isCorrect?'pos-correct':'pos-wrong');
+
+    // Grip
+    const grip=document.createElement('div');
+    grip.className='grip';grip.innerHTML='⠿';
+
+    // Position dot
+    const dot=document.createElement('div');
+    dot.className='pos-dot'+(touched?(isCorrect?' c':' w'):'');
+    dot.textContent=pos+1;
+
+    // Text
+    const text=document.createElement('div');
+    text.className='sent-text';
+    text.textContent=q.sentences[sentIdx];
+
+    // Badge
+    const badge=document.createElement('div');
+    badge.className='pos-badge';
+    badge.textContent=touched?(isCorrect?'✅':'❌'):'';
+
+    card.appendChild(grip);card.appendChild(dot);card.appendChild(text);card.appendChild(badge);
+
+    /* TAP TO SWAP */
+    card.addEventListener('click',e=>{
+      if(e.target===grip)return;
+      handleTap(pos,q);
+    });
+
+    /* GRIP TOUCH DRAG */
+    grip.addEventListener('touchstart',e=>{e.preventDefault();e.stopPropagation();startTouchDrag(pos,q,e.touches[0].clientY);},{passive:false});
+    grip.addEventListener('mousedown',e=>{e.preventDefault();startMouseDrag(pos,q,e.clientY);});
+
+    /* HTML5 DRAG (desktop fallback) */
+    card.setAttribute('draggable','true');
+    card.addEventListener('dragstart',e=>{
+      e.dataTransfer.effectAllowed='move';
+      e.dataTransfer.setData('text/plain',String(pos));
+      setTimeout(()=>card.classList.add('is-dragging'),0);
+      activatePos(pos,q);
+    });
+    card.addEventListener('dragend',()=>{
+      card.classList.remove('is-dragging');
+      document.querySelectorAll('.drag-over').forEach(c=>c.classList.remove('drag-over'));
+    });
+    card.addEventListener('dragover',e=>{e.preventDefault();card.classList.add('drag-over');});
+    card.addEventListener('dragleave',()=>card.classList.remove('drag-over'));
+    card.addEventListener('drop',e=>{
+      e.preventDefault();card.classList.remove('drag-over');
+      const fromPos=parseInt(e.dataTransfer.getData('text/plain'));
+      if(isNaN(fromPos)||fromPos===pos)return;
+      doSwap(fromPos,pos,q);
+    });
+
+    list.appendChild(card);
+  });
+}
+
+/* ══ ACTIVATE (mark as touched) ══ */
+function activatePos(pos,q){
+  movedCards.add(pos);
+  // Also activate the correct position for this sentence (to show it moved away)
+}
+
+/* ══ TAP TO SWAP ══ */
+function handleTap(pos,q){
+  sfxClick();
+  movedCards.add(pos);
+  const cards=[...document.querySelectorAll('.sent-card')];
+
+  if(tapSelected===null){
+    tapSelected=pos;
+    cards[pos].classList.add('selected');
+    cards[pos].classList.remove('inactive');cards[pos].classList.add('active');
+    return;
+  }
+  if(tapSelected===pos){
+    cards[pos].classList.remove('selected');tapSelected=null;return;
+  }
+  const a=tapSelected,b=pos;
+  tapSelected=null;
+  cards[a]?.classList.remove('selected');
+  doSwap(a,b,q);
+}
+
+/* ══ SWAP LOGIC ══ */
+function doSwap(posA,posB,q){
+  if(posA===posB)return;
+  [displayOrder[posA],displayOrder[posB]]=[displayOrder[posB],displayOrder[posA]];
+  movedCards.add(posA);movedCards.add(posB);
+  if(firstAttemptThisQ)firstAttemptThisQ=false;
+  sfxSwap();
+
+  // Check if all touched positions are correct
+  const allCorrect=displayOrder.every((s,p)=>s===q.correctOrder[p]);
+  if(allCorrect&&movedCards.size===displayOrder.length){
+    showFeedback('🎉 Looks perfect! Hit Submit!','correct-msg');
+  } else {
+    document.getElementById('feedback-msg').textContent='';
+  }
+
+  renderList(q);
+}
+
+/* ══ TOUCH DRAG ══ */
+function startTouchDrag(startPos,q,startY){
+  activatePos(startPos,q);
+  let lastTarget=startPos;
+
+  const onMove=e=>{
+    e.preventDefault();
+    const clientY=e.touches[0].clientY;
+    const list=document.getElementById('sentence-list');
+    const listRect=list.getBoundingClientRect();
+    const relY=clientY-listRect.top;
+    const cards=[...list.querySelectorAll('.sent-card')];
+    let target=startPos;
+    cards.forEach((c,i)=>{
+      const r=c.getBoundingClientRect();
+      if(clientY>r.top+r.height/2)target=i;
+    });
+    target=Math.max(0,Math.min(target,displayOrder.length-1));
+    cards.forEach(c=>c.classList.remove('drag-over'));
+    if(target!==startPos)cards[target]?.classList.add('drag-over');
+    lastTarget=target;
+  };
+
+  const onEnd=()=>{
+    document.removeEventListener('touchmove',onMove,{passive:false});
+    document.removeEventListener('touchend',onEnd);
+    document.querySelectorAll('.drag-over').forEach(c=>c.classList.remove('drag-over'));
+    if(lastTarget!==startPos) doSwap(startPos,lastTarget,q);
+    else renderList(q);
+  };
+
+  document.addEventListener('touchmove',onMove,{passive:false});
+  document.addEventListener('touchend',onEnd);
+}
+
+/* ══ MOUSE DRAG ══ */
+function startMouseDrag(startPos,q,startY){
+  activatePos(startPos,q);
+  let lastTarget=startPos;
+
+  const onMove=e=>{
+    const list=document.getElementById('sentence-list');
+    const cards=[...list.querySelectorAll('.sent-card')];
+    let target=startPos;
+    cards.forEach((c,i)=>{
+      const r=c.getBoundingClientRect();
+      if(e.clientY>r.top+r.height/2)target=i;
+    });
+    target=Math.max(0,Math.min(target,displayOrder.length-1));
+    cards.forEach(c=>c.classList.remove('drag-over'));
+    if(target!==startPos)cards[target]?.classList.add('drag-over');
+    lastTarget=target;
+  };
+
+  const onEnd=()=>{
+    document.removeEventListener('mousemove',onMove);
+    document.removeEventListener('mouseup',onEnd);
+    document.querySelectorAll('.drag-over').forEach(c=>c.classList.remove('drag-over'));
+    if(lastTarget!==startPos) doSwap(startPos,lastTarget,q);
+    else renderList(q);
+  };
+
+  document.addEventListener('mousemove',onMove);
+  document.addEventListener('mouseup',onEnd);
+}
+
+/* ══ SUBMIT ══ */
+document.getElementById('submit-btn').onclick=()=>{
+  const q=QUEST.questions[current];
+  // Activate all cards on submit so indicators show
+  displayOrder.forEach((_,p)=>movedCards.add(p));
+  renderList(q);
+
+  const isCorrect=displayOrder.every((s,p)=>s===q.correctOrder[p]);
+
+  if(isCorrect){
+    sfxCorrect();createSparks();showWordOverlay();
+    const qTime=Math.floor((Date.now()-qStartTime)/1000);
+    let gems=2;
+    if(qTime<8)gems+=2; else if(qTime<15)gems+=1;
+    if(gems>2)flashSpeedBonus();
+    currentStreak++;
+    if(currentStreak>highestStreak)highestStreak=currentStreak;
+    if(currentStreak%3===0){createConfetti();gems++;showFeedback(`🔥 ${currentStreak} STREAK! +${gems}💎`,'correct-msg');}
+    else showFeedback('✅ PERFECT ORDER!','correct-msg');
+    totalCorrectFirst++;currentGems+=gems;showFlyingGem(true,gems);
+    document.getElementById('next-btn').style.display='block';
+    document.getElementById('submit-btn').style.display='none';
+  } else {
+    sfxWrong();currentStreak=0;totalWrong++;
+    currentGems=Math.max(0,currentGems-1);showFlyingGem(false,1);
+    showFeedback('❌ Not quite — rearrange and try again!','wrong-msg');
+    if(firstAttemptThisQ)firstAttemptThisQ=false;
+  }
+
+  updateLiveStats();
+  showExplanation(q);
+};
+
+/* ══ EXPLANATION ══ */
+function showExplanation(q){
+  const panel=document.getElementById('explanation-panel');
+  const body=document.getElementById('exp-body');
+  body.innerHTML='';panel.style.display='block';
+
+  q.correctOrder.forEach((correctSentIdx,pos)=>{
+    const userSentIdx=displayOrder[pos];
+    const ok=userSentIdx===correctSentIdx;
+    const exp=q.explanations[pos];
+    const row=document.createElement('div');
+    row.className=`exp-row ${ok?'c':'w'}`;
+    row.innerHTML=`
+      <div class="exp-pos">${exp.pos.split(' ')[0]}</div>
+      <div style="flex:1">
+        <div class="exp-sent ${ok?'c':'w'}">"${q.sentences[correctSentIdx]}"</div>
+        <span class="exp-toggle">▼ WHY? tap to expand</span>
+        <div class="exp-why">${exp.why}</div>
+      </div>`;
+    const toggle=row.querySelector('.exp-toggle'),why=row.querySelector('.exp-why');
+    row.addEventListener('click',()=>{const o=why.classList.toggle('open');toggle.textContent=o?'▲ HIDE':'▼ WHY? tap to expand';});
+    body.appendChild(row);
+  });
+}
+
+document.getElementById('next-btn').onclick=()=>{current++;document.getElementById('explanation-panel').style.display='none';document.getElementById('feedback-msg').textContent='';loadQuestion();};
+
+/* ══ RESET ══ */
+document.getElementById('reset-btn').onclick=()=>{
+  const q=QUEST.questions[current];
+  displayOrder=shuffleArr([...Array(q.sentences.length).keys()]);
+  tapSelected=null;movedCards=new Set();
+  document.getElementById('feedback-msg').textContent='';
+  document.getElementById('explanation-panel').style.display='none';
+  document.getElementById('submit-btn').style.display='block';
+  document.getElementById('next-btn').style.display='none';
+  renderList(q);
+};
+
+/* ══ HINT ══ */
+document.getElementById('hint-btn').onclick=()=>{
+  if(currentGems<1){showFeedback('💎 Not enough gems!','wrong-msg');return;}
+  const q=QUEST.questions[current];
+  for(let pos=0;pos<displayOrder.length;pos++){
+    if(displayOrder[pos]!==q.correctOrder[pos]){
+      currentGems=Math.max(0,currentGems-1);showFlyingGem(false,1);
+      firstAttemptThisQ=false;
+      showFeedback(`💡 Position ${pos+1} is wrong — swap it!`,'info-msg');
+      const cards=[...document.querySelectorAll('.sent-card')];
+      if(cards[pos]){cards[pos].style.outline='3px solid var(--accent2)';setTimeout(()=>cards[pos].style.outline='',1500);}
+      updateLiveStats();return;
+    }
+  }
+  showFeedback('💡 Looks good! Hit Submit.','info-msg');
+};
+
+/* ══ STATS ══ */
+function updateLiveStats(){
+  document.getElementById('gem-val').textContent=currentGems;
+  document.getElementById('streak-val').textContent=currentStreak;
+  document.getElementById('live-gems').textContent=currentGems;
+  document.getElementById('live-streak').textContent=currentStreak;
+  document.getElementById('live-acc').textContent=current>0?Math.round((totalCorrectFirst/current)*100)+'%':'—';
+  document.getElementById('q-current').textContent=current+1;
+}
+
+/* ══ SCORE SCREEN ══ */
+function showScore(){
+  clearInterval(timerInterval);sfxVictory();createConfetti();
+  const t=Math.floor((Date.now()-startTime)/1000);
+  const acc=Math.round((totalCorrectFirst/QUEST.questions.length)*100);
+  document.getElementById('score-trophy').textContent=acc>=90?'🏆':acc>=70?'🥈':acc>=50?'🥉':'🎮';
+  document.getElementById('score-name-lbl').textContent=playerName+' · '+playerDept;
+  document.getElementById('sc-gems').textContent=currentGems;
+  document.getElementById('sc-correct').textContent=totalCorrectFirst+'/'+QUEST.questions.length;
+  document.getElementById('sc-streak').textContent=highestStreak;
+  document.getElementById('sc-time').textContent=t+'s';
+  document.getElementById('sc-acc-pct').textContent=acc+'%';
+  setTimeout(()=>document.getElementById('sc-acc-bar').style.width=acc+'%',300);
+  showOnly('score-screen');
+  document.getElementById('header-bar').classList.add('hidden');
+  sendToSupabase({student_name:playerName,department:playerDept,quest_id:QUEST.id,quest_title:QUEST.title,correct:totalCorrectFirst,wrong:totalWrong,gems:currentGems,highest_streak:highestStreak,accuracy:acc,time_spent:t});
+}
+async function sendToSupabase(p){try{await fetch(SUPABASE_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)});}catch(e){}}
+document.getElementById('back-lobby-btn').onclick=()=>location.reload();
+
+/* ══ UI HELPERS ══ */
+function showOnly(id){['loading-screen','lobby-screen','game-board','score-screen'].forEach(sid=>{const el=document.getElementById(sid);el.style.display=sid===id?'flex':'none';if(sid===id)el.style.flexDirection='column';});if(id==='loading-screen')document.getElementById('loading-screen').style.display='block';}
+function showFeedback(msg,cls){const el=document.getElementById('feedback-msg');el.textContent=msg;el.className=cls;}
+function showWordOverlay(){const o=document.getElementById('word-correct-overlay');o.classList.add('show');setTimeout(()=>o.classList.remove('show'),1000);}
+function flashSpeedBonus(){const el=document.getElementById('time-bonus-flash');el.classList.add('show');setTimeout(()=>el.classList.remove('show'),1400);}
+function showFlyingGem(isGain,amount=1){
+  const pill=document.getElementById('gem-pill');
+  const rect=pill.getBoundingClientRect();
+  const el=document.createElement('span');
+  el.className=`flying-gem ${isGain?'plus':'minus'}`;
+  el.textContent=isGain?`+${amount}💎`:`-${amount}💎`;
+  el.style.cssText=`left:${rect.left+rect.width/2}px;top:${rect.top}px;`;
+  document.body.appendChild(el);setTimeout(()=>el.remove(),900);
+  document.getElementById('gem-val').textContent=currentGems;
+  if(isGain){pill.classList.add('gem-pulse');setTimeout(()=>pill.classList.remove('gem-pulse'),350);}
+}
+function createSparks(){
+  const list=document.getElementById('sentence-list');
+  const rect=list.getBoundingClientRect();
+  const cx=rect.left+rect.width/2,cy=rect.top+rect.height/2;
+  const cols=['#ffd700','#63b3ed','#68d391','#f6ad55','#b794f4'];
+  for(let i=0;i<16;i++){
+    const s=document.createElement('div');s.className='spark';
+    const angle=(Math.PI*2*i)/16,v=55+Math.random()*45;
+    s.style.cssText=`left:${cx}px;top:${cy}px;background:${cols[i%cols.length]};--tx:${Math.cos(angle)*v}px;--ty:${Math.sin(angle)*v}px;animation-delay:${Math.random()*0.08}s;`;
+    document.body.appendChild(s);setTimeout(()=>s.remove(),800);
+  }
+}
+function createConfetti(){
+  const cols=['#ff1744','#00e5ff','#ffd600','#00e676','#d500f9','#ff6d00','#63b3ed'];
+  for(let i=0;i<28;i++){
+    const c=document.createElement('div');c.className='confetti-piece';
+    c.style.cssText=`left:${5+Math.random()*90}%;top:${5+Math.random()*25}%;background:${cols[i%cols.length]};border-radius:${Math.random()>0.5?'50%':'2px'};animation-delay:${Math.random()*0.4}s;`;
+    document.body.appendChild(c);setTimeout(()=>c.remove(),1800);
+  }
+}
+</script>
+</body>
+</html>

@@ -208,16 +208,45 @@
     }
     .section-eyebrow::after { content:''; flex:1; height:1px; background:var(--border); }
 
-    .cat-bar { display: flex; flex-wrap: wrap; gap: .6rem; margin-bottom: 2rem; }
-    .cat-chip {
-      padding: .45rem 1.1rem; border-radius: 99px;
-      border: 1px solid var(--border); background: rgba(255,255,255,.04);
-      color: var(--muted); font-family: var(--font-body); font-size: .83rem;
+    .cat-bar { display: flex; align-items: center; gap: .8rem; margin-bottom: 2rem; position: relative; }
+
+    .cat-menu-btn {
+      display: inline-flex; align-items: center; gap: .55rem;
+      padding: .55rem 1.1rem;
+      border: 1px solid var(--border); border-radius: 99px;
+      background: rgba(255,255,255,.04);
+      color: var(--text); font-family: var(--font-body); font-size: .85rem;
       cursor: pointer; transition: all .2s;
     }
-    .cat-chip:hover, .cat-chip.active {
+    .cat-menu-btn:hover, .cat-menu-btn.active {
       border-color: var(--gold); color: var(--gold); background: var(--gold-dim);
     }
+    .cat-menu-btn .arrow {
+      font-size: .65rem; transition: transform .2s; display: inline-block;
+    }
+    .cat-menu-btn.open .arrow { transform: rotate(180deg); }
+
+    .cat-active-label {
+      font-size: .8rem; color: var(--muted);
+    }
+    .cat-active-label span { color: var(--gold); font-weight: 600; }
+
+    .cat-dropdown {
+      display: none; position: absolute; top: calc(100% + 8px); left: 0;
+      min-width: 200px; z-index: 50;
+      background: #1a1c35; border: 1px solid var(--border);
+      border-radius: var(--r); padding: .5rem;
+      box-shadow: 0 16px 40px rgba(0,0,0,.6);
+      animation: dropIn .18s ease forwards;
+    }
+    .cat-dropdown.open { display: block; }
+    .cat-option {
+      padding: .55rem .9rem; border-radius: 8px;
+      font-family: var(--font-body); font-size: .85rem;
+      color: var(--muted); cursor: pointer; transition: all .15s;
+    }
+    .cat-option:hover { background: rgba(255,255,255,.06); color: var(--text); }
+    .cat-option.active { color: var(--gold); background: var(--gold-dim); font-weight: 600; }
 
     .video-grid {
       display: grid;
@@ -429,7 +458,13 @@
   <!-- LIBRARY -->
   <div class="screen" id="screenLibrary">
     <div class="section-eyebrow">VIDEO ARCHIVE</div>
-    <div class="cat-bar" id="catBar"></div>
+    <div class="cat-bar" id="catBar">
+      <button class="cat-menu-btn" id="catMenuBtn">
+        ☰ Filter Category <span class="arrow">▼</span>
+      </button>
+      <div class="cat-dropdown" id="catDropdown"></div>
+      <span class="cat-active-label">Showing: <span id="catActiveLabel">All</span></span>
+    </div>
     <div class="video-grid" id="videoGrid"></div>
   </div>
 
@@ -582,22 +617,43 @@ window.handleLaunch = handleLaunch;
 /* LIBRARY */
 function buildLibrary() {
   const cats = ['all', ...new Set(quizData.map(q => q.category))];
-  const catBar = document.getElementById('catBar');
-  catBar.innerHTML = '';
+  const dropdown = document.getElementById('catDropdown');
+  dropdown.innerHTML = '';
   cats.forEach(cat => {
-    const chip = document.createElement('button');
-    chip.className = 'cat-chip' + (cat === activeCategory ? ' active' : '');
-    chip.textContent = cat === 'all' ? '⭐ All' : cat;
-    chip.onclick = () => { activeCategory = cat; renderGrid(); updateChips(); };
-    catBar.appendChild(chip);
+    const opt = document.createElement('div');
+    opt.className = 'cat-option' + (cat === activeCategory ? ' active' : '');
+    opt.textContent = cat === 'all' ? '⭐ All' : cat;
+    opt.onclick = () => {
+      activeCategory = cat;
+      document.getElementById('catActiveLabel').textContent = cat === 'all' ? 'All' : cat;
+      updateDropdownOptions();
+      closeCatDropdown();
+      renderGrid();
+    };
+    dropdown.appendChild(opt);
   });
+
+  // Set up toggle button
+  const btn = document.getElementById('catMenuBtn');
+  btn.onclick = (e) => {
+    e.stopPropagation();
+    const open = dropdown.classList.toggle('open');
+    btn.classList.toggle('open', open);
+  };
+  document.addEventListener('click', closeCatDropdown);
+
   renderGrid();
 }
 
-function updateChips() {
-  const cats = ['all', ...new Set(quizData.map(q => q.category))];
-  document.querySelectorAll('.cat-chip').forEach((chip, i) => {
-    chip.classList.toggle('active', cats[i] === activeCategory);
+function closeCatDropdown() {
+  document.getElementById('catDropdown').classList.remove('open');
+  document.getElementById('catMenuBtn').classList.remove('open');
+}
+
+function updateDropdownOptions() {
+  document.querySelectorAll('.cat-option').forEach(opt => {
+    const label = opt.textContent.replace('⭐ ', '');
+    opt.classList.toggle('active', label === activeCategory || (activeCategory === 'all' && opt.textContent === '⭐ All'));
   });
 }
 

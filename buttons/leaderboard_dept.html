@@ -4,753 +4,1124 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Class Activity Console</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;800;900&family=Crimson+Pro:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 
-<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #faf8f4;
+  --surface: #ffffff;
+  --surface-alt: #f5f0e8;
+  --gold: #b8860b;
+  --gold-light: #d4a017;
+  --gold-pale: rgba(184,134,11,0.10);
+  --gold-border: rgba(184,134,11,0.25);
+  --text: #1a1510;
+  --text-mid: #5c4a2a;
+  --text-dim: #9c8060;
+  --risk-red: #c0392b;
+  --risk-bg: rgba(192,57,43,0.07);
+  --risk-border: rgba(192,57,43,0.22);
+  --success: #2e7d32;
+  --success-bg: rgba(46,125,50,0.08);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
 
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Crimson Pro', serif;
+  min-height: 100vh;
+}
 
+/* HEADER */
+header {
+  text-align: center;
+  padding: 28px 20px 0;
+  border-bottom: 1px solid var(--gold-border);
+  background: linear-gradient(180deg,#fdfbf6,var(--bg));
+}
+.eyebrow {
+  font-family:'Cinzel',serif; font-size:9px;
+  letter-spacing:.35em; color:var(--text-dim);
+  text-transform:uppercase; margin-bottom:6px;
+}
+h1 {
+  font-family:'Cinzel',serif;
+  font-size: clamp(20px,4vw,34px);
+  font-weight:900; color:var(--gold); letter-spacing:.1em;
+}
+.hruler {
+  display:flex; align-items:center; gap:12px;
+  justify-content:center; max-width:360px;
+  margin:8px auto 0;
+}
+.hruler span { flex:1; height:1px; background:var(--gold-border); }
+.hruler em {
+  font-family:'Cinzel',serif; font-size:9px;
+  color:var(--text-dim); font-style:normal; letter-spacing:.2em;
+}
+
+/* TOOLBAR */
+.toolbar {
+  display:flex; flex-wrap:wrap; align-items:center;
+  gap:10px; padding:13px 18px;
+  background:var(--surface);
+  border-bottom:1px solid var(--gold-border);
+}
+.tg { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+.tsep { width:1px; height:30px; background:var(--gold-border); margin:0 2px; }
+.tlabel {
+  font-family:'Cinzel',serif; font-size:9px;
+  letter-spacing:.2em; color:var(--text-dim); white-space:nowrap;
+}
+input[type=text], select, input[type=date] {
+  font-family:'Crimson Pro',serif; font-size:14px;
+  padding:6px 11px; border-radius:8px;
+  border:1px solid var(--gold-border);
+  background:var(--surface-alt); color:var(--text);
+  outline:none; transition:border-color .2s;
+}
+input[type=text]:focus, select:focus, input[type=date]:focus {
+  border-color:var(--gold);
+}
+.btn {
+  font-family:'Cinzel',serif; font-size:10px;
+  letter-spacing:.1em; padding:7px 14px;
+  border-radius:8px; border:1px solid var(--gold-border);
+  background:var(--surface); color:var(--gold);
+  cursor:pointer; transition:all .18s; white-space:nowrap;
+}
+.btn:hover { background:var(--gold-pale); border-color:var(--gold); }
+.btn.primary { background:var(--gold); color:#fff; border-color:var(--gold); }
+.btn.primary:hover { background:var(--gold-light); }
+.btn.sm { padding:5px 10px; font-size:9px; }
+
+/* TABS */
+.tabs {
+  background:var(--surface);
+  border-bottom:2px solid var(--gold-border);
+  display:flex; padding:0 18px;
+  overflow-x:auto;
+}
+.tab {
+  font-family:'Cinzel',serif; font-size:10px;
+  letter-spacing:.13em; padding:13px 18px 11px;
+  cursor:pointer; color:var(--text-dim);
+  border-bottom:2px solid transparent; margin-bottom:-2px;
+  transition:all .18s; white-space:nowrap;
+  display:flex; align-items:center; gap:6px;
+}
+.tab:hover { color:var(--gold); }
+.tab.active { color:var(--gold); border-bottom-color:var(--gold); font-weight:700; }
+.badge {
+  background:var(--gold-pale); color:var(--gold);
+  border-radius:100px; font-size:9px; padding:1px 6px; font-weight:700;
+}
+.badge.danger { background:var(--risk-bg); color:var(--risk-red); }
+
+/* MAIN */
+.main-wrap { padding:20px 18px 48px; }
+.tc { display:none; }
+.tc.active { display:block; }
+
+/* STATS BAR */
+.stats-bar {
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr));
+  gap:10px; margin-bottom:22px;
+}
+.sc {
+  background:var(--surface); border:1px solid var(--gold-border);
+  border-radius:12px; padding:14px 16px; text-align:center;
+}
+.sc .num {
+  font-family:'Cinzel',serif; font-size:26px;
+  font-weight:900; color:var(--gold); line-height:1;
+}
+.sc .lbl { font-size:12px; color:var(--text-dim); margin-top:4px; }
+.sc.danger .num { color:var(--risk-red); }
+
+/* CALENDAR */
+.month-block {
+  margin-bottom:20px; padding:16px;
+  border-radius:14px; background:var(--surface);
+  border:1px solid var(--gold-border);
+  box-shadow:0 4px 16px rgba(0,0,0,.04);
+}
+.month-title {
+  font-family:'Cinzel',serif; text-align:center;
+  color:var(--gold); font-weight:700; margin-bottom:10px;
+  font-size:13px; letter-spacing:.1em;
+}
+.cal-grid {
+  display:grid; grid-template-columns:repeat(7,1fr); gap:5px; font-size:12px;
+}
+.dlbl {
+  font-family:'Cinzel',serif; text-align:center;
+  font-size:9px; color:var(--text-dim); padding:3px 0; letter-spacing:.05em;
+}
+.day {
+  border-radius:8px; padding:6px; min-height:54px;
+  border:1px solid var(--gold-border); position:relative;
+  transition:all .18s; background:var(--surface-alt);
+}
+.day.marked { cursor:pointer; border-color:var(--gold-light); }
+.day.marked:hover { transform:translateY(-2px); box-shadow:0 6px 16px rgba(184,134,11,.15); }
+.day.selected { box-shadow:0 0 0 2px var(--gold)!important; }
+.day.light  { background:rgba(184,134,11,.09); }
+.day.medium { background:rgba(184,134,11,.17); }
+.day.heavy  { background:rgba(184,134,11,.27); }
+.day.peak   { background:rgba(184,134,11,.42); box-shadow:0 0 12px rgba(184,134,11,.22); }
+.dnum { font-weight:700; font-size:11px; color:var(--text); }
+.dcount {
+  position:absolute; bottom:5px; right:7px;
+  font-family:'Cinzel',serif; font-size:15px;
+  font-weight:900; color:var(--gold);
+}
+
+/* DAY BREAKDOWN */
+#breakdown {
+  display:none; margin-top:16px; animation:fadeUp .2s ease;
+}
+@keyframes fadeUp {
+  from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)}
+}
+.bd-header {
+  font-family:'Cinzel',serif; font-size:14px; font-weight:800;
+  color:var(--gold); margin-bottom:12px;
+  display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;
+}
+.dept-cards {
+  display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:12px;
+}
+.dc {
+  background:var(--surface); border-radius:12px; padding:14px;
+  border:1px solid var(--gold-border); box-shadow:0 4px 12px rgba(0,0,0,.04);
+}
+.dc-title {
+  font-family:'Cinzel',serif; font-weight:800; color:var(--gold);
+  display:flex; justify-content:space-between; font-size:11px;
+  letter-spacing:.08em; margin-bottom:8px;
+}
+.slist { font-size:13px; display:grid; gap:3px; }
+.srow {
+  display:flex; justify-content:space-between; align-items:center;
+  padding:3px 0; border-bottom:1px solid var(--gold-border);
+}
+.srow:last-child{border-bottom:none}
+.rtag {
+  font-size:9px; padding:1px 6px;
+  background:var(--risk-bg); color:var(--risk-red);
+  border-radius:100px; font-family:'Cinzel',serif;
+}
+
+/* LEADERBOARD */
+.lb-wrap { overflow-x:auto; }
+table {
+  width:100%; border-collapse:collapse;
+  background:var(--surface); border-radius:14px;
+  overflow:hidden; border:1px solid var(--gold-border);
+  font-size:14px;
+}
+thead th {
+  font-family:'Cinzel',serif; font-size:9px; letter-spacing:.15em;
+  color:var(--text-dim); padding:11px 12px; text-align:left;
+  background:var(--surface-alt); border-bottom:1px solid var(--gold-border);
+  cursor:pointer; white-space:nowrap; user-select:none;
+}
+thead th:hover { color:var(--gold); }
+tbody td { padding:9px 12px; border-bottom:1px solid rgba(184,134,11,.07); vertical-align:middle; }
+tbody tr:last-child td { border-bottom:none; }
+tbody tr:hover td { background:var(--gold-pale); }
+.riskrow td { background:var(--risk-bg)!important; }
+.ab-wrap { display:flex; align-items:center; gap:7px; min-width:90px; }
+.ab { flex:1; height:5px; background:var(--gold-border); border-radius:3px; overflow:hidden; }
+.ab-fill { height:100%; background:var(--gold); border-radius:3px; }
+.streak-pill {
+  display:inline-flex; align-items:center; gap:3px;
+  background:var(--success-bg); color:var(--success);
+  border-radius:100px; padding:2px 7px; font-size:12px;
+}
+.flag-btn {
+  background:none; border:1px solid var(--risk-border);
+  color:var(--risk-red); border-radius:6px;
+  padding:3px 8px; font-size:10px; cursor:pointer;
+  font-family:'Cinzel',serif; letter-spacing:.05em; transition:all .15s;
+}
+.flag-btn:hover { background:var(--risk-bg); }
+.flag-btn.on { background:var(--risk-red); color:#fff; border-color:var(--risk-red); }
+.risk-badge {
+  background:var(--risk-bg); color:var(--risk-red);
+  border-radius:100px; padding:1px 7px;
+  font-family:'Cinzel',serif; font-size:8px; letter-spacing:.05em;
+  margin-left:5px;
+}
+
+/* DEPT COMPARISON */
+.dept-grid {
+  display:grid; grid-template-columns:repeat(auto-fill,minmax(270px,1fr)); gap:16px;
+}
+.dept-card {
+  background:var(--surface); border:1px solid var(--gold-border);
+  border-radius:14px; padding:18px;
+  box-shadow:0 4px 14px rgba(0,0,0,.04);
+}
+.dept-card-name {
+  font-family:'Cinzel',serif; font-size:13px; font-weight:800;
+  color:var(--gold); margin-bottom:12px; letter-spacing:.1em;
+}
+.dsr { display:flex; justify-content:space-between; margin-bottom:7px; font-size:14px; }
+.dsr strong { font-family:'Cinzel',serif; color:var(--text); }
+.bar-row { margin-top:10px; }
+.bar-lbl { font-size:11px; color:var(--text-dim); display:flex; justify-content:space-between; margin-bottom:4px; }
+.bar-track { height:7px; background:var(--gold-border); border-radius:4px; overflow:hidden; }
+.bar-fill { height:100%; border-radius:4px; background:linear-gradient(90deg,var(--gold),var(--gold-light)); }
+.dept-risk-alert {
+  margin-top:10px; padding:8px 10px; border-radius:8px;
+  background:var(--risk-bg); color:var(--risk-red);
+  font-size:12px; border:1px solid var(--risk-border);
+}
+
+/* AT RISK */
+.risk-controls {
+  display:flex; align-items:center; gap:12px;
+  margin-bottom:16px; font-size:14px; color:var(--text-mid); flex-wrap:wrap;
+}
+.risk-controls strong { color:var(--risk-red); }
+input[type=range] { accent-color:var(--risk-red); }
+table.risk-tbl thead th { color:var(--risk-red); background:var(--risk-bg); }
+table.risk-tbl { border-color:var(--risk-border); }
+
+/* MODAL */
+.overlay {
+  position:fixed; inset:0; z-index:200;
+  background:rgba(0,0,0,.45);
+  display:flex; align-items:center; justify-content:center;
+}
+.modal {
+  background:var(--surface); border-radius:16px; padding:28px;
+  max-width:460px; width:92%;
+  border:1px solid var(--gold-border);
+  box-shadow:0 20px 60px rgba(0,0,0,.14);
+  animation:fadeUp .2s ease;
+}
+.modal h3 {
+  font-family:'Cinzel',serif; color:var(--gold);
+  font-size:15px; letter-spacing:.1em; margin-bottom:14px;
+}
+.modal p { font-size:14px; color:var(--text-mid); margin-bottom:16px; line-height:1.65; }
+.pdf-check {
+  display:flex; align-items:center; gap:9px;
+  padding:8px 0; border-bottom:1px solid var(--gold-border);
+  font-size:14px;
+}
+.pdf-check:last-child{border-bottom:none}
+.pdf-check input { accent-color:var(--gold); width:15px; height:15px; }
+.modal-actions { display:flex; gap:10px; justify-content:flex-end; margin-top:20px; }
+
+/* LOADER */
+#loader {
+  position:fixed; inset:0; z-index:999;
+  display:flex; align-items:center; justify-content:center;
+  background:var(--bg); flex-direction:column;
+}
+.loader-icon {
+  font-family:'Cinzel',serif; font-size:48px; color:var(--gold);
+  animation:pulse 1.4s ease infinite;
+}
+@keyframes pulse {
+  0%,100%{opacity:.3;transform:scale(.96)} 50%{opacity:1;transform:scale(1)}
+}
+.loader-text {
+  font-family:'Cinzel',serif; font-size:10px; letter-spacing:.28em;
+  color:var(--text-dim); margin-top:14px;
+}
+
+/* NOTIF */
+.notif {
+  position:fixed; bottom:22px; right:22px; z-index:999;
+  background:var(--gold); color:#fff; padding:11px 18px;
+  border-radius:10px; font-family:'Cinzel',serif; font-size:11px;
+  letter-spacing:.1em; box-shadow:0 8px 24px rgba(184,134,11,.35);
+  animation:fadeUp .3s ease;
+}
+.notif.err { background:var(--risk-red); }
+
+@media(max-width:600px){
+  .cal-grid{gap:3px}
+  .day{min-height:46px}
+  .tabs{overflow-x:auto}
+  .tab{font-size:9px;padding:11px 12px}
+  .tsep{display:none}
+}
+</style>
+</head>
+<body>
+
+<!-- LOADER -->
+<div id="loader">
+  <div class="loader-icon">⚜</div>
+  <div class="loader-text">LOADING RECORDS…</div>
+</div>
+
+<div id="app" style="display:none">
+
+<!-- HEADER -->
+<header>
+  <div class="eyebrow">Teacher Dashboard · Academic Records</div>
+  <h1>CLASS ACTIVITY CONSOLE</h1>
+  <div class="hruler"><span></span><em>Academic Year 2025–26</em><span></span></div>
+  <div style="height:14px"></div>
+</header>
+
+<!-- TOOLBAR -->
+<div class="toolbar">
+  <div class="tg">
+    <span class="tlabel">Department</span>
+    <select id="deptSel" onchange="G.dept=this.value;G.render()"></select>
+  </div>
+  <div class="tsep"></div>
+  <div class="tg">
+    <span class="tlabel">Search</span>
+    <input type="text" id="searchBox" placeholder="Student name…"
+      oninput="G.search=this.value.toLowerCase();G.render()" style="width:155px">
+  </div>
+  <div class="tsep"></div>
+  <div class="tg">
+    <span class="tlabel">From</span>
+    <input type="date" id="dfrom" onchange="G.dateFrom=this.value?new Date(this.value):null;G.render()">
+    <span style="color:var(--text-dim);font-size:13px">–</span>
+    <input type="date" id="dto" onchange="G.dateTo=this.value?new Date(this.value):null;G.render()">
+    <button class="btn sm" onclick="clearDates()">✕ Clear</button>
+  </div>
+  <div class="tsep"></div>
+  <div class="tg" style="margin-left:auto">
+    <button class="btn" onclick="exportCSV()">⬇ CSV</button>
+    <button class="btn primary" onclick="openPDF()">📄 Download Report</button>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <div class="tab active" id="t-cal"  onclick="switchTab('cal')">📅 Calendar</div>
+  <div class="tab"        id="t-lb"   onclick="switchTab('lb')">🏆 Leaderboard</div>
+  <div class="tab"        id="t-dept" onclick="switchTab('dept')">🏛 Departments</div>
+  <div class="tab"        id="t-risk" onclick="switchTab('risk')">
+    ⚠ At-Risk <span class="badge danger" id="riskBadge">0</span>
+  </div>
+</div>
+
+<!-- STATS BAR -->
+<div style="padding:16px 18px 0">
+  <div class="stats-bar" id="statsBar"></div>
+</div>
+
+<!-- CONTENT -->
+<div class="main-wrap">
+
+  <!-- CALENDAR -->
+  <div class="tc active" id="tc-cal">
+    <div id="calWrap"></div>
+    <div id="breakdown"></div>
+  </div>
+
+  <!-- LEADERBOARD -->
+  <div class="tc" id="tc-lb">
+    <div class="lb-wrap">
+      <table id="lbTable">
+        <thead>
+          <tr>
+            <th onclick="sortBy('_rank')">#</th>
+            <th onclick="sortBy('name')">STUDENT ↕</th>
+            <th onclick="sortBy('dept')">DEPT ↕</th>
+            <th onclick="sortBy('total')">TOTAL ↕</th>
+            <th onclick="sortBy('quests')">QUESTS ↕</th>
+            <th onclick="sortBy('videos')">VIDEOS ↕</th>
+            <th onclick="sortBy('stories')">STORIES ↕</th>
+            <th onclick="sortBy('streak')">STREAK ↕</th>
+            <th onclick="sortBy('last')">LAST ACTIVE ↕</th>
+            <th>STATUS</th>
+            <th>FLAG</th>
+          </tr>
+        </thead>
+        <tbody id="lbBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- DEPARTMENTS -->
+  <div class="tc" id="tc-dept">
+    <div class="dept-grid" id="deptGrid"></div>
+  </div>
+
+  <!-- AT RISK -->
+  <div class="tc" id="tc-risk">
+    <div class="risk-controls">
+      <span>Flag students with fewer than
+        <strong id="thrDisplay">3</strong> activities in last 14 days</span>
+      <input type="range" min="1" max="15" value="3" id="thrSlider"
+        oninput="G.threshold=+this.value;document.getElementById('thrDisplay').textContent=this.value;G.render()">
+    </div>
+    <div class="lb-wrap">
+      <table class="risk-tbl">
+        <thead>
+          <tr>
+            <th>STUDENT</th><th>DEPT</th><th>TOTAL</th>
+            <th>LAST 14 DAYS</th><th>STREAK</th><th>LAST ACTIVE</th><th>REASON</th>
+          </tr>
+        </thead>
+        <tbody id="riskBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div><!-- /main-wrap -->
+</div><!-- /app -->
+
+<!-- PDF MODAL -->
+<div class="overlay" id="pdfOverlay" style="display:none"
+  onclick="if(event.target===this)closePDF()">
+  <div class="modal">
+    <h3>📄 GENERATE ACTIVITY REPORT</h3>
+    <p>Select sections to include. Report scope:<br>
+      <strong id="pdfScope" style="color:var(--gold)">All Departments</strong>
+    </p>
+    <div>
+      <div class="pdf-check"><input type="checkbox" id="ps1" checked><span>Overview &amp; Statistics Summary</span></div>
+      <div class="pdf-check"><input type="checkbox" id="ps2" checked><span>Department Comparison</span></div>
+      <div class="pdf-check"><input type="checkbox" id="ps3" checked><span>Student Leaderboard (Top 30)</span></div>
+      <div class="pdf-check"><input type="checkbox" id="ps4" checked><span>At-Risk Student Alerts</span></div>
+      <div class="pdf-check"><input type="checkbox" id="ps5" checked><span>Attendance &amp; Streak Tracking</span></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closePDF()">Cancel</button>
+      <button class="btn primary" onclick="generatePDF()">⬇ Download PDF</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     SCRIPT
+════════════════════════════════════════════ -->
 <script type="module">
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const supabase = createClient(
+const sb = createClient(
   "https://ahezssoczvpbkteffcgz.supabase.co",
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoZXpzc29jenZwYmt0ZWZmY2d6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI4NTk1ODUsImV4cCI6MjA3ODQzNTU4NX0.2ZlqXnZxv0opkhynAT7OlK4S-xPygcc7ETUyTXRfGHE"
 );
 
-let reportData = [];
-let currentDepartment = "ALL";
-
+/* ── CONSTANTS ── */
 const START_DATE = new Date("2025-08-25");
-const CALENDAR_VISIBLE_START = new Date("2026-02-01");
+const CAL_START  = new Date("2026-02-01");
+const TODAY      = new Date();
 
-/* ========================================================= */
-
-async function loadData() {
-  document.getElementById("loader").style.display = "block";
-
-  const { data, error } = await supabase
-    .from("report_card_view")
-    .select("*");
-
-  document.getElementById("loader").style.display = "none";
-
-  if (error) {
-    document.getElementById("error").textContent = "⚠️ Data load failed";
-    return;
-  }
-
-  reportData = data || [];
-
-  populateDepartmentDropdown();
-  renderClassCalendar();
-}
-
-/* ========================================================= */
-
-function populateDepartmentDropdown() {
-  const select = document.getElementById("departmentSelect");
-
-  const departments = [...new Set(
-    reportData.map(s => (s.department || "UNKNOWN").toUpperCase())
-  )].sort();
-
-  select.innerHTML = `<option value="ALL">All Departments</option>`;
-
-  departments.forEach(dept => {
-    const opt = document.createElement("option");
-    opt.value = dept;
-    opt.textContent = dept;
-    select.appendChild(opt);
-  });
-}
-
-window.changeDepartment = function(dept) {
-  currentDepartment = dept;
-  clearBreakdown();
-  renderClassCalendar();
+/* ── STATE ── */
+const G = window.G = {
+  all: [],
+  dept: "ALL",
+  search: "",
+  dateFrom: null,
+  dateTo: null,
+  threshold: 3,
+  sortKey: "total",
+  sortDir: -1,
+  atRisk: new Set(JSON.parse(localStorage.getItem("atRiskManual")||"[]")),
+  selectedDay: null,
+  dateMap: {},
+  render,
 };
 
-/* ========================================================= */
-
-function mapToDate(number) {
+/* ── PARSE HELPERS ── */
+function parseItems(raw) {
+  if (!raw || raw === "NULL") return [];
+  return raw.split(",").map(i=>i.trim()).filter(Boolean).map(i=>{
+    const [t,n] = i.split(" ");
+    return { type:t, number:+n };
+  });
+}
+function n2date(n) {
   const d = new Date(START_DATE);
-  d.setDate(d.getDate() + (number - 1));
+  d.setDate(d.getDate()+(n-1));
   return d;
 }
-
-function parseItems(rawList) {
-  if (!rawList || rawList === "NULL") return [];
-
-  return rawList.split(",")
-    .map(i => i.trim())
-    .filter(Boolean)
-    .map(item => {
-      const [type, num] = item.split(" ");
-      return { type, number: Number(num) };
-    });
+function studentDates(s) {
+  return [
+    ...parseItems(s.quest_list),
+    ...parseItems(s.video_list),
+    ...parseItems(s.story_list)
+  ].map(i => n2date(i.number));
+}
+function filterDates(dates) {
+  return dates.filter(d => {
+    if (G.dateFrom && d < G.dateFrom) return false;
+    if (G.dateTo   && d > G.dateTo)   return false;
+    return true;
+  });
+}
+function lastActive(s) {
+  const ds = studentDates(s).sort((a,b)=>b-a);
+  return ds[0] || null;
+}
+function calcStreak(s) {
+  const days = [...new Set(studentDates(s).map(d=>d.toDateString()))]
+    .map(x => new Date(x)).sort((a,b)=>b-a);
+  if (!days.length) return 0;
+  let st=1, cur=days[0];
+  for (let i=1; i<days.length; i++) {
+    const prev = new Date(cur); prev.setDate(prev.getDate()-1);
+    if (days[i].toDateString() === prev.toDateString()) { st++; cur=days[i]; }
+    else break;
+  }
+  return st;
+}
+function recent14(s) {
+  const cut = new Date(TODAY); cut.setDate(cut.getDate()-14);
+  return studentDates(s).filter(d=>d>=cut).length;
+}
+function countType(s, field) {
+  return filterDates(parseItems(s[field]).map(i=>n2date(i.number))).length;
 }
 
-/* ========================================================= */
+/* ── FILTER ── */
+function filtered() {
+  return G.all.filter(s => {
+    if (G.dept !== "ALL" && (s.department||"UNKNOWN").toUpperCase() !== G.dept) return false;
+    if (G.search && !(s.name||"").toLowerCase().includes(G.search)) return false;
+    return true;
+  });
+}
+function isAtRisk(s) {
+  return G.atRisk.has(s.name) || recent14(s) < G.threshold;
+}
 
-function buildClassDateMap() {
-  const map = {};
+/* ── LOAD ── */
+async function load() {
+  const {data, error} = await sb.from("report_card_view").select("*");
+  document.getElementById("loader").style.display = "none";
+  document.getElementById("app").style.display = "block";
+  if (error) { notify("⚠ Data load failed", true); return; }
+  G.all = data || [];
+  const depts = [...new Set(G.all.map(s=>(s.department||"UNKNOWN").toUpperCase()))].sort();
+  const sel = document.getElementById("deptSel");
+  sel.innerHTML = `<option value="ALL">All Departments</option>`;
+  depts.forEach(d => sel.innerHTML += `<option value="${d}">${d}</option>`);
+  render();
+}
+window.addEventListener("load", load);
 
-  reportData.forEach(student => {
+/* ── RENDER ALL ── */
+function render() {
+  renderStats();
+  renderCalendar();
+  renderLeaderboard();
+  renderDepts();
+  renderAtRisk();
+}
 
-    if (
-      currentDepartment !== "ALL" &&
-      (student.department || "UNKNOWN").toUpperCase() !== currentDepartment
-    ) return;
+/* ── STATS ── */
+function renderStats() {
+  const data = filtered();
+  let total = 0;
+  data.forEach(s => total += filterDates(studentDates(s)).length);
+  const riskCount = data.filter(isAtRisk).length;
+  const avgStreak = data.length
+    ? Math.round(data.reduce((a,s)=>a+calcStreak(s),0)/data.length) : 0;
+  const avg = data.length ? Math.round(total/data.length) : 0;
 
-    const all = [
-      ...parseItems(student.quest_list),
-      ...parseItems(student.video_list),
-      ...parseItems(student.story_list)
-    ];
+  document.getElementById("statsBar").innerHTML = `
+    <div class="sc"><div class="num">${data.length}</div><div class="lbl">Students</div></div>
+    <div class="sc"><div class="num">${total}</div><div class="lbl">Total Activities</div></div>
+    <div class="sc"><div class="num">${avg}</div><div class="lbl">Avg / Student</div></div>
+    <div class="sc"><div class="num">${avgStreak}d</div><div class="lbl">Avg Streak</div></div>
+    <div class="sc danger"><div class="num">${riskCount}</div><div class="lbl">At-Risk</div></div>
+  `;
+  document.getElementById("riskBadge").textContent = riskCount;
+}
 
-    all.forEach(item => {
-      const date = mapToDate(item.number);
-      const key = date.toDateString();
-
-      if (!map[key]) map[key] = [];
-      map[key].push(student);
+/* ── CALENDAR ── */
+function renderCalendar() {
+  const data = filtered();
+  const dm = {};
+  data.forEach(s => {
+    filterDates(studentDates(s)).forEach(d => {
+      const k = d.toDateString();
+      if (!dm[k]) dm[k] = [];
+      dm[k].push(s);
     });
   });
+  G.dateMap = dm;
 
-  return map;
-}
-
-/* ========================================================= */
-
-function getIntensity(total) {
-  if (total > 20) return "peak";
-  if (total > 10) return "heavy";
-  if (total > 5) return "medium";
-  return "light";
-}
-
-/* ========================================================= */
-
-function renderClassCalendar() {
-  const container = document.getElementById("class-calendar");
-  container.innerHTML = "";
-
-  const dateMap = buildClassDateMap();
-  window.dateMap = dateMap;
-
-  let cursor = new Date(
-    CALENDAR_VISIBLE_START.getFullYear(),
-    CALENDAR_VISIBLE_START.getMonth(),
-    1
-  );
-
-  const today = new Date();
-  const end = new Date(today.getFullYear(), today.getMonth(), 1);
-
-  while (cursor <= end) {
-    container.innerHTML += renderMonth(cursor, dateMap);
-    cursor.setMonth(cursor.getMonth() + 1);
+  const wrap = document.getElementById("calWrap");
+  wrap.innerHTML = "";
+  let cur = new Date(CAL_START.getFullYear(), CAL_START.getMonth(), 1);
+  const end = new Date(TODAY.getFullYear(), TODAY.getMonth(), 1);
+  while (cur <= end) {
+    wrap.innerHTML += renderMonth(new Date(cur), dm);
+    cur.setMonth(cur.getMonth()+1);
   }
 }
 
-function renderMonth(baseDate, dateMap) {
-  const year = baseDate.getFullYear();
-  const month = baseDate.getMonth();
+function renderMonth(base, dm) {
+  const y=base.getFullYear(), m=base.getMonth();
+  const first = new Date(y,m,1).getDay();
+  const days  = new Date(y,m+1,0).getDate();
+  const DAYS  = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
-  const firstDay = new Date(year, month, 1).getDay();
-  const numDays = new Date(year, month + 1, 0).getDate();
+  let h = `<div class="month-block">
+    <div class="month-title">${base.toLocaleString('en-IN',{month:'long',year:'numeric'})}</div>
+    <div class="cal-grid">
+    ${DAYS.map(d=>`<div class="dlbl">${d}</div>`).join('')}`;
 
-  let html = `
-    <div class="month-block">
-      <div class="month-title">
-        ${baseDate.toLocaleString('en-IN', { month: 'long', year: 'numeric' })}
-      </div>
-
-      <div class="calendar-grid">
-        <div>Sun</div><div>Mon</div><div>Tue</div>
-        <div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
-  `;
-
-  for (let i = 0; i < firstDay; i++) {
-    html += `<div class="empty"></div>`;
-  }
-
-  for (let d = 1; d <= numDays; d++) {
-    const date = new Date(year, month, d);
-    const key = date.toDateString();
-    const entries = dateMap[key];
-
-    if (entries) {
-      const intensity = getIntensity(entries.length);
-
-      html += `
-        <div class="day marked ${intensity}" onclick="showDateDetail('${key}')">
-          <div class="date-num">${d}</div>
-          <div class="count">${entries.length}</div>
-        </div>
-      `;
+  for (let i=0; i<first; i++) h += `<div></div>`;
+  for (let d=1; d<=days; d++) {
+    const date = new Date(y,m,d);
+    const k    = date.toDateString();
+    const ents = dm[k];
+    const sel  = G.selectedDay === k;
+    if (ents) {
+      const n = ents.length;
+      const lvl = n>20?"peak":n>10?"heavy":n>5?"medium":"light";
+      h += `<div class="day marked ${lvl}${sel?" selected":""}" onclick="showDay('${k}')">
+              <div class="dnum">${d}</div><div class="dcount">${n}</div>
+            </div>`;
     } else {
-      html += `<div class="day">${d}</div>`;
+      h += `<div class="day"><div class="dnum">${d}</div></div>`;
+    }
+  }
+  h += "</div></div>";
+  return h;
+}
+
+window.showDay = function(key) {
+  G.selectedDay = key;
+  renderCalendar();
+  const ents = G.dateMap[key];
+  if (!ents) return;
+  const dmap = {};
+  ents.forEach(s => {
+    const d = (s.department||"UNKNOWN").toUpperCase();
+    if (!dmap[d]) dmap[d] = [];
+    dmap[d].push(s);
+  });
+  const panel = document.getElementById("breakdown");
+  let h = `<div class="bd-header">
+    📅 ${key}
+    <span style="font-weight:400;font-size:12px;color:var(--text-dim)">${ents.length} activities</span>
+    <button class="btn sm" onclick="closeDay()">✕ Close</button>
+  </div><div class="dept-cards">`;
+  Object.keys(dmap).sort().forEach(dept => {
+    const ss = dmap[dept].sort((a,b)=>a.name.localeCompare(b.name));
+    h += `<div class="dc">
+      <div class="dc-title">${dept}<span>${ss.length}</span></div>
+      <div class="slist">${ss.map(s=>`
+        <div class="srow">
+          <span>${s.name}</span>
+          ${G.atRisk.has(s.name)?'<span class="rtag">AT RISK</span>':""}
+        </div>`).join('')}
+      </div>
+    </div>`;
+  });
+  h += "</div>";
+  panel.innerHTML = h;
+  panel.style.display = "block";
+  panel.scrollIntoView({behavior:"smooth", block:"nearest"});
+};
+
+window.closeDay = function() {
+  G.selectedDay = null;
+  document.getElementById("breakdown").style.display = "none";
+  renderCalendar();
+};
+
+/* ── LEADERBOARD ── */
+function buildRows() {
+  return filtered().map(s => {
+    const total   = filterDates(studentDates(s)).length;
+    const quests  = countType(s,"quest_list");
+    const videos  = countType(s,"video_list");
+    const stories = countType(s,"story_list");
+    const streak  = calcStreak(s);
+    const last    = lastActive(s);
+    const r14     = recent14(s);
+    const risk    = isAtRisk(s);
+    return { name:s.name, dept:(s.department||"?").toUpperCase(),
+      total, quests, videos, stories, streak, last, r14, risk };
+  });
+}
+
+function renderLeaderboard() {
+  const rows = buildRows();
+  const max  = Math.max(...rows.map(r=>r.total), 1);
+  const sorted = [...rows].sort((a,b) => {
+    const av=a[G.sortKey], bv=b[G.sortKey];
+    if (av instanceof Date && bv instanceof Date) return G.sortDir*(av-bv);
+    if (typeof av === "string") return G.sortDir*av.localeCompare(bv||"");
+    return G.sortDir*((av||0)-(bv||0));
+  });
+  const medals = ["🥇","🥈","🥉"];
+  document.getElementById("lbBody").innerHTML = sorted.map((r,i) => `
+    <tr class="${r.risk?"riskrow":""}">
+      <td>${medals[i]||`<span style="color:var(--text-dim)">${i+1}</span>`}</td>
+      <td><strong>${r.name}</strong>${G.atRisk.has(r.name)?'<span class="risk-badge">AT RISK</span>':''}</td>
+      <td>${r.dept}</td>
+      <td>
+        <div class="ab-wrap">
+          <div class="ab"><div class="ab-fill" style="width:${Math.round(r.total/max*100)}%"></div></div>
+          <strong>${r.total}</strong>
+        </div>
+      </td>
+      <td>${r.quests}</td><td>${r.videos}</td><td>${r.stories}</td>
+      <td>${r.streak>0?`<span class="streak-pill">🔥 ${r.streak}d</span>`:"—"}</td>
+      <td style="font-size:12px;color:var(--text-dim)">${r.last?r.last.toLocaleDateString("en-IN"):"—"}</td>
+      <td>${r.risk
+        ?`<span style="color:var(--risk-red);font-size:13px">⚠ Low</span>`
+        :`<span style="color:var(--success);font-size:13px">✓ Active</span>`}</td>
+      <td>
+        <button class="flag-btn ${G.atRisk.has(r.name)?"on":""}"
+          onclick="toggleFlag('${r.name.replace(/'/g,"\\'")}')">
+          ${G.atRisk.has(r.name)?"✓ Flagged":"Flag"}
+        </button>
+      </td>
+    </tr>`).join('');
+}
+
+window.sortBy = function(key) {
+  if (G.sortKey === key) G.sortDir *= -1;
+  else { G.sortKey = key; G.sortDir = -1; }
+  renderLeaderboard();
+};
+
+window.toggleFlag = function(name) {
+  if (G.atRisk.has(name)) G.atRisk.delete(name);
+  else G.atRisk.add(name);
+  localStorage.setItem("atRiskManual", JSON.stringify([...G.atRisk]));
+  render();
+};
+
+/* ── DEPARTMENTS ── */
+function renderDepts() {
+  const data = filtered();
+  const dmap = {};
+  data.forEach(s => {
+    const d = (s.department||"UNKNOWN").toUpperCase();
+    if (!dmap[d]) dmap[d] = [];
+    dmap[d].push(s);
+  });
+  const allDepts = Object.keys(dmap).sort();
+  const maxTotal = Math.max(...allDepts.map(d =>
+    dmap[d].reduce((a,s)=>a+filterDates(studentDates(s)).length, 0)
+  ), 1);
+
+  document.getElementById("deptGrid").innerHTML = allDepts.map(dept => {
+    const ss    = dmap[dept];
+    const total = ss.reduce((a,s)=>a+filterDates(studentDates(s)).length, 0);
+    const avg   = Math.round(total/ss.length);
+    const riskC = ss.filter(isAtRisk).length;
+    const avgSt = Math.round(ss.reduce((a,s)=>a+calcStreak(s),0)/ss.length);
+    const pct   = Math.round(total/maxTotal*100);
+    return `<div class="dept-card">
+      <div class="dept-card-name">${dept}</div>
+      <div class="dsr"><span>Students</span><strong>${ss.length}</strong></div>
+      <div class="dsr"><span>Total Activities</span><strong>${total}</strong></div>
+      <div class="dsr"><span>Avg / Student</span><strong>${avg}</strong></div>
+      <div class="dsr"><span>Avg Streak</span><strong>${avgSt}d</strong></div>
+      <div class="bar-row">
+        <div class="bar-lbl"><span>Activity Share</span><span>${pct}%</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
+      </div>
+      ${riskC>0?`<div class="dept-risk-alert">⚠ ${riskC} student${riskC>1?"s":""} at risk</div>`:""}
+    </div>`;
+  }).join('');
+}
+
+/* ── AT RISK ── */
+function renderAtRisk() {
+  const data = filtered().filter(isAtRisk);
+  document.getElementById("riskBadge").textContent = data.length;
+  const body = document.getElementById("riskBody");
+  if (!data.length) {
+    body.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--text-dim);padding:32px">No at-risk students — all students are active ✓</td></tr>`;
+    return;
+  }
+  body.innerHTML = data.sort((a,b)=>recent14(a)-recent14(b)).map(s => {
+    const r14    = recent14(s);
+    const st     = calcStreak(s);
+    const la     = lastActive(s);
+    const manual = G.atRisk.has(s.name);
+    const reason = manual ? "Manually flagged" : `Only ${r14} activities in 14 days`;
+    return `<tr>
+      <td><strong>${s.name}</strong>${manual?'<span class="risk-badge">FLAGGED</span>':''}</td>
+      <td>${(s.department||"?").toUpperCase()}</td>
+      <td>${filterDates(studentDates(s)).length}</td>
+      <td style="color:var(--risk-red);font-weight:700">${r14}</td>
+      <td>${st>0?`🔥 ${st}d`:"—"}</td>
+      <td style="font-size:12px;color:var(--text-dim)">${la?la.toLocaleDateString("en-IN"):"—"}</td>
+      <td style="font-size:13px;color:var(--text-mid)">${reason}</td>
+    </tr>`;
+  }).join('');
+}
+
+/* ── TAB SWITCH ── */
+window.switchTab = function(id) {
+  document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+  document.querySelectorAll(".tc").forEach(c=>c.classList.remove("active"));
+  document.getElementById("t-"+id).classList.add("active");
+  document.getElementById("tc-"+id).classList.add("active");
+};
+
+/* ── CLEAR DATES ── */
+window.clearDates = function() {
+  document.getElementById("dfrom").value = "";
+  document.getElementById("dto").value = "";
+  G.dateFrom = null; G.dateTo = null; G.render();
+};
+
+/* ── CSV EXPORT ── */
+window.exportCSV = function() {
+  const rows = buildRows();
+  const hdr = "Name,Department,Total,Quests,Videos,Stories,Streak (days),Last Active,Recent 14d,At Risk";
+  const body = rows.map(r =>
+    [r.name, r.dept, r.total, r.quests, r.videos, r.stories, r.streak,
+     r.last ? r.last.toLocaleDateString("en-IN") : "—",
+     r.r14, r.risk?"Yes":"No"].join(",")
+  ).join("\n");
+  const blob = new Blob([hdr+"\n"+body], {type:"text/csv"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `activity-${G.dept}-${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  notify("CSV downloaded");
+};
+
+/* ── PDF MODAL ── */
+window.openPDF = function() {
+  document.getElementById("pdfScope").textContent =
+    G.dept === "ALL" ? "All Departments" : G.dept;
+  document.getElementById("pdfOverlay").style.display = "flex";
+};
+window.closePDF = function() {
+  document.getElementById("pdfOverlay").style.display = "none";
+};
+
+/* ── PDF GENERATE ── */
+window.generatePDF = function() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({orientation:"portrait", unit:"mm", format:"a4"});
+  const W   = doc.internal.pageSize.getWidth();
+  const now = new Date().toLocaleDateString("en-IN",{day:"2-digit",month:"long",year:"numeric"});
+  const scopeLabel = G.dept==="ALL" ? "All Departments" : G.dept;
+  const data = filtered();
+  const rows = buildRows();
+  let y = 15;
+
+  const GOLD = [184,134,11];
+  const DARK = [26,21,16];
+  const DIM  = [100,80,60];
+  const RRED = [192,57,43];
+  const RBGR = [255,235,233];
+  const GBGR = [240,248,240];
+
+  function chk(need=25) {
+    if (y+need > 272) { doc.addPage(); y = 15; }
+  }
+  function hdr(txt, size=13, col=GOLD) {
+    chk(14);
+    doc.setFont("helvetica","bold");
+    doc.setFontSize(size); doc.setTextColor(...col);
+    doc.text(txt, 14, y); y += 8;
+  }
+  function rule(col=GOLD) {
+    doc.setDrawColor(...col); doc.setLineWidth(0.35);
+    doc.line(14, y, W-14, y); y += 5;
+  }
+
+  /* COVER BAND */
+  doc.setFillColor(...GOLD);
+  doc.rect(0,0,W,42,"F");
+  doc.setFont("helvetica","bold");
+  doc.setFontSize(20); doc.setTextColor(255,255,255);
+  doc.text("CLASS ACTIVITY REPORT", W/2, 17, {align:"center"});
+  doc.setFontSize(11);
+  doc.text("Academic Year 2025–26", W/2, 26, {align:"center"});
+  doc.setFont("helvetica","normal"); doc.setFontSize(10);
+  doc.text(`Generated: ${now}   |   Scope: ${scopeLabel}`, W/2, 35, {align:"center"});
+  y = 52;
+
+  /* ── 1. OVERVIEW ── */
+  if (document.getElementById("ps1").checked) {
+    hdr("1. Overview & Statistics");
+    rule();
+    let totalActs = 0;
+    data.forEach(s => totalActs += filterDates(studentDates(s)).length);
+    const riskCnt = data.filter(isAtRisk).length;
+    const avgSt   = data.length
+      ? Math.round(data.reduce((a,s)=>a+calcStreak(s),0)/data.length) : 0;
+    const avgAct  = data.length ? Math.round(totalActs/data.length) : 0;
+
+    doc.autoTable({
+      startY: y,
+      head: [["Metric","Value"]],
+      body: [
+        ["Total Students", data.length],
+        ["Total Activities (filtered)", totalActs],
+        ["Average Activities / Student", avgAct],
+        ["Average Streak", `${avgSt} days`],
+        ["At-Risk Students", riskCnt],
+        ["At-Risk Threshold", `< ${G.threshold} activities in 14 days`],
+        ["Date Range Filter", G.dateFrom||G.dateTo
+          ? `${G.dateFrom?G.dateFrom.toLocaleDateString("en-IN"):"start"} → ${G.dateTo?G.dateTo.toLocaleDateString("en-IN"):"today"}`
+          : "Full period"],
+        ["Manually Flagged", G.atRisk.size],
+      ],
+      theme:"plain",
+      styles:{fontSize:10,cellPadding:3.5,textColor:DARK},
+      headStyles:{fillColor:GOLD,textColor:[255,255,255],fontStyle:"bold"},
+      alternateRowStyles:{fillColor:[250,248,244]},
+      margin:{left:14,right:14},
+    });
+    y = doc.lastAutoTable.finalY + 12;
+  }
+
+  /* ── 2. DEPARTMENTS ── */
+  if (document.getElementById("ps2").checked) {
+    chk(20); hdr("2. Department Comparison"); rule();
+    const dmap = {};
+    data.forEach(s => {
+      const d = (s.department||"UNKNOWN").toUpperCase();
+      if (!dmap[d]) dmap[d] = [];
+      dmap[d].push(s);
+    });
+    const deptRows = Object.keys(dmap).sort().map(dept => {
+      const ss    = dmap[dept];
+      const total = ss.reduce((a,s)=>a+filterDates(studentDates(s)).length,0);
+      const avg   = Math.round(total/ss.length);
+      const risk  = ss.filter(isAtRisk).length;
+      const avgSt = Math.round(ss.reduce((a,s)=>a+calcStreak(s),0)/ss.length);
+      return [dept, ss.length, total, avg, `${avgSt}d`, risk];
+    });
+
+    doc.autoTable({
+      startY: y,
+      head:[["Department","Students","Total Activities","Avg/Student","Avg Streak","At-Risk"]],
+      body: deptRows,
+      theme:"plain",
+      styles:{fontSize:9.5,cellPadding:3.2,textColor:DARK},
+      headStyles:{fillColor:GOLD,textColor:[255,255,255],fontStyle:"bold"},
+      columnStyles:{5:{textColor:RRED,fontStyle:"bold"}},
+      alternateRowStyles:{fillColor:[250,248,244]},
+      margin:{left:14,right:14},
+    });
+    y = doc.lastAutoTable.finalY + 12;
+  }
+
+  /* ── 3. LEADERBOARD ── */
+  if (document.getElementById("ps3").checked) {
+    chk(20); hdr("3. Student Leaderboard — Top 30 by Total Activity"); rule();
+    const top30 = [...rows].sort((a,b)=>b.total-a.total).slice(0,30);
+    doc.autoTable({
+      startY: y,
+      head:[["#","Name","Dept","Total","Quests","Videos","Stories","Streak","Last Active"]],
+      body: top30.map((r,i)=>[
+        i+1, r.name, r.dept, r.total, r.quests, r.videos, r.stories,
+        r.streak>0?`${r.streak}d`:"—",
+        r.last?r.last.toLocaleDateString("en-IN"):"—"
+      ]),
+      theme:"plain",
+      styles:{fontSize:8.5,cellPadding:2.8,textColor:DARK},
+      headStyles:{fillColor:GOLD,textColor:[255,255,255],fontStyle:"bold"},
+      alternateRowStyles:{fillColor:[250,248,244]},
+      margin:{left:14,right:14},
+    });
+    y = doc.lastAutoTable.finalY + 12;
+  }
+
+  /* ── 4. AT-RISK ── */
+  if (document.getElementById("ps4").checked) {
+    chk(20); hdr("4. At-Risk Student Alerts", 13, RRED); rule(RRED);
+    const riskList = rows.filter(r=>r.risk).sort((a,b)=>a.r14-b.r14);
+    if (!riskList.length) {
+      chk(10);
+      doc.setFont("helvetica","normal"); doc.setFontSize(10);
+      doc.setTextColor(...[46,125,50]);
+      doc.text("No at-risk students detected. All students are active.", 14, y); y+=10;
+    } else {
+      doc.autoTable({
+        startY: y,
+        head:[["Name","Dept","Total","Last 14d","Streak","Last Active","Reason"]],
+        body: riskList.map(r=>[
+          r.name, r.dept, r.total, r.r14,
+          r.streak>0?`${r.streak}d`:"—",
+          r.last?r.last.toLocaleDateString("en-IN"):"—",
+          G.atRisk.has(r.name)?"Manually flagged":`Only ${r.r14} activities`
+        ]),
+        theme:"plain",
+        styles:{fontSize:8.5,cellPadding:2.8,textColor:DARK},
+        headStyles:{fillColor:RRED,textColor:[255,255,255],fontStyle:"bold"},
+        alternateRowStyles:{fillColor:RBGR},
+        margin:{left:14,right:14},
+      });
+      y = doc.lastAutoTable.finalY + 12;
     }
   }
 
-  html += "</div></div>";
-  return html;
-}
+  /* ── 5. STREAKS ── */
+  if (document.getElementById("ps5").checked) {
+    chk(20); hdr("5. Attendance & Streak Tracking"); rule();
+    const streakRows = [...rows].sort((a,b)=>b.streak-a.streak).map(r=>[
+      r.name, r.dept,
+      r.streak>0?`${r.streak}d`:"—",
+      r.r14,
+      r.last?r.last.toLocaleDateString("en-IN"):"Never",
+      r.risk?"At Risk":"Active"
+    ]);
 
-/* ========================================================= */
-/* ✅ INLINE BREAKDOWN */
-/* ========================================================= */
+    doc.autoTable({
+      startY: y,
+      head:[["Name","Dept","Current Streak","Last 14 Days","Last Active","Status"]],
+      body: streakRows,
+      theme:"plain",
+      styles:{fontSize:8.5,cellPadding:2.8,textColor:DARK},
+      headStyles:{fillColor:GOLD,textColor:[255,255,255],fontStyle:"bold"},
+      alternateRowStyles:{fillColor:[250,248,244]},
+      didDrawCell(d) {
+        if (d.section==="body" && d.column.index===5) {
+          const v = d.cell.raw;
+          doc.setTextColor(v==="At Risk"?192:46, v==="At Risk"?57:125, v==="At Risk"?43:50);
+          doc.setFontSize(8.5);
+          doc.text(v, d.cell.x+d.cell.padding('left'), d.cell.y+d.cell.contentHeight/2+0.5);
+        }
+      },
+      margin:{left:14,right:14},
+    });
+    y = doc.lastAutoTable.finalY + 12;
+  }
 
-window.showDateDetail = function(dateKey) {
-  const entries = window.dateMap[dateKey];
-  if (!entries) return;
+  /* FOOTER */
+  const pages = doc.internal.getNumberOfPages();
+  for (let i=1; i<=pages; i++) {
+    doc.setPage(i);
+    doc.setFontSize(8); doc.setTextColor(...DIM);
+    doc.text(
+      `Class Activity Console  ·  ${now}  ·  ${scopeLabel}  ·  Page ${i} of ${pages}`,
+      W/2, 289, {align:"center"}
+    );
+  }
 
-  const panel = document.getElementById("date-breakdown");
-
-  const deptMap = {};
-
-  entries.forEach(student => {
-    const dept = (student.department || "UNKNOWN").toUpperCase();
-
-    if (!deptMap[dept]) deptMap[dept] = [];
-    deptMap[dept].push(student.name);
-  });
-
-  let html = `
-    <div class="breakdown-header">
-      📅 ${dateKey}
-    </div>
-  `;
-
-  Object.keys(deptMap).sort().forEach(dept => {
-    html += `
-      <div class="dept-card">
-        <div class="dept-card-title">
-          ${dept} <span>${deptMap[dept].length}</span>
-        </div>
-        <div class="student-list">
-          ${deptMap[dept].sort().map(n => `<div>${n}</div>`).join("")}
-        </div>
-      </div>
-    `;
-  });
-
-  panel.innerHTML = html;
-  panel.style.display = "block";
+  doc.save(`activity-report-${G.dept}-${new Date().toISOString().slice(0,10)}.pdf`);
+  closePDF();
+  notify("PDF downloaded");
 };
 
-function clearBreakdown() {
-  const panel = document.getElementById("date-breakdown");
-  panel.style.display = "none";
+/* ── NOTIFY ── */
+function notify(msg, err=false) {
+  const n = document.createElement("div");
+  n.className = "notif"+(err?" err":"");
+  n.textContent = msg;
+  document.body.appendChild(n);
+  setTimeout(()=>{ n.style.opacity="0"; setTimeout(()=>n.remove(),400); }, 2800);
 }
-
-/* ========================================================= */
-
-window.onload = loadData;
-
 </script>
-
-<style>
-
-body {
-  background: #0B0B0C;
-  color: #F8F7F3;
-  font-family: 'Cinzel', serif; /* or your chosen serif */
-  padding: 20px;
-  overflow-x: hidden;
-  position: relative;
-}
-/* HEADER */
-
-.title {
-  text-align: center;
-  font-size: 26px;
-  font-weight: 900;
-  letter-spacing: 0.12em;
-  color: #D4AF37;
-  margin-bottom: 20px;
-}
-
-/* FILTER */
-
-select {
-  padding: 10px 14px;
-  border-radius: 12px;
-  background: #111;
-  color: #D4AF37;
-  border: 1px solid rgba(212,175,55,0.4);
-  font-weight: 700;
-  margin-bottom: 25px;
-}
-
-/* MONTH */
-
-.month-block {
-  margin-bottom: 30px;
-  padding: 14px;
-  border-radius: 16px;
-  background: rgba(17,17,19,0.9);
-  border: 1px solid rgba(212,175,55,0.25);
-}
-
-.month-title {
-  text-align: center;
-  color: #D4AF37;
-  font-weight: 700;
-  margin-bottom: 10px;
-  letter-spacing: 0.08em;
-}
-
-/* GRID */
-
-.calendar-grid {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 8px;
-  font-size: 12px;
-}
-
-.day {
-  background: #0F0F10;
-  border-radius: 10px;
-  padding: 8px;
-  min-height: 65px;
-  border: 1px solid rgba(212,175,55,0.12);
-  position: relative;
-  transition: 0.2s;
-}
-
-.day:hover {
-  transform: translateY(-2px);
-}
-
-.day.marked {
-  border-color: rgba(212,175,55,0.6);
-  cursor: pointer;
-}
-
-/* INTENSITY */
-
-.light { background: rgba(212,175,55,0.12); }
-.medium { background: rgba(212,175,55,0.22); }
-.heavy { background: rgba(212,175,55,0.32); }
-.peak {
-  background: rgba(212,175,55,0.55);
-  box-shadow: 0 0 14px rgba(212,175,55,0.7);
-}
-
-.count {
-  position: absolute;
-  bottom: 6px;
-  right: 8px;
-  font-size: 18px;
-  font-weight: 900;
-  color: #D4AF37;
-}
-
-/* BREAKDOWN PANEL */
-
-#date-breakdown {
-  margin-top: 20px;
-  display: none;
-  animation: fadeIn 0.3s ease;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.breakdown-header {
-  font-size: 16px;
-  font-weight: 800;
-  color: #D4AF37;
-  margin-bottom: 12px;
-}
-
-.dept-card {
-  background: rgba(17,17,19,0.95);
-  border-radius: 14px;
-  padding: 12px;
-  margin-bottom: 12px;
-  border: 1px solid rgba(212,175,55,0.25);
-}
-
-.dept-card-title {
-  font-weight: 800;
-  color: #D4AF37;
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 8px;
-}
-
-.student-list {
-  font-size: 13px;
-  opacity: 0.9;
-  display: grid;
-  gap: 4px;
-}
-body::before,
-body::after {
-  content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: -1;
-}
-
-/* SMALL DISTANT STARS */
-
-body::before {
-  background-image:
-    radial-gradient(2px 2px at 20% 30%, rgba(212,175,55,0.8), transparent),
-    radial-gradient(1px 1px at 70% 80%, rgba(255,255,255,0.6), transparent),
-    radial-gradient(1.5px 1.5px at 40% 60%, rgba(212,175,55,0.7), transparent),
-    radial-gradient(1px 1px at 85% 15%, rgba(255,255,255,0.5), transparent),
-    radial-gradient(2px 2px at 10% 75%, rgba(212,175,55,0.6), transparent);
-  
-  background-size: 400px 400px;
-  animation: driftSlow 160s linear infinite;
-  opacity: 0.6;
-}
-
-/* LARGER NEAR STARS */
-
-body::after {
-  background-image:
-    radial-gradient(2px 2px at 60% 20%, rgba(212,175,55,0.9), transparent),
-    radial-gradient(2.5px 2.5px at 25% 85%, rgba(255,255,255,0.7), transparent),
-    radial-gradient(2px 2px at 80% 55%, rgba(212,175,55,0.8), transparent);
-
-  background-size: 600px 600px;
-  animation: driftMedium 90s linear infinite;
-  opacity: 0.4;
-}
-@keyframes driftSlow {
-  from { transform: translateY(0px); }
-  to   { transform: translateY(-800px); }
-}
-
-@keyframes driftMedium {
-  from { transform: translateY(0px); }
-  to   { transform: translateY(-1200px); }
-}
-body {
-  background:
-    radial-gradient(circle at 20% 10%, rgba(212,175,55,0.08), transparent 40%),
-    radial-gradient(circle at 80% 90%, rgba(212,175,55,0.05), transparent 50%),
-    #0B0B0C;
-}
-body::before,
-body::after {
-  content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: -1;
-}
-
-/* FAR MICRO STARS (tons of tiny ones) */
-
-body::before {
-  background-image:
-    radial-gradient(rgba(255,255,255,0.35) 1px, transparent 1px),
-    radial-gradient(rgba(212,175,55,0.25) 1px, transparent 1px);
-
-  background-size: 120px 120px, 180px 180px;
-  background-position: 0 0, 40px 60px;
-
-  animation: starDriftFar 220s linear infinite;
-  opacity: 0.8;
-}
-
-/* NEAR BRIGHT STARS */
-
-body::after {
-  background-image:
-    radial-gradient(rgba(255,255,255,0.7) 1.5px, transparent 1.5px),
-    radial-gradient(rgba(212,175,55,0.6) 1.5px, transparent 1.5px);
-
-  background-size: 260px 260px, 320px 320px;
-  background-position: 0 0, 90px 140px;
-
-  animation: starDriftNear 140s linear infinite;
-  opacity: 0.55;
-}
-
-@keyframes starDriftFar {
-  from { transform: translateY(0); }
-  to   { transform: translateY(-1200px); }
-}
-
-@keyframes starDriftNear {
-  from { transform: translateY(0); }
-  to   { transform: translateY(-2000px); }
-}
-  /* =========================================================
-   LIGHT GOLD / IVORY QUEST THEME
-   ========================================================= */
-
-:root {
-  --deep: #faf7f2;
-  --surface: #ffffff;
-  --surface-soft: #f5efe6;
-
-  --gold: #c9a84c;
-  --gold-light: #e8c97a;
-  --gold-dim: rgba(201,168,76,0.18);
-
-  --text-primary: #1c1c1f;
-  --text-secondary: #8b7d6b;
-  --text-dim: #b0a28f;
-
-  --border-soft: rgba(0,0,0,0.06);
-  --border-gold: rgba(201,168,76,0.35);
-}
-
-/* ========================================================= */
-
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-body {
-  background: var(--deep);
-  color: var(--text-primary);
-  font-family: 'Cinzel', serif;
-  padding: 22px 16px 40px;
-  overflow-x: hidden;
-}
-
-/* =========================================================
-   HEADER
-   ========================================================= */
-
-.title {
-  text-align: center;
-  font-size: 26px;
-  font-weight: 900;
-  letter-spacing: 0.12em;
-  color: var(--gold);
-  margin-bottom: 24px;
-}
-
-/* =========================================================
-   FILTER
-   ========================================================= */
-
-select {
-  padding: 10px 16px;
-  border-radius: 14px;
-  background: var(--surface);
-  color: var(--gold);
-  border: 1px solid var(--border-gold);
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  margin-bottom: 26px;
-  box-shadow: 0 6px 18px rgba(0,0,0,0.05);
-}
-
-/* =========================================================
-   MONTH BLOCK
-   ========================================================= */
-
-.month-block {
-  margin-bottom: 26px;
-  padding: 16px 14px;
-  border-radius: 18px;
-  background: var(--surface);
-  border: 1px solid var(--border-soft);
-  box-shadow: 0 10px 28px rgba(0,0,0,0.06);
-}
-
-.month-title {
-  text-align: center;
-  color: var(--gold);
-  font-weight: 700;
-  margin-bottom: 12px;
-  letter-spacing: 0.08em;
-}
-
-/* =========================================================
-   GRID
-   ========================================================= */
-
-.calendar-grid {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 8px;
-  font-size: 12px;
-}
-
-.calendar-grid > div:nth-child(-n+7) {
-  text-align: center;
-  font-weight: 700;
-  color: var(--text-secondary);
-}
-
-/* =========================================================
-   DAY CELL
-   ========================================================= */
-
-.day {
-  background: var(--surface-soft);
-  border-radius: 12px;
-  padding: 8px;
-  min-height: 65px;
-  border: 1px solid var(--border-soft);
-  position: relative;
-  transition: all 0.18s ease;
-  color: var(--text-secondary);
-}
-
-.day:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(0,0,0,0.08);
-}
-
-.day.marked {
-  border-color: var(--gold);
-  background: var(--gold-dim);
-  cursor: pointer;
-}
-
-/* =========================================================
-   INTENSITY LEVELS
-   ========================================================= */
-
-.light {
-  background: rgba(201,168,76,0.12);
-}
-
-.medium {
-  background: rgba(201,168,76,0.20);
-}
-
-.heavy {
-  background: rgba(201,168,76,0.30);
-}
-
-.peak {
-  background: rgba(201,168,76,0.45);
-  box-shadow: 0 0 14px rgba(201,168,76,0.35);
-}
-
-/* ========================================================= */
-
-.date-num {
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
-.count {
-  position: absolute;
-  bottom: 6px;
-  right: 10px;
-  font-size: 18px;
-  font-weight: 900;
-  color: var(--gold);
-}
-
-/* =========================================================
-   BREAKDOWN PANEL
-   ========================================================= */
-
-#date-breakdown {
-  margin-top: 18px;
-  display: none;
-  animation: fadeIn 0.25s ease;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.breakdown-header {
-  font-size: 16px;
-  font-weight: 800;
-  color: var(--gold);
-  margin-bottom: 12px;
-}
-
-/* =========================================================
-   DEPARTMENT CARD
-   ========================================================= */
-
-.dept-card {
-  background: var(--surface);
-  border-radius: 16px;
-  padding: 14px 14px 12px;
-  margin-bottom: 12px;
-  border: 1px solid var(--border-soft);
-  box-shadow: 0 8px 22px rgba(0,0,0,0.06);
-}
-
-.dept-card-title {
-  font-weight: 800;
-  color: var(--gold);
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 10px;
-}
-
-.dept-card-title span {
-  color: var(--text-secondary);
-}
-
-.student-list {
-  font-size: 13px;
-  color: var(--text-primary);
-  display: grid;
-  gap: 4px;
-}
-
-/* =========================================================
-   LOADER / ERROR
-   ========================================================= */
-
-#loader {
-  color: var(--text-secondary);
-  margin-bottom: 12px;
-}
-
-#error {
-  color: #b91c1c;
-  margin-bottom: 12px;
-}
-
-/* =========================================================
-   RESPONSIVE
-   ========================================================= */
-
-@media (max-width: 640px) {
-  .calendar-grid {
-    gap: 6px;
-  }
-
-  .day {
-    min-height: 58px;
-    font-size: 11px;
-  }
-}
-</style>
-</head>
-
-<body>
-
-<div class="title">CLASS ACTIVITY CONSOLE</div>
-
-<div id="loader">Loading...</div>
-<div id="error"></div>
-
-<select id="departmentSelect" onchange="changeDepartment(this.value)"></select>
-
-<div id="class-calendar"></div>
-
-<div id="date-breakdown"></div>
-
 </body>
 </html>

@@ -321,13 +321,240 @@
       const grouped = groupByDate(quests, videos, stories);
       renderMiniCalendar("mini-calendar", grouped);
 
+      // Button row
+      const btnRow = document.createElement("div");
+      btnRow.className = "action-btn-row";
+
       const pdfBtn = document.createElement("button");
-      pdfBtn.textContent = "📄 Download PDF Report";
+      pdfBtn.innerHTML = `<span class="btn-icon">📄</span> Download PDF`;
       pdfBtn.className = "pdf-btn";
       pdfBtn.onclick = () => downloadProfilePDF(s);
-      content.appendChild(pdfBtn);
+
+      const waBtn = document.createElement("button");
+      waBtn.innerHTML = `<svg class="wa-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg> Send on WhatsApp`;
+      waBtn.className = "wa-btn";
+      waBtn.onclick = () => shareToWhatsApp(s);
+
+      btnRow.appendChild(pdfBtn);
+      btnRow.appendChild(waBtn);
+      content.appendChild(btnRow);
 
       modal.style.display = "flex";
+    }
+
+    // ── WHATSAPP SHARE CARD ───────────────────────────────────────────
+    async function shareToWhatsApp(studentObj) {
+      // Ensure html2canvas loaded
+      if (!window.html2canvas) {
+        await new Promise((resolve, reject) => {
+          const s = document.createElement("script");
+          s.src = "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";
+          s.onload = resolve; s.onerror = reject;
+          document.head.appendChild(s);
+        });
+      }
+
+      const quests  = parseItems(studentObj.quest_list);
+      const videos  = parseItems(studentObj.video_list);
+      const stories = parseItems(studentObj.story_list);
+      const totalSec = Math.round(studentObj.total_time || 0);
+      const tH = Math.floor(totalSec / 3600);
+      const tM = Math.floor((totalSec % 3600) / 60);
+      const tS = totalSec % 60;
+      const accuracy = Math.round((studentObj.accuracy || 0) * 100);
+      const grouped  = groupByDate(quests, videos, stories);
+      const activeDays = Object.keys(grouped).length;
+
+      // Build the off-screen card DOM
+      const card = document.createElement("div");
+      card.id = "wa-share-card";
+      card.style.cssText = `
+        position:fixed; left:-9999px; top:0;
+        width:540px; height:auto;
+        font-family:'DM Sans',sans-serif;
+        background: linear-gradient(145deg, #1a1200 0%, #2d1f00 40%, #1a0f00 100%);
+        border-radius:20px;
+        overflow:hidden;
+        padding:0;
+        box-shadow: 0 24px 60px rgba(0,0,0,0.7);
+      `;
+
+      // Active days count
+      const actDays = Object.keys(grouped).length;
+
+      // Build activity mini-grid (last 60 days only for compactness)
+      const today2 = new Date();
+      const gridDays = 56; // 8 weeks
+      let gridHtml = "";
+      for (let i = gridDays - 1; i >= 0; i--) {
+        const d = new Date(today2);
+        d.setDate(d.getDate() - i);
+        const key = d.toDateString();
+        const has = !!grouped[key];
+        gridHtml += `<div style="width:12px;height:12px;border-radius:2px;background:${has ? "linear-gradient(135deg,#f5d060,#c9a84c)" : "rgba(201,168,76,0.12)"};flex-shrink:0;"></div>`;
+      }
+
+      card.innerHTML = `
+        <!-- Gold shimmer top bar -->
+        <div style="height:6px;background:linear-gradient(90deg,#8c6414,#e8c97a,#c9a84c,#f5e6a0,#c9a84c,#8c6414);"></div>
+
+        <!-- Main content -->
+        <div style="padding:28px 28px 24px;">
+
+          <!-- Institution -->
+          <div style="text-align:center;margin-bottom:20px;">
+            <div style="font-size:10px;letter-spacing:0.22em;text-transform:uppercase;color:rgba(201,168,76,0.6);margin-bottom:4px;">SRM Valliammai Engineering College</div>
+            <div style="font-size:9px;letter-spacing:0.18em;color:rgba(201,168,76,0.45);">Department of English · Mission: Veni, Vidi, Vici!</div>
+          </div>
+
+          <!-- Decorative rule -->
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:22px;">
+            <div style="flex:1;height:1px;background:linear-gradient(90deg,transparent,rgba(201,168,76,0.5));"></div>
+            <div style="width:6px;height:6px;background:#c9a84c;transform:rotate(45deg);"></div>
+            <div style="flex:1;height:1px;background:linear-gradient(90deg,rgba(201,168,76,0.5),transparent);"></div>
+          </div>
+
+          <!-- Name block -->
+          <div style="text-align:center;margin-bottom:6px;">
+            <div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:rgba(201,168,76,0.55);margin-bottom:8px;">Pilot Profile</div>
+            <div style="font-size:30px;font-weight:800;color:#f5e6a0;line-height:1;letter-spacing:0.02em;">${studentObj.name.toUpperCase()}</div>
+            ${studentObj.department ? `<div style="margin-top:6px;font-size:10px;font-weight:600;letter-spacing:0.18em;color:rgba(201,168,76,0.6);">${studentObj.department.toUpperCase()}</div>` : ""}
+          </div>
+
+          <!-- Decorative rule -->
+          <div style="display:flex;align-items:center;gap:10px;margin:20px 0;">
+            <div style="flex:1;height:1px;background:linear-gradient(90deg,transparent,rgba(201,168,76,0.4));"></div>
+            <div style="width:4px;height:4px;background:rgba(201,168,76,0.6);transform:rotate(45deg);"></div>
+            <div style="flex:1;height:1px;background:linear-gradient(90deg,rgba(201,168,76,0.4),transparent);"></div>
+          </div>
+
+          <!-- Hero stats row -->
+          <div style="display:flex;gap:10px;margin-bottom:16px;">
+            <!-- Score -->
+            <div style="flex:1;background:linear-gradient(135deg,rgba(201,168,76,0.18),rgba(201,168,76,0.08));border:1px solid rgba(201,168,76,0.35);border-radius:14px;padding:16px 12px;text-align:center;">
+              <div style="font-size:34px;font-weight:800;color:#e8c97a;line-height:1;">${studentObj.total_score ?? 0}</div>
+              <div style="font-size:8px;letter-spacing:0.18em;text-transform:uppercase;color:rgba(201,168,76,0.55);margin-top:5px;">Mission Score</div>
+            </div>
+            <!-- Accuracy -->
+            <div style="flex:1;background:linear-gradient(135deg,rgba(201,168,76,0.18),rgba(201,168,76,0.08));border:1px solid rgba(201,168,76,0.35);border-radius:14px;padding:16px 12px;text-align:center;">
+              <div style="font-size:34px;font-weight:800;color:#e8c97a;line-height:1;">${accuracy}%</div>
+              <div style="font-size:8px;letter-spacing:0.18em;text-transform:uppercase;color:rgba(201,168,76,0.55);margin-top:5px;">Accuracy</div>
+            </div>
+            <!-- Active Days -->
+            <div style="flex:1;background:linear-gradient(135deg,rgba(201,168,76,0.18),rgba(201,168,76,0.08));border:1px solid rgba(201,168,76,0.35);border-radius:14px;padding:16px 12px;text-align:center;">
+              <div style="font-size:34px;font-weight:800;color:#e8c97a;line-height:1;">${activeDays}</div>
+              <div style="font-size:8px;letter-spacing:0.18em;text-transform:uppercase;color:rgba(201,168,76,0.55);margin-top:5px;">Active Days</div>
+            </div>
+          </div>
+
+          <!-- Time on mission banner -->
+          <div style="background:linear-gradient(90deg,rgba(201,168,76,0.22),rgba(201,168,76,0.10));border:1px solid rgba(201,168,76,0.4);border-radius:10px;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+            <div style="font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:rgba(201,168,76,0.6);">Time on Mission</div>
+            <div style="font-size:18px;font-weight:800;color:#e8c97a;">${tH}h ${tM}m ${tS}s</div>
+          </div>
+
+          <!-- Activity pills -->
+          <div style="display:flex;gap:7px;margin-bottom:20px;">
+            ${[
+              {label:"Quests", val: quests.length},
+              {label:"Videos", val: videos.length},
+              {label:"Stories",val: stories.length},
+              {label:"Cryptic",val: studentObj.cryptic_completed ?? 0},
+              {label:"Wordle", val: studentObj.wordle_completed  ?? 0},
+            ].map(a => `
+              <div style="flex:1;background:${a.val > 0 ? "linear-gradient(135deg,rgba(201,168,76,0.25),rgba(201,168,76,0.12))" : "rgba(255,255,255,0.04)"};border:1px solid ${a.val > 0 ? "rgba(201,168,76,0.5)" : "rgba(255,255,255,0.08)"};border-radius:10px;padding:10px 6px;text-align:center;">
+                <div style="font-size:18px;font-weight:800;color:${a.val > 0 ? "#e8c97a" : "rgba(201,168,76,0.3)"};">${a.val}</div>
+                <div style="font-size:7.5px;letter-spacing:0.12em;text-transform:uppercase;color:rgba(201,168,76,0.45);margin-top:3px;">${a.label}</div>
+              </div>
+            `).join("")}
+          </div>
+
+          <!-- Activity heatmap grid -->
+          <div style="margin-bottom:18px;">
+            <div style="font-size:8px;letter-spacing:0.16em;text-transform:uppercase;color:rgba(201,168,76,0.45);margin-bottom:8px;">Activity · Last 8 Weeks</div>
+            <div style="display:flex;flex-wrap:wrap;gap:3px;">
+              ${gridHtml}
+            </div>
+          </div>
+
+          <!-- Footer rule + timestamp -->
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+            <div style="flex:1;height:1px;background:linear-gradient(90deg,transparent,rgba(201,168,76,0.35));"></div>
+            <div style="width:4px;height:4px;background:rgba(201,168,76,0.5);transform:rotate(45deg);"></div>
+            <div style="flex:1;height:1px;background:linear-gradient(90deg,rgba(201,168,76,0.35),transparent);"></div>
+          </div>
+          <div style="text-align:center;font-size:8px;color:rgba(201,168,76,0.35);letter-spacing:0.12em;">
+            ${new Date().toLocaleString('en-IN',{timeZone:'Asia/Kolkata',day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})} · veni-vidi-vici.srmvec.edu
+          </div>
+        </div>
+
+        <!-- Gold shimmer bottom bar -->
+        <div style="height:6px;background:linear-gradient(90deg,#8c6414,#e8c97a,#c9a84c,#f5e6a0,#c9a84c,#8c6414);"></div>
+      `;
+
+      document.body.appendChild(card);
+
+      // Show generating state on button
+      const waBtn2 = document.querySelector(".wa-btn");
+      if (waBtn2) { waBtn2.textContent = "Generating…"; waBtn2.disabled = true; }
+
+      try {
+        const canvas = await html2canvas(card, {
+          scale: 2,
+          useCORS: true,
+          backgroundColor: null,
+          logging: false,
+          width: 540,
+        });
+
+        document.body.removeChild(card);
+
+        canvas.toBlob(async (blob) => {
+          const file = new File([blob], `${studentObj.name}_MissionCard.png`, { type: "image/png" });
+
+          // Try Web Share API first (mobile)
+          if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            try {
+              await navigator.share({
+                files: [file],
+                title: `${studentObj.name} — Mission Report`,
+                text: `🎖️ Mission: Veni, Vidi, Vici! — Report for ${studentObj.name}`,
+              });
+            } catch (err) {
+              if (err.name !== "AbortError") fallbackDownloadAndWhatsApp(blob, studentObj.name);
+            }
+          } else {
+            // Desktop fallback: download image + open WhatsApp Web
+            fallbackDownloadAndWhatsApp(blob, studentObj.name);
+          }
+
+          if (waBtn2) {
+            waBtn2.innerHTML = `<svg class="wa-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg> Send on WhatsApp`;
+            waBtn2.disabled = false;
+          }
+        }, "image/png");
+
+      } catch (err) {
+        console.error("Share card error:", err);
+        if (document.body.contains(card)) document.body.removeChild(card);
+        if (waBtn2) { waBtn2.textContent = "❌ Error — try again"; waBtn2.disabled = false; }
+      }
+    }
+
+    function fallbackDownloadAndWhatsApp(blob, name) {
+      // 1. Download the image
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${name}_MissionCard.png`;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      // 2. Open WhatsApp Web with a hint message after a brief delay
+      setTimeout(() => {
+        const msg = encodeURIComponent(`🎖️ *Mission: Veni, Vidi, Vici!*\nHere is the mission report card for *${name}*.\n_(Attach the downloaded image above)_`);
+        window.open(`https://web.whatsapp.com/send?text=${msg}`, "_blank");
+      }, 800);
     }
 
     function closeModal() {
@@ -1428,27 +1655,72 @@
       line-height: 1.1;
     }
 
-    /* ── PDF BUTTON ─────────────────────────────── */
-    .pdf-btn {
-      width: 100%;
-      padding: 12px;
-      margin-top: 12px;
+    /* ── ACTION BUTTONS ─────────────────────────── */
+    .action-btn-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .pdf-btn,
+    .wa-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      padding: 12px 10px;
       font-family: 'DM Sans', sans-serif;
       font-weight: 700;
-      font-size: 13px;
-      letter-spacing: 0.06em;
-      border: 1px solid var(--gold-border);
+      font-size: 12px;
+      letter-spacing: 0.05em;
       border-radius: var(--radius-sm);
-      background: var(--gold-dim);
-      color: var(--gold-deep);
       cursor: pointer;
       transition: all 0.18s ease;
+      white-space: nowrap;
+    }
+
+    .pdf-btn {
+      border: 1px solid var(--gold-border);
+      background: var(--gold-dim);
+      color: var(--gold-deep);
     }
 
     .pdf-btn:hover {
       background: var(--gold);
       color: #fff;
       border-color: var(--gold);
+    }
+
+    /* WhatsApp — deep green gradient */
+    .wa-btn {
+      border: 1px solid rgba(37, 167, 82, 0.5);
+      background: linear-gradient(135deg, #1fad4e 0%, #128C3E 100%);
+      color: #fff;
+      box-shadow: 0 2px 12px rgba(18, 140, 62, 0.30);
+    }
+
+    .wa-btn:hover {
+      background: linear-gradient(135deg, #25D366 0%, #1aaa48 100%);
+      box-shadow: 0 4px 20px rgba(37, 211, 102, 0.40);
+      transform: translateY(-1px);
+    }
+
+    .wa-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .wa-icon {
+      width: 15px;
+      height: 15px;
+      flex-shrink: 0;
+    }
+
+    .btn-icon {
+      font-size: 14px;
+      line-height: 1;
     }
 
     /* ── RESPONSIVE ─────────────────────────────── */

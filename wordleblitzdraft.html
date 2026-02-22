@@ -348,113 +348,256 @@ function parseCSV(txt){
 }
 function shuffleArray(arr){const a=[...arr];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
 
-function generateStatsImage(s,playerName,playerDept){
-  const allWords = s.solvedLog; // includes failed
-  const numRows = Math.ceil(allWords.length / 2);
-  const rowHeight = 90;
-  const wordsBlockHeight = Math.max(7, numRows) * rowHeight + 80;
-  const canvas=document.getElementById('statsCanvas'),ctx=canvas.getContext('2d');
-  canvas.width=1080;
-  canvas.height=320 + 300 + 160 + wordsBlockHeight + 200; // extra 200 for footer breathing room
+function generateStatsImage(s, playerName, playerDept) {
+  const canvas = document.getElementById('statsCanvas'), ctx = canvas.getContext('2d');
+  canvas.width = 1080;
 
-  const bg=ctx.createLinearGradient(0,0,0,canvas.height);bg.addColorStop(0,'#080e1a');bg.addColorStop(1,'#0d1a2e');
-  ctx.fillStyle=bg;ctx.fillRect(0,0,canvas.width,canvas.height);
-  ctx.strokeStyle='rgba(0,198,255,0.03)';ctx.lineWidth=1;
-  for(let x=0;x<canvas.width;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,canvas.height);ctx.stroke();}
-  for(let y=0;y<canvas.height;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(canvas.width,y);ctx.stroke();}
+  // ── LAYOUT CONSTANTS ──────────────────────────────────────────
+  const PAD = 64;
+  const SECTION_GAP = 40;
+  const ROW_H = 88;
+  const COL_GAP = 20;
+  const COL_W = (canvas.width - PAD * 2 - COL_GAP) / 2;
+  const allWords = s.solvedLog;
+  const wordRows = Math.ceil(allWords.length / 2);
 
-  // Title
-  ctx.font='bold 80px Rajdhani,sans-serif';
-  const tg=ctx.createLinearGradient(0,0,canvas.width,0);tg.addColorStop(0,'#00c6ff');tg.addColorStop(1,'#ffd700');
-  ctx.fillStyle=tg;ctx.textAlign='center';ctx.fillText('⚡ WORDLE BLITZ',canvas.width/2,120);
-  ctx.font='32px Nunito,sans-serif';ctx.fillStyle='#7a93b8';ctx.fillText('5-MINUTE SPEED CHALLENGE',canvas.width/2,180);
-  if(playerName&&playerDept){ctx.font='bold 40px Rajdhani,sans-serif';ctx.fillStyle='#ffd700';ctx.fillText(`👤 ${playerName} · ${playerDept}`,canvas.width/2,250);}
+  // Compute all Y positions so canvas height is exact
+  let Y = 0;
+  const y_title      = (Y += 50,  Y);           // 50
+  const y_sub        = (Y += 80,  Y);           // 130
+  const y_name       = playerName ? (Y += 52, Y) : Y; // 182
+  const y_scorebox   = (Y += SECTION_GAP + 20, Y);
+  const SCOREBOX_H   = 160;
+  const y_statsrow   = (Y += SCOREBOX_H + SECTION_GAP, Y);
+  const STATSROW_H   = 110;
+  const y_metrics    = (Y += STATSROW_H + SECTION_GAP, Y);
+  const METRIC_ROWS  = 3, METRIC_H = 110, METRIC_GAP = 14;
+  const y_words_lbl  = (Y += METRIC_ROWS * (METRIC_H + METRIC_GAP) + SECTION_GAP, Y);
+  const y_words_grid = (Y += 44, Y);
+  const WORDS_H      = Math.max(7, wordRows) * ROW_H;
+  const y_footer     = (Y += WORDS_H + 80, Y);
+  const TOTAL_H      = y_footer + 80;
 
-  // Score box
-  const bY=320;ctx.fillStyle='rgba(13,21,37,0.8)';ctx.strokeStyle='rgba(0,198,255,0.3)';ctx.lineWidth=3;
-  rrect(ctx,60,bY,canvas.width-120,300,20);ctx.fill();ctx.stroke();
-  ctx.font='bold 120px Rajdhani,sans-serif';ctx.fillStyle='#ffd700';ctx.textAlign='center';ctx.fillText(s.score,canvas.width/2,bY+130);
-  ctx.font='32px Nunito,sans-serif';ctx.fillStyle='#7a93b8';ctx.fillText('TOTAL SCORE',canvas.width/2,bY+175);
-  const sY=bY+250;ctx.font='bold 48px Rajdhani,sans-serif';ctx.fillStyle='#00c6ff';
-  ctx.fillText(s.wordsSolved,canvas.width/2-250,sY);ctx.fillText(s.failedCount,canvas.width/2+250,sY);
-  ctx.font='20px Nunito,sans-serif';ctx.fillStyle='#7a93b8';
-  ctx.fillText('SOLVED',canvas.width/2-250,sY+35);ctx.fillText('FAILED',canvas.width/2+250,sY+35);
+  canvas.height = TOTAL_H;
 
-  // Metrics grid
-  const mY=680,ms=[
-    {label:'Perfect Solves',value:s.perfectSolves,emoji:'🎯'},
-    {label:'Longest Streak',value:s.longestStreak,emoji:'🔥'},
-    {label:'Fastest Solve',value:s.fastestSolveSec>0?s.fastestSolveSec+'s':'N/A',emoji:'⚡'},
-    {label:'Time Bonus',value:'+'+s.totalTimeBonus+'s',emoji:'⏰'},
-    {label:'Avg Attempts',value:s.wordsSolved>0?(s.totalAttempts/s.wordsSolved).toFixed(1):'N/A',emoji:'📊'},
-    {label:'Time Played',value:Math.floor(s.timeSpent/60)+'m '+(s.timeSpent%60)+'s',emoji:'⏱️'}
+  // ── BACKGROUND ────────────────────────────────────────────────
+  // Rich cream base
+  ctx.fillStyle = '#f5efe0';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Subtle linen texture via diagonal lines
+  ctx.strokeStyle = 'rgba(180,140,80,0.07)';
+  ctx.lineWidth = 1;
+  for (let i = -canvas.height; i < canvas.width + canvas.height; i += 28) {
+    ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i + canvas.height, canvas.height); ctx.stroke();
+  }
+
+  // Top gold bar
+  const topBar = ctx.createLinearGradient(0, 0, canvas.width, 0);
+  topBar.addColorStop(0, '#b8860b'); topBar.addColorStop(0.5, '#ffd700'); topBar.addColorStop(1, '#b8860b');
+  ctx.fillStyle = topBar;
+  ctx.fillRect(0, 0, canvas.width, 12);
+
+  // Bottom gold bar
+  ctx.fillStyle = topBar;
+  ctx.fillRect(0, canvas.height - 12, canvas.width, 12);
+
+  // Thin gold rule under title area
+  ctx.strokeStyle = 'rgba(184,134,11,0.3)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(PAD, y_sub + 36);
+  ctx.lineTo(canvas.width - PAD, y_sub + 36);
+  ctx.stroke();
+
+  // ── TITLE ─────────────────────────────────────────────────────
+  ctx.textAlign = 'center';
+  ctx.font = 'bold 78px Rajdhani, sans-serif';
+  ctx.fillStyle = '#1a1206';
+  ctx.fillText('⚡ WORDLE BLITZ', canvas.width / 2, y_title + 10);
+
+  ctx.font = '28px Nunito, sans-serif';
+  ctx.fillStyle = '#8b6914';
+  ctx.letterSpacing = '3px';
+  ctx.fillText('5 · M I N U T E   S P E E D   C H A L L E N G E', canvas.width / 2, y_sub);
+
+  if (playerName && playerDept) {
+    ctx.font = 'bold 36px Rajdhani, sans-serif';
+    ctx.fillStyle = '#b8860b';
+    ctx.fillText(`👤  ${playerName}   ·   ${playerDept}`, canvas.width / 2, y_name);
+  }
+
+  // ── SCORE BOX ─────────────────────────────────────────────────
+  // Card shadow
+  ctx.fillStyle = 'rgba(160,120,40,0.15)';
+  rrect(ctx, PAD + 6, y_scorebox + 6, canvas.width - PAD * 2, SCOREBOX_H, 20);
+  ctx.fill();
+
+  // Card face — dark gold
+  const sbG = ctx.createLinearGradient(PAD, y_scorebox, canvas.width - PAD, y_scorebox + SCOREBOX_H);
+  sbG.addColorStop(0, '#2a1d00'); sbG.addColorStop(1, '#1a1206');
+  ctx.fillStyle = sbG;
+  rrect(ctx, PAD, y_scorebox, canvas.width - PAD * 2, SCOREBOX_H, 20);
+  ctx.fill();
+
+  ctx.strokeStyle = '#b8860b';
+  ctx.lineWidth = 2;
+  rrect(ctx, PAD, y_scorebox, canvas.width - PAD * 2, SCOREBOX_H, 20);
+  ctx.stroke();
+
+  // Score value — big and bold
+  ctx.font = 'bold 96px Rajdhani, sans-serif';
+  ctx.fillStyle = '#ffd700';
+  ctx.textAlign = 'center';
+  ctx.fillText(String(s.score), canvas.width / 2, y_scorebox + 108);
+
+  ctx.font = '24px Nunito, sans-serif';
+  ctx.fillStyle = '#c8a84b';
+  ctx.fillText('T O T A L   S C O R E', canvas.width / 2, y_scorebox + 143);
+
+  // ── SOLVED / FAILED ROW ───────────────────────────────────────
+  const sf_w = (canvas.width - PAD * 2 - COL_GAP) / 2;
+
+  function statPill(x, y, w, h, label, value, col) {
+    // shadow
+    ctx.fillStyle = 'rgba(160,120,40,0.12)';
+    rrect(ctx, x + 4, y + 4, w, h, 16); ctx.fill();
+    // bg
+    ctx.fillStyle = '#fffdf5';
+    rrect(ctx, x, y, w, h, 16); ctx.fill();
+    ctx.strokeStyle = col;
+    ctx.lineWidth = 2;
+    rrect(ctx, x, y, w, h, 16); ctx.stroke();
+    // value
+    ctx.font = 'bold 64px Rajdhani, sans-serif';
+    ctx.fillStyle = col;
+    ctx.textAlign = 'center';
+    ctx.fillText(String(value), x + w / 2, y + 72);
+    // label
+    ctx.font = '20px Nunito, sans-serif';
+    ctx.fillStyle = '#8b6914';
+    ctx.fillText(label, x + w / 2, y + 98);
+  }
+
+  statPill(PAD, y_statsrow, sf_w, STATSROW_H, 'WORDS SOLVED', s.wordsSolved, '#1e6b3a');
+  statPill(PAD + sf_w + COL_GAP, y_statsrow, sf_w, STATSROW_H, 'WORDS MISSED', s.failedCount, '#b71c1c');
+
+  // ── METRICS 2×3 GRID ──────────────────────────────────────────
+  const metrics = [
+    { label: 'Perfect Solves', value: s.perfectSolves,        emoji: '🎯' },
+    { label: 'Longest Streak', value: s.longestStreak,        emoji: '🔥' },
+    { label: 'Fastest Solve',  value: s.fastestSolveSec > 0 ? s.fastestSolveSec + 's' : '—', emoji: '⚡' },
+    { label: 'Time Bonus',     value: '+' + s.totalTimeBonus + 's', emoji: '⏰' },
+    { label: 'Avg Attempts',   value: s.wordsSolved > 0 ? (s.totalAttempts / s.wordsSolved).toFixed(1) : '—', emoji: '📊' },
+    { label: 'Time Played',    value: Math.floor(s.timeSpent / 60) + 'm ' + (s.timeSpent % 60) + 's', emoji: '⏱️' },
   ];
-  const nc=2,nr=Math.ceil(ms.length/nc),mW=450,mH=130,gX=80,gY=40,sX=(canvas.width-(nc*mW+(nc-1)*gX))/2;
-  ms.forEach((m,i)=>{
-    const col=i%nc,row=Math.floor(i/nc),x=sX+col*(mW+gX),y=mY+row*(mH+gY);
-    ctx.fillStyle='rgba(17,30,48,0.8)';ctx.strokeStyle='rgba(255,255,255,0.1)';ctx.lineWidth=2;
-    rrect(ctx,x,y,mW,mH,15);ctx.fill();ctx.stroke();
-    ctx.font='40px sans-serif';ctx.textAlign='left';ctx.fillText(m.emoji,x+25,y+65);
-    ctx.font='bold 48px Rajdhani,sans-serif';ctx.fillStyle='#00c6ff';ctx.textAlign='right';ctx.fillText(String(m.value),x+mW-25,y+60);
-    ctx.font='18px Nunito,sans-serif';ctx.fillStyle='#7a93b8';ctx.textAlign='right';ctx.fillText(m.label.toUpperCase(),x+mW-25,y+90);
+  const M_W = (canvas.width - PAD * 2 - COL_GAP) / 2;
+
+  metrics.forEach((m, i) => {
+    const col = i % 2, row = Math.floor(i / 2);
+    const mx = PAD + col * (M_W + COL_GAP);
+    const my = y_metrics + row * (METRIC_H + METRIC_GAP);
+
+    // shadow
+    ctx.fillStyle = 'rgba(160,120,40,0.1)';
+    rrect(ctx, mx + 3, my + 3, M_W, METRIC_H, 14); ctx.fill();
+    // bg
+    ctx.fillStyle = '#fffdf5';
+    rrect(ctx, mx, my, M_W, METRIC_H, 14); ctx.fill();
+    ctx.strokeStyle = 'rgba(184,134,11,0.3)';
+    ctx.lineWidth = 1.5;
+    rrect(ctx, mx, my, M_W, METRIC_H, 14); ctx.stroke();
+
+    // emoji
+    ctx.font = '36px sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText(m.emoji, mx + 20, my + 66);
+
+    // value
+    ctx.font = 'bold 46px Rajdhani, sans-serif';
+    ctx.fillStyle = '#2a1d00';
+    ctx.textAlign = 'right';
+    ctx.fillText(String(m.value), mx + M_W - 20, my + 62);
+
+    // label
+    ctx.font = '18px Nunito, sans-serif';
+    ctx.fillStyle = '#8b6914';
+    ctx.textAlign = 'right';
+    ctx.fillText(m.label.toUpperCase(), mx + M_W - 20, my + 88);
   });
 
-  // Words section — two columns, all words including failed
-  const wordsY = mY + nr*(mH+gY) + 70;
-  ctx.font='28px Nunito,sans-serif';ctx.fillStyle='#7a93b8';ctx.textAlign='center';
-  ctx.fillText('ALL WORDS',canvas.width/2, wordsY);
+  // ── WORDS SECTION ─────────────────────────────────────────────
+  // Section divider
+  ctx.strokeStyle = 'rgba(184,134,11,0.3)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(PAD, y_words_lbl - 16);
+  ctx.lineTo(canvas.width - PAD, y_words_lbl - 16);
+  ctx.stroke();
 
-  const pad = 60;
-  const colGap = 20;
-  const colW = (canvas.width - pad*2 - colGap) / 2;
+  ctx.font = 'bold 26px Nunito, sans-serif';
+  ctx.fillStyle = '#8b6914';
+  ctx.textAlign = 'center';
+  ctx.fillText('A L L   W O R D S', canvas.width / 2, y_words_lbl);
 
   allWords.forEach((entry, i) => {
     const col = i % 2;
     const row = Math.floor(i / 2);
-    const x = pad + col * (colW + colGap);
-    const y = wordsY + 50 + row * rowHeight;
-    const w = colW;
-    const h = rowHeight - 10;
+    const wx = PAD + col * (COL_W + COL_GAP);
+    const wy = y_words_grid + row * ROW_H;
+    const wh = ROW_H - 12;
     const failed = entry.failed;
 
-    // Card background — red tint for failed
-    ctx.fillStyle = failed ? 'rgba(40,10,10,0.9)' : 'rgba(17,30,48,0.85)';
-    ctx.strokeStyle = failed ? 'rgba(229,57,53,0.25)' : 'rgba(0,198,255,0.12)';
-    ctx.lineWidth=2;
-    rrect(ctx, x, y, w, h, 14);
-    ctx.fill();ctx.stroke();
+    // shadow
+    ctx.fillStyle = 'rgba(160,120,40,0.1)';
+    rrect(ctx, wx + 3, wy + 3, COL_W, wh, 12); ctx.fill();
 
-    // Word
-    ctx.font='bold 38px Rajdhani,sans-serif';
-    ctx.fillStyle = failed ? '#ef9a9a' : '#e8f0fe';
-    ctx.textAlign='left';
-    ctx.fillText(entry.word.toUpperCase(), x+20, y+h*0.62);
+    // card bg
+    ctx.fillStyle = failed ? '#fff5f5' : '#fffdf5';
+    rrect(ctx, wx, wy, COL_W, wh, 12); ctx.fill();
 
-    // Attempt count or failed mark
-    const tries = entry.guesses.length;
-    if(failed){
-      ctx.font='22px Nunito,sans-serif';
-      ctx.fillStyle='#e53935';
-      ctx.textAlign='center';
-      ctx.fillText('✗ missed', x + w*0.62, y+h*0.62);
+    // left accent bar
+    ctx.fillStyle = failed ? '#e53935' : '#1e8a4a';
+    rrect(ctx, wx, wy, 6, wh, 12); ctx.fill();
+
+    // border
+    ctx.strokeStyle = failed ? 'rgba(229,57,53,0.25)' : 'rgba(30,138,74,0.2)';
+    ctx.lineWidth = 1.5;
+    rrect(ctx, wx, wy, COL_W, wh, 12); ctx.stroke();
+
+    // word
+    ctx.font = 'bold 34px Rajdhani, sans-serif';
+    ctx.fillStyle = failed ? '#c62828' : '#1a1206';
+    ctx.textAlign = 'left';
+    ctx.fillText(entry.word.toUpperCase(), wx + 22, wy + wh * 0.64);
+
+    // tries / missed
+    if (failed) {
+      ctx.font = '20px Nunito, sans-serif';
+      ctx.fillStyle = '#e53935';
+      ctx.textAlign = 'center';
+      ctx.fillText('✗ missed', wx + COL_W * 0.62, wy + wh * 0.64);
     } else {
-      const badgeLabel = tries === 1 ? '🎯 1 try' : `${tries} tries`;
-      ctx.font='22px Nunito,sans-serif';
-      ctx.fillStyle = tries === 1 ? '#00e676' : tries <= 3 ? '#00c6ff' : '#f59e0b';
-      ctx.textAlign='center';
-      ctx.fillText(badgeLabel, x + w*0.62, y+h*0.62);
+      const tries = entry.guesses.length;
+      const badge = tries === 1 ? '🎯 1 try' : tries + ' tries';
+      ctx.font = '20px Nunito, sans-serif';
+      ctx.fillStyle = tries === 1 ? '#1e6b3a' : tries <= 3 ? '#1565c0' : '#e65100';
+      ctx.textAlign = 'center';
+      ctx.fillText(badge, wx + COL_W * 0.62, wy + wh * 0.64);
     }
 
-    // Points
-    ctx.font='bold 34px Rajdhani,sans-serif';
-    ctx.fillStyle = failed ? '#555' : '#ffd700';
-    ctx.textAlign='right';
-    ctx.fillText(failed ? '0 pts' : '+'+entry.pts+' pts', x+w-16, y+h*0.62);
+    // points
+    ctx.font = 'bold 30px Rajdhani, sans-serif';
+    ctx.fillStyle = failed ? '#bbb' : '#b8860b';
+    ctx.textAlign = 'right';
+    ctx.fillText(failed ? '–' : '+' + entry.pts, wx + COL_W - 16, wy + wh * 0.64);
   });
 
-  // Footer with breathing room
-  ctx.font='26px Nunito,sans-serif';ctx.fillStyle='#7a93b8';ctx.textAlign='center';
-  ctx.fillText('Play at: andrewveda.github.io/SRM-VEC-English-PWA/buttons/wordle',canvas.width/2,canvas.height-80);
+  // ── FOOTER ────────────────────────────────────────────────────
+  ctx.font = '24px Nunito, sans-serif';
+  ctx.fillStyle = '#8b6914';
+  ctx.textAlign = 'center';
+  ctx.fillText('andrewveda.github.io/SRM-VEC-English-PWA/buttons/wordle', canvas.width / 2, y_footer + 20);
 
   return canvas.toDataURL('image/png');
 }

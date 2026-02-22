@@ -348,33 +348,106 @@ function parseCSV(txt){
 }
 function shuffleArray(arr){const a=[...arr];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
 
-/* ── STATS IMAGE ── */
 function generateStatsImage(s,playerName,playerDept){
+  const solvedWords = s.solvedLog.filter(e=>!e.failed);
+  const numRows = Math.ceil(solvedWords.length / 2);
+  const rowHeight = 90;
+  const wordsBlockHeight = Math.max(7, numRows) * rowHeight + 80;
   const canvas=document.getElementById('statsCanvas'),ctx=canvas.getContext('2d');
-  canvas.width=1080;canvas.height=1920;
+  canvas.width=1080;
+  canvas.height=320 + 300 + 160 + wordsBlockHeight + 120; // header+stats+metrics+words+footer
+
   const bg=ctx.createLinearGradient(0,0,0,canvas.height);bg.addColorStop(0,'#080e1a');bg.addColorStop(1,'#0d1a2e');
   ctx.fillStyle=bg;ctx.fillRect(0,0,canvas.width,canvas.height);
   ctx.strokeStyle='rgba(0,198,255,0.03)';ctx.lineWidth=1;
   for(let x=0;x<canvas.width;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,canvas.height);ctx.stroke();}
   for(let y=0;y<canvas.height;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(canvas.width,y);ctx.stroke();}
+
+  // Title
   ctx.font='bold 80px Rajdhani,sans-serif';
   const tg=ctx.createLinearGradient(0,0,canvas.width,0);tg.addColorStop(0,'#00c6ff');tg.addColorStop(1,'#ffd700');
   ctx.fillStyle=tg;ctx.textAlign='center';ctx.fillText('⚡ WORDLE BLITZ',canvas.width/2,120);
   ctx.font='32px Nunito,sans-serif';ctx.fillStyle='#7a93b8';ctx.fillText('5-MINUTE SPEED CHALLENGE',canvas.width/2,180);
   if(playerName&&playerDept){ctx.font='bold 40px Rajdhani,sans-serif';ctx.fillStyle='#ffd700';ctx.fillText(`👤 ${playerName} · ${playerDept}`,canvas.width/2,250);}
+
+  // Score box
   const bY=320;ctx.fillStyle='rgba(13,21,37,0.8)';ctx.strokeStyle='rgba(0,198,255,0.3)';ctx.lineWidth=3;
   rrect(ctx,60,bY,canvas.width-120,300,20);ctx.fill();ctx.stroke();
-  ctx.font='bold 120px Rajdhani,sans-serif';ctx.fillStyle='#ffd700';ctx.fillText(s.score,canvas.width/2,bY+130);
+  ctx.font='bold 120px Rajdhani,sans-serif';ctx.fillStyle='#ffd700';ctx.textAlign='center';ctx.fillText(s.score,canvas.width/2,bY+130);
   ctx.font='32px Nunito,sans-serif';ctx.fillStyle='#7a93b8';ctx.fillText('TOTAL SCORE',canvas.width/2,bY+175);
   const sY=bY+250;ctx.font='bold 48px Rajdhani,sans-serif';ctx.fillStyle='#00c6ff';
   ctx.fillText(s.wordsSolved,canvas.width/2-250,sY);ctx.fillText(s.failedCount,canvas.width/2+250,sY);
-  ctx.font='20px Nunito,sans-serif';ctx.fillStyle='#7a93b8';ctx.fillText('SOLVED',canvas.width/2-250,sY+35);ctx.fillText('FAILED',canvas.width/2+250,sY+35);
-  const mY=680,ms=[{label:'Perfect Solves',value:s.perfectSolves,emoji:'🎯'},{label:'Longest Streak',value:s.longestStreak,emoji:'🔥'},{label:'Fastest Solve',value:s.fastestSolveSec>0?s.fastestSolveSec+'s':'N/A',emoji:'⚡'},{label:'Time Bonus',value:'+'+s.totalTimeBonus+'s',emoji:'⏰'},{label:'Avg Attempts',value:s.wordsSolved>0?(s.totalAttempts/s.wordsSolved).toFixed(1):'N/A',emoji:'📊'},{label:'Time Played',value:Math.floor(s.timeSpent/60)+'m '+(s.timeSpent%60)+'s',emoji:'⏱️'}];
+  ctx.font='20px Nunito,sans-serif';ctx.fillStyle='#7a93b8';
+  ctx.fillText('SOLVED',canvas.width/2-250,sY+35);ctx.fillText('FAILED',canvas.width/2+250,sY+35);
+
+  // Metrics grid
+  const mY=680,ms=[
+    {label:'Perfect Solves',value:s.perfectSolves,emoji:'🎯'},
+    {label:'Longest Streak',value:s.longestStreak,emoji:'🔥'},
+    {label:'Fastest Solve',value:s.fastestSolveSec>0?s.fastestSolveSec+'s':'N/A',emoji:'⚡'},
+    {label:'Time Bonus',value:'+'+s.totalTimeBonus+'s',emoji:'⏰'},
+    {label:'Avg Attempts',value:s.wordsSolved>0?(s.totalAttempts/s.wordsSolved).toFixed(1):'N/A',emoji:'📊'},
+    {label:'Time Played',value:Math.floor(s.timeSpent/60)+'m '+(s.timeSpent%60)+'s',emoji:'⏱️'}
+  ];
   const nc=2,nr=Math.ceil(ms.length/nc),mW=450,mH=130,gX=80,gY=40,sX=(canvas.width-(nc*mW+(nc-1)*gX))/2;
-  ms.forEach((m,i)=>{const col=i%nc,row=Math.floor(i/nc),x=sX+col*(mW+gX),y=mY+row*(mH+gY);ctx.fillStyle='rgba(17,30,48,0.8)';ctx.strokeStyle='rgba(255,255,255,0.1)';ctx.lineWidth=2;rrect(ctx,x,y,mW,mH,15);ctx.fill();ctx.stroke();ctx.font='40px sans-serif';ctx.textAlign='left';ctx.fillText(m.emoji,x+25,y+65);ctx.font='bold 48px Rajdhani,sans-serif';ctx.fillStyle='#00c6ff';ctx.textAlign='right';ctx.fillText(String(m.value),x+mW-25,y+60);ctx.font='18px Nunito,sans-serif';ctx.fillStyle='#7a93b8';ctx.textAlign='right';ctx.fillText(m.label.toUpperCase(),x+mW-25,y+90);});
-  const gY2=mY+nr*(mH+gY)+70;ctx.font='28px Nunito,sans-serif';ctx.fillStyle='#7a93b8';ctx.textAlign='center';ctx.fillText('SOLVED WORDS',canvas.width/2,gY2);
-  s.solvedLog.filter(e=>!e.failed).slice(0,5).forEach((entry,i)=>{const wy=gY2+60+i*80;ctx.font='bold 36px Rajdhani,sans-serif';ctx.fillStyle='#e8f0fe';ctx.textAlign='left';ctx.fillText(entry.word.toUpperCase(),100,wy);ctx.font='32px monospace';ctx.textAlign='center';ctx.fillText(entry.grid.split('\n')[0],canvas.width/2+50,wy);ctx.font='bold 32px Rajdhani,sans-serif';ctx.fillStyle='#ffd700';ctx.textAlign='right';ctx.fillText('+'+entry.pts+' pts',canvas.width-100,wy);});
-  ctx.font='26px Nunito,sans-serif';ctx.fillStyle='#7a93b8';ctx.textAlign='center';ctx.fillText('Play at: andrewveda.github.io/SRM-VEC-English-PWA/buttons/wordle',canvas.width/2,canvas.height-80);
+  ms.forEach((m,i)=>{
+    const col=i%nc,row=Math.floor(i/nc),x=sX+col*(mW+gX),y=mY+row*(mH+gY);
+    ctx.fillStyle='rgba(17,30,48,0.8)';ctx.strokeStyle='rgba(255,255,255,0.1)';ctx.lineWidth=2;
+    rrect(ctx,x,y,mW,mH,15);ctx.fill();ctx.stroke();
+    ctx.font='40px sans-serif';ctx.textAlign='left';ctx.fillText(m.emoji,x+25,y+65);
+    ctx.font='bold 48px Rajdhani,sans-serif';ctx.fillStyle='#00c6ff';ctx.textAlign='right';ctx.fillText(String(m.value),x+mW-25,y+60);
+    ctx.font='18px Nunito,sans-serif';ctx.fillStyle='#7a93b8';ctx.textAlign='right';ctx.fillText(m.label.toUpperCase(),x+mW-25,y+90);
+  });
+
+  // Words section — two columns
+  const wordsY = mY + nr*(mH+gY) + 70;
+  ctx.font='28px Nunito,sans-serif';ctx.fillStyle='#7a93b8';ctx.textAlign='center';
+  ctx.fillText('SOLVED WORDS',canvas.width/2, wordsY);
+
+  const colW = (canvas.width - 120) / 2;  // each column width
+  const pad = 60;                           // left margin
+  const colGap = 20;                        // gap between columns
+
+  solvedWords.forEach((entry, i) => {
+    const col = i % 2;
+    const row = Math.floor(i / 2);
+    const x = pad + col * (colW + colGap);
+    const y = wordsY + 50 + row * rowHeight;
+    const w = colW;
+    const h = rowHeight - 10;
+
+    // Card background
+    ctx.fillStyle='rgba(17,30,48,0.85)';
+    ctx.strokeStyle='rgba(0,198,255,0.12)';
+    ctx.lineWidth=2;
+    rrect(ctx, x, y, w, h, 14);
+    ctx.fill();ctx.stroke();
+
+    // Word
+    ctx.font='bold 38px Rajdhani,sans-serif';
+    ctx.fillStyle='#e8f0fe';
+    ctx.textAlign='left';
+    ctx.fillText(entry.word.toUpperCase(), x+20, y+h*0.62);
+
+    // Attempt count badge
+    const tries = entry.guesses.length;
+    const badgeLabel = tries === 1 ? '🎯 1' : `${tries} tries`;
+    ctx.font='22px Nunito,sans-serif';
+    ctx.fillStyle= tries === 1 ? '#00e676' : tries <= 3 ? '#00c6ff' : '#f59e0b';
+    ctx.textAlign='center';
+    ctx.fillText(badgeLabel, x + w*0.65, y+h*0.62);
+
+    // Points
+    ctx.font='bold 34px Rajdhani,sans-serif';
+    ctx.fillStyle='#ffd700';
+    ctx.textAlign='right';
+    ctx.fillText('+'+entry.pts+' pts', x+w-16, y+h*0.62);
+  });
+
+  // Footer
+  ctx.font='26px Nunito,sans-serif';ctx.fillStyle='#7a93b8';ctx.textAlign='center';
+  ctx.fillText('Play at: andrewveda.github.io/SRM-VEC-English-PWA/buttons/wordle',canvas.width/2,canvas.height-60);
+
   return canvas.toDataURL('image/png');
 }
 function rrect(ctx,x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();}

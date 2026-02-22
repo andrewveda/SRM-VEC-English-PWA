@@ -394,6 +394,7 @@
     })();
 
     async function downloadProfilePDF(studentObj) {
+      // Ensure jsPDF loaded
       if (!window.jspdf) {
         await new Promise((resolve, reject) => {
           const s = document.createElement("script");
@@ -403,111 +404,350 @@
         });
       }
       const { jsPDF } = window.jspdf;
-      const doc = new jsPDF({ unit: "pt", format: "a4" });
-      const pageW = doc.internal.pageSize.getWidth();
-      const pageH = doc.internal.pageSize.getHeight();
-      const margin = 40;
-      const contentW = pageW - margin * 2;
-      let y = margin;
 
-      function checkPage(needed = 20) { if (y + needed > pageH - margin) { doc.addPage(); y = margin; } }
-      function drawHRule(color = [201, 168, 76]) { doc.setDrawColor(...color); doc.setLineWidth(0.5); doc.line(margin, y, pageW - margin, y); y += 8; }
-      function centeredText(str, fontSize, style = "normal", color = [30, 30, 30]) { doc.setFont("helvetica", style); doc.setFontSize(fontSize); doc.setTextColor(...color); doc.text(str, pageW / 2, y, { align: "center" }); }
+      // ── COLOUR PALETTE ────────────────────────────────────────────────
+      const GOLD        = [201, 168, 76];
+      const GOLD_LIGHT  = [232, 201, 122];
+      const GOLD_DEEP   = [140, 100, 20];
+      const CREAM       = [250, 246, 238];
+      const CREAM_DARK  = [240, 233, 218];
+      const INK         = [26,  21,  16];
+      const INK_MID     = [90,  74,  52];
+      const INK_DIM     = [160, 144, 120];
+      const WHITE       = [255, 255, 255];
 
-      doc.setFillColor(201, 168, 76); doc.rect(0, 0, pageW, 6, "F");
-      y = 36;
-      centeredText("SRM VALLIAMMAI ENGINEERING COLLEGE", 14, "bold", [100, 75, 20]);
-      y += 18; centeredText("Department of English", 11, "normal", [120, 95, 40]);
-      y += 10; drawHRule([201, 168, 76]);
-      centeredText("Mission: Veni, Vidi, Vici! — Pilot Profile", 9, "normal", [160, 130, 60]);
-      y += 18; centeredText(studentObj.name, 22, "bold", [30, 30, 30]);
-      y += 8;
-      if (studentObj.department) { centeredText(studentObj.department.toUpperCase(), 9, "normal", [150, 120, 60]); y += 6; }
-      drawHRule([201, 168, 76]); y += 4;
+      // ── DOCUMENT SETUP ────────────────────────────────────────────────
+      // Mobile-friendly: use square-ish format so it looks great as a
+      // WhatsApp image preview. We'll generate two "pages":
+      //   Page 1 – Hero summary card  (A5 landscape = 595 × 420 pt)
+      //   Page 2 – Full detail report (A4 portrait  = 595 × 842 pt)
+      // jsPDF doesn't support mixed page sizes, so we use A4 portrait
+      // for both and use the top half of page 1 as the "card".
 
-      const quests = parseItems(studentObj.quest_list);
-      const videos = parseItems(studentObj.video_list);
-      const stories = parseItems(studentObj.story_list);
-      const totalSec = Math.round(studentObj.total_time || 0);
-      const h = Math.floor(totalSec / 3600), m = Math.floor((totalSec % 3600) / 60), s = totalSec % 60;
-      const accuracy = Math.round((studentObj.accuracy || 0) * 100);
-      const stats = [
-        { label: "Total Score", value: String(studentObj.total_score ?? 0) },
-        { label: "Accuracy", value: `${accuracy}%` },
-        { label: "Quests", value: String(quests.length) },
-        { label: "Videos", value: String(videos.length) },
-        { label: "Stories", value: String(stories.length) },
-        { label: "Cryptic", value: String(studentObj.cryptic_completed ?? 0) },
-        { label: "Wordle", value: String(studentObj.wordle_completed ?? 0) },
-        { label: "Time", value: `${h}h ${m}m ${s}s` },
-      ];
+      const doc = new jsPDF({ unit: "pt", format: "a4", orientation: "portrait" });
+      const PW = doc.internal.pageSize.getWidth();   // 595
+      const PH = doc.internal.pageSize.getHeight();  // 842
 
-      const cols = 4, boxW = contentW / cols, boxH = 52;
-      stats.forEach((stat, i) => {
-        const col = i % cols, row = Math.floor(i / cols);
-        const bx = margin + col * boxW, by = y + row * (boxH + 6);
-        doc.setFillColor(250, 245, 235); doc.setDrawColor(201, 168, 76); doc.setLineWidth(0.5);
-        doc.roundedRect(bx, by, boxW - 4, boxH, 4, 4, "FD");
-        doc.setFont("helvetica", "normal"); doc.setFontSize(8); doc.setTextColor(150, 120, 60);
-        doc.text(stat.label.toUpperCase(), bx + 8, by + 14);
-        doc.setFont("helvetica", "bold"); doc.setFontSize(stat.value.length > 8 ? 11 : 16); doc.setTextColor(30, 30, 30);
-        doc.text(stat.value, bx + 8, by + 36);
-      });
+      // ── SHARED HELPERS ────────────────────────────────────────────────
+      const M = 36; // margin
+      const CW = PW - M * 2;
 
-      y += Math.ceil(stats.length / cols) * (boxH + 6) + 10;
-      doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(120, 100, 60);
-      doc.text(`Last Mission: ${formatDate(studentObj.last_test_taken)}`, margin, y);
-      y += 16; drawHRule([201, 168, 76]); y += 4;
-
-      doc.setFont("helvetica", "bold"); doc.setFontSize(11); doc.setTextColor(100, 75, 20);
-      doc.text("Activity Calendar", margin, y); y += 12;
-
-      const grouped = groupByDate(quests, videos, stories);
-      let cursor = new Date(CALENDAR_VISIBLE_START.getFullYear(), CALENDAR_VISIBLE_START.getMonth(), 1);
-      const today = new Date();
-      const endMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-      const calCols = 2, calW = contentW / calCols;
-      const daySize = Math.floor((calW - 12) / 7);
-      let calCol = 0, calRowY = y;
-
-      while (cursor <= endMonth) {
-        const year = cursor.getFullYear(), month = cursor.getMonth();
-        const firstDay = new Date(year, month, 1).getDay();
-        const numDays = new Date(year, month + 1, 0).getDate();
-        const bx = margin + calCol * calW;
-        let cy = calRowY;
-        doc.setFont("helvetica", "bold"); doc.setFontSize(8); doc.setTextColor(100, 75, 20);
-        const monthLabel = cursor.toLocaleString('en-IN', { month: 'long', year: 'numeric' });
-        doc.text(monthLabel, bx + calW / 2 - doc.getTextWidth(monthLabel) / 2, cy + 8); cy += 14;
-        const dayNames = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
-        doc.setFont("helvetica", "normal"); doc.setFontSize(6); doc.setTextColor(130, 100, 50);
-        dayNames.forEach((d, di) => doc.text(d, bx + 4 + di * (daySize + 1) + (daySize - doc.getTextWidth(d)) / 2, cy + 7));
-        cy += 10;
-        let cellX = firstDay, cellRow = 0;
-        for (let d = 1; d <= numDays; d++) {
-          const date = new Date(year, month, d);
-          const key = date.toDateString();
-          const hasActivity = !!grouped[key];
-          const dx = bx + 4 + cellX * (daySize + 1), dy = cy + cellRow * (daySize + 1);
-          if (hasActivity) { doc.setFillColor(248, 224, 140); doc.setDrawColor(201, 168, 76); }
-          else { doc.setFillColor(250, 248, 245); doc.setDrawColor(220, 200, 160); }
-          doc.setLineWidth(0.3); doc.rect(dx, dy, daySize, daySize, "FD");
-          doc.setFont("helvetica", hasActivity ? "bold" : "normal"); doc.setFontSize(5.5);
-          doc.setTextColor(hasActivity ? 80 : 160, hasActivity ? 60 : 130, hasActivity ? 10 : 90);
-          const dStr = String(d);
-          doc.text(dStr, dx + (daySize - doc.getTextWidth(dStr)) / 2, dy + daySize * 0.65);
-          cellX++; if (cellX === 7) { cellX = 0; cellRow++; }
-        }
-        const thisMonthH = cy + (cellRow + (cellX > 0 ? 1 : 0)) * (daySize + 1) - calRowY + 8;
-        calCol++;
-        if (calCol >= calCols) { calCol = 0; calRowY += thisMonthH + 10; checkPage(80); }
-        cursor.setMonth(cursor.getMonth() + 1);
+      function cx(str, size, style, color) {
+        doc.setFont("helvetica", style || "normal");
+        doc.setFontSize(size);
+        doc.setTextColor(...(color || INK));
+        return doc.getTextWidth(str);
+      }
+      function ct(str, y2, size, style, color) {
+        const w = cx(str, size, style, color);
+        doc.text(str, PW / 2, y2, { align: "center" });
+      }
+      function lt(str, x2, y2, size, style, color) {
+        cx(str, size, style, color);
+        doc.text(str, x2, y2);
+      }
+      function rt(str, x2, y2, size, style, color) {
+        cx(str, size, style, color);
+        doc.text(str, x2, y2, { align: "right" });
+      }
+      function hline(y2, x1, x2, color, lw) {
+        doc.setDrawColor(...(color || GOLD));
+        doc.setLineWidth(lw || 0.5);
+        doc.line(x1 !== undefined ? x1 : M, y2, x2 !== undefined ? x2 : PW - M, y2);
+      }
+      function fillRect(x2, y2, w2, h2, color) {
+        doc.setFillColor(...color);
+        doc.rect(x2, y2, w2, h2, "F");
+      }
+      function strokeRect(x2, y2, w2, h2, color, lw) {
+        doc.setDrawColor(...(color || GOLD));
+        doc.setLineWidth(lw || 0.5);
+        doc.rect(x2, y2, w2, h2, "S");
+      }
+      function roundFill(x2, y2, w2, h2, r, fill, stroke, lw) {
+        doc.setFillColor(...fill);
+        if (stroke) { doc.setDrawColor(...stroke); doc.setLineWidth(lw || 0.5); doc.roundedRect(x2, y2, w2, h2, r, r, "FD"); }
+        else { doc.roundedRect(x2, y2, w2, h2, r, r, "F"); }
       }
 
-      doc.setFont("helvetica", "normal"); doc.setFontSize(8); doc.setTextColor(180, 150, 80);
-      doc.text(`Generated: ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}`, pageW / 2, pageH - 20, { align: "center" });
-      doc.setFillColor(201, 168, 76); doc.rect(0, pageH - 6, pageW, 6, "F");
-      doc.save(`${studentObj.name}_Profile.pdf`);
+      // ── DATA PREP ────────────────────────────────────────────────────
+      const quests  = parseItems(studentObj.quest_list);
+      const videos  = parseItems(studentObj.video_list);
+      const stories = parseItems(studentObj.story_list);
+      const grouped = groupByDate(quests, videos, stories);
+
+      const totalSec  = Math.round(studentObj.total_time || 0);
+      const tH = Math.floor(totalSec / 3600);
+      const tM = Math.floor((totalSec % 3600) / 60);
+      const tS = totalSec % 60;
+      const timeStr   = `${tH}h ${tM}m ${tS}s`;
+      const accuracy  = Math.round((studentObj.accuracy || 0) * 100);
+      const score     = studentObj.total_score ?? 0;
+      const dept      = (studentObj.department || "").toUpperCase();
+      const name      = studentObj.name || "—";
+
+      // Count active days
+      const activeDays = Object.keys(grouped).length;
+
+      // ══════════════════════════════════════════════════════════════════
+      //  PAGE 1 — HERO SUMMARY CARD (top 400pt of A4)
+      // ══════════════════════════════════════════════════════════════════
+
+      // ── Deep cream card background ────────────────────────────────────
+      fillRect(0, 0, PW, 420, CREAM);
+
+      // ── Ornate gold top border (triple line) ─────────────────────────
+      fillRect(0, 0, PW, 8, GOLD);
+      fillRect(0, 10, PW, 1.5, GOLD_LIGHT);
+      fillRect(0, 13, PW, 0.5, GOLD);
+
+      // ── Corner ornaments (diamond shapes) ────────────────────────────
+      function diamond(cx2, cy2, size2) {
+        doc.setFillColor(...GOLD);
+        doc.setDrawColor(...GOLD_DEEP);
+        doc.setLineWidth(0.3);
+        const pts = `M ${cx2} ${cy2 - size2} L ${cx2 + size2} ${cy2} L ${cx2} ${cy2 + size2} L ${cx2 - size2} ${cy2} Z`;
+        // jsPDF doesn't support SVG paths directly, approximate with lines
+        doc.setFillColor(...GOLD);
+        // draw as a rotated square using lines
+        doc.setDrawColor(...GOLD);
+        doc.setLineWidth(0);
+        const s2 = size2 * 0.8;
+        doc.lines([[s2, s2], [s2, -s2], [-s2, -s2], [-s2, s2]], cx2 - s2, cy2, [1, 1], "F");
+      }
+      diamond(M - 4, 4, 5);
+      diamond(PW - M + 4, 4, 5);
+      diamond(M - 4, 416, 5);
+      diamond(PW - M + 4, 416, 5);
+
+      // ── Institution header ────────────────────────────────────────────
+      let y = 38;
+      ct("SRM VALLIAMMAI ENGINEERING COLLEGE", y, 10, "bold", GOLD_DEEP);
+      y += 13;
+      ct("Department of English", y, 8, "normal", INK_MID);
+      y += 8;
+      hline(y, M + 20, PW - M - 20, GOLD_LIGHT, 0.3);
+      y += 10;
+      ct("MISSION: VENI, VIDI, VICI!", y, 7.5, "normal", INK_DIM);
+
+      // ── Wide gold rule ────────────────────────────────────────────────
+      y += 14;
+      fillRect(M, y, CW, 1, GOLD);
+      y += 8;
+
+      // ── PILOT NAME — large serif-style via bold helvetica ─────────────
+      ct(name.toUpperCase(), y, 26, "bold", INK);
+      y += 6;
+      if (dept) {
+        ct(dept, y + 10, 8, "normal", INK_MID);
+        y += 16;
+      }
+
+      // ── Thin double rule ──────────────────────────────────────────────
+      y += 6;
+      hline(y, M + 40, PW - M - 40, GOLD, 0.4);
+      y += 3;
+      hline(y, M + 40, PW - M - 40, GOLD_LIGHT, 0.2);
+      y += 14;
+
+      // ── HERO STATS — 3 big numbers centred ───────────────────────────
+      // Score | Accuracy | Active Days
+      const heroStats = [
+        { label: "MISSION SCORE",  value: String(score),       sub: "points earned"     },
+        { label: "ACCURACY",       value: `${accuracy}%`,      sub: "questions correct" },
+        { label: "ACTIVE DAYS",    value: String(activeDays),  sub: "days with activity"},
+      ];
+      const heroW = CW / 3;
+      heroStats.forEach((hs, i) => {
+        const bx = M + i * heroW;
+        const midX = bx + heroW / 2;
+
+        // vertical dividers between stats
+        if (i > 0) {
+          doc.setDrawColor(...GOLD_LIGHT);
+          doc.setLineWidth(0.5);
+          doc.line(bx, y - 4, bx, y + 48);
+        }
+
+        // Big value
+        cx(hs.value, 28, "bold", GOLD_DEEP);
+        doc.text(hs.value, midX, y + 22, { align: "center" });
+
+        // Label
+        cx(hs.label, 6.5, "bold", INK_DIM);
+        doc.text(hs.label, midX, y + 34, { align: "center" });
+
+        // Sub
+        cx(hs.sub, 6, "normal", INK_DIM);
+        doc.text(hs.sub, midX, y + 43, { align: "center" });
+      });
+      y += 60;
+
+      // ── TIME ON MISSION — wide banner ─────────────────────────────────
+      roundFill(M, y, CW, 36, 4, CREAM_DARK, GOLD, 0.4);
+      cx("TIME ON MISSION", 7, "bold", INK_DIM);
+      doc.text("TIME ON MISSION", M + 14, y + 13);
+      cx(timeStr, 17, "bold", GOLD_DEEP);
+      doc.text(timeStr, PW - M - 14, y + 20, { align: "right" });
+      y += 48;
+
+      // ── Activity counts row ───────────────────────────────────────────
+      const acts = [
+        { icon: "Q", label: "Quests",  value: quests.length  },
+        { icon: "V", label: "Videos",  value: videos.length  },
+        { icon: "S", label: "Stories", value: stories.length },
+        { icon: "C", label: "Cryptic", value: studentObj.cryptic_completed ?? 0 },
+        { icon: "W", label: "Wordle",  value: studentObj.wordle_completed  ?? 0 },
+      ];
+      const actW = CW / acts.length;
+      acts.forEach((a, i) => {
+        const bx = M + i * actW;
+        const midX = bx + actW / 2;
+
+        // pill background
+        const isActive = a.value > 0;
+        roundFill(bx + 4, y, actW - 8, 44, 6,
+          isActive ? [248, 238, 210] : CREAM_DARK,
+          isActive ? GOLD : [210, 200, 185], 0.4);
+
+        // Count
+        cx(String(a.value), 16, "bold", isActive ? GOLD_DEEP : INK_DIM);
+        doc.text(String(a.value), midX, y + 20, { align: "center" });
+
+        // Label
+        cx(a.label.toUpperCase(), 6, "bold", INK_DIM);
+        doc.text(a.label.toUpperCase(), midX, y + 33, { align: "center" });
+      });
+      y += 56;
+
+      // ── Last mission timestamp ─────────────────────────────────────────
+      hline(y, M + 20, PW - M - 20, GOLD_LIGHT, 0.3);
+      y += 10;
+      ct(`Last Mission: ${formatDate(studentObj.last_test_taken)}`, y, 7.5, "normal", INK_DIM);
+      y += 14;
+
+      // ── Gold bottom border (card) ──────────────────────────────────────
+      fillRect(0, 413, PW, 0.5, GOLD_LIGHT);
+      fillRect(0, 415, PW, 5, GOLD);
+
+      // ── Decorative watermark text ──────────────────────────────────────
+      doc.setTextColor(201, 168, 76);
+      doc.setGState(new doc.GState({ opacity: 0.06 }));
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(72);
+      doc.text("VVV", PW / 2, 340, { align: "center" });
+      doc.setGState(new doc.GState({ opacity: 1.0 }));
+
+      // ══════════════════════════════════════════════════════════════════
+      //  PAGE 1 LOWER HALF — ACTIVITY CALENDAR
+      // ══════════════════════════════════════════════════════════════════
+
+      // White area below card
+      fillRect(0, 420, PW, PH - 420, WHITE);
+
+      y = 440;
+      // Section header
+      fillRect(M, y, 3, 16, GOLD);
+      cx("ACTIVITY CALENDAR", 10, "bold", INK);
+      doc.text("ACTIVITY CALENDAR", M + 10, y + 12);
+      cx("Gold cells = days with completed Quests, Videos or Stories", 7.5, "normal", INK_DIM);
+      doc.text("Gold cells = days with completed Quests, Videos or Stories", PW - M, y + 12, { align: "right" });
+
+      y += 28;
+
+      // Render months in 3-column grid to fit on page
+      const calCols3 = 3;
+      const calW3 = CW / calCols3;
+      const daySize3 = Math.floor((calW3 - 10) / 7);
+      let calCol3 = 0;
+      let calRowY3 = y;
+      let calMaxH = 0;
+
+      const todayDate  = new Date();
+      const endMonth3  = new Date(todayDate.getFullYear(), todayDate.getMonth(), 1);
+      let cur3 = new Date(CALENDAR_VISIBLE_START.getFullYear(), CALENDAR_VISIBLE_START.getMonth(), 1);
+
+      while (cur3 <= endMonth3) {
+        const yr3 = cur3.getFullYear(), mo3 = cur3.getMonth();
+        const fd3 = new Date(yr3, mo3, 1).getDay();
+        const nd3 = new Date(yr3, mo3 + 1, 0).getDate();
+        const bx3 = M + calCol3 * calW3;
+        let cy3 = calRowY3;
+
+        // Month label background
+        fillRect(bx3 + 2, cy3, calW3 - 4, 14, CREAM_DARK);
+        cx(cur3.toLocaleString('en-IN', { month: 'short', year: 'numeric' }).toUpperCase(), 6.5, "bold", GOLD_DEEP);
+        doc.text(cur3.toLocaleString('en-IN', { month: 'short', year: 'numeric' }).toUpperCase(),
+          bx3 + calW3 / 2, cy3 + 10, { align: "center" });
+        cy3 += 17;
+
+        // Day name headers
+        const dn3 = ["Su","Mo","Tu","We","Th","Fr","Sa"];
+        dn3.forEach((d3, di3) => {
+          cx(d3, 5, "bold", INK_DIM);
+          doc.text(d3, bx3 + 4 + di3 * (daySize3 + 1) + (daySize3 - doc.getTextWidth(d3)) / 2, cy3 + 7);
+        });
+        cy3 += 10;
+
+        // Day cells
+        let cx3 = fd3, cr3 = 0;
+        for (let d3 = 1; d3 <= nd3; d3++) {
+          const dk3 = new Date(yr3, mo3, d3).toDateString();
+          const act3 = !!grouped[dk3];
+          const dx3 = bx3 + 3 + cx3 * (daySize3 + 1);
+          const dy3 = cy3 + cr3 * (daySize3 + 1);
+
+          if (act3) {
+            doc.setFillColor(248, 224, 140);
+            doc.setDrawColor(...GOLD);
+          } else {
+            doc.setFillColor(...CREAM);
+            doc.setDrawColor(218, 208, 190);
+          }
+          doc.setLineWidth(0.25);
+          doc.rect(dx3, dy3, daySize3, daySize3, "FD");
+
+          cx(String(d3), 5, act3 ? "bold" : "normal", act3 ? GOLD_DEEP : INK_DIM);
+          doc.text(String(d3), dx3 + daySize3 / 2, dy3 + daySize3 * 0.68, { align: "center" });
+
+          cx3++; if (cx3 === 7) { cx3 = 0; cr3++; }
+        }
+
+        const mH = cy3 + (cr3 + (cx3 > 0 ? 1 : 0)) * (daySize3 + 1) - calRowY3 + 6;
+        calMaxH = Math.max(calMaxH, mH);
+
+        calCol3++;
+        if (calCol3 >= calCols3) {
+          calCol3 = 0;
+          calRowY3 += calMaxH + 8;
+          calMaxH = 0;
+
+          // Page break if needed
+          if (calRowY3 > PH - 60) {
+            doc.addPage();
+            fillRect(0, 0, PW, PH, WHITE);
+            // gold top strip on continuation page
+            fillRect(0, 0, PW, 5, GOLD);
+            calRowY3 = 30;
+            y = calRowY3;
+          }
+        }
+        cur3.setMonth(cur3.getMonth() + 1);
+      }
+
+      // ── PAGE FOOTER ───────────────────────────────────────────────────
+      // Always on last page
+      const footerY = PH - 28;
+      hline(footerY, M, PW - M, GOLD_LIGHT, 0.3);
+      cx(`Generated ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' })}  ·  Mission: Veni, Vidi, Vici!  ·  SRM Valliammai`, 6.5, "normal", INK_DIM);
+      doc.text(
+        `Generated ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' })}  ·  Mission: Veni, Vidi, Vici!  ·  SRM Valliammai`,
+        PW / 2, footerY + 14, { align: "center" }
+      );
+      fillRect(0, PH - 5, PW, 5, GOLD);
+
+      // ── SAVE ─────────────────────────────────────────────────────────
+      doc.save(`${name}_MissionReport.pdf`);
     }
   </script>
 
@@ -1279,9 +1519,6 @@
           </button>
           <button class="sort-btn" data-sort="wordle_completed" onclick="sortData('wordle_completed')">
             Wordle <span class="sort-indicator"></span>
-          </button>
-          <button class="sort-btn" data-sort="accuracy" onclick="sortData('accuracy')">
-            Accuracy <span class="sort-indicator"></span>
           </button>
           <button class="sort-btn" data-sort="total_time" onclick="sortData('total_time')">
             Time <span class="sort-indicator"></span>

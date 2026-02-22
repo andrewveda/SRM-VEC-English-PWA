@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#07070d" />
+  <meta name="description" content="Linguathon Arena — Preliminary Selection Round" />
+  <title>LINGUATHON ARENA</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet" />
+
+  <script type="module">
+    import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+    /* ─────────────────────────────────────────────────────────────
+       SUPABASE — same credentials & view as your existing PWA
+    ───────────────────────────────────────────────────────────── */
+    const supabase = createClient(
+      "https://ahezssoczvpbkteffcgz.supabase.co",
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoZXpzc29jenZwYmt0ZWZmY2d6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI4NTk1ODUsImV4cCI6MjA3ODQzNTU4NX0.2ZlqXnZxv0opkhynAT7OlK4S-xPygcc7ETUyTXRfGHE"
+    );
+
+    let reportData    = [];
+    let filteredData  = [];
+    let currentDept   = "ALL";
+    let currentSort   = "last_test_taken";
+    let sortAscending = false;
+    let showSecondsOnly = false;
+
+    /* ───────────────────── BOOT ────────────────────────────── */
+    async function loadData() {
+      document.getElementById("loader").style.display = "flex";
+      const { data, error } = await supabase.from("report_card_view").select("*");
+      document.getElementById("loader").style.display = "none";
+
+      if (error) {
+        document.getElementById("lb-error").textContent = "⚠️ Unable to load data. Check connection.";
+        return;
+      }
+
+      reportData   = data || [];
+      filteredData = [...reportData];
+      filteredData.sort((a, b) => new Date(b.last_test_taken || 0) - new Date(a.last_test_taken || 0));
+
+      populateDeptDropdown(reportData);
+      updateLastTestBadge();
+
+      const savedDept = localStorage.getItem("lng_dept");
+      if (savedDept) {
+        const sel = document.getElementById("deptSelect");
+        if (sel) { sel.value = savedDept; applyDeptFilter(savedDept); return; }
+      }
+      sortData(currentSort, true);
+    }
+
+    function updateLastTestBadge() {
+      if (!reportData.length) return;
+      const sorted = [...reportData].sort((a, b) => new Date(b.last_test_taken) - new Date(a.last_test_taken));
+      document.getElementById("last-test-info").textContent =
+        `⚡ Last active: ${sorted[0].name} · ${fmtDate(sorted[0].last_test_taken)}`;
+    }
+
+    /* ───────────────────── FORMATTING ─────────────────────── */
+    function fmtDate(d) {
+      if (!d) return "N/A";
+      return new Date(d).toLocaleString("en-IN", {
+        timeZone: "Asia/Kolkata",
+        day: "2-digit", month: "short", year: "numeric",
+        hour: "2-digit", minute: "2-digit", hour12: true
+      });
+    }
+
+    function fmtTimePad(s) {
+      s = Math.round(s || 0);
+      const h   = String(Math.floor(s / 3600)).padStart(2, "0");
+      const m   = String(Math.floor((s % 3600) / 60)).padStart(2, "0");
+      const sec = String(s % 60).padStart(2, "0");
+      return `<span class="t-blk"><span class="t-n">${h}</span><span class="t-u h">h</span></span><span class="t-blk"><span class="t-n">${m}</span><span class="t-u m">m</span></span><span class="t-blk"><span class="t-n">${sec}</span><span class="t-u s">s</span></span>`;
+    }
+
+    function fmtTime(s) {
+      s = Math.round(s || 0);
+      const h   = Math.floor(s / 3600);
+      const m   = Math.floor((s % 3600) / 60);
+      const sec = s % 60;
+      return `<span class="t-blk"><span class="t-n">${h}</span><span class="t-u h">h</span></span><span class="t-blk"><span class="t-n">${m}</span><span class="t-u m">m</span></span><span class="t-blk"><span class="t-n">${sec}</span><span class="t-u s">s</span></span>`;
+    }
+
+    function medalFor(i) { return ["🥇","🥈","🥉"][i] || (i + 1); }
+
+    /* ───────────────────── DEPT FILTER ─────────────────────── */
+    function populateDeptDropdown(data) {
+      const sel = document.getElementById("deptSelect");
+      if (!sel) return;
+      sel.innerHTML = `<option value="ALL">All Departments</option>`;
+      const depts = [...new Set(data.map(s => (s.department || "").trim().toUpperCase()).filter(Boolean))].sort();
+      depts.forEach(d => {
+        const o = document.createElement("option");
+        o.value = d; o.textContent = d; sel.appendChild(o);
+      });
+    }
+
+    function applyDeptFilter(dept) {
+      currentDept = dept;
+      localStorage.setItem("lng_dept", dept);
+      filteredData = dept === "ALL" ? [...reportData]
+        : reportData.filter(s => (s.department || "").trim().toUpperCase() === dept);
+      sortAscending = false;
+      filteredData.sort((a, b) => new Date(b.last_test_taken || 0) - new Date(a.last_test_taken || 0));
+      renderLB();
+    }
+
+    /* ───────────────────── SORT ─────────────────────────────── */
+    function sortData(key, force) {
+      if (!force && currentSort === key) sortAscending = !sortAscending;
+      else { currentSort = key; sortAscending = false; }
+
+      filteredData.sort((a, b) => {
+        let A = a[key], B = b[key];
+        if (A == null) A = sortAscending ?  Infinity : -Infinity;
+        if (B == null) B = sortAscending ?  Infinity : -Infinity;
+        if (key === "last_test_taken") {
+          A = new Date(a.last_test_taken).getTime();
+          B = new Date(b.last_test_taken).getTime();
+        }
+        return sortAscending ? A - B : B - A;
+      });
+
+      refreshSortUI();
+      renderLB();
+    }
+
+    function refreshSortUI() {
+      document.querySelectorAll(".s-btn").forEach(b => {
+        b.classList.remove("active");
+        const ind = b.querySelector(".s-ind");
+        if (ind) ind.textContent = "";
+      });
+      const toggle = document.getElementById("time-toggle");
+      if (toggle) toggle.style.display = currentSort === "total_time" ? "inline-flex" : "none";
+      const active = document.querySelector(`[data-sort="${currentSort}"]`);
+      if (active) {
+        active.classList.add("active");
+        let ind = active.querySelector(".s-ind");
+        if (!ind) { ind = document.createElement("span"); ind.className = "s-ind"; active.appendChild(ind); }
+        ind.textContent = sortAscending ? " ▲" : " ▼";
+      }
+    }
+
+    /* ───────────────────── LEADERBOARD RENDER ──────────────── */
+    function renderLB() {
+      const container = document.getElementById("leaderboard");
+      container.innerHTML = "";
+
+      if (!filteredData.length) {
+        container.innerHTML = `<div class="lb-empty">NO PILOTS IN THE ARENA YET</div>`;
+        return;
+      }
+
+      const metricLabels = {
+        accuracy:           "TARGET LOCK",
+        total_time:         "TIME ON MISSION",
+        quests_completed:   "QUESTS",
+        videos_completed:   "VIDEOS",
+        stories_completed:  "STORIES",
+        cryptic_completed:  "CRYPTIC",
+        wordle_completed:   "WORDLE BLITZ",
+        blossom_completed:  "BLOSSOM",
+        pics_completed:     "4 PICS 1 WORD",
+        last_test_taken:    "LAST ACTIVE",
+      };
+
+      const scoreColors = {
+        wordle_completed:  "var(--c-gold)",
+        cryptic_completed: "var(--c-mint)",
+        blossom_completed: "var(--c-pink)",
+        pics_completed:    "var(--c-blue)",
+      };
+
+      filteredData.forEach((s, i) => {
+        const row = document.createElement("div");
+        row.className = "lb-row" + (i===0?" top1":i===1?" top2":i===2?" top3":"");
+
+        let scoreHTML = "";
+        if (currentSort === "last_test_taken") {
+          scoreHTML = `<div class="lb-score small-score">${fmtDate(s.last_test_taken)}</div>`;
+        } else if (currentSort === "total_time") {
+          scoreHTML = showSecondsOnly
+            ? `<div class="lb-score">${Math.round(s.total_time||0)}s</div>`
+            : `<div class="lb-score score-time">${fmtTimePad(s.total_time)}</div>`;
+        } else if (currentSort === "accuracy") {
+          scoreHTML = `<div class="lb-score">${Math.round((s.accuracy||0)*100)}%</div>`;
+        } else {
+          const col = scoreColors[currentSort] || "var(--c-gold)";
+          scoreHTML = `<div class="lb-score" style="color:${col}">${s[currentSort]??0}</div>`;
+        }
+
+        row.innerHTML = `
+          <div class="lb-rank">${medalFor(i)}</div>
+          <div class="lb-info">
+            <div class="lb-name">${s.name}<span class="lb-dept">${s.department ? ` · ${s.department}` : ""}</span></div>
+            <div class="lb-metric">${metricLabels[currentSort]||""}</div>
+          </div>
+          ${scoreHTML}`;
+
+        row.onclick = () => showModal(s);
+        container.appendChild(row);
+      });
+    }
+
+    /* ───────────────────── MODAL ───────────────────────────── */
+    const START_DATE = new Date("2025-08-25");
+    const CAL_START  = new Date("2026-02-01");
+
+    function mapToDate(num) {
+      const d = new Date(START_DATE);
+      d.setDate(d.getDate() + (num - 1));
+      return d;
+    }
+
+    function parseItems(raw) {
+      if (!raw || raw === "NULL") return [];
+      return raw.split(",").map(x => x.trim()).filter(Boolean).map(x => {
+        const [type, num] = x.split(" ");
+        return { type, number: Number(num), label: x };
+      });
+    }
+
+    function groupByDate(quests, videos, stories) {
+      const map = {};
+      const add = (date, label) => { const k = date.toDateString(); (map[k] = map[k]||[]).push(label); };
+      quests.forEach(q  => add(mapToDate(q.number), q.label));
+      videos.forEach(v  => add(mapToDate(v.number), v.label));
+      stories.forEach(s => add(mapToDate(s.number), s.label));
+      return map;
+    }
+
+    function iconFor(label) {
+      if (label.startsWith("Quest"))  return "♥️";
+      if (label.startsWith("Video"))  return "😍";
+      if (label.startsWith("Story"))  return "📜";
+      return "•";
+    }
+
+    function renderMiniCal(containerId, grouped) {
+      const el = document.getElementById(containerId);
+      if (!el) return;
+      el.innerHTML = "";
+      let cur = new Date(CAL_START.getFullYear(), CAL_START.getMonth(), 1);
+      const end = new Date();
+      const endMon = new Date(end.getFullYear(), end.getMonth(), 1);
+      while (cur <= endMon) {
+        el.innerHTML += renderMonth(cur, grouped);
+        cur.setMonth(cur.getMonth() + 1);
+      }
+    }
+
+    function renderMonth(base, grouped) {
+      const yr = base.getFullYear(), mo = base.getMonth();
+      const fd = new Date(yr, mo, 1).getDay();
+      const nd = new Date(yr, mo + 1, 0).getDate();
+      let html = `<div class="mcal-title">${base.toLocaleString("en-IN",{month:"long",year:"numeric"})}</div><div class="mcal-grid"><div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>`;
+      for (let i = 0; i < fd; i++) html += `<div></div>`;
+      for (let d = 1; d <= nd; d++) {
+        const key   = new Date(yr, mo, d).toDateString();
+        const items = grouped[key];
+        html += items
+          ? `<div class="mcal-day marked"><div class="mcal-dn">${d}</div><div class="mcal-icons">${items.map(i=>`<span>${iconFor(i)}</span>`).join("")}</div></div>`
+          : `<div class="mcal-day">${d}</div>`;
+      }
+      return html + "</div>";
+    }
+
+    function showModal(s) {
+      const quests  = parseItems(s.quest_list);
+      const videos  = parseItems(s.video_list);
+      const stories = parseItems(s.story_list);
+      const grouped = groupByDate(quests, videos, stories);
+      const totalSec = Math.round(s.total_time || 0);
+      const tH = Math.floor(totalSec/3600), tM = Math.floor((totalSec%3600)/60), tS = totalSec%60;
+      const activeDays = Object.keys(grouped).length;
+
+      document.getElementById("modal-body").innerHTML = `
+        <div class="modal-tag">Pilot Profile</div>
+        <div class="modal-hd">
+          <div>
+            <div class="modal-name">${s.name}</div>
+            <div class="modal-dept">${s.department||""}</div>
+          </div>
+          <button class="modal-close" onclick="closeModal()">×</button>
+        </div>
+
+        <div class="stat-grid">
+          <div class="stat-box"><div class="stat-lbl">Score</div><div class="stat-val">${s.total_score??0}</div><div class="stat-ft">mission pts</div></div>
+          <div class="stat-box"><div class="stat-lbl">Accuracy</div><div class="stat-val">${Math.round((s.accuracy??0)*100)}%</div><div class="stat-ft">hit rate</div></div>
+          <div class="stat-box"><div class="stat-lbl">Active Days</div><div class="stat-val">${activeDays}</div><div class="stat-ft">days</div></div>
+          <div class="stat-box"><div class="stat-lbl">Wordle Blitz</div><div class="stat-val" style="color:var(--c-gold)">${s.wordle_completed??0}</div><div class="stat-ft">solved</div></div>
+          <div class="stat-box"><div class="stat-lbl">Cryptic</div><div class="stat-val" style="color:var(--c-mint)">${s.cryptic_completed??0}</div><div class="stat-ft">solved</div></div>
+          <div class="stat-box"><div class="stat-lbl">Blossom</div><div class="stat-val" style="color:var(--c-pink)">${s.blossom_completed??0}</div><div class="stat-ft">solved</div></div>
+          <div class="stat-box"><div class="stat-lbl">4 Pics</div><div class="stat-val" style="color:var(--c-blue)">${s.pics_completed??0}</div><div class="stat-ft">solved</div></div>
+          <div class="stat-box"><div class="stat-lbl">Quests</div><div class="stat-val">${s.total_attempts??0}</div><div class="stat-ft">completed</div></div>
+          <div class="stat-box"><div class="stat-lbl">Correct</div><div class="stat-val">${s.total_correct??0}</div><div class="stat-ft">hits</div></div>
+          <div class="stat-box"><div class="stat-lbl">Wrong</div><div class="stat-val">${s.total_wrong??0}</div><div class="stat-ft">misses</div></div>
+          <div class="stat-box span2"><div class="stat-lbl">Time on Mission</div><div class="stat-val">${tH}h ${tM}m ${tS}s</div><div class="stat-ft">cumulative</div></div>
+        </div>
+
+        <div class="detail-box">
+          <div class="detail-title">📡 Activity Grid</div>
+          <div class="detail-sub">Gold days = completed Quests, Videos or Stories</div>
+          <div class="mcal-wrap" id="mcal"></div>
+        </div>
+
+        <div class="detail-box">
+          <div class="detail-title">🕐 Last Mission</div>
+          <div class="detail-sub">${fmtDate(s.last_test_taken)}</div>
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn-pdf" onclick="downloadPDF(window.__ms)">📄 Download PDF</button>
+          <button class="btn-wa" onclick="shareWA(window.__ms)">
+            <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+            WhatsApp
+          </button>
+        </div>`;
+
+      window.__ms = s;
+      renderMiniCal("mcal", grouped);
+      document.getElementById("modal").style.display = "flex";
+    }
+
+    function closeModal() { document.getElementById("modal").style.display = "none"; }
+
+    /* ───────────────────── SQUAD OVERVIEW ──────────────────── */
+    function showSquad() {
+      if (!reportData.length) return;
+      const n = reportData.length;
+      const sum = k => reportData.reduce((acc, r) => acc + (r[k]||0), 0);
+      const avg = k => Math.round(sum(k) / n);
+      const avgAcc = Math.round((reportData.reduce((acc,r)=>acc+(r.accuracy||0),0)/n)*100);
+
+      document.getElementById("modal-body").innerHTML = `
+        <div class="modal-tag">Class Stats</div>
+        <div class="modal-hd">
+          <div class="modal-name">Squad Overview</div>
+          <button class="modal-close" onclick="closeModal()">×</button>
+        </div>
+        <div class="stat-grid">
+          <div class="stat-box"><div class="stat-lbl">Pilots</div><div class="stat-val">${n}</div><div class="stat-ft">registered</div></div>
+          <div class="stat-box"><div class="stat-lbl">Avg Score</div><div class="stat-val">${avg("total_score")}</div><div class="stat-ft">per pilot</div></div>
+          <div class="stat-box"><div class="stat-lbl">Avg Accuracy</div><div class="stat-val">${avgAcc}%</div><div class="stat-ft">hit rate</div></div>
+          <div class="stat-box"><div class="stat-lbl">Wordle Blitz</div><div class="stat-val" style="color:var(--c-gold)">${sum("wordle_completed")}</div><div class="stat-ft">solved</div></div>
+          <div class="stat-box"><div class="stat-lbl">Cryptic</div><div class="stat-val" style="color:var(--c-mint)">${sum("cryptic_completed")}</div><div class="stat-ft">solved</div></div>
+          <div class="stat-box"><div class="stat-lbl">Blossom</div><div class="stat-val" style="color:var(--c-pink)">${sum("blossom_completed")}</div><div class="stat-ft">solved</div></div>
+          <div class="stat-box"><div class="stat-lbl">4 Pics</div><div class="stat-val" style="color:var(--c-blue)">${sum("pics_completed")}</div><div class="stat-ft">solved</div></div>
+          <div class="stat-box"><div class="stat-lbl">Total Attempts</div><div class="stat-val">${sum("total_attempts")}</div><div class="stat-ft">shots fired</div></div>
+          <div class="stat-box"><div class="stat-lbl">Videos</div><div class="stat-val">${sum("videos_completed")}</div><div class="stat-ft">completed</div></div>
+          <div class="stat-box"><div class="stat-lbl">Stories</div><div class="stat-val">${sum("stories_completed")}</div><div class="stat-ft">completed</div></div>
+        </div>`;
+      document.getElementById("modal").style.display = "flex";
+    }
+
+    /* ───────────────────── WHATSAPP SHARE ──────────────────── */
+    async function shareWA(s) {
+      if (!window.html2canvas) await loadScript("https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js");
+      const quests  = parseItems(s.quest_list);
+      const videos  = parseItems(s.video_list);
+      const stories = parseItems(s.story_list);
+      const grouped = groupByDate(quests, videos, stories);
+      const activeDays = Object.keys(grouped).length;
+      const totalSec   = Math.round(s.total_time || 0);
+      const tH = Math.floor(totalSec/3600), tM = Math.floor((totalSec%3600)/60), tS = totalSec%60;
+      const acc = Math.round((s.accuracy||0)*100);
+
+      const today = new Date(), gridDays = 56;
+      let gridHtml = "";
+      for (let i = gridDays-1; i >= 0; i--) {
+        const d = new Date(today); d.setDate(d.getDate()-i);
+        const has = !!grouped[d.toDateString()];
+        gridHtml += `<div style="width:11px;height:11px;border-radius:2px;background:${has?"linear-gradient(135deg,#f7c948,#c9a84c)":"rgba(247,201,72,0.1)"};"></div>`;
+      }
+
+      const card = document.createElement("div");
+      card.style.cssText = "position:fixed;left:-9999px;top:0;width:520px;font-family:sans-serif;background:#07070d;border-radius:16px;overflow:hidden;";
+      card.innerHTML = `
+        <div style="height:5px;background:linear-gradient(90deg,#f7c948,#3ef0b0,#f05a7e,#5a7ef0,#f7c948);"></div>
+        <div style="padding:24px;">
+          <div style="text-align:center;margin-bottom:16px;">
+            <div style="font-size:8.5px;letter-spacing:.2em;color:rgba(247,201,72,.5);text-transform:uppercase;">LINGUATHON ARENA · PRELIMINARY SELECTION</div>
+            <div style="font-size:28px;font-weight:900;color:#f5e6a0;margin-top:6px;letter-spacing:.03em;">${s.name.toUpperCase()}</div>
+            ${s.department?`<div style="font-size:8.5px;letter-spacing:.15em;color:rgba(247,201,72,.5);margin-top:4px;">${s.department.toUpperCase()}</div>`:""}
+          </div>
+          <div style="display:flex;gap:8px;margin-bottom:10px;">
+            ${[{l:"Score",v:s.total_score??0},{l:"Accuracy",v:acc+"%"},{l:"Active Days",v:activeDays}].map(x=>`
+              <div style="flex:1;background:rgba(247,201,72,.1);border:1px solid rgba(247,201,72,.3);border-radius:10px;padding:12px;text-align:center;">
+                <div style="font-size:26px;font-weight:900;color:#f7c948;line-height:1">${x.v}</div>
+                <div style="font-size:7.5px;letter-spacing:.14em;color:rgba(247,201,72,.5);margin-top:4px;text-transform:uppercase;">${x.l}</div>
+              </div>`).join("")}
+          </div>
+          <div style="background:rgba(247,201,72,.08);border:1px solid rgba(247,201,72,.25);border-radius:8px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <span style="font-size:7.5px;letter-spacing:.14em;color:rgba(247,201,72,.5);text-transform:uppercase;">Time on Mission</span>
+            <span style="font-size:16px;font-weight:900;color:#f7c948;">${tH}h ${tM}m ${tS}s</span>
+          </div>
+          <div style="display:flex;gap:5px;margin-bottom:14px;">
+            ${[
+              {l:"Wordle Blitz",v:s.wordle_completed??0,c:"#f7c948"},
+              {l:"Cryptic",v:s.cryptic_completed??0,c:"#3ef0b0"},
+              {l:"Blossom",v:s.blossom_completed??0,c:"#f05a7e"},
+              {l:"4 Pics",v:s.pics_completed??0,c:"#5a7ef0"},
+            ].map(x=>`
+              <div style="flex:1;border:1px solid ${x.v>0?x.c+"66":"rgba(255,255,255,.08)"};border-radius:8px;padding:8px 4px;text-align:center;background:${x.v>0?x.c+"15":"rgba(255,255,255,.03)"};">
+                <div style="font-size:18px;font-weight:900;color:${x.v>0?x.c:"rgba(255,255,255,.2)"};line-height:1">${x.v}</div>
+                <div style="font-size:6px;letter-spacing:.1em;color:rgba(255,255,255,.3);margin-top:3px;text-transform:uppercase;">${x.l}</div>
+              </div>`).join("")}
+          </div>
+          <div style="margin-bottom:14px;">
+            <div style="font-size:7px;letter-spacing:.14em;color:rgba(247,201,72,.4);margin-bottom:6px;text-transform:uppercase;">Activity · Last 8 Weeks</div>
+            <div style="display:flex;flex-wrap:wrap;gap:3px;">${gridHtml}</div>
+          </div>
+          <div style="text-align:center;font-size:7px;color:rgba(247,201,72,.25);letter-spacing:.1em;">
+            ${new Date().toLocaleString("en-IN",{timeZone:"Asia/Kolkata",day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"})} · Linguathon Arena
+          </div>
+        </div>
+        <div style="height:5px;background:linear-gradient(90deg,#f7c948,#3ef0b0,#f05a7e,#5a7ef0,#f7c948);"></div>`;
+      document.body.appendChild(card);
+
+      const btn = document.querySelector(".btn-wa");
+      if (btn) { btn.textContent = "Generating…"; btn.disabled = true; }
+
+      try {
+        const canvas = await html2canvas(card, { scale:2, useCORS:true, backgroundColor:null, logging:false, width:520 });
+        document.body.removeChild(card);
+        canvas.toBlob(async blob => {
+          const file = new File([blob], `${s.name}_Linguathon.png`, { type:"image/png" });
+          if (navigator.canShare && navigator.canShare({ files:[file] })) {
+            await navigator.share({ files:[file], title:`${s.name} — Linguathon`, text:`🏆 Linguathon Arena · ${s.name}` }).catch(() => fallbackWA(blob, s.name));
+          } else { fallbackWA(blob, s.name); }
+        }, "image/png");
+      } catch(e) {
+        if (document.body.contains(card)) document.body.removeChild(card);
+      } finally {
+        if (btn) { btn.textContent = "WhatsApp"; btn.disabled = false; }
+      }
+    }
+
+    function fallbackWA(blob, name) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a"); a.href = url; a.download = `${name}_Linguathon.png`; a.click();
+      URL.revokeObjectURL(url);
+      setTimeout(() => window.open(`https://web.whatsapp.com/send?text=${encodeURIComponent(`🏆 Linguathon Arena · ${name} — see attached!`)}`, "_blank"), 800);
+    }
+
+    /* ───────────────────── PDF DOWNLOAD ────────────────────── */
+    async function downloadPDF(s) {
+      if (!window.jspdf) await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ unit:"pt", format:"a4" });
+      const PW  = doc.internal.pageSize.getWidth();
+      const PH  = doc.internal.pageSize.getHeight();
+      const M   = 36, CW = PW - M*2;
+
+      const DARK  = [7,7,13], GOLD=[247,201,72], MINT=[62,240,176], PINK=[240,90,126], BLUE=[90,126,240];
+      const WHITE = [255,255,255], DIM=[80,80,110], TEXT=[220,220,235];
+
+      const fb  = (x,y,w,h,c) => { doc.setFillColor(...c); doc.rect(x,y,w,h,"F"); };
+      const cx  = (size,style,color) => { doc.setFont("helvetica",style||"normal"); doc.setFontSize(size); doc.setTextColor(...(color||TEXT)); };
+      const ct  = (text,y2,size,style,color) => { cx(size,style,color); doc.text(text,PW/2,y2,{align:"center"}); };
+      const lt  = (text,x,y2,size,style,color) => { cx(size,style,color); doc.text(text,x,y2); };
+      const rt  = (text,x,y2,size,style,color) => { cx(size,style,color); doc.text(text,x,y2,{align:"right"}); };
+
+      const quests  = parseItems(s.quest_list);
+      const videos  = parseItems(s.video_list);
+      const stories = parseItems(s.story_list);
+      const grouped = groupByDate(quests, videos, stories);
+      const totalSec = Math.round(s.total_time||0);
+      const tH=Math.floor(totalSec/3600), tM=Math.floor((totalSec%3600)/60), tS=totalSec%60;
+      const acc = Math.round((s.accuracy||0)*100);
+      const activeDays = Object.keys(grouped).length;
+
+      // BG
+      fb(0,0,PW,PH,DARK);
+      // Top spectrum bar
+      const specColors = [GOLD,[200,220,100],MINT,[150,90,220],PINK,BLUE];
+      specColors.forEach((c,i)=>fb(i*(PW/6),0,PW/6,5,c));
+
+      let y = 28;
+      ct("LINGUATHON ARENA", y, 9, "bold", GOLD);
+      y+=11; ct("PRELIMINARY SELECTION · PILOT PROFILE", y, 7, "normal", DIM);
+      y+=20;
+      ct(s.name.toUpperCase(), y, 26, "bold", WHITE);
+      y+=8;
+      if (s.department) { ct(s.department.toUpperCase(), y, 8, "bold", DIM); y+=10; }
+      y+=6;
+
+      // Divider
+      doc.setDrawColor(...GOLD); doc.setLineWidth(0.5); doc.line(M,y,PW-M,y);
+      y+=14;
+
+      // Hero stats — Score, Accuracy, Active Days
+      [[String(s.total_score??0),"SCORE",GOLD],[`${acc}%`,"ACCURACY",MINT],[String(activeDays),"ACTIVE DAYS",TEXT]].forEach(([v,l,c],i)=>{
+        const bx = M + i*(CW/3) + (CW/3)/2;
+        if (i>0) { doc.setDrawColor(...DIM); doc.setLineWidth(0.3); doc.line(M+i*(CW/3),y-2,M+i*(CW/3),y+40); }
+        cx(22,"bold",c); doc.text(v,bx,y+16,{align:"center"});
+        cx(6.5,"bold",DIM); doc.text(l,bx,y+27,{align:"center"});
+      });
+      y+=44;
+
+      // Time banner
+      doc.setFillColor(15,15,25); doc.setDrawColor(...GOLD); doc.setLineWidth(0.4);
+      doc.roundedRect(M,y,CW,28,4,4,"FD");
+      lt("TIME ON MISSION",M+10,y+17,7,"bold",DIM);
+      rt(`${tH}h ${tM}m ${tS}s`,PW-M-10,y+18,15,"bold",GOLD);
+      y+=40;
+
+      // 4 game results
+      [[`${s.wordle_completed??0}`,"WORDLE BLITZ",GOLD],[`${s.cryptic_completed??0}`,"CRYPTIC",MINT],[`${s.blossom_completed??0}`,"BLOSSOM",PINK],[`${s.pics_completed??0}`,"4 PICS",BLUE]].forEach(([v,l,c],i)=>{
+        const bx = M+i*(CW/4)+2;
+        doc.setFillColor(c[0],c[1],c[2]); doc.setGState(new doc.GState({opacity:0.08}));
+        doc.rect(bx,y,CW/4-4,36,"F");
+        doc.setGState(new doc.GState({opacity:1}));
+        doc.setDrawColor(...c); doc.setLineWidth(0.4); doc.roundedRect(bx,y,CW/4-4,36,3,3,"S");
+        const mx = bx+(CW/4-4)/2;
+        cx(17,"bold",c); doc.text(v,mx,y+20,{align:"center"});
+        cx(6,"bold",DIM); doc.text(l,mx,y+31,{align:"center"});
+      });
+      y+=48;
+
+      // Other stats row
+      [[`${s.total_attempts??0}`,"QUESTS"],[`${s.total_correct??0}`,"CORRECT"],[`${s.total_wrong??0}`,"WRONG"],[`${s.videos_completed??0}`,"VIDEOS"],[`${s.stories_completed??0}`,"STORIES"]].forEach(([v,l],i)=>{
+        const mx = M+i*(CW/5)+(CW/5)/2;
+        cx(13,"bold",TEXT); doc.text(v,mx,y+10,{align:"center"});
+        cx(6,"bold",DIM); doc.text(l,mx,y+20,{align:"center"});
+      });
+      y+=32;
+
+      // Divider
+      doc.setDrawColor(...DIM); doc.setLineWidth(0.3); doc.line(M,y,PW-M,y);
+      y+=12;
+
+      lt("ACTIVITY CALENDAR",M,y,8,"bold",GOLD);
+      y+=14;
+
+      // Calendar (3 cols)
+      const calCols=3, calW=CW/calCols, daySize=Math.floor((calW-12)/7);
+      let calCol=0, calRowY=y, maxH=0;
+      let cur=new Date(CAL_START.getFullYear(),CAL_START.getMonth(),1);
+      const endM=new Date(); const endMon=new Date(endM.getFullYear(),endM.getMonth(),1);
+
+      while (cur<=endMon) {
+        const yr=cur.getFullYear(),mo=cur.getMonth();
+        const fd=new Date(yr,mo,1).getDay(), nd=new Date(yr,mo+1,0).getDate();
+        const bx=M+calCol*calW; let cy=calRowY;
+
+        fb(bx+2,cy,calW-4,12,[15,15,25]);
+        cx(6.5,"bold",GOLD); doc.text(cur.toLocaleString("en-IN",{month:"short",year:"numeric"}).toUpperCase(),bx+calW/2,cy+9,{align:"center"});
+        cy+=15;
+        ["Su","Mo","Tu","We","Th","Fr","Sa"].forEach((d,di)=>{
+          cx(5,"bold",DIM); doc.text(d,bx+3+di*(daySize+1)+daySize/2,cy+6,{align:"center"});
+        });
+        cy+=9;
+
+        let cx2=fd,cr=0;
+        for(let d=1;d<=nd;d++){
+          const dk=new Date(yr,mo,d).toDateString();
+          const act=!!grouped[dk];
+          const dx=bx+3+cx2*(daySize+1), dy=cy+cr*(daySize+1);
+          if(act){doc.setFillColor(247,201,72,0.75);doc.setDrawColor(...GOLD);}
+          else{doc.setFillColor(15,15,25);doc.setDrawColor(35,35,55);}
+          doc.setLineWidth(0.2); doc.rect(dx,dy,daySize,daySize,"FD");
+          cx(4.5,act?"bold":"normal",act?DARK:DIM); doc.text(String(d),dx+daySize/2,dy+daySize*.72,{align:"center"});
+          cx2++; if(cx2===7){cx2=0;cr++;}
+        }
+
+        const mH=cy+(cr+(cx2>0?1:0))*(daySize+1)-calRowY+6;
+        maxH=Math.max(maxH,mH);
+        calCol++;
+        if(calCol>=calCols){
+          calCol=0; calRowY+=maxH+8; maxH=0;
+          if(calRowY>PH-60){
+            doc.addPage(); fb(0,0,PW,PH,DARK);
+            specColors.forEach((c,i)=>fb(i*(PW/6),0,PW/6,4,c));
+            calRowY=20;
+          }
+        }
+        cur.setMonth(cur.getMonth()+1);
+      }
+
+      // Footer
+      const fy=PH-24;
+      doc.setDrawColor(...DIM); doc.setLineWidth(0.3); doc.line(M,fy,PW-M,fy);
+      ct(`Generated ${new Date().toLocaleString("en-IN",{timeZone:"Asia/Kolkata",day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"})} · Linguathon Arena · Preliminary Selection`, fy+14, 6.5,"normal",DIM);
+      specColors.forEach((c,i)=>fb(i*(PW/6),PH-4,PW/6,4,c));
+
+      doc.save(`${s.name}_Linguathon.pdf`);
+    }
+
+    function loadScript(src) {
+      return new Promise((res,rej)=>{ const s=document.createElement("script"); s.src=src; s.onload=res; s.onerror=rej; document.head.appendChild(s); });
+    }
+
+    /* ───────────────────── COUNTDOWN ───────────────────────── */
+    const DURATION = 3600;
+    function initCountdown() {
+      const key = "lng_timer_start";
+      if (!localStorage.getItem(key)) localStorage.setItem(key, Date.now());
+      const elapsed = Math.floor((Date.now()-parseInt(localStorage.getItem(key)))/1000);
+      let left = Math.max(0, DURATION-elapsed);
+      const bar=document.getElementById("cd-bar");
+      const lh=document.getElementById("cd-h"), lm=document.getElementById("cd-m"), ls=document.getElementById("cd-s");
+      const lbl=document.getElementById("cd-label");
+      function tick() {
+        if (left<=0){lh.textContent=lm.textContent=ls.textContent="00";lbl.textContent="Round has ended";bar.style.width="0%";return;}
+        lh.textContent=String(Math.floor(left/3600)).padStart(2,"0");
+        lm.textContent=String(Math.floor((left%3600)/60)).padStart(2,"0");
+        ls.textContent=String(left%60).padStart(2,"0");
+        bar.style.width=((left/DURATION)*100)+"%";
+        left--;
+      }
+      tick(); setInterval(tick,1000);
+    }
+
+    /* ───────────────────── EXPOSE GLOBALS ──────────────────── */
+    window.sortData        = sortData;
+    window.closeModal      = closeModal;
+    window.showSquad       = showSquad;
+    window.applyDeptFilter = applyDeptFilter;
+    window.downloadPDF     = downloadPDF;
+    window.shareWA         = shareWA;
+    window.toggleTimeFmt   = function(){
+      showSecondsOnly=!showSecondsOnly;
+      document.getElementById("time-toggle").textContent=showSecondsOnly?"Show h:m:s":"Show Seconds";
+      renderLB();
+    };
+    window.onclick = e => { if(e.target===document.getElementById("modal")) closeModal(); };
+
+    // Preload jsPDF
+    (function(){ const s=document.createElement("script"); s.src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"; document.head.appendChild(s); })();
+
+    window.onload = () => { initCountdown(); loadData(); };
+  </script>
+
+  <style>
+    :root {
+      --bg:      #07070d;
+      --surface: #10101a;
+      --border:  #1e1e30;
+      --c-gold:  #f7c948;
+      --c-mint:  #3ef0b0;
+      --c-pink:  #f05a7e;
+      --c-blue:  #5a7ef0;
+      --text:    #e8e8f0;
+      --muted:   rgba(232,232,240,0.45);
+    }
+    *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+    html { scroll-behavior:smooth; }
+    body {
+      font-family:'Syne',sans-serif; background:var(--bg); color:var(--text);
+      min-height:100vh; overflow-x:hidden;
+    }
+    body::before {
+      content:''; position:fixed; inset:0; pointer-events:none; z-index:999; opacity:.3;
+      background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+    }
+
+    /* NAV */
+    nav { position:sticky; top:0; z-index:100; padding:.85rem 1.5rem; display:flex; align-items:center; justify-content:space-between; gap:1rem; background:rgba(7,7,13,.9); backdrop-filter:blur(14px); border-bottom:1px solid var(--border); }
+    .nav-logo { font-family:'Bebas Neue',sans-serif; font-size:1.4rem; letter-spacing:.1em; color:var(--c-gold); text-decoration:none; }
+    .nav-links { display:flex; gap:1.2rem; list-style:none; }
+    .nav-links a { font-family:'Space Mono',monospace; font-size:.6rem; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); text-decoration:none; transition:color .2s; }
+    .nav-links a:hover { color:var(--text); }
+    .nav-squad { font-family:'Space Mono',monospace; font-size:.6rem; letter-spacing:.12em; text-transform:uppercase; padding:.4rem 1rem; border-radius:999px; background:rgba(247,201,72,.1); border:1px solid rgba(247,201,72,.3); color:var(--c-gold); cursor:pointer; transition:background .2s; display:flex; align-items:center; gap:.4rem; white-space:nowrap; }
+    .nav-squad:hover { background:rgba(247,201,72,.18); }
+    .nav-dot { width:6px; height:6px; border-radius:50%; background:var(--c-gold); animation:pulse 1.8s infinite; }
+
+    /* HERO */
+    .hero { position:relative; min-height:92vh; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:2rem 1.5rem; overflow:hidden; }
+    .hero-grid { position:absolute; inset:0; background-image:linear-gradient(rgba(247,201,72,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(247,201,72,.04) 1px,transparent 1px); background-size:55px 55px; mask-image:radial-gradient(ellipse 80% 70% at 50% 50%,black 40%,transparent 100%); }
+    .orb { position:absolute; border-radius:50%; filter:blur(80px); pointer-events:none; }
+    .o1 { width:500px;height:500px;background:rgba(247,201,72,.12);top:-100px;left:-100px; }
+    .o2 { width:400px;height:400px;background:rgba(62,240,176,.09);bottom:-80px;right:-80px; }
+    .o3 { width:300px;height:300px;background:rgba(240,90,126,.07);top:45%;left:60%; }
+
+    .hero-badge { display:inline-flex; align-items:center; gap:.5rem; background:rgba(247,201,72,.1); border:1px solid rgba(247,201,72,.3); color:var(--c-gold); font-family:'Space Mono',monospace; font-size:.65rem; letter-spacing:.14em; padding:.4rem 1rem; border-radius:999px; margin-bottom:1.5rem; animation:fadeUp .6s ease both; }
+    .pulse-dot { width:7px; height:7px; border-radius:50%; background:var(--c-gold); animation:pulse 1.5s infinite; }
+    .hero-title { font-family:'Bebas Neue',sans-serif; font-size:clamp(4.5rem,14vw,10rem); line-height:.9; letter-spacing:.04em; background:linear-gradient(135deg,#fff 20%,var(--c-gold) 55%,var(--c-mint) 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; animation:fadeUp .7s .1s ease both; }
+    .hero-sub { font-family:'Space Mono',monospace; font-size:clamp(.65rem,2vw,.85rem); letter-spacing:.3em; color:var(--c-mint); text-transform:uppercase; margin-top:.5rem; animation:fadeUp .7s .2s ease both; }
+    .hero-desc { max-width:460px; margin:1.5rem auto 0; font-size:.9rem; color:var(--muted); line-height:1.7; animation:fadeUp .7s .3s ease both; }
+
+    /* COUNTDOWN */
+    .countdown { margin:2.5rem 0; animation:fadeUp .7s .4s ease both; }
+    #cd-label { font-family:'Space Mono',monospace; font-size:.6rem; letter-spacing:.18em; color:rgba(232,232,240,.35); text-transform:uppercase; margin-bottom:.6rem; }
+    .cd-digits { display:flex; gap:.8rem; justify-content:center; align-items:flex-end; }
+    .cd-blk { display:flex; flex-direction:column; align-items:center; }
+    .cd-num { font-family:'Bebas Neue',sans-serif; font-size:clamp(2.5rem,6vw,4rem); color:var(--c-gold); line-height:1; text-shadow:0 0 24px rgba(247,201,72,.3); min-width:2.4ch; text-align:center; }
+    .cd-unit { font-family:'Space Mono',monospace; font-size:.55rem; letter-spacing:.14em; color:rgba(232,232,240,.35); text-transform:uppercase; margin-top:.15rem; }
+    .cd-sep { font-family:'Bebas Neue',sans-serif; font-size:2.5rem; color:rgba(247,201,72,.3); padding-bottom:.5rem; }
+    .cd-track { height:2px; background:var(--border); border-radius:2px; margin-top:1.2rem; overflow:hidden; }
+    #cd-bar { height:100%; border-radius:2px; background:linear-gradient(90deg,var(--c-gold),var(--c-mint)); transition:width 1s linear; width:100%; }
+    .duration-tag { display:inline-flex; align-items:center; gap:.5rem; background:rgba(62,240,176,.08); border:1px solid rgba(62,240,176,.25); color:var(--c-mint); font-family:'Space Mono',monospace; font-size:.7rem; letter-spacing:.1em; padding:.45rem 1.1rem; border-radius:999px; margin:0 auto 2rem; width:fit-content; animation:fadeUp .7s .5s ease both; }
+    .cta-group { display:flex; gap:1rem; flex-wrap:wrap; justify-content:center; animation:fadeUp .7s .6s ease both; }
+    .btn-cta { font-family:'Syne',sans-serif; font-weight:700; font-size:.82rem; letter-spacing:.08em; text-transform:uppercase; padding:.85rem 2rem; border-radius:6px; border:none; cursor:pointer; transition:transform .2s,box-shadow .2s; text-decoration:none; display:inline-flex; align-items:center; gap:.5rem; }
+    .btn-primary { background:var(--c-gold); color:#07070d; box-shadow:0 0 28px rgba(247,201,72,.35); }
+    .btn-primary:hover { transform:translateY(-2px); box-shadow:0 0 48px rgba(247,201,72,.55); }
+    .btn-ghost { background:transparent; color:var(--text); border:1px solid var(--border); }
+    .btn-ghost:hover { border-color:rgba(232,232,240,.4); transform:translateY(-2px); }
+    #last-test-info { font-family:'Space Mono',monospace; font-size:.6rem; letter-spacing:.1em; color:rgba(232,232,240,.3); margin-top:1.5rem; }
+
+    /* SECTION */
+    .section { max-width:1000px; margin:0 auto; padding:4.5rem 1.5rem; }
+    .sec-eye { font-family:'Space Mono',monospace; font-size:.62rem; letter-spacing:.24em; color:var(--c-mint); text-transform:uppercase; margin-bottom:.7rem; }
+    .sec-title { font-family:'Bebas Neue',sans-serif; font-size:clamp(2.5rem,6vw,4.5rem); letter-spacing:.04em; line-height:1; margin-bottom:2.5rem; }
+    .divider { border:none; border-top:1px solid var(--border); margin:0; }
+
+    /* GAMES */
+    .games-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:1.2rem; }
+    .game-card { position:relative; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:1.8rem 1.4rem; overflow:hidden; transition:transform .25s,border-color .25s; }
+    .game-card::before { content:''; position:absolute; inset:0; opacity:0; transition:opacity .3s; }
+    .game-card:hover { transform:translateY(-4px); }
+    .game-card:hover::before { opacity:1; }
+    .gc-gold:hover{border-color:var(--c-gold);} .gc-gold::before{background:radial-gradient(ellipse at top left,rgba(247,201,72,.1),transparent 70%);}
+    .gc-mint:hover{border-color:var(--c-mint);} .gc-mint::before{background:radial-gradient(ellipse at top left,rgba(62,240,176,.1),transparent 70%);}
+    .gc-pink:hover{border-color:var(--c-pink);} .gc-pink::before{background:radial-gradient(ellipse at top left,rgba(240,90,126,.1),transparent 70%);}
+    .gc-blue:hover{border-color:var(--c-blue);} .gc-blue::before{background:radial-gradient(ellipse at top left,rgba(90,126,240,.1),transparent 70%);}
+    .game-pts { position:absolute; top:.9rem; right:.9rem; font-family:'Space Mono',monospace; font-size:.6rem; letter-spacing:.08em; padding:.15rem .45rem; border-radius:3px; background:rgba(0,0,0,.3); border:1px solid rgba(255,255,255,.07); }
+    .gc-gold .game-pts{color:var(--c-gold);} .gc-mint .game-pts{color:var(--c-mint);} .gc-pink .game-pts{color:var(--c-pink);} .gc-blue .game-pts{color:var(--c-blue);}
+    .game-icon { font-size:2.2rem; margin-bottom:.9rem; display:block; }
+    .game-name { font-family:'Bebas Neue',sans-serif; font-size:1.4rem; letter-spacing:.05em; margin-bottom:.35rem; }
+    .gc-gold .game-name{color:var(--c-gold);} .gc-mint .game-name{color:var(--c-mint);} .gc-pink .game-name{color:var(--c-pink);} .gc-blue .game-name{color:var(--c-blue);}
+    .game-desc { font-size:.78rem; color:var(--muted); line-height:1.6; }
+    .game-tag { display:inline-block; margin-top:.9rem; font-family:'Space Mono',monospace; font-size:.58rem; letter-spacing:.1em; padding:.18rem .45rem; border-radius:3px; opacity:.7; }
+    .gc-gold .game-tag{color:var(--c-gold);border:1px solid var(--c-gold);} .gc-mint .game-tag{color:var(--c-mint);border:1px solid var(--c-mint);} .gc-pink .game-tag{color:var(--c-pink);border:1px solid var(--c-pink);} .gc-blue .game-tag{color:var(--c-blue);border:1px solid var(--c-blue);}
+
+    /* LEADERBOARD */
+    .lb-controls { display:flex; align-items:flex-start; gap:1rem; flex-wrap:wrap; padding:1rem 0 1.5rem; }
+    .lb-dept select { font-family:'Space Mono',monospace; font-size:.62rem; letter-spacing:.08em; padding:.5rem 2rem .5rem .8rem; border-radius:6px; border:1px solid var(--border); background:var(--surface); color:var(--text); cursor:pointer; appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath fill='%23aaa' d='M5 7L1 3h8z'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 8px center; outline:none; }
+    .lb-dept select:focus { border-color:var(--c-gold); }
+    .lb-sorts { display:flex; flex-wrap:wrap; gap:.4rem; flex:1; }
+    .s-btn { font-family:'Space Mono',monospace; font-size:.58rem; letter-spacing:.1em; text-transform:uppercase; padding:.45rem .9rem; border-radius:999px; border:1px solid var(--border); background:transparent; color:var(--muted); cursor:pointer; white-space:nowrap; transition:all .18s; }
+    .s-btn:hover { border-color:var(--c-gold); color:var(--c-gold); background:rgba(247,201,72,.06); }
+    .s-btn.active { background:var(--c-gold); color:#07070d; border-color:var(--c-gold); box-shadow:0 2px 12px rgba(247,201,72,.3); }
+    #time-toggle { display:none; font-size:.55rem; }
+    #leaderboard { background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow:hidden; }
+    .lb-row { display:grid; grid-template-columns:44px 1fr auto; padding:.9rem 1rem; border-bottom:1px solid rgba(30,30,48,.7); cursor:pointer; align-items:center; transition:background .14s; }
+    .lb-row:last-child { border-bottom:none; }
+    .lb-row:hover { background:rgba(255,255,255,.025); }
+    .lb-row.top1{border-left:3px solid var(--c-gold);} .lb-row.top2{border-left:3px solid #9ca3af;} .lb-row.top3{border-left:3px solid #cd7f32;}
+    .lb-rank { font-size:.9rem; font-weight:800; text-align:center; color:rgba(232,232,240,.25); }
+    .top1 .lb-rank,.top2 .lb-rank,.top3 .lb-rank { font-size:1.3rem; }
+    .lb-info { padding:0 .75rem; min-width:0; }
+    .lb-name { font-size:.9rem; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .lb-dept { font-size:.78rem; font-weight:400; color:var(--muted); }
+    .lb-metric { font-family:'Space Mono',monospace; font-size:.55rem; letter-spacing:.14em; color:rgba(232,232,240,.3); margin-top:2px; text-transform:uppercase; }
+    .lb-score { font-family:'Bebas Neue',sans-serif; font-size:1.3rem; color:var(--c-gold); text-align:right; letter-spacing:.04em; display:flex; align-items:center; justify-content:flex-end; gap:2px; min-width:70px; }
+    .score-time { font-size:.9rem; gap:3px; }
+    .small-score { font-size:.62rem; font-family:'Space Mono',monospace; color:var(--muted); }
+    .t-blk { display:inline-flex; align-items:baseline; gap:1px; }
+    .t-n { font-size:.9rem; font-weight:700; font-variant-numeric:tabular-nums; color:var(--text); }
+    .t-u { font-size:.6rem; font-weight:600; }
+    .t-u.h{color:var(--c-gold);} .t-u.m{color:#c9a84c;} .t-u.s{color:var(--muted);}
+    #lb-error { color:var(--c-pink); text-align:center; padding:1rem; font-size:.85rem; }
+    #loader { display:none; justify-content:center; align-items:center; padding:3rem 0; }
+    .spinner { width:36px; height:36px; border-radius:50%; border:3px solid var(--border); border-top-color:var(--c-gold); animation:spin .85s linear infinite; }
+    .lb-empty { text-align:center; padding:3rem; font-family:'Space Mono',monospace; font-size:.7rem; letter-spacing:.12em; color:rgba(232,232,240,.2); }
+
+    /* RULES */
+    .rules-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:1rem; }
+    .rule-card { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:1.4rem; }
+    .rule-num { font-family:'Bebas Neue',sans-serif; font-size:3rem; color:rgba(247,201,72,.12); line-height:1; margin-bottom:.4rem; }
+    .rule-title { font-weight:700; font-size:.88rem; margin-bottom:.35rem; }
+    .rule-desc { font-size:.76rem; color:var(--muted); line-height:1.6; }
+
+    /* MODAL */
+    #modal { display:none; position:fixed; inset:0; background:rgba(7,7,13,.78); backdrop-filter:blur(8px); justify-content:center; align-items:flex-start; z-index:1000; overflow-y:auto; padding:2rem 1rem; }
+    #modal-body { background:var(--surface); border-radius:14px; padding:1.5rem 1.4rem 1.8rem; width:100%; max-width:500px; margin:0 auto; border:1px solid var(--border); box-shadow:0 30px 70px rgba(0,0,0,.5),0 4px 16px rgba(247,201,72,.08); position:relative; }
+    .modal-tag { position:absolute; top:-11px; left:18px; font-family:'Space Mono',monospace; font-size:.58rem; letter-spacing:.16em; text-transform:uppercase; padding:3px 10px; border-radius:999px; background:var(--surface); border:1px solid var(--border); color:var(--c-gold); }
+    .modal-hd { display:flex; justify-content:space-between; align-items:flex-start; gap:1rem; margin-bottom:1rem; padding-bottom:1rem; border-bottom:1px solid var(--border); }
+    .modal-name { font-family:'Bebas Neue',sans-serif; font-size:1.8rem; letter-spacing:.04em; line-height:1; }
+    .modal-dept { font-family:'Space Mono',monospace; font-size:.6rem; letter-spacing:.14em; color:var(--muted); text-transform:uppercase; margin-top:4px; }
+    .modal-close { background:rgba(255,255,255,.05); border:1px solid var(--border); color:var(--muted); font-size:1.2rem; cursor:pointer; width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:all .15s; }
+    .modal-close:hover { background:rgba(247,201,72,.1); border-color:var(--c-gold); color:var(--c-gold); }
+    .stat-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(100px,1fr)); gap:.7rem; margin-bottom:1rem; }
+    .stat-box { background:rgba(255,255,255,.03); border:1px solid var(--border); border-radius:8px; padding:.8rem .75rem; }
+    .span2 { grid-column:span 2; }
+    .stat-lbl { font-family:'Space Mono',monospace; font-size:.55rem; letter-spacing:.14em; text-transform:uppercase; color:rgba(232,232,240,.3); margin-bottom:4px; }
+    .stat-val { font-family:'Bebas Neue',sans-serif; font-size:1.5rem; color:var(--c-gold); line-height:1.1; }
+    .stat-ft { font-size:.65rem; color:var(--muted); margin-top:3px; }
+    .detail-box { background:rgba(255,255,255,.02); border:1px solid var(--border); border-radius:8px; padding:1rem; margin-bottom:.8rem; }
+    .detail-title { font-weight:700; font-size:.88rem; margin-bottom:.4rem; }
+    .detail-sub { font-size:.75rem; color:var(--muted); line-height:1.5; }
+    .mcal-wrap { display:flex; flex-direction:column; gap:12px; margin-top:10px; }
+    .mcal-title { font-family:'Space Mono',monospace; font-size:.6rem; letter-spacing:.14em; text-transform:uppercase; color:var(--c-gold); margin-bottom:5px; text-align:center; }
+    .mcal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:3px; font-size:.6rem; }
+    .mcal-grid > div:nth-child(-n+7) { font-weight:700; text-align:center; color:var(--muted); padding-bottom:2px; }
+    .mcal-day { background:rgba(255,255,255,.02); border:1px solid rgba(30,30,48,.8); border-radius:4px; min-height:32px; padding:2px; font-size:.55rem; color:var(--muted); }
+    .mcal-day.marked { background:rgba(247,201,72,.15); border-color:rgba(247,201,72,.4); }
+    .mcal-dn { font-weight:700; color:var(--text); }
+    .mcal-icons { font-size:.55rem; line-height:1; }
+    .modal-actions { display:grid; grid-template-columns:1fr 1fr; gap:.7rem; margin-top:1rem; }
+    .btn-pdf,.btn-wa { display:flex; align-items:center; justify-content:center; gap:6px; padding:.75rem; font-family:'Syne',sans-serif; font-weight:700; font-size:.78rem; border-radius:7px; cursor:pointer; transition:all .18s; letter-spacing:.04em; }
+    .btn-pdf { background:rgba(247,201,72,.1); border:1px solid rgba(247,201,72,.35); color:var(--c-gold); }
+    .btn-pdf:hover { background:var(--c-gold); color:#07070d; }
+    .btn-wa { background:linear-gradient(135deg,#1fad4e,#128c3e); border:none; color:#fff; box-shadow:0 2px 12px rgba(18,140,62,.3); }
+    .btn-wa:hover { background:linear-gradient(135deg,#25d366,#1aaa48); transform:translateY(-1px); }
+    .btn-wa:disabled { opacity:.5; cursor:not-allowed; transform:none; }
+
+    footer { border-top:1px solid var(--border); padding:1.5rem; text-align:center; font-family:'Space Mono',monospace; font-size:.58rem; letter-spacing:.1em; color:rgba(232,232,240,.18); }
+
+    @keyframes fadeUp { from{opacity:0;transform:translateY(18px)} to{opacity:1;transform:translateY(0)} }
+    @keyframes pulse  { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(1.4)} }
+    @keyframes spin   { to{transform:rotate(360deg)} }
+
+    @media(max-width:600px) {
+      .nav-links{display:none;}
+      .lb-controls{flex-direction:column;}
+      .stat-grid{grid-template-columns:repeat(2,1fr);}
+      .modal-actions{grid-template-columns:1fr;}
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a class="nav-logo" href="#">LINGUATHON</a>
+  <ul class="nav-links">
+    <li><a href="#games">Games</a></li>
+    <li><a href="#leaderboard">Leaderboard</a></li>
+    <li><a href="#rules">Rules</a></li>
+  </ul>
+  <button class="nav-squad" onclick="showSquad()">
+    <span class="nav-dot"></span> Squad Overview
+  </button>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-grid"></div>
+  <div class="orb o1"></div><div class="orb o2"></div><div class="orb o3"></div>
+
+  <div class="hero-badge"><span class="pulse-dot"></span>Preliminary Selection · Now Open</div>
+  <h1 class="hero-title">LINGUATHON</h1>
+  <p class="hero-sub">Word Arena Championship</p>
+  <p class="hero-desc">Four games. One hour. Prove your linguistic supremacy. Top scorers advance to the Grand Finals.</p>
+
+  <div class="countdown">
+    <div id="cd-label">Round ends in</div>
+    <div class="cd-digits">
+      <div class="cd-blk"><span class="cd-num" id="cd-h">01</span><span class="cd-unit">hrs</span></div>
+      <span class="cd-sep">:</span>
+      <div class="cd-blk"><span class="cd-num" id="cd-m">00</span><span class="cd-unit">min</span></div>
+      <span class="cd-sep">:</span>
+      <div class="cd-blk"><span class="cd-num" id="cd-s">00</span><span class="cd-unit">sec</span></div>
+    </div>
+    <div class="cd-track"><div id="cd-bar"></div></div>
+  </div>
+
+  <div class="duration-tag">⏱ 1 HOUR DURATION &nbsp;·&nbsp; PRELIMINARY SELECTION</div>
+
+  <div class="cta-group">
+    <a class="btn-cta btn-primary" href="#leaderboard">📊 Live Leaderboard</a>
+    <a class="btn-cta btn-ghost"   href="#games">⚡ See All Games</a>
+  </div>
+  <div id="last-test-info">Initializing mission feed…</div>
+</section>
+
+<hr class="divider" />
+
+<!-- GAMES -->
+<section class="section" id="games">
+  <p class="sec-eye">The Arena</p>
+  <h2 class="sec-title">Four Battles. One Score.</h2>
+  <div class="games-grid">
+    <div class="game-card gc-gold"><span class="game-pts">300 PTS</span><span class="game-icon">📝</span><div class="game-name">Wordle Blitz</div><div class="game-desc">Race against the clock to guess the secret word in 6 tries. Every second counts in Blitz mode.</div><span class="game-tag">SPEED WORDS</span></div>
+    <div class="game-card gc-mint"><span class="game-pts">400 PTS</span><span class="game-icon">🔐</span><div class="game-name">Cryptic</div><div class="game-desc">Decode cryptic crossword clues that twist definitions, anagrams, and hidden words into devious puzzles.</div><span class="game-tag">LOGIC + LANG</span></div>
+    <div class="game-card gc-pink"><span class="game-pts">350 PTS</span><span class="game-icon">🌸</span><div class="game-name">Blossom</div><div class="game-desc">Build as many words as possible from a honeycomb of letters. Center letter required in every word.</div><span class="game-tag">VOCABULARY</span></div>
+    <div class="game-card gc-blue"><span class="game-pts">250 PTS</span><span class="game-icon">🖼️</span><div class="game-name">4 Pics 1 Word</div><div class="game-desc">Four images, one hidden word. Spot the connection and type fast to claim maximum points.</div><span class="game-tag">VISUAL + LANG</span></div>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- LEADERBOARD -->
+<section class="section" id="leaderboard">
+  <p class="sec-eye">Live Rankings</p>
+  <h2 class="sec-title" style="margin-bottom:0">Leaderboard</h2>
+
+  <div class="lb-controls">
+    <div class="lb-dept">
+      <select id="deptSelect" onchange="applyDeptFilter(this.value)">
+        <option value="ALL">All Departments</option>
+      </select>
+    </div>
+    <div class="lb-sorts">
+      <button class="s-btn" data-sort="wordle_completed"  onclick="sortData('wordle_completed')">Wordle Blitz<span class="s-ind"></span></button>
+      <button class="s-btn" data-sort="cryptic_completed" onclick="sortData('cryptic_completed')">Cryptic<span class="s-ind"></span></button>
+      <button class="s-btn" data-sort="blossom_completed" onclick="sortData('blossom_completed')">Blossom<span class="s-ind"></span></button>
+      <button class="s-btn" data-sort="pics_completed"    onclick="sortData('pics_completed')">4 Pics<span class="s-ind"></span></button>
+      <button class="s-btn" data-sort="total_time"        onclick="sortData('total_time')">Time<span class="s-ind"></span></button>
+      <button class="s-btn" data-sort="accuracy"          onclick="sortData('accuracy')">Accuracy<span class="s-ind"></span></button>
+      <button class="s-btn" data-sort="quests_completed"  onclick="sortData('quests_completed')">Quests<span class="s-ind"></span></button>
+      <button class="s-btn" data-sort="videos_completed"  onclick="sortData('videos_completed')">Videos<span class="s-ind"></span></button>
+      <button class="s-btn" data-sort="stories_completed" onclick="sortData('stories_completed')">Stories<span class="s-ind"></span></button>
+      <button class="s-btn" data-sort="last_test_taken"   onclick="sortData('last_test_taken')">Last Test<span class="s-ind"></span></button>
+      <button class="s-btn" id="time-toggle" onclick="toggleTimeFmt()">Show Seconds</button>
+    </div>
+  </div>
+
+  <div id="loader"><div class="spinner"></div></div>
+  <div id="lb-error"></div>
+  <div id="leaderboard"></div>
+</section>
+
+<hr class="divider" />
+
+<!-- RULES -->
+<section class="section" id="rules">
+  <p class="sec-eye">Competition Rules</p>
+  <h2 class="sec-title">How It Works</h2>
+  <div class="rules-grid">
+    <div class="rule-card"><div class="rule-num">01</div><div class="rule-title">One Hour Window</div><div class="rule-desc">The preliminary round runs for exactly 60 minutes. All games must be completed within this window.</div></div>
+    <div class="rule-card"><div class="rule-num">02</div><div class="rule-title">Play All Four</div><div class="rule-desc">Scores from all four games are combined. Skipping a game leaves 0 points for that round.</div></div>
+    <div class="rule-card"><div class="rule-num">03</div><div class="rule-title">Solo Effort</div><div class="rule-desc">No collaboration allowed. Each student must complete games independently on their own device.</div></div>
+    <div class="rule-card"><div class="rule-num">04</div><div class="rule-title">Tiebreaker</div><div class="rule-desc">Equal scores are resolved by fastest total completion time across all four games.</div></div>
+    <div class="rule-card"><div class="rule-num">05</div><div class="rule-title">Qualification</div><div class="rule-desc">Top performers advance from this preliminary round to the Linguathon Grand Finals.</div></div>
+    <div class="rule-card"><div class="rule-num">06</div><div class="rule-title">Fair Play</div><div class="rule-desc">Any detected use of external tools or AI assistance results in immediate disqualification.</div></div>
+  </div>
+</section>
+
+<footer>LINGUATHON ARENA &nbsp;·&nbsp; PRELIMINARY SELECTION &nbsp;·&nbsp; 1 HOUR DURATION &nbsp;·&nbsp; PWA</footer>
+
+<!-- MODAL -->
+<div id="modal"><div id="modal-body"></div></div>
+
+</body>
+</html>

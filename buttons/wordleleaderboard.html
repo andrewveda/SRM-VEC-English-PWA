@@ -44,7 +44,7 @@ body::before {
 }
 
 .title-block {
-  margin-bottom: 28px;
+  margin-bottom: 20px;
   text-align: center;
 }
 
@@ -67,6 +67,56 @@ body::before {
   color: #1A1A2E;
   opacity: 0.4;
   margin-top: 8px;
+}
+
+/* TIME TOGGLE */
+.time-toggle {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 22px;
+  background: white;
+  border: 3px solid #1A1A2E;
+  border-radius: 16px;
+  padding: 4px;
+  box-shadow: 5px 5px 0 #1A1A2E;
+  position: relative;
+}
+
+.toggle-slider {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  width: calc(50% - 4px);
+  background: #FF4D6D;
+  border: 2.5px solid #1A1A2E;
+  border-radius: 12px;
+  box-shadow: 3px 3px 0 #1A1A2E;
+  transition: left 0.2s cubic-bezier(0.34,1.56,0.64,1);
+  left: 4px;
+}
+
+.toggle-slider.right {
+  left: calc(50%);
+}
+
+.toggle-btn {
+  flex: 1;
+  position: relative;
+  z-index: 1;
+  background: transparent;
+  border: none;
+  border-radius: 12px;
+  padding: 10px 8px;
+  font-family: 'Fredoka One', cursive;
+  font-size: 15px;
+  color: #1A1A2E;
+  cursor: pointer;
+  transition: color 0.15s;
+  letter-spacing: 0.5px;
+}
+
+.toggle-btn.active {
+  color: white;
 }
 
 /* SORT */
@@ -121,9 +171,15 @@ body::before {
   box-shadow: 5px 5px 0 #1A1A2E;
   cursor: pointer;
   transition: all 0.1s;
+  animation: rowIn 0.25s cubic-bezier(0.34,1.56,0.64,1) both;
 }
 .leaderboard-row:hover { transform: translate(-2px,-2px); box-shadow: 7px 7px 0 #1A1A2E; }
 .leaderboard-row:active { transform: translate(3px,3px); box-shadow: 2px 2px 0 #1A1A2E; }
+
+@keyframes rowIn {
+  from { opacity: 0; transform: translateY(10px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
 
 .leaderboard-row:nth-child(4n+1) { background: #FFF0F3; }
 .leaderboard-row:nth-child(4n+2) { background: #FFFBEA; }
@@ -144,6 +200,22 @@ body::before {
 .score-cell { text-align: right; }
 .score-value { font-family: 'Fredoka One', cursive; font-size: 26px; color: #1A1A2E; line-height: 1; }
 .score-label { font-size: 10px; font-weight: 800; color: #888; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
+
+/* TODAY badge on rows */
+.today-badge {
+  display: inline-block;
+  background: #FF4D6D;
+  color: white;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 999px;
+  border: 1.5px solid #1A1A2E;
+  margin-left: 6px;
+  vertical-align: middle;
+}
 
 /* EMPTY */
 .empty { text-align: center; padding: 60px 20px; }
@@ -266,6 +338,13 @@ body::before {
     <div class="title-sub">⚡ Live Leaderboard ⚡</div>
   </div>
 
+  <!-- TIME TOGGLE -->
+  <div class="time-toggle" id="time-toggle">
+    <div class="toggle-slider" id="toggle-slider"></div>
+    <button class="toggle-btn active" id="btn-today" onclick="setTimeFilter('today')">📅 Today</button>
+    <button class="toggle-btn" id="btn-alltime" onclick="setTimeFilter('alltime')">🏆 All Time</button>
+  </div>
+
   <div class="sort-panel">
     <button class="sort-btn" data-sort="best_score"           onclick="sortData('best_score')">🏆 Best Score <span class="indicator"></span></button>
     <button class="sort-btn" data-sort="best_streak"          onclick="sortData('best_streak')">🔥 Streak <span class="indicator"></span></button>
@@ -314,6 +393,7 @@ const supabase = createClient(
 );
 
 let reportData = [], filteredData = [], currentSort = "best_score", sortAscending = false;
+let timeFilter = "today"; // "today" | "alltime"
 
 const LABELS = {
   best_score:"Best Score", best_streak:"Streak", best_speed:"Fastest Solve",
@@ -321,6 +401,22 @@ const LABELS = {
   total_correct:"Words Found", total_wrong:"Most Missed", total_bonus:"Bonus",
   total_perfect_solves:"Perfect Solves", efficiency:"Efficiency",
 };
+
+// Returns today's date string in local timezone as YYYY-MM-DD
+function todayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function isToday(row) {
+  const ts = row.last_played_at || row.created_at || row.date || row.played_at || row.timestamp;
+  if (!ts) return true; // if no date field, show in both views
+  // Parse as UTC (Supabase stores with +00 offset)
+  const utcDate = new Date(ts);
+  // Convert to local date string YYYY-MM-DD
+  const localDate = `${utcDate.getFullYear()}-${String(utcDate.getMonth()+1).padStart(2,'0')}-${String(utcDate.getDate()).padStart(2,'0')}`;
+  return localDate === todayStr();
+}
 
 async function loadData() {
   document.getElementById("loader").style.display = "flex";
@@ -332,12 +428,36 @@ async function loadData() {
 }
 
 function applyAll() {
-  filteredData = [...reportData];
+  // Filter by time
+  if (timeFilter === "today") {
+    filteredData = reportData.filter(isToday);
+  } else {
+    filteredData = [...reportData];
+  }
+
   filteredData.sort((a, b) => {
     const A = Number(a[currentSort]||0), B = Number(b[currentSort]||0);
     return sortAscending ? A-B : B-A;
   });
   updateButtons(); renderStatsBar(); renderBoard();
+}
+
+function setTimeFilter(mode) {
+  timeFilter = mode;
+  // update toggle UI
+  const slider = document.getElementById("toggle-slider");
+  const btnToday = document.getElementById("btn-today");
+  const btnAll = document.getElementById("btn-alltime");
+  if (mode === "today") {
+    slider.classList.remove("right");
+    btnToday.classList.add("active");
+    btnAll.classList.remove("active");
+  } else {
+    slider.classList.add("right");
+    btnAll.classList.add("active");
+    btnToday.classList.remove("active");
+  }
+  applyAll();
 }
 
 function sortData(key) {
@@ -356,7 +476,8 @@ function updateButtons() {
 }
 
 function renderStatsBar() {
-  document.getElementById("stats-bar").textContent = `${filteredData.length} players · sorted by ${LABELS[currentSort]||currentSort}`;
+  const label = timeFilter === "today" ? "today" : "all time";
+  document.getElementById("stats-bar").textContent = `${filteredData.length} players · ${label} · sorted by ${LABELS[currentSort]||currentSort}`;
 }
 
 function fmt(p, k) {
@@ -370,13 +491,19 @@ function fmt(p, k) {
 function renderBoard() {
   const el = document.getElementById("leaderboard");
   el.innerHTML = "";
+
   if (!filteredData.length) {
-    el.innerHTML = `<div class="empty"><div class="empty-icon">🤷</div><div class="empty-text">Nobody found!</div></div>`;
+    const emptyMsg = timeFilter === "today"
+      ? "No games played today yet!"
+      : "Nobody found!";
+    el.innerHTML = `<div class="empty"><div class="empty-icon">${timeFilter === "today" ? "🌅" : "🤷"}</div><div class="empty-text">${emptyMsg}</div></div>`;
     return;
   }
+
   filteredData.forEach((p, i) => {
     const row = document.createElement("div");
     row.className = "leaderboard-row";
+    row.style.animationDelay = `${i * 30}ms`;
     if (i===0) row.classList.add("rank-1");
     else if (i===1) row.classList.add("rank-2");
     else if (i===2) row.classList.add("rank-3");
@@ -384,10 +511,15 @@ function renderBoard() {
     const medals = ["🥇","🥈","🥉"];
     const rankHTML = i<3 ? `<div class="rank-medal">${medals[i]}</div>` : `<div class="rank-num">${i+1}</div>`;
 
+    // Show TODAY badge in all-time view if they played today
+    const todayBadge = (timeFilter === "alltime" && isToday(p))
+      ? `<span class="today-badge">Today</span>`
+      : "";
+
     row.innerHTML = `
       <div class="rank-cell">${rankHTML}</div>
       <div>
-        <div class="player-name">${p.student_name}</div>
+        <div class="player-name">${p.student_name}${todayBadge}</div>
         <div class="player-dept">${p.department||"—"}</div>
       </div>
       <div class="score-cell">
@@ -439,6 +571,7 @@ function openModal(p, rank) {
 window.closeModal = () => document.getElementById("modal").classList.remove("open");
 window.maybeClose = e => { if (e.target === document.getElementById("modal")) window.closeModal(); };
 window.sortData = sortData;
+window.setTimeFilter = setTimeFilter;
 document.addEventListener("keydown", e => { if (e.key==="Escape") window.closeModal(); });
 window.onload = loadData;
 </script>

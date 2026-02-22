@@ -69,37 +69,19 @@ body::before {
   margin-top: 8px;
 }
 
-/* SEARCH */
-.search-wrap { position: relative; margin-bottom: 14px; }
-
-.search-emoji {
-  position: absolute; left: 14px; top: 50%;
-  transform: translateY(-50%); font-size: 18px; pointer-events: none;
-}
-
-#search {
-  width: 100%;
-  background: white;
-  border: 3px solid #1A1A2E;
-  border-radius: 16px;
-  padding: 13px 18px 13px 46px;
-  font-family: 'Nunito', sans-serif;
-  font-size: 15px; font-weight: 800;
-  color: #1A1A2E; outline: none;
-  box-shadow: 4px 4px 0 #1A1A2E;
-  transition: box-shadow 0.1s, transform 0.1s;
-}
-#search:focus { box-shadow: 6px 6px 0 #FF4D6D; transform: translate(-1px,-1px); }
-#search::placeholder { color: #bbb; font-weight: 700; }
-
 /* SORT */
 .sort-panel {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+  gap: 7px;
+  margin-bottom: 7px;
+}
+.sort-panel-bottom {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
   gap: 7px;
   margin-bottom: 22px;
 }
-@media (max-width: 480px) { .sort-panel { grid-template-columns: repeat(3, 1fr); } }
 
 .sort-btn {
   background: white;
@@ -284,23 +266,17 @@ body::before {
     <div class="title-sub">⚡ Live Leaderboard ⚡</div>
   </div>
 
-  <div class="search-wrap">
-    <span class="search-emoji">🔎</span>
-    <input id="search" type="text" placeholder="Search player or department…" oninput="handleSearch()" />
-  </div>
-
   <div class="sort-panel">
     <button class="sort-btn" data-sort="best_score"           onclick="sortData('best_score')">🏆 Best Score <span class="indicator"></span></button>
     <button class="sort-btn" data-sort="best_streak"          onclick="sortData('best_streak')">🔥 Streak <span class="indicator"></span></button>
-    <button class="sort-btn" data-sort="best_speed"           onclick="sortData('best_speed')">⚡ Speed <span class="indicator"></span></button>
-    <button class="sort-btn" data-sort="accuracy"             onclick="sortData('accuracy')">🎯 Accuracy <span class="indicator"></span></button>
     <button class="sort-btn" data-sort="total_sessions"       onclick="sortData('total_sessions')">🎮 Sessions <span class="indicator"></span></button>
     <button class="sort-btn" data-sort="total_time_played"    onclick="sortData('total_time_played')">⏱ Time <span class="indicator"></span></button>
-    <button class="sort-btn" data-sort="total_correct"        onclick="sortData('total_correct')">✅ Correct <span class="indicator"></span></button>
-    <button class="sort-btn" data-sort="total_wrong"          onclick="sortData('total_wrong')">❌ Wrong <span class="indicator"></span></button>
+    <button class="sort-btn" data-sort="total_wrong"          onclick="sortData('total_wrong')">❌ Most Missed <span class="indicator"></span></button>
     <button class="sort-btn" data-sort="total_bonus"          onclick="sortData('total_bonus')">💎 Bonus <span class="indicator"></span></button>
-    <button class="sort-btn" data-sort="total_perfect_solves" onclick="sortData('total_perfect_solves')">✨ Perfect <span class="indicator"></span></button>
-    <button class="sort-btn" data-sort="efficiency"           onclick="sortData('efficiency')">📈 Efficiency <span class="indicator"></span></button>
+  </div>
+  <div class="sort-panel-bottom">
+    <button class="sort-btn" data-sort="best_speed"           onclick="sortData('best_speed')">⚡ Fastest Solve <span class="indicator"></span></button>
+    <button class="sort-btn" data-sort="total_correct"        onclick="sortData('total_correct')">✅ Words Found <span class="indicator"></span></button>
   </div>
 
   <div class="stats-bar" id="stats-bar"></div>
@@ -337,12 +313,12 @@ const supabase = createClient(
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoZXpzc29jenZwYmt0ZWZmY2d6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI4NTk1ODUsImV4cCI6MjA3ODQzNTU4NX0.2ZlqXnZxv0opkhynAT7OlK4S-xPygcc7ETUyTXRfGHE"
 );
 
-let reportData = [], filteredData = [], currentSort = "best_score", sortAscending = false, searchQuery = "";
+let reportData = [], filteredData = [], currentSort = "best_score", sortAscending = false;
 
 const LABELS = {
-  best_score:"Best Score", best_streak:"Streak", best_speed:"Speed",
+  best_score:"Best Score", best_streak:"Streak", best_speed:"Fastest Solve",
   accuracy:"Accuracy", total_sessions:"Sessions", total_time_played:"Time Played",
-  total_correct:"Correct", total_wrong:"Wrong", total_bonus:"Bonus",
+  total_correct:"Words Found", total_wrong:"Most Missed", total_bonus:"Bonus",
   total_perfect_solves:"Perfect Solves", efficiency:"Efficiency",
 };
 
@@ -356,10 +332,7 @@ async function loadData() {
 }
 
 function applyAll() {
-  const q = searchQuery.toLowerCase().trim();
-  filteredData = q
-    ? reportData.filter(p => p.student_name.toLowerCase().includes(q) || (p.department||"").toLowerCase().includes(q))
-    : [...reportData];
+  filteredData = [...reportData];
   filteredData.sort((a, b) => {
     const A = Number(a[currentSort]||0), B = Number(b[currentSort]||0);
     return sortAscending ? A-B : B-A;
@@ -438,15 +411,15 @@ function openModal(p, rank) {
     <div class="stat-grid">
       <div class="stat-card"><div class="stat-val">${p.best_score??'—'}</div><div class="stat-lbl">🏆 Score</div></div>
       <div class="stat-card"><div class="stat-val">${p.best_streak??'—'}</div><div class="stat-lbl">🔥 Streak</div></div>
-      <div class="stat-card"><div class="stat-val">${p.best_speed!=null?p.best_speed+'s':'—'}</div><div class="stat-lbl">⚡ Speed</div></div>
+      <div class="stat-card"><div class="stat-val">${p.best_speed!=null?p.best_speed+'s':'—'}</div><div class="stat-lbl">⚡ Fastest Solve</div></div>
     </div>
     <div class="section-label">All-Time Stats</div>
     <div class="stat-grid">
       <div class="stat-card"><div class="stat-val">${p.total_sessions??'—'}</div><div class="stat-lbl">🎮 Sessions</div></div>
       <div class="stat-card"><div class="stat-val">${Math.round((p.total_time_played||0)/60)}m</div><div class="stat-lbl">⏱ Time</div></div>
       <div class="stat-card"><div class="stat-val">${p.total_perfect_solves??'—'}</div><div class="stat-lbl">✨ Perfect</div></div>
-      <div class="stat-card"><div class="stat-val">${p.total_correct??'—'}</div><div class="stat-lbl">✅ Correct</div></div>
-      <div class="stat-card"><div class="stat-val">${p.total_wrong??'—'}</div><div class="stat-lbl">❌ Wrong</div></div>
+      <div class="stat-card"><div class="stat-val">${p.total_correct??'—'}</div><div class="stat-lbl">✅ Words Found</div></div>
+      <div class="stat-card"><div class="stat-val">${p.total_wrong??'—'}</div><div class="stat-lbl">❌ Most Missed</div></div>
       <div class="stat-card"><div class="stat-val">${p.total_bonus??'—'}</div><div class="stat-lbl">💎 Bonus</div></div>
     </div>
     <div class="section-label">Performance</div>
@@ -465,7 +438,6 @@ function openModal(p, rank) {
 
 window.closeModal = () => document.getElementById("modal").classList.remove("open");
 window.maybeClose = e => { if (e.target === document.getElementById("modal")) window.closeModal(); };
-window.handleSearch = () => { searchQuery = document.getElementById("search").value; applyAll(); };
 window.sortData = sortData;
 document.addEventListener("keydown", e => { if (e.key==="Escape") window.closeModal(); });
 window.onload = loadData;

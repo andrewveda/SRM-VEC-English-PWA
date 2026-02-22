@@ -349,13 +349,13 @@ function parseCSV(txt){
 function shuffleArray(arr){const a=[...arr];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
 
 function generateStatsImage(s,playerName,playerDept){
-  const solvedWords = s.solvedLog.filter(e=>!e.failed);
-  const numRows = Math.ceil(solvedWords.length / 2);
+  const allWords = s.solvedLog; // includes failed
+  const numRows = Math.ceil(allWords.length / 2);
   const rowHeight = 90;
   const wordsBlockHeight = Math.max(7, numRows) * rowHeight + 80;
   const canvas=document.getElementById('statsCanvas'),ctx=canvas.getContext('2d');
   canvas.width=1080;
-  canvas.height=320 + 300 + 160 + wordsBlockHeight + 120; // header+stats+metrics+words+footer
+  canvas.height=320 + 300 + 160 + wordsBlockHeight + 200; // extra 200 for footer breathing room
 
   const bg=ctx.createLinearGradient(0,0,0,canvas.height);bg.addColorStop(0,'#080e1a');bg.addColorStop(1,'#0d1a2e');
   ctx.fillStyle=bg;ctx.fillRect(0,0,canvas.width,canvas.height);
@@ -399,54 +399,62 @@ function generateStatsImage(s,playerName,playerDept){
     ctx.font='18px Nunito,sans-serif';ctx.fillStyle='#7a93b8';ctx.textAlign='right';ctx.fillText(m.label.toUpperCase(),x+mW-25,y+90);
   });
 
-  // Words section — two columns
+  // Words section — two columns, all words including failed
   const wordsY = mY + nr*(mH+gY) + 70;
   ctx.font='28px Nunito,sans-serif';ctx.fillStyle='#7a93b8';ctx.textAlign='center';
-  ctx.fillText('SOLVED WORDS',canvas.width/2, wordsY);
+  ctx.fillText('ALL WORDS',canvas.width/2, wordsY);
 
-  const colW = (canvas.width - 120) / 2;  // each column width
-  const pad = 60;                           // left margin
-  const colGap = 20;                        // gap between columns
+  const pad = 60;
+  const colGap = 20;
+  const colW = (canvas.width - pad*2 - colGap) / 2;
 
-  solvedWords.forEach((entry, i) => {
+  allWords.forEach((entry, i) => {
     const col = i % 2;
     const row = Math.floor(i / 2);
     const x = pad + col * (colW + colGap);
     const y = wordsY + 50 + row * rowHeight;
     const w = colW;
     const h = rowHeight - 10;
+    const failed = entry.failed;
 
-    // Card background
-    ctx.fillStyle='rgba(17,30,48,0.85)';
-    ctx.strokeStyle='rgba(0,198,255,0.12)';
+    // Card background — red tint for failed
+    ctx.fillStyle = failed ? 'rgba(40,10,10,0.9)' : 'rgba(17,30,48,0.85)';
+    ctx.strokeStyle = failed ? 'rgba(229,57,53,0.25)' : 'rgba(0,198,255,0.12)';
     ctx.lineWidth=2;
     rrect(ctx, x, y, w, h, 14);
     ctx.fill();ctx.stroke();
 
     // Word
     ctx.font='bold 38px Rajdhani,sans-serif';
-    ctx.fillStyle='#e8f0fe';
+    ctx.fillStyle = failed ? '#ef9a9a' : '#e8f0fe';
     ctx.textAlign='left';
     ctx.fillText(entry.word.toUpperCase(), x+20, y+h*0.62);
 
-    // Attempt count badge
+    // Attempt count or failed mark
     const tries = entry.guesses.length;
-    const badgeLabel = tries === 1 ? '🎯 1' : `${tries} tries`;
-    ctx.font='22px Nunito,sans-serif';
-    ctx.fillStyle= tries === 1 ? '#00e676' : tries <= 3 ? '#00c6ff' : '#f59e0b';
-    ctx.textAlign='center';
-    ctx.fillText(badgeLabel, x + w*0.65, y+h*0.62);
+    if(failed){
+      ctx.font='22px Nunito,sans-serif';
+      ctx.fillStyle='#e53935';
+      ctx.textAlign='center';
+      ctx.fillText('✗ missed', x + w*0.62, y+h*0.62);
+    } else {
+      const badgeLabel = tries === 1 ? '🎯 1 try' : `${tries} tries`;
+      ctx.font='22px Nunito,sans-serif';
+      ctx.fillStyle = tries === 1 ? '#00e676' : tries <= 3 ? '#00c6ff' : '#f59e0b';
+      ctx.textAlign='center';
+      ctx.fillText(badgeLabel, x + w*0.62, y+h*0.62);
+    }
 
     // Points
     ctx.font='bold 34px Rajdhani,sans-serif';
-    ctx.fillStyle='#ffd700';
+    ctx.fillStyle = failed ? '#555' : '#ffd700';
     ctx.textAlign='right';
-    ctx.fillText('+'+entry.pts+' pts', x+w-16, y+h*0.62);
+    ctx.fillText(failed ? '0 pts' : '+'+entry.pts+' pts', x+w-16, y+h*0.62);
   });
 
-  // Footer
+  // Footer with breathing room
   ctx.font='26px Nunito,sans-serif';ctx.fillStyle='#7a93b8';ctx.textAlign='center';
-  ctx.fillText('Play at: andrewveda.github.io/SRM-VEC-English-PWA/buttons/wordle',canvas.width/2,canvas.height-60);
+  ctx.fillText('Play at: andrewveda.github.io/SRM-VEC-English-PWA/buttons/wordle',canvas.width/2,canvas.height-80);
 
   return canvas.toDataURL('image/png');
 }

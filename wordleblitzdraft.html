@@ -203,6 +203,29 @@ html.light .key{text-shadow:0 1px 1px rgba(255,255,255,0.5);box-shadow:0 4px 0 r
 @keyframes enterGlow{0%,100%{box-shadow:0 4px 0 rgba(0,0,0,0.42),0 0 8px rgba(34,197,94,0.38)}50%{box-shadow:0 4px 0 rgba(0,0,0,0.42),0 0 22px rgba(34,197,94,0.82),0 0 40px rgba(34,197,94,0.28)}}
 .key.k-back{background:linear-gradient(135deg,#9b1c1c,#ef4444);border-color:rgba(239,68,68,0.38);}
 
+/* ── Key revealed states — mirror the tile jewel tones ── */
+.key.k-state-correct{
+  background:linear-gradient(145deg,var(--correct-a),var(--correct-b))!important;
+  border-color:var(--correct-bl)!important;
+  color:#fff!important;
+  box-shadow:0 3px 0 var(--key-shadow),inset 0 1px 0 var(--correct-bl),0 0 10px var(--correct-bd)!important;
+  text-shadow:0 1px 3px rgba(0,0,0,0.45)!important;
+}
+.key.k-state-present{
+  background:linear-gradient(145deg,var(--present-a),var(--present-b))!important;
+  border-color:var(--present-bl)!important;
+  color:#fff!important;
+  box-shadow:0 3px 0 var(--key-shadow),inset 0 1px 0 var(--present-bl),0 0 10px var(--present-bd)!important;
+  text-shadow:0 1px 3px rgba(0,0,0,0.45)!important;
+}
+.key.k-state-absent{
+  background:var(--absent)!important;
+  border-color:var(--absent-bd)!important;
+  color:var(--muted)!important;
+  box-shadow:0 2px 0 var(--key-shadow),inset 0 1px 0 var(--absent-bl)!important;
+  text-shadow:none!important;
+}
+
 .bottom-bar{display:flex;align-items:center;justify-content:space-between;width:100%;max-width:460px;min-height:22px;flex-shrink:0;}
 .hint-bar{font-size:12px;color:var(--muted);flex:1;text-align:center;}
 .skip-btn{font-size:11px;color:var(--muted);background:none;border:1px solid var(--tile-border);border-radius:8px;padding:3px 10px;cursor:pointer;transition:color 0.2s,border-color 0.2s;flex-shrink:0;}
@@ -460,7 +483,7 @@ function renderKeyboard(){
     kb.appendChild(r);
   });
 }
-function mkKey(label,val,extra=''){const k=document.createElement('div');k.className='key '+(extra||'');k.textContent=label;k.dataset.key=val;k.addEventListener('click',e=>{if(!gameActive||!accepting)return;addRipple(k,e);onKey(val);});return k;}
+function mkKey(label,val,extra=''){const k=document.createElement('div');k.className='key '+(extra||'');k.textContent=label;k.dataset.key=val;k.dataset.state='';k.addEventListener('click',e=>{if(!gameActive||!accepting)return;addRipple(k,e);onKey(val);});return k;}
 function addRipple(el,e){const rp=document.createElement('span');rp.className='ripple';const rect=el.getBoundingClientRect();rp.style.left=(e&&e.clientX?(e.clientX-rect.left):rect.width/2)+'px';rp.style.top=(e&&e.clientY?(e.clientY-rect.top):rect.height/2)+'px';el.appendChild(rp);setTimeout(()=>rp.remove(),450);}
 
 function onKey(k){
@@ -496,7 +519,21 @@ function evaluateGuess(guess){
 
 function updateKeyColors(letters,results){
   const kb=document.getElementById('keyboard');
-  letters.forEach((ch,i)=>{kb.querySelectorAll('[data-key]').forEach(k=>{if(k.dataset.key!==ch)return;if(results[i]==='correct'){k.style.background='linear-gradient(135deg,#1a7a42,#22c55e)';k.style.borderColor='rgba(34,197,94,0.6)';k.style.color='#fff';}else if(results[i]==='present'&&!k.style.background?.includes('22c55e')){k.style.background='linear-gradient(135deg,#92600a,#f59e0b)';k.style.borderColor='rgba(245,158,11,0.5)';k.style.color='#fff';}else if(results[i]==='absent'&&!k.style.background){k.style.background='#1a1f2b';k.style.borderColor='rgba(255,255,255,0.06)';k.style.color='#4a5568';}});});
+  const RANK={'correct':3,'present':2,'absent':1};
+  letters.forEach((ch,i)=>{
+    kb.querySelectorAll('[data-key]').forEach(k=>{
+      if(k.dataset.key!==ch)return;
+      const cur=k.dataset.state||'';
+      const newState=results[i];
+      // Only upgrade state, never downgrade (correct > present > absent)
+      if((RANK[newState]||0)<=(RANK[cur]||0))return;
+      k.dataset.state=newState;
+      k.classList.remove('k-state-correct','k-state-present','k-state-absent');
+      k.classList.add('k-state-'+newState);
+      // clear any leftover inline styles so CSS classes take full control
+      k.style.background='';k.style.borderColor='';k.style.color='';
+    });
+  });
 }
 
 function calcScore(tries,sec){const base=[0,6,5,4,3,2,1][tries]||0;return base+(sec<20?3:sec<40?1:0);}

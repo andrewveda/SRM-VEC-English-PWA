@@ -1746,6 +1746,7 @@ const supabase = createClient(
 
 // ─── STATE ───
 let userData = null;
+let userProfileData = null;
 let sessionStartTime = Date.now();
 let currentMonth = new Date().getMonth();
 let currentYear = new Date().getFullYear();
@@ -1783,10 +1784,8 @@ async function init() {
       showApp();
       refreshData(savedName);
     } else {
-      document.getElementById('loadingScreen').classList.add('show');
-      await fetchInitialData(savedName);
-      document.getElementById('loadingScreen').classList.remove('show');
-      showApp();
+     showApp();               
+fetchInitialData(savedName); 
     }
   } else {
     document.getElementById('loginOverlay').style.display = 'flex';
@@ -1795,29 +1794,58 @@ async function init() {
 
 async function fetchInitialData(name) {
   try {
-const dept = localStorage.getItem("userDept");
+   const [s, l, timeRow] = await Promise.all([
+  supabase.from('summary_import').select('*'),
+  supabase.from('leaderboard').select('*'),
+  supabase
+    .from("report_card_view")
+    .select("total_time")
+    .ilike("name", name)
+    .maybeSingle()
+]);
 
+    if (s.error) throw s.error;
+    if (l.error) throw l.error;
 
-const { data, error } = await supabase
-  .from("report_card_view")
-  .select("*")
-  .eq("name", name)
-  .eq("department", dept)
-  .maybeSingle();
+    userData = s.data.find(u => u.student_name && u.student_name.toUpperCase().includes(name.toUpperCase()))
+      || { student_name: name.toUpperCase(), quest_list: "", video_list: "", story_list: "" };
 
-if (error) throw error;
+    const profileUser = l.data.find(u => u.Name && u.Name.trim().toLowerCase() === name.trim().toLowerCase());
+    userProfileData = profileUser || { Name: name, Correct: 0, Wrong: 0 };
 
-userData = data || {
-  name,
-  department: dept,
-  quest_list: "",
-  video_list: "",
-  story_list: "",
-  total_time: 0
-};
+    localStorage.setItem('cachedUserData', JSON.stringify(userData));
+    localStorage.setItem('cachedProfileData', JSON.stringify(userProfileData));
+    const totalTime = timeRow.data?.total_time ?? 0;
+localStorage.setItem("cached_total_time", totalTime);
 
-localStorage.setItem("cachedUserData", JSON.stringify(userData));
-localStorage.setItem("cached_total_time", userData.total_time || 0);
+  } catch (err) {
+    console.error('Error loading:', err);
+    console.warn('Offline / slow network — using cached UI');
+  }
+}
+
+async function refreshData(name) {
+  if (!name) return;
+  try {
+   const [s, l, timeRow] = await Promise.all([
+  supabase.from('summary_import').select('*'),
+  supabase.from('leaderboard').select('*'),
+  supabase
+    .from("report_card_view")
+    .select("total_time")
+    .ilike("name", name)
+    .maybeSingle()
+]);
+
+    if (s.error || l.error) throw new Error('Fetch failed');
+
+    const su = s.data.find(u => u.student_name && u.student_name.toUpperCase().includes(name.toUpperCase()));
+    if (su) { userData = su; localStorage.setItem('cachedUserData', JSON.stringify(userData)); }
+
+    const pu = l.data.find(u => u.Name && u.Name.trim().toLowerCase() === name.trim().toLowerCase());
+    if (pu) { userProfileData = pu; localStorage.setItem('cachedProfileData', JSON.stringify(userProfileData)); }
+const totalTime = timeRow.data?.total_time ?? 0;
+localStorage.setItem("cached_total_time", totalTime);
 
     updateAllUI();
   } catch (err) {
@@ -1863,31 +1891,7 @@ function formatTime(seconds) {
     </span>
   `;
 }
-async function refreshData(name) {
-  try {
-    const dept = localStorage.getItem("userDept");
 
-    const { data, error } = await supabase
-      .from("report_card_view")
-      .select("*")
-      .eq("name", name)
-      .eq("department", dept)
-      .maybeSingle();
-
-    if (error) throw error;
-
-    if (data) {
-      userData = data;
-      localStorage.setItem("cachedUserData", JSON.stringify(userData));
-      localStorage.setItem("cached_total_time", userData.total_time || 0);
-    }
-
-    updateAllUI();
-
-  } catch (err) {
-    console.error("Refresh error:", err);
-  }
-}
 function updateAllUI() {
   if (!userData && !userProfileData) return;
 
@@ -1969,11 +1973,8 @@ window.saveAndLogin = async function() {
   localStorage.setItem('userDept', dept || 'Unknown');
 
   document.getElementById('loginOverlay').style.display = 'none';
-  document.getElementById('loadingScreen').classList.add('show');
-
-  await fetchInitialData(upperName);
-  document.getElementById('loadingScreen').classList.remove('show');
-  showApp();
+ showApp();                     
+fetchInitialData(upperName);    
 };
 
 // ─── CALENDAR ───
@@ -2177,7 +2178,11 @@ function setupEventListeners() {
 
 // ─── REALTIME ───
 supabase.channel('realtime-updates')
-  .on('postgres_changes', { event:'*', schema:'public', table:'quest_submissions' }, () => {
+  .on('postgres_changes', { event:'*', schema:'public', table:'leaderboard' }, () => {
+    const n = localStorage.getItem('userName');
+    if (n) refreshData(n);
+  })
+  .on('postgres_changes', { event:'*', schema:'public', table:'summary_import' }, () => {
     const n = localStorage.getItem('userName');
     if (n) refreshData(n);
   })

@@ -1796,22 +1796,28 @@ async function init() {
 
 async function fetchInitialData(name) {
   try {
-    const dept = localStorage.getItem("userDept");
-   const [s, l, timeRow] = await Promise.all([
-  supabase.from('summary_import').select('*'),
-  supabase.from('leaderboard').select('*'),
-  supabase
-    .from("report_card_view")
-    .select("total_time")
-    .eq("name", name)
-    .eq("department", dept)
-    .limit(1)
-]);
+
+const dept = localStorage.getItem("userDept");
+
+const reportRow = await supabase
+  .from("report_card_view")
+  .select("*")
+  .eq("name", name)
+  .eq("department", dept)
+  .limit(1);
+   
 
     if (s.error) throw s.error;
     if (l.error) throw l.error;
 
-    userData = s.data.find(u => u.student_name && u.student_name.toUpperCase().includes(name.toUpperCase()))
+userData = reportRow.data?.[0] || {
+  name: name,
+  department: dept,
+  quest_list: "",
+  video_list: "",
+  story_list: "",
+  total_time: 0
+};
       || { student_name: name.toUpperCase(), quest_list: "", video_list: "", story_list: "" };
 
     const profileUser = l.data.find(u => u.Name && u.Name.trim().toLowerCase() === name.trim().toLowerCase());
@@ -1819,7 +1825,7 @@ async function fetchInitialData(name) {
 
     localStorage.setItem('cachedUserData', JSON.stringify(userData));
     localStorage.setItem('cachedProfileData', JSON.stringify(userProfileData));
-    const totalTime = timeRow.data?.[0]?.total_time ?? 0;
+    const totalTime = userData.total_time ?? 0;
 localStorage.setItem("cached_total_time", totalTime);
 
   } catch (err) {
@@ -1850,7 +1856,7 @@ async function refreshData(name) {
 
     const pu = l.data.find(u => u.Name && u.Name.trim().toLowerCase() === name.trim().toLowerCase());
     if (pu) { userProfileData = pu; localStorage.setItem('cachedProfileData', JSON.stringify(userProfileData)); }
-const totalTime = timeRow.data?.[0]?.total_time ?? 0;
+const totalTime = userData.total_time ?? 0;
 localStorage.setItem("cached_total_time", totalTime);
 
     updateAllUI();

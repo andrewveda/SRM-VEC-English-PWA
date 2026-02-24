@@ -1746,7 +1746,6 @@ const supabase = createClient(
 
 // ─── STATE ───
 let userData = null;
-let userProfileData = null;
 let sessionStartTime = Date.now();
 let currentMonth = new Date().getMonth();
 let currentYear = new Date().getFullYear();
@@ -1798,7 +1797,6 @@ async function fetchInitialData(name) {
   try {
 const dept = localStorage.getItem("userDept");
 
-const dept = localStorage.getItem("userDept");
 
 const { data, error } = await supabase
   .from("report_card_view")
@@ -1865,7 +1863,31 @@ function formatTime(seconds) {
     </span>
   `;
 }
+async function refreshData(name) {
+  try {
+    const dept = localStorage.getItem("userDept");
 
+    const { data, error } = await supabase
+      .from("report_card_view")
+      .select("*")
+      .eq("name", name)
+      .eq("department", dept)
+      .maybeSingle();
+
+    if (error) throw error;
+
+    if (data) {
+      userData = data;
+      localStorage.setItem("cachedUserData", JSON.stringify(userData));
+      localStorage.setItem("cached_total_time", userData.total_time || 0);
+    }
+
+    updateAllUI();
+
+  } catch (err) {
+    console.error("Refresh error:", err);
+  }
+}
 function updateAllUI() {
   if (!userData && !userProfileData) return;
 
@@ -2155,11 +2177,7 @@ function setupEventListeners() {
 
 // ─── REALTIME ───
 supabase.channel('realtime-updates')
-  .on('postgres_changes', { event:'*', schema:'public', table:'leaderboard' }, () => {
-    const n = localStorage.getItem('userName');
-    if (n) refreshData(n);
-  })
-  .on('postgres_changes', { event:'*', schema:'public', table:'summary_import' }, () => {
+  .on('postgres_changes', { event:'*', schema:'public', table:'quest_submissions' }, () => {
     const n = localStorage.getItem('userName');
     if (n) refreshData(n);
   })

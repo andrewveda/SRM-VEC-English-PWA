@@ -1798,99 +1798,28 @@ async function fetchInitialData(name) {
   try {
 const dept = localStorage.getItem("userDept");
 
-const [s, l, timeRow] = await Promise.all([
-  supabase
-    .from('summary_import')
-    .select('*')
-    .eq('student_name', name)
-    .eq('department', dept)
-    .maybeSingle(),
+const dept = localStorage.getItem("userDept");
 
-  supabase
-    .from('leaderboard')
-    .select('*')
-    .eq('Name', name)
-    .eq('Department', dept)
-    .maybeSingle(),
+const { data, error } = await supabase
+  .from("report_card_view")
+  .select("*")
+  .eq("name", name)
+  .eq("department", dept)
+  .maybeSingle();
 
-  supabase
-    .from("report_card_view")
-    .select("total_time")
-    .eq("name", name)
-    .eq("department", dept)
-    .maybeSingle()
-]);
+if (error) throw error;
 
-    if (s.error) throw s.error;
-    if (l.error) throw l.error;
-
-   userData = s.data || {
-  student_name: name,
+userData = data || {
+  name,
   department: dept,
   quest_list: "",
   video_list: "",
-  story_list: ""
+  story_list: "",
+  total_time: 0
 };
 
-userProfileData = l.data || {
-  Name: name,
-  Department: dept,
-  Correct: 0,
-  Wrong: 0
-};
-
-    localStorage.setItem('cachedUserData', JSON.stringify(userData));
-    localStorage.setItem('cachedProfileData', JSON.stringify(userProfileData));
-    const totalTime = timeRow.data?.total_time ?? 0;
-localStorage.setItem("cached_total_time", totalTime);
-
-  } catch (err) {
-    console.error('Error loading:', err);
-    showConfirm('Could not load data. Check your connection and try again.', null, null, true);
-  }
-}
-
-async function refreshData(name) {
-  if (!name) return;
-  try {
-  const dept = localStorage.getItem("userDept");
-
-const [s, l, timeRow] = await Promise.all([
-  supabase
-    .from('summary_import')
-    .select('*')
-    .eq('student_name', name)
-    .eq('department', dept)
-    .maybeSingle(),
-
-  supabase
-    .from('leaderboard')
-    .select('*')
-    .eq('Name', name)
-    .eq('Department', dept)
-    .maybeSingle(),
-
-  supabase
-    .from("report_card_view")
-    .select("total_time")
-    .eq("name", name)
-    .eq("department", dept)
-    .maybeSingle()
-]);
-
-    if (s.error || l.error) throw new Error('Fetch failed');
-
-    if (s.data) {
-  userData = s.data;
-  localStorage.setItem('cachedUserData', JSON.stringify(userData));
-}
-
-if (l.data) {
-  userProfileData = l.data;
-  localStorage.setItem('cachedProfileData', JSON.stringify(userProfileData));
-}
-    const totalTime = timeRow.data?.total_time ?? 0;
-localStorage.setItem("cached_total_time", totalTime);
+localStorage.setItem("cachedUserData", JSON.stringify(userData));
+localStorage.setItem("cached_total_time", userData.total_time || 0);
 
     updateAllUI();
   } catch (err) {

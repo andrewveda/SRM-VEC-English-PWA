@@ -1,0 +1,123 @@
+name: Add Video from Issue
+
+on:
+  issues:
+    types: [labeled]
+
+jobs:
+  add-video:
+    # Only runs when a maintainer adds the "approved" label to a "new-video" issue
+    if: |
+      github.event.label.name == 'approved' &&
+      contains(github.event.issue.labels.*.name, 'new-video')
+
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Parse issue form fields
+        id: parse
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = context.payload.issue.body;
+
+            function extractField(label) {
+              // GitHub issue forms render as:  ### Label\n\nValue
+              const regex = new RegExp(`### ${label}\\s*\\n+([^\\n#]+)`);
+              const match = body.match(regex);
+              return match ? match[1].trim() : null;
+            }
+
+            const questId    = extractField('Quest ID');
+            const title      = extractField('Title');
+            const video      = extractField('YouTube URL');
+            const category   = extractField('Category');
+            const watchRaw   = extractField('Watch Target \\(seconds\\)');
+            const watchTarget = parseInt(watchRaw, 10);
+
+            if (!questId || !title || !video || !category || isNaN(watchTarget)) {
+              core.setFailed('Could not parse all required fields from the issue body.');
+              return;
+            }
+
+            core.setOutput('questId',     questId);
+            core.setOutput('title',       title);
+            core.setOutput('video',       video);
+            core.setOutput('category',    category);
+            core.setOutput('watchTarget', watchTarget);
+            core.setOutput('issueNumber', context.payload.issue.number);
+
+      - name: Add entry to JSON and open PR
+        uses: actions/github-script@v7
+        env:
+          QUEST_ID:     ${{ steps.parse.outputs.questId }}
+          TITLE:        ${{ steps.parse.outputs.title }}
+          VIDEO:        ${{ steps.parse.outputs.video }}
+          CATEGORY:     ${{ steps.parse.outputs.category }}
+          WATCH_TARGET: ${{ steps.parse.outputs.watchTarget }}
+          ISSUE_NUMBER: ${{ steps.parse.outputs.issueNumber }}
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs   = require('fs');
+            const path = require('path');
+
+            // â”€â”€ 1. Load the JSON file â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // Change this path if your JSON lives somewhere else
+            const JSON_PATH = 'videos.json';
+            const raw  = fs.readFileSync(JSON_PATH, 'utf8');
+            const data = JSON.parse(raw);
+
+            // â”€â”€ 2. Build the new entry â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            const newEntry = {
+              questId:     process.env.QUEST_ID,
+              title:       process.env.TITLE,
+              video:       process.env.VIDEO,
+              category:    process.env.CATEGORY,
+              watchTarget: parseInt(process.env.WATCH_TARGET, 10),
+            };
+
+            // Guard: skip if questId already exists
+            if (data.some(v => v.questId === newEntry.questId)) {
+              core.setFailed(`questId "${newEntry.questId}" already exists in ${JSON_PATH}.`);
+              return;
+            }
+
+            data.push(newEntry);
+            fs.writeFileSync(JSON_PATH, JSON.stringify(data, null, 2) + '\n');
+
+            // â”€â”€ 3. Commit to a new branch â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            const branch = `add-video/issue-${process.env.ISSUE_NUMBER}`;
+            const { execSync } = require('child_process');
+
+            execSync(`git config user.name  "github-actions[bot]"`);
+            execSync(`git config user.email "github-actions[bot]@users.noreply.github.com"`);
+            execSync(`git checkout -b ${branch}`);
+            execSync(`git add ${JSON_PATH}`);
+            execSync(`git commit -m "feat: add ${newEntry.questId} from issue #${process.env.ISSUE_NUMBER}"`);
+            execSync(`git push origin ${branch}`);
+
+            // â”€â”€ 4. Open a Pull Request â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            const pr = await github.rest.pulls.create({
+              owner: context.repo.owner,
+              repo:  context.repo.repo,
+              title: `Add video: ${newEntry.questId} â€“ ${newEntry.title}`,
+              head:  branch,
+              base:  'main',
+              body:  `Closes #${process.env.ISSUE_NUMBER}\n\nAdds the following entry to \`${JSON_PATH}\`:\n\`\`\`json\n${JSON.stringify(newEntry, null, 2)}\n\`\`\``,
+            });
+
+            // â”€â”€ 5. Comment on the issue with the PR link â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            await github.rest.issues.createComment({
+              owner:      context.repo.owner,
+              repo:       context.repo.repo,
+              issue_number: parseInt(process.env.ISSUE_NUMBER),
+              body: `âœ… Thanks! A pull request has been opened to add this video: ${pr.data.html_url}`,
+            });

@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Blossom Leaderboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800;900&family=DM+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0D0D14;
+  --card: #16161F;
+  --border: #2A2A3D;
+  --pink: #FF3CAC;
+  --yellow: #FFE135;
+  --cyan: #00F5FF;
+  --green: #39FF6B;
+  --purple: #B14EFF;
+  --text: #F0F0FF;
+  --muted: #6B6B8A;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  font-family: 'DM Sans', sans-serif;
+  min-height: 100vh;
+  padding: 20px 12px 60px;
+  overflow-x: hidden;
+  color: var(--text);
+}
+
+/* animated bg grid */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image:
+    linear-gradient(rgba(177,78,255,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(177,78,255,0.04) 1px, transparent 1px);
+  background-size: 36px 36px;
+  z-index: 0; pointer-events: none;
+}
+body::after {
+  content: '';
+  position: fixed;
+  width: 500px; height: 500px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,60,172,0.08) 0%, transparent 70%);
+  top: -100px; left: 50%; transform: translateX(-50%);
+  z-index: 0; pointer-events: none;
+}
+
+.page { position: relative; z-index: 1; max-width: 620px; margin: 0 auto; }
+
+/* HEADER */
+.header { text-align: center; margin-bottom: 24px; }
+.brand {
+  font-family: 'Baloo 2', cursive;
+  font-size: clamp(44px, 12vw, 80px);
+  font-weight: 900;
+  line-height: 0.9;
+  background: linear-gradient(135deg, var(--pink) 0%, var(--purple) 50%, var(--cyan) 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 0 20px rgba(255,60,172,0.4));
+  letter-spacing: -2px;
+}
+.brand-sub {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(255,225,53,0.1); border: 1px solid rgba(255,225,53,0.3);
+  color: var(--yellow); font-size: 10px; font-weight: 700;
+  letter-spacing: 3px; text-transform: uppercase;
+  padding: 4px 14px; border-radius: 999px; margin-top: 8px;
+}
+.pulse-dot {
+  width: 6px; height: 6px; border-radius: 50%; background: var(--green);
+  animation: pulse 1.5s infinite;
+}
+@keyframes pulse { 0%,100%{ opacity:1; transform:scale(1); } 50%{ opacity:0.4; transform:scale(0.7); } }
+
+/* STATS STRIP */
+.stats-strip {
+  display: flex; gap: 8px; margin-bottom: 16px;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 14px; padding: 10px 14px;
+}
+.stat-chip {
+  flex: 1; text-align: center;
+}
+.stat-chip-val { font-family: 'Baloo 2', cursive; font-size: 18px; font-weight: 800; color: var(--cyan); line-height: 1; }
+.stat-chip-lbl { font-size: 9px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
+.stat-divider { width: 1px; background: var(--border); }
+
+/* SORT BAR */
+.sort-bar { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+.sort-btn {
+  background: var(--card); border: 1px solid var(--border);
+  color: var(--muted); font-family: 'DM Sans', sans-serif;
+  font-size: 11px; font-weight: 700; padding: 6px 12px;
+  border-radius: 999px; cursor: pointer; transition: all 0.15s;
+  letter-spacing: 0.3px;
+}
+.sort-btn:hover { border-color: var(--purple); color: var(--text); }
+.sort-btn.active {
+  background: linear-gradient(135deg, var(--pink), var(--purple));
+  border-color: transparent; color: white;
+  box-shadow: 0 0 12px rgba(177,78,255,0.4);
+}
+
+/* ROW */
+.row {
+  display: grid;
+  grid-template-columns: 52px 1fr auto;
+  align-items: center; gap: 10px;
+  padding: 11px 14px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  margin-bottom: 7px;
+  background: var(--card);
+  cursor: pointer;
+  transition: all 0.15s;
+  position: relative; overflow: hidden;
+  animation: rowIn 0.3s cubic-bezier(0.34,1.56,0.64,1) both;
+}
+.row::before {
+  content: '';
+  position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+  background: var(--border); border-radius: 3px 0 0 3px;
+  transition: background 0.2s;
+}
+.row:hover { border-color: rgba(177,78,255,0.5); transform: translateY(-1px); box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
+.row:hover::before { background: var(--purple); }
+.row:active { transform: translateY(0); }
+
+@keyframes rowIn {
+  from { opacity: 0; transform: translateX(-12px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+.row.rank-1 { background: linear-gradient(135deg, rgba(255,225,53,0.08), rgba(255,165,0,0.06)); border-color: rgba(255,225,53,0.3); }
+.row.rank-1::before { background: var(--yellow); }
+.row.rank-2 { background: linear-gradient(135deg, rgba(200,200,220,0.08), rgba(160,160,180,0.05)); border-color: rgba(200,200,220,0.3); }
+.row.rank-2::before { background: #C0C0D0; }
+.row.rank-3 { background: linear-gradient(135deg, rgba(255,140,60,0.08), rgba(200,100,30,0.06)); border-color: rgba(255,140,60,0.3); }
+.row.rank-3::before { background: #FF8C3C; }
+
+.rank-cell { text-align: center; }
+.medal { font-size: 28px; line-height: 1; }
+.rank-num {
+  font-family: 'Baloo 2', cursive;
+  font-size: 22px; font-weight: 800; color: var(--muted);
+}
+
+.name { font-family: 'Baloo 2', cursive; font-size: 17px; font-weight: 800; color: var(--text); line-height: 1.1; }
+.dept { font-size: 10px; font-weight: 600; color: var(--muted); margin-top: 2px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+.score-cell { text-align: right; }
+.score-val {
+  font-family: 'Baloo 2', cursive;
+  font-size: 22px; font-weight: 800;
+  line-height: 1;
+  background: linear-gradient(135deg, var(--cyan), var(--green));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.score-lbl { font-size: 9px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; margin-top: 2px; }
+
+/* empty */
+.empty { text-align: center; padding: 50px 20px; color: var(--muted); font-family: 'Baloo 2', cursive; font-size: 20px; }
+
+/* LOADER */
+#loader {
+  display: none; text-align: center; padding: 50px;
+  font-family: 'Baloo 2', cursive; font-size: 18px; color: var(--muted);
+}
+.spin { display: inline-block; animation: spin 0.8s linear infinite; font-size: 32px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* MODAL */
+.modal-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.7); backdrop-filter: blur(6px);
+  z-index: 100; align-items: center; justify-content: center; padding: 16px;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  width: 100%; max-width: 420px;
+  max-height: 90vh; overflow-y: auto;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.8), 0 0 0 1px rgba(177,78,255,0.2);
+  animation: popIn 0.2s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes popIn { from { opacity:0; transform:scale(0.85); } to { opacity:1; transform:scale(1); } }
+
+.modal-header {
+  padding: 20px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: flex-start; justify-content: space-between;
+  background: linear-gradient(135deg, rgba(177,78,255,0.1), rgba(255,60,172,0.05));
+}
+.m-name { font-family: 'Baloo 2', cursive; font-size: 26px; font-weight: 800; color: var(--text); }
+.m-dept { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
+.m-rank-badge {
+  font-family: 'Baloo 2', cursive; font-size: 14px;
+  background: linear-gradient(135deg, var(--pink), var(--purple));
+  color: white; padding: 4px 12px; border-radius: 999px;
+  white-space: nowrap; align-self: center;
+}
+.close-btn {
+  background: rgba(255,60,172,0.15); border: 1px solid rgba(255,60,172,0.3);
+  color: var(--pink); width: 30px; height: 30px; border-radius: 50%;
+  cursor: pointer; font-size: 14px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s; flex-shrink: 0;
+}
+.close-btn:hover { background: rgba(255,60,172,0.3); }
+
+.modal-body { padding: 18px 20px 22px; }
+.m-section { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); margin-bottom: 8px; margin-top: 16px; }
+.m-section:first-child { margin-top: 0; }
+
+.m-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; }
+.m-card {
+  background: rgba(255,255,255,0.03); border: 1px solid var(--border);
+  border-radius: 12px; padding: 10px 8px; text-align: center;
+}
+.m-card-val { font-family: 'Baloo 2', cursive; font-size: 22px; font-weight: 800; color: var(--text); line-height: 1; }
+.m-card-lbl { font-size: 9px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 3px; }
+.m-card:nth-child(1) .m-card-val { color: var(--cyan); }
+.m-card:nth-child(2) .m-card-val { color: var(--green); }
+.m-card:nth-child(3) .m-card-val { color: var(--yellow); }
+
+.acc-bar-wrap {
+  background: rgba(255,255,255,0.03); border: 1px solid var(--border);
+  border-radius: 12px; padding: 12px 14px; margin-top: 8px;
+}
+.acc-bar-top { display: flex; justify-content: space-between; font-size: 10px; font-weight: 700; color: var(--muted); margin-bottom: 8px; }
+.acc-bar-top span { color: var(--cyan); }
+.acc-track { height: 8px; background: rgba(255,255,255,0.05); border-radius: 999px; overflow: hidden; }
+.acc-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--pink), var(--purple), var(--cyan)); transition: width 0.8s cubic-bezier(0.4,0,0.2,1); }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="header">
+    <div class="brand">🌸 BLOSSOM</div>
+    <div class="brand-sub"><span class="pulse-dot"></span> Live Leaderboard</div>
+  </div>
+
+  <div class="stats-strip" id="stats-strip">
+    <div class="stat-chip"><div class="stat-chip-val" id="s-players">—</div><div class="stat-chip-lbl">Players</div></div>
+    <div class="stat-divider"></div>
+    <div class="stat-chip"><div class="stat-chip-val" id="s-top">—</div><div class="stat-chip-lbl">Top Score</div></div>
+    <div class="stat-divider"></div>
+    <div class="stat-chip"><div class="stat-chip-val" id="s-sessions">—</div><div class="stat-chip-lbl">Sessions</div></div>
+    <div class="stat-divider"></div>
+    <div class="stat-chip"><div class="stat-chip-val" id="s-time">—</div><div class="stat-chip-lbl">Avg Time</div></div>
+  </div>
+
+  <div class="sort-bar" id="sort-bar">
+    <button class="sort-btn active" data-sort="best_correct" onclick="sortData('best_correct')">🎯 Best Score</button>
+    <button class="sort-btn" data-sort="total_sessions" onclick="sortData('total_sessions')">🎮 Sessions</button>
+    <button class="sort-btn" data-sort="total_time_spent" onclick="sortData('total_time_spent')">⏱ Time</button>
+    <button class="sort-btn" data-sort="rank" onclick="sortData('rank')">🏅 Rank</button>
+  </div>
+
+  <div id="loader"><div class="spin">🌸</div><br>Fetching the blooms…</div>
+  <div id="error" style="text-align:center;color:#FF3CAC;font-family:'Baloo 2',cursive;font-size:16px;padding:20px;"></div>
+  <div id="leaderboard"></div>
+</div>
+
+<div class="modal-overlay" id="modal" onclick="maybeClose(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <div class="m-name" id="m-name"></div>
+        <div class="m-dept" id="m-dept"></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+        <div class="m-rank-badge" id="m-rank"></div>
+        <button class="close-btn" onclick="closeModal()">✕</button>
+      </div>
+    </div>
+    <div class="modal-body" id="m-body"></div>
+  </div>
+</div>
+
+<script type="module">
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const supabase = createClient(
+   "https://yellow-lab-4999.andrewveda.workers.dev",
+     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoZXpzc29jenZwYmt0ZWZmY2d6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI4NTk1ODUsImV4cCI6MjA3ODQzNTU4NX0.2ZlqXnZxv0opkhynAT7OlK4S-xPygcc7ETUyTXRfGHE"
+);
+
+const SORT_LABELS = {
+  best_correct: "Best Score", total_sessions: "Sessions",
+  total_time_spent: "Time", rank: "Rank"
+};
+
+let data = [];
+let currentSort = "best_correct", sortAsc = false;
+
+async function loadData() {
+  document.getElementById("loader").style.display = "block";
+  const { data: rows, error } = await supabase
+    .from("blossom_leaderboard")
+    .select("rank,student_name,department,best_correct,total_time_spent,total_sessions");
+  document.getElementById("loader").style.display = "none";
+  if (error) { document.getElementById("error").textContent = "😬 " + error.message; return; }
+  data = rows || [];
+
+  // stats strip
+  const totalSessions = data.reduce((s,r) => s + (r.total_sessions||0), 0);
+  const topScore = Math.max(...data.map(r => r.best_correct||0));
+  const avgTime = data.length ? Math.round(data.reduce((s,r) => s+(r.total_time_spent||0),0)/data.length/60) : 0;
+  document.getElementById("s-players").textContent = data.length;
+  document.getElementById("s-top").textContent = topScore;
+  document.getElementById("s-sessions").textContent = totalSessions;
+  document.getElementById("s-time").textContent = avgTime + "m";
+
+  render();
+}
+
+function render() {
+  const sorted = [...data].sort((a,b) => {
+    let A = Number(a[currentSort]||0), B = Number(b[currentSort]||0);
+    if (currentSort === "rank") return sortAsc ? B-A : A-B; // rank: lower = better
+    return sortAsc ? A-B : B-A;
+  });
+
+  // update sort buttons
+  document.querySelectorAll(".sort-btn").forEach(b => {
+    const on = b.dataset.sort === currentSort;
+    b.classList.toggle("active", on);
+    if (on) b.textContent = b.textContent.replace(/ [▲▼]/, "") + (sortAsc ? " ▲" : " ▼");
+    else b.textContent = b.textContent.replace(/ [▲▼]/, "");
+  });
+
+  const el = document.getElementById("leaderboard");
+  el.innerHTML = "";
+  if (!sorted.length) {
+    el.innerHTML = `<div class="empty">🌸 No players yet!</div>`; return;
+  }
+  const medals = ["🥇","🥈","🥉"];
+  sorted.forEach((p, i) => {
+    const row = document.createElement("div");
+    row.className = "row" + (i<3 ? ` rank-${i+1}` : "");
+    row.style.animationDelay = `${i*25}ms`;
+    const fmtVal = currentSort === "total_time_spent"
+      ? Math.round((p[currentSort]||0)/60) + "m"
+      : (p[currentSort] ?? "—");
+    row.innerHTML = `
+      <div class="rank-cell">${i<3 ? `<div class="medal">${medals[i]}</div>` : `<div class="rank-num">${i+1}</div>`}</div>
+      <div>
+        <div class="name">${p.student_name}</div>
+        <div class="dept">${p.department || "—"}</div>
+      </div>
+      <div class="score-cell">
+        <div class="score-val">${fmtVal}</div>
+        <div class="score-lbl">${SORT_LABELS[currentSort]}</div>
+      </div>`;
+    row.addEventListener("click", () => openModal(p, i+1));
+    el.appendChild(row);
+  });
+}
+
+function openModal(p, dispRank) {
+  document.getElementById("m-name").textContent = p.student_name;
+  document.getElementById("m-dept").textContent = p.department || "Unknown";
+  document.getElementById("m-rank").textContent = `#${p.rank ?? dispRank}`;
+  const timeMin = Math.round((p.total_time_spent||0)/60);
+  const avgPerSession = p.total_sessions
+    ? Math.round((p.total_time_spent||0)/p.total_sessions/60*10)/10 : 0;
+  const acc = p.total_sessions > 0 ? Math.min(100, Math.round((p.best_correct||0)/(p.total_sessions*5)*100)) : 0;
+
+  document.getElementById("m-body").innerHTML = `
+    <div class="m-section">Stats</div>
+    <div class="m-grid">
+      <div class="m-card"><div class="m-card-val">${p.best_correct ?? "—"}</div><div class="m-card-lbl">🎯 Best</div></div>
+      <div class="m-card"><div class="m-card-val">${p.total_sessions ?? "—"}</div><div class="m-card-lbl">🎮 Sessions</div></div>
+      <div class="m-card"><div class="m-card-val">${timeMin}m</div><div class="m-card-lbl">⏱ Time</div></div>
+    </div>
+    <div class="m-section">Performance</div>
+    <div class="m-grid">
+      <div class="m-card"><div class="m-card-val">#${p.rank ?? dispRank}</div><div class="m-card-lbl">🏅 Rank</div></div>
+      <div class="m-card"><div class="m-card-val">${avgPerSession}m</div><div class="m-card-lbl">📊 Avg/Session</div></div>
+      <div class="m-card"><div class="m-card-val">${acc}%</div><div class="m-card-lbl">✨ Est. Acc</div></div>
+    </div>
+    <div class="acc-bar-wrap">
+      <div class="acc-bar-top">Score Efficiency <span>${acc}%</span></div>
+      <div class="acc-track"><div class="acc-fill" id="acc-fill" style="width:0%"></div></div>
+    </div>`;
+  document.getElementById("modal").classList.add("open");
+  setTimeout(() => { const f=document.getElementById("acc-fill"); if(f) f.style.width=acc+"%"; }, 60);
+}
+
+window.sortData = key => {
+  sortAsc = currentSort === key ? !sortAsc : false;
+  currentSort = key;
+  render();
+};
+window.closeModal = () => document.getElementById("modal").classList.remove("open");
+window.maybeClose = e => { if(e.target===document.getElementById("modal")) closeModal(); };
+document.addEventListener("keydown", e => { if(e.key==="Escape") closeModal(); });
+loadData();
+</script>
+</body>
+</html>

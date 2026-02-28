@@ -1792,32 +1792,88 @@ async function fetchUserData(name) {
   try {
     const { data, error } = await supabase
       .from("report_card_view")
-      .select("*");  // ← fetch all, no filter
+      .select("*");
 
     if (error) throw error;
 
-    // filter client-side, same pattern as leaderboard
-    const match = (data || []).find(u =>
+    const matches = (data || []).filter(u =>
       u.name && u.name.trim().toLowerCase() === name.trim().toLowerCase()
     );
 
-    userData = match || {
-      name: name,
-      quest_list: "",
-      video_list: "",
-      story_list: "",
-      quests_completed: 0,
-      videos_completed: 0,
-      stories_completed: 0,
-      total_time: 0
-    };
+    if (matches.length === 0) {
+      // No match — use empty shell
+      userData = {
+        name: name,
+        quest_list: "", video_list: "", story_list: "",
+        quests_completed: 0, videos_completed: 0,
+        stories_completed: 0, total_time: 0
+      };
+      localStorage.setItem("cachedUserData", JSON.stringify(userData));
+      updateAllUI();
 
-    localStorage.setItem("cachedUserData", JSON.stringify(userData));
-    updateAllUI();
+    } else if (matches.length === 1) {
+      // Unique match — proceed normally
+      userData = matches[0];
+      localStorage.setItem("cachedUserData", JSON.stringify(userData));
+      updateAllUI();
+
+    } else {
+      // Multiple matches — ask user to pick
+      showDuplicatePicker(matches);
+    }
+
   } catch (err) {
     console.error("Fetch error:", err);
     document.getElementById("offlineBanner").classList.add("show");
   }
+}
+
+function showDuplicatePicker(matches) {
+  // Reuse the existing modal
+  const modal = document.getElementById("confirmModal");
+  const box = modal.querySelector(".modal-box");
+
+  // Replace modal contents temporarily
+  box.innerHTML = `
+    <p style="margin-bottom:16px;">Multiple students found with this name.<br>Which one are you?</p>
+    <div id="pickerOptions" style="display:flex;flex-direction:column;gap:8px;"></div>
+  `;
+
+  const container = document.getElementById("pickerOptions");
+
+  matches.forEach((match, i) => {
+    const btn = document.createElement("button");
+    btn.className = "modal-btn modal-cancel";
+    btn.style.textAlign = "left";
+    btn.style.padding = "12px 14px";
+    // Show department to distinguish them
+    btn.innerHTML = `
+      <div style="font-size:0.75rem;color:var(--text)">${match.name}</div>
+      <div style="font-size:0.6rem;color:var(--gold);margin-top:2px;letter-spacing:1px">
+        ${match.department || "No department"} · ${match.quests_completed ?? 0} quests
+      </div>
+    `;
+    btn.onclick = () => {
+      userData = match;
+      localStorage.setItem("cachedUserData", JSON.stringify(userData));
+      // Also save department from the record so it's consistent
+      if (match.department) localStorage.setItem("userDept", match.department);
+      modal.classList.remove("show");
+      // Restore modal box for future use
+      box.innerHTML = `
+        <p id="modalMsg">Are you sure?</p>
+        <div class="modal-actions">
+          <button class="modal-btn modal-cancel" id="modalCancel">Cancel</button>
+          <button class="modal-btn modal-confirm" id="modalConfirm">Confirm</button>
+        </div>
+      `;
+      setupEventListeners(); // re-bind the confirm/cancel buttons
+      updateAllUI();
+    };
+    container.appendChild(btn);
+  });
+
+  modal.classList.add("show");
 }
 // ─── UI HELPERS ───
 function showApp() {

@@ -1792,13 +1792,16 @@ async function fetchUserData(name) {
   try {
     const { data, error } = await supabase
       .from("report_card_view")
-      .select("*")
-      .ilike("name", name)
-      .maybeSingle();
+      .select("*");  // ← fetch all, no filter
 
     if (error) throw error;
 
-    userData = data || {
+    // filter client-side, same pattern as leaderboard
+    const match = (data || []).find(u =>
+      u.name && u.name.trim().toLowerCase() === name.trim().toLowerCase()
+    );
+
+    userData = match || {
       name: name,
       quest_list: "",
       video_list: "",
@@ -1816,7 +1819,6 @@ async function fetchUserData(name) {
     document.getElementById("offlineBanner").classList.add("show");
   }
 }
-
 // ─── UI HELPERS ───
 function showApp() {
   document.getElementById("loginOverlay").style.display = "none";
@@ -2121,21 +2123,6 @@ function setupEventListeners() {
     document.getElementById("confirmModal").classList.remove("show");
   });
 }
-
-// ─── REALTIME ───
-// Note: report_card_view is a view — Supabase realtime works on base tables.
-// Listening to quest_submissions triggers a refresh when new data is written.
-supabase.channel("realtime-updates")
-  .on("postgres_changes", { event: "*", schema: "public", table: "quest_submissions" }, () => {
-    const n = localStorage.getItem("userName");
-    if (n) fetchUserData(n);
-  })
-  .on("postgres_changes", { event: "*", schema: "public", table: "leaderboard" }, () => {
-    const n = localStorage.getItem("userName");
-    if (n) fetchUserData(n);
-  })
-  .subscribe();
-
 init();
 </script>
 

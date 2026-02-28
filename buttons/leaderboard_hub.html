@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Leaderboard Hub</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Raleway:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:          #0a0a0a;
+    --bg2:         rgba(10,10,10,0.8);
+    --surface:     rgba(212,175,55,0.05);
+    --surface2:    rgba(212,175,55,0.08);
+    --surface3:    rgba(212,175,55,0.1);
+    --border:      rgba(212,175,55,0.25);
+    --border2:     rgba(212,175,55,0.3);
+    --border3:     rgba(212,175,55,0.35);
+    --gold:        #d4af37;
+    --gold-light:  #f4e5b1;
+    --text:        #f5f5f5;
+    --text-dim:    rgba(245,245,245,0.7);
+    --text-dimmer: rgba(245,245,245,0.6);
+    --gold-dim:    rgba(212,175,55,0.55);
+    --gold-dimmer: rgba(212,175,55,0.35);
+    --gold-faint:  rgba(212,175,55,0.15);
+    --pattern-op:  0.03;
+  }
+
+  html.light {
+    --bg:          #f5eedc;
+    --bg2:         rgba(245,238,220,0.92);
+    --surface:     rgba(180,140,20,0.06);
+    --surface2:    rgba(180,140,20,0.09);
+    --surface3:    rgba(180,140,20,0.13);
+    --border:      rgba(160,120,10,0.3);
+    --border2:     rgba(160,120,10,0.4);
+    --border3:     rgba(160,120,10,0.5);
+    --gold:        #8a6500;
+    --gold-light:  #b08000;
+    --text:        #2a1f00;
+    --text-dim:    rgba(42,31,0,0.75);
+    --text-dimmer: rgba(42,31,0,0.55);
+    --gold-dim:    rgba(138,101,0,0.65);
+    --gold-dimmer: rgba(138,101,0,0.4);
+    --gold-faint:  rgba(138,101,0,0.12);
+    --pattern-op:  0.06;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Raleway', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    overflow-x: hidden;
+    position: relative;
+    text-align: center;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 28px 20px;
+    transition: background 0.35s ease, color 0.35s ease;
+  }
+
+  .bg-pattern {
+    position: fixed; inset: 0; opacity: var(--pattern-op);
+    pointer-events: none; z-index: 0;
+    background-image:
+      repeating-linear-gradient(45deg, transparent, transparent 35px, var(--gold) 35px, var(--gold) 36px),
+      repeating-linear-gradient(-45deg, transparent, transparent 35px, var(--gold) 35px, var(--gold) 36px);
+    animation: patternShift 20s linear infinite;
+    transition: opacity 0.35s ease;
+  }
+  @keyframes patternShift { 0%{transform:translate(0,0)} 100%{transform:translate(50px,50px)} }
+
+  .particle {
+    position: fixed; background: var(--gold); border-radius: 50%;
+    pointer-events: none; opacity: 0; animation: floatUp 8s ease-in-out infinite;
+  }
+  @keyframes floatUp {
+    0%,100%  { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+    10%,90%  { opacity: 0.25; }
+    50%      { transform: translateY(-20px) rotate(180deg); }
+  }
+
+  .progress-strip {
+    position: fixed; top: 0; left: 0; right: 0;
+    height: 3px; background: var(--border); z-index: 60;
+  }
+  .progress-strip-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--gold), var(--gold-light));
+    width: 100%;
+    border-radius: 0 2px 2px 0;
+  }
+
+  .theme-toggle {
+    position: fixed; top: 10px; left: 12px;
+    z-index: 60; cursor: pointer;
+    background: var(--bg2);
+    border: 1px solid var(--border2);
+    color: var(--gold); font-size: 15px;
+    padding: 4px 10px; line-height: 1.6;
+    font-family: 'Raleway', sans-serif;
+    clip-path: polygon(5px 0,100% 0,100% calc(100% - 5px),calc(100% - 5px) 100%,0 100%,0 5px);
+    transition: background 0.2s, border-color 0.2s, transform 0.15s;
+    user-select: none; -webkit-tap-highlight-color: transparent;
+  }
+  .theme-toggle:hover { background: var(--gold-faint); transform: scale(1.08); }
+  .theme-toggle:active { transform: scale(0.95); }
+
+  /* Hub */
+  .hub {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 440px;
+  }
+
+  .header {
+    margin-bottom: 36px;
+    animation: fadeDown 0.5s ease both;
+  }
+
+  .trophy-wrap {
+    font-size: 52px;
+    display: block;
+    margin-bottom: 14px;
+    animation: trophy-float 3s ease-in-out infinite;
+    filter: drop-shadow(0 0 20px rgba(212,175,55,0.4));
+  }
+  @keyframes trophy-float {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(-9px); }
+  }
+
+  h1 {
+    font-family: 'Cinzel', serif;
+    font-size: clamp(26px, 8vw, 40px);
+    letter-spacing: 0.15em;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--gold), var(--gold-light), var(--gold));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1.1;
+    text-transform: uppercase;
+  }
+
+  .subtitle {
+    margin-top: 8px;
+    font-size: 11px;
+    color: var(--gold-dim);
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+
+  .deco-line {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 16px auto 0;
+    max-width: 260px;
+  }
+  .deco-line::before, .deco-line::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+  }
+  .deco-line::before { background: linear-gradient(90deg, transparent, var(--gold-dimmer)); }
+  .deco-line::after  { background: linear-gradient(90deg, var(--gold-dimmer), transparent); }
+  .deco-diamond {
+    width: 6px; height: 6px;
+    background: var(--gold);
+    transform: rotate(45deg);
+    flex-shrink: 0;
+  }
+
+  /* Cards */
+  .cards { display: flex; flex-direction: column; gap: 12px; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 20px 22px;
+    text-decoration: none;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    transition: background 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease, transform 0.2s ease;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+    animation: fadeUp 0.45s ease both;
+  }
+
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 3px; height: 100%;
+    background: linear-gradient(180deg, var(--gold), transparent);
+    opacity: 0;
+    transition: opacity 0.25s ease;
+  }
+
+  .card:hover {
+    background: var(--surface3);
+    border-color: var(--border3);
+    box-shadow: 0 0 24px rgba(212,175,55,0.1), inset 0 0 20px rgba(212,175,55,0.04);
+    transform: translateX(4px);
+  }
+  .card:hover::before { opacity: 1; }
+  .card:active { transform: translateX(2px) scale(0.99); }
+
+  .card.main {
+    padding: 26px 22px;
+    border-color: var(--border2);
+    background: var(--surface2);
+    clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+  }
+  .card.main:hover {
+    border-color: var(--gold);
+    box-shadow: 0 0 36px rgba(212,175,55,0.18), inset 0 0 30px rgba(212,175,55,0.06);
+  }
+  .card.main .icon-wrap {
+    background: rgba(212,175,55,0.12);
+    border-color: var(--border2);
+  }
+
+  .card:nth-child(1) { animation-delay: 0.05s; }
+  .card:nth-child(3) { animation-delay: 0.18s; }
+  .card:nth-child(5) { animation-delay: 0.31s; }
+
+  .icon-wrap {
+    width: 52px; height: 52px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px; flex-shrink: 0;
+    clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
+    transition: transform 0.2s ease, background 0.2s ease;
+  }
+  .card:hover .icon-wrap { transform: scale(1.08); background: var(--gold-faint); }
+
+  .info { flex: 1; text-align: left; }
+
+  .card-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: var(--gold-dim);
+    margin-bottom: 3px;
+    font-weight: 600;
+  }
+
+  .card-title {
+    font-family: 'Cinzel', serif;
+    font-size: 18px;
+    letter-spacing: 0.06em;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.1;
+  }
+  .card.main .card-title {
+    font-size: 22px;
+    background: linear-gradient(135deg, var(--gold), var(--gold-light));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .card-desc {
+    font-size: 12px;
+    color: var(--text-dimmer);
+    margin-top: 5px;
+    letter-spacing: 0.03em;
+  }
+
+  .arrow {
+    color: var(--gold-dimmer);
+    font-size: 20px;
+    transition: transform 0.2s ease, color 0.2s ease;
+    flex-shrink: 0;
+  }
+  .card:hover .arrow { transform: translateX(5px); color: var(--gold); }
+
+  .divider {
+    display: flex; align-items: center; gap: 10px;
+    margin: 4px 0;
+  }
+  .divider-line { flex: 1; height: 1px; background: var(--border); }
+  .divider-text {
+    font-family: 'Cinzel', serif;
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: var(--gold-dim);
+  }
+
+  @keyframes fadeDown {
+    from { opacity: 0; transform: translateY(-16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+</style>
+</head>
+<body>
+<div class="bg-pattern"></div>
+
+<div class="particle" style="left:10%;width:4px;height:4px;animation-delay:0s;animation-duration:9s"></div>
+<div class="particle" style="left:30%;width:3px;height:3px;animation-delay:2s;animation-duration:7s"></div>
+<div class="particle" style="left:55%;width:5px;height:5px;animation-delay:4s;animation-duration:11s"></div>
+<div class="particle" style="left:75%;width:3px;height:3px;animation-delay:1s;animation-duration:8s"></div>
+<div class="particle" style="left:90%;width:4px;height:4px;animation-delay:6s;animation-duration:10s"></div>
+
+<div class="progress-strip"><div class="progress-strip-fill"></div></div>
+
+<button class="theme-toggle" onclick="document.documentElement.classList.toggle('light')" title="Toggle theme">🌓</button>
+
+<div class="hub">
+  <div class="header">
+    <span class="trophy-wrap">🏆</span>
+    <h1>Leaderboard Hub</h1>
+    <p class="subtitle"></p>
+    <div class="deco-line"><div class="deco-diamond"></div></div>
+  </div>
+
+  <div class="cards">
+    <a class="card main" href="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/leaderboard_live">
+      <div class="icon-wrap">🥇</div>
+      <div class="info">
+        <div class="card-label">Main · All Games and Quests</div>
+        <div class="card-title">Live Leaderboard</div>
+        <div class="card-desc">Overall rankings across all games and quests</div>
+      </div>
+      <span class="arrow">›</span>
+    </a>
+
+    <div class="divider">
+      <div class="divider-line"></div>
+      <div class="divider-text">Game Boards</div>
+      <div class="divider-line"></div>
+    </div>
+
+    <a class="card" href="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/blossom_leaderboard">
+      <div class="icon-wrap">🌸</div>
+      <div class="info">
+        <div class="card-label">Blossom Only</div>
+        <div class="card-title">Blossom Board</div>
+        <div class="card-desc">Rankings exclusive to Blossom players</div>
+      </div>
+      <span class="arrow">›</span>
+    </a>
+
+    <a class="card" href="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/wordleleaderboard">
+      <div class="icon-wrap">🟩</div>
+      <div class="info">
+        <div class="card-label">Wordle Only</div>
+        <div class="card-title">Wordle Board</div>
+        <div class="card-desc">Rankings exclusive to Wordle players</div>
+      </div>
+      <span class="arrow">›</span>
+    </a>
+  </div>
+</div>
+
+</body>
+</html>

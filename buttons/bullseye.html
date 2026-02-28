@@ -161,6 +161,40 @@
       .petal-btn { width:74px; height:74px; font-size:1.4rem; }
       .petal-btn.center-btn { width:82px; height:82px; font-size:1.6rem; }
     }
+    .flower-svg {
+  width: 100%;
+  max-width: 320px;
+  height: auto;
+  margin: 10px 0;
+}
+
+.flower-letter {
+  font-family: 'Playfair Display', serif;
+  font-weight: 700;
+  text-anchor: middle;
+  dominant-baseline: middle;
+  cursor: pointer;
+  user-select: none;
+}
+
+.outer-petal {
+  fill: var(--petal);
+  transition: transform 0.15s ease, fill 0.15s ease;
+  cursor: pointer;
+}
+
+.outer-petal:hover {
+  fill: var(--petal-hover);
+}
+
+.center-petal {
+  fill: var(--center);
+  cursor: pointer;
+}
+
+.center-petal:hover {
+  fill: var(--center-hover);
+}
   </style>
 </head>
 <body>
@@ -204,7 +238,7 @@
       <div class="word-display" id="word-display"><span id="typed-letters"></span><span class="cursor"></span></div>
       <button class="btn-delete" id="btn-delete">⌫</button>
     </div>
-    <div class="flower-wrap" id="flower"></div>
+    <svg id="flower" viewBox="0 0 300 300" class="flower-svg"></svg>
     <button class="btn-enter" id="btn-enter">Enter Word</button>
     <div class="controls">
       <button class="btn-secondary" id="btn-shuffle">⇄ Shuffle</button>
@@ -397,7 +431,7 @@ const ALL_WORDS = [...new Set(
 /* ═══════════════════════════════════════════════
    CONFIG
 ═══════════════════════════════════════════════ */
-const EDGE_URL  = "https://yellow-lab-4999.andrewveda.workers.dev/functions/v1/logQuest"; 
+const EDGE_URL  = "https://yellow-lab-4999.andrewveda.workers.dev/functions/v1/submit-quest"; 
 const NAME_KEY  = 'blossomPlayerName';
 const DEPT_KEY  = 'blossomPlayerDept';
 const BEST_KEY  = 'blossomBest';
@@ -549,23 +583,62 @@ function updateArc() {
    FLOWER
 ═══════════════════════════════════════════════ */
 function renderFlower() {
-  const wrap=document.getElementById('flower'); wrap.innerHTML='';
-  const cx=140,cy=140,r=85;
-  for (let i=0;i<6;i++) {
-    const angle=(Math.PI/3)*i-Math.PI/2;
-    const btn=document.createElement('button');
-    btn.className='petal-btn outer'; btn.textContent=outerLetters[i];
-    btn.style.left=(cx+r*Math.cos(angle)-43)+'px';
-    btn.style.top=(cy+r*Math.sin(angle)-43)+'px';
-    btn.addEventListener('click',()=>addLetter(outerLetters[i]));
-    wrap.appendChild(btn);
-  }
-  const center=document.createElement('button');
-  center.className='petal-btn center-btn'; center.textContent=letters[0];
-  center.addEventListener('click',()=>addLetter(letters[0]));
-  wrap.appendChild(center);
-}
+  const svg = document.getElementById('flower');
+  svg.innerHTML = '';
 
+  const centerX = 150;
+  const centerY = 150;
+  const radius = 85;
+  const outerRadius = 42;
+  const centerRadius = 48;
+
+  // Draw outer petals
+  for (let i = 0; i < 6; i++) {
+    const angle = (Math.PI / 3) * i - Math.PI / 2;
+    const x = centerX + radius * Math.cos(angle);
+    const y = centerY + radius * Math.sin(angle);
+
+    const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    circle.setAttribute("cx", x);
+    circle.setAttribute("cy", y);
+    circle.setAttribute("r", outerRadius);
+    circle.setAttribute("class", "outer-petal");
+
+    const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    text.setAttribute("x", x);
+    text.setAttribute("y", y + 2);
+    text.setAttribute("class", "flower-letter");
+    text.setAttribute("font-size", "28");
+    text.textContent = outerLetters[i];
+
+    circle.addEventListener('click', () => addLetter(outerLetters[i]));
+    text.addEventListener('click', () => addLetter(outerLetters[i]));
+
+    svg.appendChild(circle);
+    svg.appendChild(text);
+  }
+
+  // Draw center petal
+  const centerCircle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+  centerCircle.setAttribute("cx", centerX);
+  centerCircle.setAttribute("cy", centerY);
+  centerCircle.setAttribute("r", centerRadius);
+  centerCircle.setAttribute("class", "center-petal");
+
+  const centerText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+  centerText.setAttribute("x", centerX);
+  centerText.setAttribute("y", centerY + 3);
+  centerText.setAttribute("class", "flower-letter");
+  centerText.setAttribute("font-size", "32");
+  centerText.setAttribute("fill", "#fff");
+  centerText.textContent = letters[0];
+
+  centerCircle.addEventListener('click', () => addLetter(letters[0]));
+  centerText.addEventListener('click', () => addLetter(letters[0]));
+
+  svg.appendChild(centerCircle);
+  svg.appendChild(centerText);
+}
 /* ═══════════════════════════════════════════════
    INPUT
 ═══════════════════════════════════════════════ */
@@ -1034,7 +1107,7 @@ function submitScore(name,dept) {
   status.className='submit-status'; status.textContent='⏳ Submitting score…';
   const payload={
     student_name:name, department:dept,
-    score:Number(score), correct:Number(foundWords.size), wrong:0,
+    score:Number(bestScore), correct:Number(foundWords.size), wrong:0,
     time_spent:String(GAME_SECS-timeLeft), total_attempts:Number(foundWords.size),
     perfect_solves:Number(pangrams.length), fastest_solve_sec:0,
     total_time_bonus:0, longest_streak:0, quest_id:'Blossom'

@@ -236,7 +236,54 @@ html.light .quest-title{color:var(--gold-d);}
 footer{text-align:center;margin-top:40px;padding:20px;border-top:1px solid var(--border);}
 footer p{font-size:11px;color:var(--text-dim);letter-spacing:3px;text-transform:uppercase;}
 
+/* ── FULLSCREEN GAME OVERLAY ── */
+.game-overlay {
+  display:none;
+  position:fixed; inset:0; z-index:9999;
+  flex-direction:column;
+  background:#000;
+}
+.game-overlay.active { display:flex; }
+
+.game-overlay-header {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:10px 18px; background:rgba(0,0,0,.85);
+  border-bottom:1px solid var(--gold); flex-shrink:0;
+}
+.game-overlay-title { font-family:'Cinzel',serif; font-size:13px; color:var(--gold); letter-spacing:3px; }
+.game-overlay-scores { display:flex; align-items:center; gap:14px; }
+.game-overlay-close {
+  font-size:13px; padding:6px 14px;
+  border:1.5px solid var(--gold); background:transparent; color:var(--gold);
+  font-family:'Cinzel',serif; letter-spacing:2px; cursor:pointer;
+  clip-path:polygon(4px 0,100% 0,100% calc(100% - 4px),calc(100% - 4px) 100%,0 100%,0 4px);
+  transition:all .2s;
+}
+.game-overlay-close:hover { background:var(--gold); color:#000; }
+
+#fullCanvas {
+  flex:1; display:block; width:100%; height:100%;
+  cursor:pointer; -webkit-tap-highlight-color:transparent; touch-action:none;
+}
+.game-overlay-hint {
+  text-align:center; padding:8px 16px; flex-shrink:0;
+  font-size:10px; color:var(--text-dim); letter-spacing:2px; text-transform:uppercase;
+  border-top:1px solid var(--border); background:rgba(0,0,0,.7);
+}
+
+/* Fullscreen trash toast */
+#fullTrashToast {
+  position:absolute; bottom:52px; left:50%; transform:translateX(-50%);
+  max-width:88%; padding:9px 20px;
+  background:rgba(0,0,0,.88); border:1.5px solid #d4af37;
+  color:#f0d060; font-family:'Cinzel',serif; font-size:12px; letter-spacing:.5px;
+  text-align:center; line-height:1.5; pointer-events:none;
+  clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px);
+  opacity:0; transition:opacity .35s ease;
+}
+
 /* ── RESPONSIVE ── */
+
 @media(max-width:768px){
   .quest-grid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;}
   .quest-card{padding:14px 12px 12px;}
@@ -275,7 +322,7 @@ footer p{font-size:11px;color:var(--text-dim);letter-spacing:3px;text-transform:
   </header>
 
   <!-- DRAGON GAME -->
-  <div class="game-panel">
+  <div class="game-panel" id="gamePanelPreview" onclick="openFullscreen()" style="cursor:pointer;" title="Click to play fullscreen">
     <div class="game-panel-header">
       <span class="game-panel-title">🐉 Dragon Flight</span>
       <div class="game-score-wrap">
@@ -286,6 +333,14 @@ footer p{font-size:11px;color:var(--text-dim);letter-spacing:3px;text-transform:
       </div>
     </div>
     <canvas id="gameCanvas" height="180"></canvas>
+    <div id="playOverlay" style="
+      position:absolute;inset:0;display:flex;flex-direction:column;
+      align-items:center;justify-content:center;pointer-events:none;
+      background:rgba(0,0,0,.38);gap:6px;
+    ">
+      <div style="font-family:'Cinzel',serif;font-size:clamp(18px,4vw,28px);color:#d4af37;letter-spacing:4px;text-shadow:0 0 20px rgba(212,175,55,.6);">▶ PLAY</div>
+      <div style="font-size:10px;color:rgba(212,175,55,.6);letter-spacing:3px;text-transform:uppercase;">Click to play fullscreen</div>
+    </div>
     <div class="game-hint" id="gameHint">TAP · CLICK · SPACE to flap &nbsp;|&nbsp; Dodge the castle towers!</div>
   </div>
 
@@ -299,6 +354,23 @@ footer p{font-size:11px;color:var(--text-dim);letter-spacing:3px;text-transform:
 
   <!-- QUEST GRID -->
   <div class="quest-grid" id="questGrid"></div>
+
+  <!-- FULLSCREEN GAME OVERLAY -->
+  <div class="game-overlay" id="gameOverlay">
+    <div class="game-overlay-header">
+      <span class="game-overlay-title">🐉 Dragon Flight</span>
+      <div class="game-overlay-scores">
+        <span class="score-lbl">BEST</span>
+        <span class="hi-val" id="fullHiScore">0</span>
+        <span class="score-lbl">SCORE</span>
+        <span class="score-val" id="fullScoreDisp">0</span>
+      </div>
+      <button class="game-overlay-close" onclick="closeFullscreen()">✕ EXIT</button>
+    </div>
+    <canvas id="fullCanvas"></canvas>
+    <div class="game-overlay-hint" id="fullHint">TAP · CLICK · SPACE to flap &nbsp;|&nbsp; Dodge the castle towers!</div>
+    <div id="fullTrashToast"></div>
+  </div>
 
   <footer><p>Live long and prosper · Aut inveniam viam aut faciam</p></footer>
 </div>
@@ -380,8 +452,10 @@ DRAGON_SPRITE.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKUAAABuCAYAA
 let dragonImgLoaded = false;
 DRAGON_SPRITE.onload = () => { dragonImgLoaded = true; };
 
-const canvas = document.getElementById('gameCanvas');
-const ctx    = canvas.getContext('2d');
+// Active canvas — switches between preview and fullscreen
+let canvas = document.getElementById('gameCanvas');
+let ctx    = canvas.getContext('2d');
+let isFullscreen = false;
 
 let W, H, dpr;
 let dragon, pipes, particles, bgStars;
@@ -769,8 +843,10 @@ function getTrashLine(score, hi){
 // Toast UI
 let toastTimer = null;
 function showTrash(score, hi){
-  let el = document.getElementById('trashToast');
-  if(!el){
+  // Use the fullscreen toast when in fullscreen, else the mini panel toast
+  const elId = isFullscreen ? 'fullTrashToast' : 'trashToast';
+  let el = document.getElementById(elId);
+  if(!el && !isFullscreen){
     el = document.createElement('div');
     el.id = 'trashToast';
     el.style.cssText = `
@@ -785,25 +861,80 @@ function showTrash(score, hi){
     document.querySelector('.game-panel').style.position = 'relative';
     document.querySelector('.game-panel').appendChild(el);
   }
+  if(!el) return;
   el.textContent = getTrashLine(score, hi);
   el.style.opacity = '1';
   if(toastTimer) clearTimeout(toastTimer);
   toastTimer = setTimeout(() => { el.style.opacity = '0'; }, 4200);
 }
 
+function hintEl(){
+  return document.getElementById(isFullscreen ? 'fullHint' : 'gameHint');
+}
+
 /* ════════════════════════ GAME LOOP ════════════════════════ */
+function openFullscreen(){
+  const overlay = document.getElementById('gameOverlay');
+  const fc      = document.getElementById('fullCanvas');
+  overlay.classList.add('active');
+  document.body.style.overflow = 'hidden';
+  // Hide play overlay on preview
+  const po = document.getElementById('playOverlay');
+  if(po) po.style.display = 'none';
+
+  // Switch active canvas to fullCanvas
+  isFullscreen = true;
+  canvas = fc;
+  ctx    = fc.getContext('2d');
+
+  // Sync scores display
+  document.getElementById('fullHiScore').textContent   = hiScore || parseInt(localStorage.getItem(HI_KEY)||'0');
+  document.getElementById('fullScoreDisp').textContent = 0;
+
+  // Stop any existing loop
+  if(frameId) cancelAnimationFrame(frameId);
+  initGame();
+
+  // Bind controls to fullCanvas
+  fc.addEventListener('click',     doFlap);
+  fc.addEventListener('touchstart', e=>{ e.preventDefault(); doFlap(); },{passive:false});
+}
+
+function closeFullscreen(){
+  const overlay = document.getElementById('gameOverlay');
+  overlay.classList.remove('active');
+  document.body.style.overflow = '';
+  isFullscreen = false;
+
+  // Stop the fullscreen loop
+  if(frameId){ cancelAnimationFrame(frameId); frameId = null; }
+
+  // Restore play overlay
+  const po = document.getElementById('playOverlay');
+  if(po) po.style.display = 'flex';
+
+  // Switch back to preview canvas but don't run game loop
+  canvas = document.getElementById('gameCanvas');
+  ctx    = canvas.getContext('2d');
+
+  // Sync hi score back to mini panel
+  document.getElementById('hiScore').textContent   = localStorage.getItem(HI_KEY) || 0;
+  document.getElementById('scoreDisp').textContent = 0;
+}
+
 function initGame(){
   if(frameId) cancelAnimationFrame(frameId);
   resize();
   hiScore = parseInt(localStorage.getItem(HI_KEY)||'0');
   document.getElementById('hiScore').textContent = hiScore;
+  if(isFullscreen) document.getElementById('fullHiScore').textContent = hiScore;
   score=0; speed=2.5; frameCount=0;
   gameState='idle';
   dragon={ x:W*.2, y:H/2, vy:0, angle:0, flap:false, flapTimer:0, alive:true };
   pipes=[]; particles=[];
   makeStars();
   document.getElementById('scoreDisp').textContent='0';
-  document.getElementById('gameHint').textContent='TAP · CLICK · SPACE to flap  |  Dodge the castle towers!';
+  hintEl().textContent = 'TAP · CLICK · SPACE to flap  |  Dodge the castle towers!';
   loop();
 }
 
@@ -840,7 +971,8 @@ function loop(){
       p.x -= speed;
       if(!p.passed && p.x+PIPE_W < dragon.x){
         p.passed=true; score++;
-        document.getElementById('scoreDisp').textContent=score;
+        document.getElementById('scoreDisp').textContent = score;
+        if(isFullscreen) document.getElementById('fullScoreDisp').textContent = score;
         spawnParticles(dragon.x+22, dragon.y, 7);
         // Trash talk every 3 points
         if(score % 3 === 0) showTrash(score, hiScore);
@@ -864,8 +996,7 @@ function loop(){
         localStorage.setItem(HI_KEY,hiScore);
         document.getElementById('hiScore').textContent=hiScore;
       }
-      document.getElementById('gameHint').textContent=
-        `Score: ${score}  ·  Best: ${hiScore}  —  TAP to play again!`;
+      hintEl().textContent = `Score: ${score}  ·  Best: ${hiScore}  —  TAP to play again!`;
       showTrash(score, hiScore);
     }
   }

@@ -239,9 +239,14 @@ footer p{font-size:11px;color:var(--text-dim);letter-spacing:3px;text-transform:
 /* ── FULLSCREEN GAME OVERLAY ── */
 .game-overlay {
   display:none;
-  position:fixed; inset:0; z-index:9999;
+  position:fixed;
+  top:0; left:0; right:0; bottom:0;
+  width:100%; width:100vw;
+  height:100%; height:100dvh;
+  z-index:9999;
   flex-direction:column;
   background:#000;
+  overflow:hidden;
 }
 .game-overlay.active { display:flex; }
 
@@ -262,8 +267,9 @@ footer p{font-size:11px;color:var(--text-dim);letter-spacing:3px;text-transform:
 .game-overlay-close:hover { background:var(--gold); color:#000; }
 
 #fullCanvas {
-  flex:1; display:block; width:100%; height:100%;
+  display:block;
   cursor:pointer; -webkit-tap-highlight-color:transparent; touch-action:none;
+  flex-shrink:0;
 }
 .game-overlay-hint {
   text-align:center; padding:8px 16px; flex-shrink:0;
@@ -877,7 +883,11 @@ function openFullscreen(){
   const overlay = document.getElementById('gameOverlay');
   const fc      = document.getElementById('fullCanvas');
   overlay.classList.add('active');
+
+  // Lock scroll and hide address bar on mobile
   document.body.style.overflow = 'hidden';
+  document.documentElement.style.overflow = 'hidden';
+
   // Hide play overlay on preview
   const po = document.getElementById('playOverlay');
   if(po) po.style.display = 'none';
@@ -887,13 +897,35 @@ function openFullscreen(){
   canvas = fc;
   ctx    = fc.getContext('2d');
 
+  // Size canvas to exact available area (full screen minus header/hint bars)
+  function sizeCanvas(){
+    const header = document.querySelector('.game-overlay-header');
+    const hint   = document.querySelector('.game-overlay-hint');
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const hdrH  = header ? header.getBoundingClientRect().height : 44;
+    const hintH = hint   ? hint.getBoundingClientRect().height   : 32;
+    const cw = vw;
+    const ch = Math.max(vh - hdrH - hintH, 100);
+    fc.style.width  = cw + 'px';
+    fc.style.height = ch + 'px';
+    // Also update W/H so game logic uses correct dims
+    W = cw; H = ch;
+  }
+  sizeCanvas();
+
   // Sync scores display
   document.getElementById('fullHiScore').textContent   = hiScore || parseInt(localStorage.getItem(HI_KEY)||'0');
   document.getElementById('fullScoreDisp').textContent = 0;
 
-  // Stop any existing loop
+  // Stop any existing loop then restart
   if(frameId) cancelAnimationFrame(frameId);
   initGame();
+
+  // Re-size if orientation changes
+  window._fsResizeHandler = () => { sizeCanvas(); resize(); makeStars(); };
+  window.addEventListener('resize',       window._fsResizeHandler);
+  window.addEventListener('orientationchange', window._fsResizeHandler);
 
   // Bind controls to fullCanvas
   fc.addEventListener('click',     doFlap);
@@ -904,7 +936,13 @@ function closeFullscreen(){
   const overlay = document.getElementById('gameOverlay');
   overlay.classList.remove('active');
   document.body.style.overflow = '';
+  document.documentElement.style.overflow = '';
   isFullscreen = false;
+  if(window._fsResizeHandler){
+    window.removeEventListener('resize', window._fsResizeHandler);
+    window.removeEventListener('orientationchange', window._fsResizeHandler);
+    window._fsResizeHandler = null;
+  }
 
   // Stop the fullscreen loop
   if(frameId){ cancelAnimationFrame(frameId); frameId = null; }

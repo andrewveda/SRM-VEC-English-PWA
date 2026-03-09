@@ -4,10 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Mission: Veni, Vidi, Vici! — Command Deck Leaderboard</title>
-  
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
   <script type="module">
     import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -25,81 +25,50 @@
     let lastTestInfo = { name: "", date: "" };
     let showSecondsOnly = false;
 
-    // ── CONSTANTS ────────────────────────────────────────────
-    const START_DATE = new Date("2025-08-25");
-    const CALENDAR_VISIBLE_START = new Date("2026-02-01");
-
-    // ── LOAD DATA ────────────────────────────────────────────
     async function loadData() {
       const loader = document.getElementById("loader");
       loader.style.display = "flex";
 
-      const { data, error } = await supabase
-        .from("report_card_view")
-        .select("*");
-
-      console.log("RAW ROW SAMPLE:", data?.[0]);
-      console.log("COLUMNS:", Object.keys(data?.[0] || {}));
+      const { data, error } = await supabase.from("report_card_view").select("*");
 
       loader.style.display = "none";
 
       if (error) {
         console.error(error);
-        document.getElementById("error").textContent =
-          "⚠️ Telemetry link lost: unable to load data.";
+        document.getElementById("error").textContent = "⚠️ Unable to load data.";
         return;
       }
 
       reportData = data || [];
       filteredData = [...reportData];
 
-      filteredData.sort(
-        (a, b) => new Date(b.last_test_taken || 0) - new Date(a.last_test_taken || 0)
-      );
+      filteredData.sort((a, b) => new Date(b.last_test_taken || 0) - new Date(a.last_test_taken || 0));
 
       populateDepartmentDropdown(reportData);
 
       if (reportData.length > 0) {
-        const sorted = [...reportData].sort(
-          (a, b) => new Date(b.last_test_taken) - new Date(a.last_test_taken)
-        );
-        lastTestInfo = {
-          name: sorted[0].name,
-          date: formatDate(sorted[0].last_test_taken)
-        };
-        document.getElementById("last-test-info").textContent =
-          `⏱ ✨${lastTestInfo.name} at ${lastTestInfo.date}`;
+        const sorted = [...reportData].sort((a, b) => new Date(b.last_test_taken) - new Date(a.last_test_taken));
+        lastTestInfo = { name: sorted[0].name, date: formatDate(sorted[0].last_test_taken) };
+        document.getElementById("last-test-info").textContent = `✨ ${lastTestInfo.name} · ${lastTestInfo.date}`;
       } else {
-        document.getElementById("last-test-info").textContent =
-          "Awaiting first mission log...";
+        document.getElementById("last-test-info").textContent = "Awaiting first mission log...";
       }
 
       const savedDept = localStorage.getItem("leaderboard_department");
       if (savedDept) {
         const sel = document.getElementById("departmentSelect");
-        if (sel) {
-          sel.value = savedDept;
-          applyDepartmentFilter(savedDept);
-          return;
-        }
+        if (sel) { sel.value = savedDept; applyDepartmentFilter(savedDept); return; }
       }
 
       sortData(currentSort);
-      renderAnalyticsPanel();
     }
 
-    // ── FORMAT HELPERS ───────────────────────────────────────
     function formatDate(dateStr) {
       if (!dateStr) return "N/A";
-      const date = new Date(dateStr);
-      return date.toLocaleString('en-IN', {
+      return new Date(dateStr).toLocaleString('en-IN', {
         timeZone: 'Asia/Kolkata',
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true
+        day: '2-digit', month: 'short', year: 'numeric',
+        hour: '2-digit', minute: '2-digit', hour12: true
       });
     }
 
@@ -109,59 +78,35 @@
     }
 
     function formatTime(seconds) {
-      if (!seconds && seconds !== 0) return `
-        <span class="time-block"><span class="time-num">0</span><span class="time-unit h">h</span></span>
-        <span class="time-block"><span class="time-num">0</span><span class="time-unit m">m</span></span>
-        <span class="time-block"><span class="time-num">0</span><span class="time-unit s">s</span></span>
-      `;
+      if (!seconds && seconds !== 0) return `<span class="time-block"><span class="time-num">0</span><span class="time-unit h">h</span></span><span class="time-block"><span class="time-num">0</span><span class="time-unit m">m</span></span><span class="time-block"><span class="time-num">0</span><span class="time-unit s">s</span></span>`;
       seconds = Math.round(seconds);
       const h = Math.floor(seconds / 3600);
       const m = Math.floor((seconds % 3600) / 60);
       const s = seconds % 60;
-      return `
-        <span class="time-block"><span class="time-num">${h}</span><span class="time-unit h">h</span></span>
-        <span class="time-block"><span class="time-num">${m}</span><span class="time-unit m">m</span></span>
-        <span class="time-block"><span class="time-num">${s}</span><span class="time-unit s">s</span></span>
-      `;
+      return `<span class="time-block"><span class="time-num">${h}</span><span class="time-unit h">h</span></span><span class="time-block"><span class="time-num">${m}</span><span class="time-unit m">m</span></span><span class="time-block"><span class="time-num">${s}</span><span class="time-unit s">s</span></span>`;
     }
 
-    // ── DEPARTMENT FILTER ────────────────────────────────────
     function populateDepartmentDropdown(data) {
       const select = document.getElementById("departmentSelect");
       if (!select) return;
       select.innerHTML = `<option value="ALL">All Departments</option>`;
-      const departments = [...new Set(
-        data.map(s => (s.department || "").trim().toUpperCase()).filter(Boolean)
-      )].sort();
+      const departments = [...new Set(data.map(s => (s.department || "").trim().toUpperCase()).filter(Boolean))].sort();
       departments.forEach(dept => {
         const opt = document.createElement("option");
-        opt.value = dept;
-        opt.textContent = dept;
+        opt.value = dept; opt.textContent = dept;
         select.appendChild(opt);
       });
     }
 
     function applyDepartmentFilter(dept) {
-      console.log("▶ Dropdown changed to:", dept);
       currentDepartment = dept;
       localStorage.setItem("leaderboard_department", dept);
-      if (dept === "ALL") {
-        filteredData = [...reportData];
-      } else {
-        const target = dept.trim().toUpperCase();
-        filteredData = reportData.filter(s =>
-          (s.department || "").trim().toUpperCase() === target
-        );
-      }
+      filteredData = dept === "ALL" ? [...reportData] : reportData.filter(s => (s.department || "").trim().toUpperCase() === dept.trim().toUpperCase());
       sortAscending = false;
-      filteredData.sort(
-        (a, b) => new Date(b.last_test_taken || 0) - new Date(a.last_test_taken || 0)
-      );
+      filteredData.sort((a, b) => new Date(b.last_test_taken || 0) - new Date(a.last_test_taken || 0));
       renderLeaderboard();
-      renderAnalyticsPanel();
     }
 
-    // ── SORT ─────────────────────────────────────────────────
     function sortData(key) {
       if (currentSort === key && reportData.length > 0 && document.getElementById("leaderboard").children.length > 1) {
         sortAscending = !sortAscending;
@@ -169,17 +114,15 @@
         currentSort = key;
         sortAscending = false;
       }
+
       filteredData.sort((a, b) => {
-        let A = a[key];
-        let B = b[key];
+        let A = a[key], B = b[key];
         if (A === null || A === undefined) A = sortAscending ? Infinity : -Infinity;
         if (B === null || B === undefined) B = sortAscending ? Infinity : -Infinity;
-        if (key === 'last_test_taken') {
-          A = new Date(a.last_test_taken).getTime();
-          B = new Date(b.last_test_taken).getTime();
-        }
+        if (key === 'last_test_taken') { A = new Date(a.last_test_taken).getTime(); B = new Date(b.last_test_taken).getTime(); }
         return sortAscending ? A - B : B - A;
       });
+
       updateActiveButton();
       renderLeaderboard();
     }
@@ -187,48 +130,39 @@
     function updateActiveButton() {
       document.querySelectorAll(".sort-btn").forEach(btn => {
         btn.classList.remove("active");
-        const indicator = btn.querySelector('.sort-indicator');
-        if (indicator) indicator.textContent = "";
+        const ind = btn.querySelector('.sort-indicator');
+        if (ind) ind.textContent = "";
       });
       const toggle = document.getElementById("time-toggle");
       if (toggle) toggle.style.display = (currentSort === "total_time") ? "inline-flex" : "none";
-      const activeButton = document.querySelector(`[data-sort="${currentSort}"]`);
-      if (activeButton) {
-        activeButton.classList.add("active");
-        let indicator = activeButton.querySelector('.sort-indicator');
-        if (!indicator) {
-          indicator = document.createElement('span');
-          indicator.className = 'sort-indicator';
-          activeButton.appendChild(indicator);
-        }
-        indicator.textContent = sortAscending ? "▲" : "▼";
+      const active = document.querySelector(`[data-sort="${currentSort}"]`);
+      if (active) {
+        active.classList.add("active");
+        let ind = active.querySelector('.sort-indicator');
+        if (!ind) { ind = document.createElement('span'); ind.className = 'sort-indicator'; active.appendChild(ind); }
+        ind.textContent = sortAscending ? " ▲" : " ▼";
       }
     }
 
-    // ── RENDER LEADERBOARD ───────────────────────────────────
     function renderLeaderboard() {
       const container = document.getElementById("leaderboard");
       container.innerHTML = "";
+
       filteredData.forEach((s, idx) => {
         const row = document.createElement("div");
         row.className = "leaderboard-row";
-        const rank = idx + 1;
         if (idx === 0) row.classList.add("gold");
         else if (idx === 1) row.classList.add("silver");
         else if (idx === 2) row.classList.add("bronze");
 
+        const rank = idx + 1;
         let value = s[currentSort];
-        if (value === null || value === undefined) {
-          value = (currentSort === "last_test_taken") ? null : 0;
-        }
+        if (value === null || value === undefined) value = (currentSort === "last_test_taken") ? null : 0;
 
         const displayValue =
-          currentSort === "accuracy"
-            ? `${Math.round((value || 0) * 100)}%` :
-          currentSort === "total_time"
-            ? (showSecondsOnly ? formatSecondsOnly(value) : formatTime(value)) :
-          currentSort === "last_test_taken"
-            ? formatDate(value) :
+          currentSort === "accuracy" ? `${Math.round((value || 0) * 100)}%` :
+          currentSort === "total_time" ? (showSecondsOnly ? formatSecondsOnly(value) : formatTime(value)) :
+          currentSort === "last_test_taken" ? formatDate(value) :
           value;
 
         if (currentSort === "last_test_taken") {
@@ -236,17 +170,15 @@
             <div class="rank">${idx < 3 ? getMedalEmoji(idx) : rank}</div>
             <div class="name name-two-line">
               <div class="full-name">${s.name}</div>
-              <div class="last-test-small time-colored">${formatDate(s.last_test_taken)}</div>
+              <div class="last-test-small">${formatDate(s.last_test_taken)}</div>
             </div>
-            <div class="score"></div>
-          `;
+            <div class="score"></div>`;
         } else if (currentSort === "total_time") {
           if (showSecondsOnly) {
             row.innerHTML = `
               <div class="rank">${idx < 3 ? getMedalEmoji(idx) : rank}</div>
-              <div class="name name-two-line"><div class="full-name">${s.name}</div></div>
-              <div class="score score-seconds">${formatSecondsOnly(s.total_time)}</div>
-            `;
+              <div class="name"><div class="full-name">${s.name}</div></div>
+              <div class="score score-time">${formatSecondsOnly(s.total_time)}</div>`;
           } else {
             const totalSeconds = s.total_time ?? 0;
             const h = Math.floor(totalSeconds / 3600).toString().padStart(2, "0");
@@ -254,246 +186,43 @@
             const s_val = (totalSeconds % 60).toString().padStart(2, "0");
             row.innerHTML = `
               <div class="rank">${idx < 3 ? getMedalEmoji(idx) : rank}</div>
-              <div class="name name-two-line"><div class="full-name">${s.name}</div></div>
-              <div class="score name-two-line aligned-time">
-                <div class="time-row">
-                  <span class="t-block"><span class="t-num">${h}</span><span class="t-unit h">h</span></span>
-                  <span class="t-block"><span class="t-num">${m}</span><span class="t-unit m">m</span></span>
-                  <span class="t-block"><span class="t-num">${s_val}</span><span class="t-unit s">s</span></span>
-                </div>
-              </div>
-            `;
+              <div class="name"><div class="full-name">${s.name}</div></div>
+              <div class="score score-time">
+                <span class="t-block"><span class="t-num">${h}</span><span class="t-unit h">h</span></span>
+                <span class="t-block"><span class="t-num">${m}</span><span class="t-unit m">m</span></span>
+                <span class="t-block"><span class="t-num">${s_val}</span><span class="t-unit s">s</span></span>
+              </div>`;
           }
         } else {
+          const metricLabel =
+            currentSort === "accuracy" ? "TARGET LOCK" :
+            currentSort === "quests_completed" ? "QUESTS" :
+            currentSort === "videos_completed" ? "VIDEOS" :
+            currentSort === "stories_completed" ? "STORIES" :
+            currentSort === "cryptic_completed" ? "CRYPTIC" :
+            currentSort === "wordle_completed" ? "WORDLE" : "";
+
           row.innerHTML = `
             <div class="rank">${idx < 3 ? getMedalEmoji(idx) : rank}</div>
             <div class="name">
-              <div class="cadet-name">
-                ${s.name}
-                <span class="dept-inline">${s.department ? `· ${s.department}` : ""}</span>
-              </div>
-              <div class="metric-tag">
-                ${currentSort === "accuracy" ? "TARGET LOCK" :
-                  currentSort === "quests_completed" ? "QUESTS" :
-                  currentSort === "videos_completed" ? "VIDEOS" :
-                  currentSort === "stories_completed" ? "STORIES" : ""}
-              </div>
+              <div class="cadet-name">${s.name} <span class="dept-inline">${s.department ? `· ${s.department}` : ""}</span></div>
+              <div class="metric-tag">${metricLabel}</div>
             </div>
-            <div class="score">${displayValue}</div>
-          `;
+            <div class="score">${displayValue}</div>`;
         }
+
         row.onclick = () => showDetail(s);
         container.appendChild(row);
       });
     }
 
     function getMedalEmoji(idx) {
-      return idx === 0 ? "🚀" : idx === 1 ? "🛰️" : "🌌";
+      return idx === 0 ? "🥇" : idx === 1 ? "🥈" : "🥉";
     }
 
-    // ══════════════════════════════════════════════════════════
-    //  ANALYTICS ENGINE
-    // ══════════════════════════════════════════════════════════
+    const START_DATE = new Date("2025-08-25");
+    const CALENDAR_VISIBLE_START = new Date("2026-02-01");
 
-    // ── Tier classification ──────────────────────────────────
-    // Elite:      accuracy ≥ 80% AND activity in last 3 days
-    // Active:     activity in last 7 days  (but not Elite)
-    // Developing: activity in last 14 days (but not Active)
-    // At-Risk:    no activity for 14+ days OR never active
-    function getTier(s) {
-      const acc       = (s.accuracy ?? 0);
-      const daysSince = getDaysSince(s.last_test_taken);
-      if (acc >= 0.80 && daysSince <= 3)  return { label: "Elite",      icon: "⚡", color: "#F5E6A8", bg: "rgba(212,175,55,0.25)",  border: "rgba(212,175,55,0.8)" };
-      if (daysSince <= 7)                  return { label: "Active",     icon: "🟢", color: "#4ADE80", bg: "rgba(74,222,128,0.15)",  border: "rgba(74,222,128,0.7)"  };
-      if (daysSince <= 14)                 return { label: "Developing", icon: "🔵", color: "#38BDF8", bg: "rgba(56,189,248,0.15)",  border: "rgba(56,189,248,0.6)"  };
-      return                                        { label: "At-Risk",  icon: "🔴", color: "#F87171", bg: "rgba(248,113,113,0.15)", border: "rgba(248,113,113,0.6)" };
-    }
-
-    function getDaysSince(dateStr) {
-      if (!dateStr) return 9999;
-      const diff = Date.now() - new Date(dateStr).getTime();
-      return Math.floor(diff / 86400000);
-    }
-
-    // ── Streak calculation ───────────────────────────────────
-    // A "streak day" = any calendar day (IST) with at least one quest/video/story
-    function calcStreak(s) {
-      const quests  = parseItems(s.quest_list);
-      const videos  = parseItems(s.video_list);
-      const stories = parseItems(s.story_list);
-      const grouped = groupByDate(quests, videos, stories);
-      const activeDays = new Set(Object.keys(grouped)); // "Mon Jan 01 2026" strings
-
-      if (activeDays.size === 0) return { current: 0, longest: 0 };
-
-      // Walk backwards from today counting consecutive active days
-      let current = 0;
-      const todayIST = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
-      let cursor = new Date(todayIST.getFullYear(), todayIST.getMonth(), todayIST.getDate());
-
-      // Allow a 1-day grace: if today has no activity, still start from yesterday
-      if (!activeDays.has(cursor.toDateString())) {
-        cursor.setDate(cursor.getDate() - 1);
-      }
-
-      while (activeDays.has(cursor.toDateString())) {
-        current++;
-        cursor.setDate(cursor.getDate() - 1);
-      }
-
-      // Longest streak — scan all active days
-      const sorted = [...activeDays]
-        .map(d => new Date(d).getTime())
-        .sort((a, b) => a - b);
-
-      let longest = 1, run = 1;
-      for (let i = 1; i < sorted.length; i++) {
-        const gap = (sorted[i] - sorted[i-1]) / 86400000;
-        if (gap === 1) { run++; longest = Math.max(longest, run); }
-        else run = 1;
-      }
-
-      return { current, longest };
-    }
-
-    // ── Rank within all students (by total_score desc) ───────
-    function getRank(s) {
-      const sorted = [...reportData].sort((a, b) => (b.total_score || 0) - (a.total_score || 0));
-      const pos    = sorted.findIndex(r => r.name === s.name) + 1;
-      const total  = reportData.length;
-      const pct    = total > 0 ? Math.round((pos / total) * 100) : 100;
-      return { pos, total, pct };
-    }
-
-    // ── Rank within student's own department ─────────────────
-    function getDeptRank(s) {
-      const dept   = (s.department || "").trim().toUpperCase();
-      const deptList = reportData
-        .filter(r => (r.department || "").trim().toUpperCase() === dept)
-        .sort((a, b) => (b.total_score || 0) - (a.total_score || 0));
-      const pos   = deptList.findIndex(r => r.name === s.name) + 1;
-      const total = deptList.length;
-      return { pos, total };
-    }
-
-    // ── Department comparison table ──────────────────────────
-    function getDeptStats() {
-      const depts = {};
-      reportData.forEach(s => {
-        const key = (s.department || "Unknown").trim().toUpperCase();
-        if (!depts[key]) depts[key] = { name: key, students: [], totalAcc: 0, totalActivity: 0, atRisk: 0 };
-        depts[key].students.push(s);
-        depts[key].totalAcc += (s.accuracy || 0);
-        const tier = getTier(s);
-        if (tier.label === "At-Risk") depts[key].atRisk++;
-      });
-      return Object.values(depts).map(d => ({
-        name:     d.name,
-        count:    d.students.length,
-        avgAcc:   Math.round((d.totalAcc / d.students.length) * 100),
-        atRisk:   d.atRisk,
-        tier:     getTier(d.students.sort((a,b) => (b.total_score||0) - (a.total_score||0))[0])
-      })).sort((a, b) => b.avgAcc - a.avgAcc);
-    }
-
-    // ── Render the analytics panel ───────────────────────────
-    function renderAnalyticsPanel() {
-      const panel = document.getElementById("analytics-panel");
-      if (!panel || reportData.length === 0) return;
-
-      // ── Tier counts ──
-      const tiers = { Elite: 0, Active: 0, Developing: 0, "At-Risk": 0 };
-      reportData.forEach(s => tiers[getTier(s).label]++);
-
-      // ── At-risk list (inactive 14+ days), sorted by days since ──
-      const atRiskList = reportData
-        .filter(s => getTier(s).label === "At-Risk")
-        .map(s => ({ ...s, daysSince: getDaysSince(s.last_test_taken) }))
-        .sort((a, b) => b.daysSince - a.daysSince)
-        .slice(0, 12); // cap at 12
-
-      // ── Department stats ──
-      const deptStats = getDeptStats();
-
-      const tierColors = {
-        "Elite":      { color: "#F5E6A8", bg: "rgba(212,175,55,0.2)",  border: "rgba(212,175,55,0.7)", icon: "⚡" },
-        "Active":     { color: "#4ADE80", bg: "rgba(74,222,128,0.15)", border: "rgba(74,222,128,0.6)", icon: "🟢" },
-        "Developing": { color: "#38BDF8", bg: "rgba(56,189,248,0.15)", border: "rgba(56,189,248,0.5)", icon: "🔵" },
-        "At-Risk":    { color: "#F87171", bg: "rgba(248,113,113,0.12)",border: "rgba(248,113,113,0.5)", icon: "🔴" }
-      };
-
-      panel.innerHTML = `
-        <!-- ── SECTION HEADER ── -->
-        <div class="ap-header">
-          <div class="ap-title">Intelligence Report</div>
-          <div class="ap-sub">Auto-computed from live data · Updated on load</div>
-        </div>
-
-        <!-- ── TIER DISTRIBUTION ── -->
-        <div class="ap-section">
-          <div class="ap-section-label">▸ Pilot Tier Distribution</div>
-          <div class="ap-tier-row">
-            ${Object.entries(tiers).map(([label, count]) => {
-              const tc = tierColors[label];
-              const pct = reportData.length ? Math.round((count / reportData.length) * 100) : 0;
-              return `
-                <div class="ap-tier-card" style="border-color:${tc.border};background:${tc.bg};">
-                  <div class="ap-tier-icon">${tc.icon}</div>
-                  <div class="ap-tier-count" style="color:${tc.color};">${count}</div>
-                  <div class="ap-tier-label" style="color:${tc.color};">${label}</div>
-                  <div class="ap-tier-pct">${pct}%</div>
-                </div>`;
-            }).join("")}
-          </div>
-        </div>
-
-        <!-- ── DEPARTMENT COMPARISON ── -->
-        <div class="ap-section">
-          <div class="ap-section-label">▸ Department Intel</div>
-          <div class="ap-dept-table">
-            <div class="ap-dept-head">
-              <span>Department</span>
-              <span>Pilots</span>
-              <span>Avg Accuracy</span>
-              <span>At-Risk</span>
-            </div>
-            ${deptStats.map((d, i) => `
-              <div class="ap-dept-row ${i === 0 ? "ap-dept-top" : ""}">
-                <span class="ap-dept-name">${d.name}</span>
-                <span class="ap-dept-val">${d.count}</span>
-                <span class="ap-dept-val">
-                  <span class="ap-acc-bar-wrap">
-                    <span class="ap-acc-bar-fill" style="width:${d.avgAcc}%;"></span>
-                  </span>
-                  <span class="ap-acc-num">${d.avgAcc}%</span>
-                </span>
-                <span class="ap-dept-val ${d.atRisk > 0 ? "ap-at-risk-num" : ""}">${d.atRisk > 0 ? "⚠ " + d.atRisk : "—"}</span>
-              </div>`).join("")}
-          </div>
-        </div>
-
-        <!-- ── AT-RISK PILOTS ── -->
-        <div class="ap-section">
-          <div class="ap-section-label">▸ At-Risk Pilots
-            <span class="ap-section-sub">No activity for 14+ days</span>
-          </div>
-          ${atRiskList.length === 0
-            ? `<div class="ap-empty">✅ No at-risk pilots — all hands active!</div>`
-            : `<div class="ap-risk-grid">
-                ${atRiskList.map(s => `
-                  <div class="ap-risk-card" onclick="showDetail(reportData.find(r=>r.name==='${s.name.replace(/'/g,"\\'")}'))">
-                    <div class="ap-risk-name">${s.name}</div>
-                    <div class="ap-risk-dept">${s.department || "—"}</div>
-                    <div class="ap-risk-days">
-                      ${s.daysSince === 9999 ? "Never active" : s.daysSince + "d ago"}
-                    </div>
-                  </div>`).join("")}
-              </div>`}
-        </div>
-      `;
-    }
-
-    // ── CALENDAR HELPERS ─────────────────────────────────────
     function mapToDate(number) {
       const d = new Date(START_DATE);
       d.setDate(d.getDate() + (number - 1));
@@ -502,14 +231,10 @@
 
     function parseItems(rawList) {
       if (!rawList || rawList === "NULL") return [];
-      return rawList
-        .split(",")
-        .map(item => item.trim())
-        .filter(item => item.length > 0)
-        .map(item => {
-          const [type, num] = item.split(" ");
-          return { type, number: Number(num), label: item };
-        });
+      return rawList.split(",").map(item => item.trim()).filter(item => item.length > 0).map(item => {
+        const [type, num] = item.split(" ");
+        return { type, number: Number(num), label: item };
+      });
     }
 
     function iconFor(label) {
@@ -521,11 +246,7 @@
 
     function groupByDate(quests, videos, stories) {
       const map = {};
-      const add = (date, label) => {
-        const key = date.toDateString();
-        if (!map[key]) map[key] = [];
-        map[key].push(label);
-      };
+      const add = (date, label) => { const key = date.toDateString(); if (!map[key]) map[key] = []; map[key].push(label); };
       quests.forEach(q => add(mapToDate(q.number), q.label));
       videos.forEach(v => add(mapToDate(v.number), v.label));
       stories.forEach(s => add(mapToDate(s.number), s.label));
@@ -533,31 +254,17 @@
     }
 
     function renderOneMonth(baseDate, grouped) {
-      const year = baseDate.getFullYear();
-      const month = baseDate.getMonth();
+      const year = baseDate.getFullYear(), month = baseDate.getMonth();
       const firstDay = new Date(year, month, 1).getDay();
       const numDays = new Date(year, month + 1, 0).getDate();
-
-      let html = `
-        <div class="mini-cal-title">
-          ${baseDate.toLocaleString('en-IN', { month: 'long', year: 'numeric' })}
-        </div>
-        <div class="mini-cal-grid">
-          <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div>
-          <div>Thu</div><div>Fri</div><div>Sat</div>
-      `;
+      let html = `<div class="mini-cal-title">${baseDate.toLocaleString('en-IN', { month: 'long', year: 'numeric' })}</div><div class="mini-cal-grid"><div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>`;
       for (let i = 0; i < firstDay; i++) html += `<div class="mini-cal-empty"></div>`;
       for (let d = 1; d <= numDays; d++) {
         const date = new Date(year, month, d);
         const key = date.toDateString();
         const items = grouped[key];
         if (items) {
-          html += `
-            <div class="mini-cal-day marked">
-              <div class="mini-cal-date">${d}</div>
-              <div class="mini-cal-items">${items.map(i => `<div>${iconFor(i)}</div>`).join("")}</div>
-            </div>
-          `;
+          html += `<div class="mini-cal-day marked"><div class="mini-cal-date">${d}</div><div class="mini-cal-items">${items.map(i => `<div>${iconFor(i)}</div>`).join("")}</div></div>`;
         } else {
           html += `<div class="mini-cal-day">${d}</div>`;
         }
@@ -578,145 +285,239 @@
       }
     }
 
-    // ── DETAIL MODAL ─────────────────────────────────────────
     function showDetail(s) {
-      const modal   = document.getElementById("modal");
+      const modal = document.getElementById("modal");
       const content = document.getElementById("modal-content");
-
-      const tier      = getTier(s);
-      const rank      = getRank(s);
-      const deptRank  = getDeptRank(s);
-      const streak    = calcStreak(s);
-      const daysSince = getDaysSince(s.last_test_taken);
-      const topPct    = rank.pct <= 10 ? "🏅 Top 10%" : rank.pct <= 25 ? "Top 25%" : rank.pct <= 50 ? "Top 50%" : "";
-
       content.innerHTML = `
         <div class="modal-header">
           <div class="modal-id-tag">Pilot Profile</div>
           <h2>${s.name}</h2>
           <button class="close-btn" onclick="closeModal()">×</button>
         </div>
-
-        <!-- Dept + Tier badge row -->
-        <div style="display:flex;align-items:center;justify-content:center;gap:10px;
-                    margin-top:-6px;margin-bottom:14px;flex-wrap:wrap;">
-          <div style="font-size:11px;color:rgba(212,175,55,0.7);text-transform:uppercase;
-                      letter-spacing:.12em;">${s.department || 'N/A'}</div>
-          <div style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;
-                      border-radius:999px;font-size:11px;font-weight:700;
-                      background:${tier.bg};border:1px solid ${tier.border};color:${tier.color};">
-            ${tier.icon} ${tier.label}
-          </div>
-          ${topPct ? `<div style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;
-                      border-radius:999px;font-size:11px;font-weight:700;
-                      background:rgba(212,175,55,0.12);border:1px solid rgba(212,175,55,0.4);
-                      color:rgba(212,175,55,0.9);">${topPct}</div>` : ""}
-        </div>
-
-        <!-- Rank + Streak mini-cards -->
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;">
-          <div class="stat-box" style="text-align:center;">
-            <div class="stat-label">Class Rank</div>
-            <div class="stat-value">#${rank.pos}</div>
-            <div class="stat-foot">of ${rank.total}</div>
-          </div>
-          <div class="stat-box" style="text-align:center;">
-            <div class="stat-label">Dept Rank</div>
-            <div class="stat-value">#${deptRank.pos}</div>
-            <div class="stat-foot">of ${deptRank.total}</div>
-          </div>
-          <div class="stat-box" style="text-align:center;">
-            <div class="stat-label">🔥 Streak</div>
-            <div class="stat-value" style="color:${streak.current > 0 ? '#F97316' : 'rgba(212,175,55,0.5)'};">${streak.current}d</div>
-            <div class="stat-foot">Current</div>
-          </div>
-          <div class="stat-box" style="text-align:center;">
-            <div class="stat-label">Best Streak</div>
-            <div class="stat-value">${streak.longest}d</div>
-            <div class="stat-foot">All-time</div>
-          </div>
-        </div>
-
+        <div class="modal-dept">${s.department || 'N/A'}</div>
         <div class="stats-grid">
-          <div class="stat-box">
-            <div class="stat-label">Total Score</div>
-            <div class="stat-value">${s.total_score ?? 0}</div>
-            <div class="stat-foot">Mission Points</div>
-          </div>
-          <div class="stat-box">
-            <div class="stat-label">Accuracy</div>
-            <div class="stat-value">${Math.round((s.accuracy ?? 0) * 100)}%</div>
-            <div class="stat-foot">Hit Rate</div>
-          </div>
-          <div class="stat-box">
-            <div class="stat-label">Quests</div>
-            <div class="stat-value">${s.total_attempts ?? 0}</div>
-            <div class="stat-foot">Quests conquered</div>
-          </div>
-          <div class="stat-box">
-            <div class="stat-label">Correct</div>
-            <div class="stat-value">${s.total_correct ?? 0}</div>
-            <div class="stat-foot">Direct Hits</div>
-          </div>
-          <div class="stat-box">
-            <div class="stat-label">Wrong</div>
-            <div class="stat-value">${s.total_wrong ?? 0}</div>
-            <div class="stat-foot">Near Misses</div>
-          </div>
-          <div class="stat-box">
-            <div class="stat-label">Time on Mission</div>
-            <div class="stat-value time-stat">${formatTime(s.total_time)}</div>
-            <div class="stat-foot">Cumulative</div>
-          </div>
+          <div class="stat-box"><div class="stat-label">Total Score</div><div class="stat-value">${s.total_score ?? 0}</div><div class="stat-foot">Mission Points</div></div>
+          <div class="stat-box"><div class="stat-label">Accuracy</div><div class="stat-value">${Math.round((s.accuracy ?? 0) * 100)}%</div><div class="stat-foot">Hit Rate</div></div>
+          <div class="stat-box"><div class="stat-label">Cryptic</div><div class="stat-value">${s.cryptic_completed ?? 0}</div><div class="stat-foot">Puzzles solved</div></div>
+          <div class="stat-box"><div class="stat-label">Wordle</div><div class="stat-value">${s.wordle_completed ?? 0}</div><div class="stat-foot">Puzzles solved</div></div>
+          <div class="stat-box"><div class="stat-label">Quests</div><div class="stat-value">${s.total_attempts ?? 0}</div><div class="stat-foot">Quests conquered</div></div>
+          <div class="stat-box"><div class="stat-label">Correct</div><div class="stat-value">${s.total_correct ?? 0}</div><div class="stat-foot">Direct Hits</div></div>
+          <div class="stat-box"><div class="stat-label">Wrong</div><div class="stat-value">${s.total_wrong ?? 0}</div><div class="stat-foot">Near Misses</div></div>
+          <div class="stat-box"><div class="stat-label">Time on Mission</div><div class="stat-value time-stat">${formatTime(s.total_time)}</div><div class="stat-foot">Cumulative</div></div>
         </div>
-
         <div class="detail-box">
           <h3>📡 Mission Activity Grid</h3>
-          <p class="detail-caption">Gold sectors = active days. Quests ♥️ · Videos 😍 · Stories 📜</p>
+          <p class="detail-caption">Gold days show completed Quests, Videos, or Stories.</p>
           <div id="mini-calendar" class="mission-calendar"></div>
         </div>
-
         <div class="detail-box">
-          <h3>🕐 Last Mission Timestamp</h3>
-          <p>${formatDate(s.last_test_taken)}
-            <span style="margin-left:8px;font-size:10px;opacity:.6;">
-              (${daysSince === 9999 ? "never" : daysSince + "d ago"})
-            </span>
-          </p>
-        </div>
-      `;
+          <h3>🕐 Last Mission</h3>
+          <p>${formatDate(s.last_test_taken)}</p>
+        </div>`;
 
-      const quests  = parseItems(s.quest_list);
-      const videos  = parseItems(s.video_list);
+      const quests = parseItems(s.quest_list);
+      const videos = parseItems(s.video_list);
       const stories = parseItems(s.story_list);
       const grouped = groupByDate(quests, videos, stories);
       renderMiniCalendar("mini-calendar", grouped);
 
-      // ── PDF download button ──
+      // Button row
+      const btnRow = document.createElement("div");
+      btnRow.className = "action-btn-row";
+
       const pdfBtn = document.createElement("button");
-      pdfBtn.innerHTML = "📄 Download Mission Report";
-      pdfBtn.style.cssText = `
-        width:100%; padding:12px; margin-top:14px;
-        font-weight:800; font-size:13px; letter-spacing:0.12em;
-        text-transform:uppercase; cursor:pointer; border-radius:10px;
-        background:linear-gradient(135deg,#D4AF37,#B8962E);
-        color:#0B0B0C; border:1px solid #F5E6A8;
-        box-shadow:0 0 16px rgba(212,175,55,0.5);
-        transition:transform 0.12s ease, box-shadow 0.12s ease;
-      `;
-      pdfBtn.onmouseover = () => { pdfBtn.style.transform = "translateY(-1px)"; pdfBtn.style.boxShadow = "0 0 24px rgba(212,175,55,0.7)"; };
-      pdfBtn.onmouseout  = () => { pdfBtn.style.transform = ""; pdfBtn.style.boxShadow = "0 0 16px rgba(212,175,55,0.5)"; };
+      pdfBtn.innerHTML = `<span class="btn-icon">📄</span> Download PDF`;
+      pdfBtn.className = "pdf-btn";
       pdfBtn.onclick = () => downloadProfilePDF(s);
-      document.getElementById("modal-content").appendChild(pdfBtn);
+
+      const waBtn = document.createElement("button");
+      waBtn.innerHTML = `<svg class="wa-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg> Send on WhatsApp`;
+      waBtn.className = "wa-btn";
+      waBtn.onclick = () => shareToWhatsApp(s);
+
+      btnRow.appendChild(pdfBtn);
+      btnRow.appendChild(waBtn);
+      content.appendChild(btnRow);
 
       modal.style.display = "flex";
+    }
+
+    // ── WHATSAPP SHARE CARD ───────────────────────────────────────────
+    async function shareToWhatsApp(studentObj) {
+      if (!window.html2canvas) {
+        await new Promise((resolve, reject) => {
+          const s = document.createElement("script");
+          s.src = "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";
+          s.onload = resolve; s.onerror = reject;
+          document.head.appendChild(s);
+        });
+      }
+
+      const quests  = parseItems(studentObj.quest_list);
+      const videos  = parseItems(studentObj.video_list);
+      const stories = parseItems(studentObj.story_list);
+      const totalSec = Math.round(studentObj.total_time || 0);
+      const tH = Math.floor(totalSec / 3600);
+      const tM = Math.floor((totalSec % 3600) / 60);
+      const tS = totalSec % 60;
+      const accuracy = Math.round((studentObj.accuracy || 0) * 100);
+      const grouped  = groupByDate(quests, videos, stories);
+      const activeDays = Object.keys(grouped).length;
+
+      const card = document.createElement("div");
+      card.id = "wa-share-card";
+      card.style.cssText = `
+        position:fixed; left:-9999px; top:0;
+        width:540px; height:auto;
+        font-family:'DM Sans',sans-serif;
+        background: linear-gradient(145deg, #1a1200 0%, #2d1f00 40%, #1a0f00 100%);
+        border-radius:20px;
+        overflow:hidden;
+        padding:0;
+        box-shadow: 0 24px 60px rgba(0,0,0,0.7);
+      `;
+
+      const today2 = new Date();
+      const gridDays = 56;
+      let gridHtml = "";
+      for (let i = gridDays - 1; i >= 0; i--) {
+        const d = new Date(today2);
+        d.setDate(d.getDate() - i);
+        const key = d.toDateString();
+        const has = !!grouped[key];
+        gridHtml += `<div style="width:12px;height:12px;border-radius:2px;background:${has ? "linear-gradient(135deg,#f5d060,#c9a84c)" : "rgba(201,168,76,0.12)"};flex-shrink:0;"></div>`;
+      }
+
+      card.innerHTML = `
+        <div style="height:6px;background:linear-gradient(90deg,#8c6414,#e8c97a,#c9a84c,#f5e6a0,#c9a84c,#8c6414);"></div>
+        <div style="padding:28px 28px 24px;">
+          <div style="text-align:center;margin-bottom:20px;">
+            <div style="font-size:10px;letter-spacing:0.22em;text-transform:uppercase;color:rgba(201,168,76,0.6);margin-bottom:4px;">SRM Valliammai Engineering College</div>
+            <div style="font-size:9px;letter-spacing:0.18em;color:rgba(201,168,76,0.45);">Department of English · Mission: Veni, Vidi, Vici!</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:22px;">
+            <div style="flex:1;height:1px;background:linear-gradient(90deg,transparent,rgba(201,168,76,0.5));"></div>
+            <div style="width:6px;height:6px;background:#c9a84c;transform:rotate(45deg);"></div>
+            <div style="flex:1;height:1px;background:linear-gradient(90deg,rgba(201,168,76,0.5),transparent);"></div>
+          </div>
+          <div style="text-align:center;margin-bottom:6px;">
+            <div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:rgba(201,168,76,0.55);margin-bottom:8px;">Pilot Profile</div>
+            <div style="font-size:30px;font-weight:800;color:#f5e6a0;line-height:1;letter-spacing:0.02em;">${studentObj.name.toUpperCase()}</div>
+            ${studentObj.department ? `<div style="margin-top:6px;font-size:10px;font-weight:600;letter-spacing:0.18em;color:rgba(201,168,76,0.6);">${studentObj.department.toUpperCase()}</div>` : ""}
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;margin:20px 0;">
+            <div style="flex:1;height:1px;background:linear-gradient(90deg,transparent,rgba(201,168,76,0.4));"></div>
+            <div style="width:4px;height:4px;background:rgba(201,168,76,0.6);transform:rotate(45deg);"></div>
+            <div style="flex:1;height:1px;background:linear-gradient(90deg,rgba(201,168,76,0.4),transparent);"></div>
+          </div>
+          <div style="display:flex;gap:10px;margin-bottom:16px;">
+            <div style="flex:1;background:linear-gradient(135deg,rgba(201,168,76,0.18),rgba(201,168,76,0.08));border:1px solid rgba(201,168,76,0.35);border-radius:14px;padding:16px 12px;text-align:center;">
+              <div style="font-size:34px;font-weight:800;color:#e8c97a;line-height:1;">${studentObj.total_score ?? 0}</div>
+              <div style="font-size:8px;letter-spacing:0.18em;text-transform:uppercase;color:rgba(201,168,76,0.55);margin-top:5px;">Mission Score</div>
+            </div>
+            <div style="flex:1;background:linear-gradient(135deg,rgba(201,168,76,0.18),rgba(201,168,76,0.08));border:1px solid rgba(201,168,76,0.35);border-radius:14px;padding:16px 12px;text-align:center;">
+              <div style="font-size:34px;font-weight:800;color:#e8c97a;line-height:1;">${accuracy}%</div>
+              <div style="font-size:8px;letter-spacing:0.18em;text-transform:uppercase;color:rgba(201,168,76,0.55);margin-top:5px;">Accuracy</div>
+            </div>
+            <div style="flex:1;background:linear-gradient(135deg,rgba(201,168,76,0.18),rgba(201,168,76,0.08));border:1px solid rgba(201,168,76,0.35);border-radius:14px;padding:16px 12px;text-align:center;">
+              <div style="font-size:34px;font-weight:800;color:#e8c97a;line-height:1;">${activeDays}</div>
+              <div style="font-size:8px;letter-spacing:0.18em;text-transform:uppercase;color:rgba(201,168,76,0.55);margin-top:5px;">Active Days</div>
+            </div>
+          </div>
+          <div style="background:linear-gradient(90deg,rgba(201,168,76,0.22),rgba(201,168,76,0.10));border:1px solid rgba(201,168,76,0.4);border-radius:10px;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+            <div style="font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:rgba(201,168,76,0.6);">Time on Mission</div>
+            <div style="font-size:18px;font-weight:800;color:#e8c97a;">${tH}h ${tM}m ${tS}s</div>
+          </div>
+          <div style="display:flex;gap:7px;margin-bottom:20px;">
+            ${[
+              {label:"Quests", val: quests.length},
+              {label:"Videos", val: videos.length},
+              {label:"Stories",val: stories.length},
+              {label:"Cryptic",val: studentObj.cryptic_completed ?? 0},
+              {label:"Wordle", val: studentObj.wordle_completed  ?? 0},
+            ].map(a => `
+              <div style="flex:1;background:${a.val > 0 ? "linear-gradient(135deg,rgba(201,168,76,0.25),rgba(201,168,76,0.12))" : "rgba(255,255,255,0.04)"};border:1px solid ${a.val > 0 ? "rgba(201,168,76,0.5)" : "rgba(255,255,255,0.08)"};border-radius:10px;padding:10px 6px;text-align:center;">
+                <div style="font-size:18px;font-weight:800;color:${a.val > 0 ? "#e8c97a" : "rgba(201,168,76,0.3)"};">${a.val}</div>
+                <div style="font-size:7.5px;letter-spacing:0.12em;text-transform:uppercase;color:rgba(201,168,76,0.45);margin-top:3px;">${a.label}</div>
+              </div>
+            `).join("")}
+          </div>
+          <div style="margin-bottom:18px;">
+            <div style="font-size:8px;letter-spacing:0.16em;text-transform:uppercase;color:rgba(201,168,76,0.45);margin-bottom:8px;">Activity · Last 8 Weeks</div>
+            <div style="display:flex;flex-wrap:wrap;gap:3px;">${gridHtml}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+            <div style="flex:1;height:1px;background:linear-gradient(90deg,transparent,rgba(201,168,76,0.35));"></div>
+            <div style="width:4px;height:4px;background:rgba(201,168,76,0.5);transform:rotate(45deg);"></div>
+            <div style="flex:1;height:1px;background:linear-gradient(90deg,rgba(201,168,76,0.35),transparent);"></div>
+          </div>
+          <div style="text-align:center;font-size:8px;color:rgba(201,168,76,0.35);letter-spacing:0.12em;">
+            ${new Date().toLocaleString('en-IN',{timeZone:'Asia/Kolkata',day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})} · veni-vidi-vici.srmvec.edu
+          </div>
+        </div>
+        <div style="height:6px;background:linear-gradient(90deg,#8c6414,#e8c97a,#c9a84c,#f5e6a0,#c9a84c,#8c6414);"></div>
+      `;
+
+      document.body.appendChild(card);
+
+      const waBtn2 = document.querySelector(".wa-btn");
+      if (waBtn2) { waBtn2.textContent = "Generating…"; waBtn2.disabled = true; }
+
+      try {
+        const canvas = await html2canvas(card, {
+          scale: 2, useCORS: true, backgroundColor: null, logging: false, width: 540,
+        });
+
+        document.body.removeChild(card);
+
+        canvas.toBlob(async (blob) => {
+          const file = new File([blob], `${studentObj.name}_MissionCard.png`, { type: "image/png" });
+
+          if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            try {
+              await navigator.share({
+                files: [file],
+                title: `${studentObj.name} — Mission Report`,
+                text: `🎖️ Mission: Veni, Vidi, Vici! — Report for ${studentObj.name}`,
+              });
+            } catch (err) {
+              if (err.name !== "AbortError") fallbackDownloadAndWhatsApp(blob, studentObj.name);
+            }
+          } else {
+            fallbackDownloadAndWhatsApp(blob, studentObj.name);
+          }
+
+          if (waBtn2) {
+            waBtn2.innerHTML = `<svg class="wa-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg> Send on WhatsApp`;
+            waBtn2.disabled = false;
+          }
+        }, "image/png");
+
+      } catch (err) {
+        console.error("Share card error:", err);
+        if (document.body.contains(card)) document.body.removeChild(card);
+        if (waBtn2) { waBtn2.textContent = "❌ Error — try again"; waBtn2.disabled = false; }
+      }
+    }
+
+    function fallbackDownloadAndWhatsApp(blob, name) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${name}_MissionCard.png`;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      setTimeout(() => {
+        const msg = encodeURIComponent(`🎖️ *Mission: Veni, Vidi, Vici!*\nHere is the mission report card for *${name}*.\n_(Attach the downloaded image above)_`);
+        window.open(`https://web.whatsapp.com/send?text=${msg}`, "_blank");
+      }, 800);
     }
 
     function closeModal() {
       document.getElementById("modal").style.display = "none";
     }
 
-    // ── CLASS STATS MODAL ────────────────────────────────────
     function showClassStats() {
       if (reportData.length === 0) return;
       const totalStudents = reportData.length;
@@ -727,6 +528,7 @@
       const totalVideos = reportData.reduce((sum, s) => sum + (s.videos_completed || 0), 0);
       const totalStories = reportData.reduce((sum, s) => sum + (s.stories_completed || 0), 0);
       const totalQuests = reportData.reduce((sum, s) => sum + (s.quests_completed || 0), 0);
+      const totalCryptic = reportData.reduce((sum, s) => sum + (s.cryptic_completed || 0), 0);
 
       const modal = document.getElementById("modal");
       const content = document.getElementById("modal-content");
@@ -737,1029 +539,797 @@
           <button class="close-btn" onclick="closeModal()">×</button>
         </div>
         <div class="stats-grid">
-          <div class="stat-box">
-            <div class="stat-label">Avg Score</div>
-            <div class="stat-value">${avgScore}</div>
-            <div class="stat-foot">Per Pilot</div>
-          </div>
-          <div class="stat-box">
-            <div class="stat-label">Avg Accuracy</div>
-            <div class="stat-value">${avgAccuracy}%</div>
-            <div class="stat-foot">Hit Rate</div>
-          </div>
-          <div class="stat-box">
-            <div class="stat-label">Total Attempts</div>
-            <div class="stat-value">${totalAttempts}</div>
-            <div class="stat-foot">Shots Fired</div>
-          </div>
-          <div class="stat-box">
-            <div class="stat-label">Total Time</div>
-            <div class="stat-value time-stat">${formatTime(totalTime)}</div>
-            <div class="stat-foot">Cumulative</div>
-          </div>
-          <div class="stat-box">
-            <div class="stat-label">Videos</div>
-            <div class="stat-value">${totalVideos}</div>
-            <div class="stat-foot">Completed</div>
-          </div>
-          <div class="stat-box">
-            <div class="stat-label">Stories</div>
-            <div class="stat-value">${totalStories}</div>
-            <div class="stat-foot">Completed</div>
-          </div>
-          <div class="stat-box">
-            <div class="stat-label">Quests</div>
-            <div class="stat-value">${totalQuests}</div>
-            <div class="stat-foot">Completed</div>
-          </div>
-        </div>
-      `;
+          <div class="stat-box"><div class="stat-label">Avg Score</div><div class="stat-value">${avgScore}</div><div class="stat-foot">Per Pilot</div></div>
+          <div class="stat-box"><div class="stat-label">Cryptic</div><div class="stat-value">${totalCryptic}</div><div class="stat-foot">Solved</div></div>
+          <div class="stat-box"><div class="stat-label">Avg Accuracy</div><div class="stat-value">${avgAccuracy}%</div><div class="stat-foot">Hit Rate</div></div>
+          <div class="stat-box"><div class="stat-label">Total Attempts</div><div class="stat-value">${totalAttempts}</div><div class="stat-foot">Shots Fired</div></div>
+          <div class="stat-box"><div class="stat-label">Total Time</div><div class="stat-value time-stat">${formatTime(totalTime)}</div><div class="stat-foot">Cumulative</div></div>
+          <div class="stat-box"><div class="stat-label">Videos</div><div class="stat-value">${totalVideos}</div><div class="stat-foot">Completed</div></div>
+          <div class="stat-box"><div class="stat-label">Stories</div><div class="stat-value">${totalStories}</div><div class="stat-foot">Completed</div></div>
+          <div class="stat-box"><div class="stat-label">Quests</div><div class="stat-value">${totalQuests}</div><div class="stat-foot">Completed</div></div>
+        </div>`;
       modal.style.display = "flex";
     }
 
-    // ── GLOBAL BINDINGS ──────────────────────────────────────
     window.sortData = sortData;
     window.closeModal = closeModal;
     window.showClassStats = showClassStats;
     window.applyDepartmentFilter = applyDepartmentFilter;
-    window.showDetail = showDetail;
     window.onload = loadData;
-    // expose reportData for inline onclick in analytics panel
-    Object.defineProperty(window, 'reportData', { get: () => reportData });
 
     window.toggleTimeFormat = function () {
       showSecondsOnly = !showSecondsOnly;
-      const btn = document.getElementById("time-toggle");
-      btn.textContent = showSecondsOnly ? "Show h:m:s" : "Show Seconds";
+      document.getElementById("time-toggle").textContent = showSecondsOnly ? "Show h:m:s" : "Show Seconds";
       renderLeaderboard();
     };
 
     window.onclick = function (event) {
-      const modal = document.getElementById("modal");
-      if (event.target === modal) closeModal();
+      if (event.target === document.getElementById("modal")) closeModal();
     };
 
-    // ══════════════════════════════════════════════════════════
-    //  PDF GENERATION — PREMIUM BLACK & GOLD
-    // ══════════════════════════════════════════════════════════
+    // PDF library injection
+    (function () {
+      const s1 = document.createElement("script");
+      const s2 = document.createElement("script");
+      s1.src = "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";
+      s2.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
+      document.head.appendChild(s1);
+      document.head.appendChild(s2);
+    })();
 
-    // Robust script loader — returns a Promise that resolves when the script loads
-    function loadScript(src) {
-      return new Promise((resolve, reject) => {
-        // Already loaded?
-        if (document.querySelector(`script[src="${src}"]`)) {
-          resolve(); return;
-        }
-        const s = document.createElement("script");
-        s.src = src;
-        s.onload = resolve;
-        s.onerror = () => reject(new Error("Failed to load: " + src));
-        document.head.appendChild(s);
-      });
-    }
-
+    // ══════════════════════════════════════════════════════════════════
+    //  DYNAMIC PDF DOWNLOAD — auto-discovers ALL Supabase columns
+    //  Add a column to your view next week and it appears automatically.
+    // ══════════════════════════════════════════════════════════════════
     async function downloadProfilePDF(studentObj) {
-      // Show a loading indicator on the button
-      const btn = document.querySelector("#modal-content button:last-child");
-      const origText = btn ? btn.innerHTML : "";
-      if (btn) { btn.innerHTML = "⏳ Generating PDF..."; btn.disabled = true; }
 
-      try {
-        // Ensure libraries are loaded before proceeding
-        await loadScript("https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js");
-        await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
-      } catch (e) {
-        alert("Could not load PDF libraries. Check your internet connection.");
-        if (btn) { btn.innerHTML = origText; btn.disabled = false; }
-        return;
+      // ── ENSURE JSPDF LOADED ───────────────────────────────────────────
+      if (!window.jspdf) {
+        await new Promise((resolve, reject) => {
+          const s = document.createElement("script");
+          s.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
+          s.onload = resolve; s.onerror = reject;
+          document.head.appendChild(s);
+        });
       }
-
       const { jsPDF } = window.jspdf;
 
-      // ── 1. Parse activity lists ──
-      const quests  = parseItems(studentObj.quest_list);
-      const videos  = parseItems(studentObj.video_list);
-      const stories = parseItems(studentObj.story_list);
+      // ── SCHEMA DISCOVERY ─────────────────────────────────────────────
+      // These keys are shown in the hero card / handled specially — skip from auto-grid
+      const KNOWN_META = new Set(["name","department","id","user_id","created_at","updated_at","last_test_taken"]);
+      // List-type columns (comma-separated strings) — used only for calendar
+      const KNOWN_SKIP = new Set(["quest_list","video_list","story_list"]);
 
-      const questCount  = quests.length;
-      const videoCount  = videos.length;
-      const storyCount  = stories.length;
+      function colLabel(key) {
+        return key
+          .replace(/_/g, " ")
+          .replace(/\b\w/g, c => c.toUpperCase())
+          .replace(/\bId\b/g, "ID")
+          .replace(/\bUrl\b/g, "URL");
+      }
 
-      // ── 2. Format time ──
-      const totalSec    = Math.round(studentObj.total_time ?? 0);
-      const th          = Math.floor(totalSec / 3600);
-      const tm          = Math.floor((totalSec % 3600) / 60);
-      const ts          = totalSec % 60;
-      const formattedTime = `${th}h ${tm}m ${ts}s`;
+      function classifyValue(key, val) {
+        if (val === null || val === undefined) return "empty";
+        if (typeof val === "number")  return "number";
+        if (typeof val === "boolean") return "boolean";
+        if (typeof val === "string" && /^\d{4}-\d{2}-\d{2}/.test(val)) return "date";
+        if (typeof val === "string" && val.includes(",") && val.length > 30) return "list";
+        return "string";
+      }
 
-      // ── 3. Derived stats ──
-      const accuracy      = Math.round((studentObj.accuracy ?? 0) * 100);
-      const totalScore    = studentObj.total_score    ?? 0;
-      const totalCorrect  = studentObj.total_correct  ?? 0;
-      const totalWrong    = studentObj.total_wrong    ?? 0;
-      const totalAttempts = studentObj.total_attempts ?? 0;
-      const department    = studentObj.department     ?? "N/A";
-      const lastTest      = formatDate(studentObj.last_test_taken);
-
-      // ── 3b. Analytics stats ──
-      const tier      = getTier(studentObj);
-      const rank      = getRank(studentObj);
-      const deptRank  = getDeptRank(studentObj);
-      const streak    = calcStreak(studentObj);
-      const daysSince = getDaysSince(studentObj.last_test_taken);
-      const topPct    = rank.pct <= 10 ? "🏅 Top 10%" : rank.pct <= 25 ? "Top 25%" : rank.pct <= 50 ? "Top 50%" : `Top ${rank.pct}%`;
-
-      // ── 4. Calendar data ──
-      const grouped = groupByDate(quests, videos, stories);
-
-      // ── 5. Off-screen container ──
-      // Use top:-99999px (not left:-9999px) to avoid horizontal overflow clipping
-      const wrap = document.createElement("div");
-      wrap.style.cssText = `
-        position:absolute; left:0; top:-99999px;
-        width:794px; font-family:'Inter',Arial,sans-serif;
-        background:#0B0B0C; color:#F8F7F3;
-      `;
-      document.body.appendChild(wrap);
-
-      // ── Helper: stat card ──
-      const card = (label, value, sub) => `
-        <div style="
-          background:linear-gradient(135deg,rgba(212,175,55,0.14),rgba(11,11,12,0.98));
-          border:1px solid rgba(212,175,55,0.55);
-          border-radius:10px; padding:12px 14px; flex:1; min-width:0;
-        ">
-          <div style="font-size:9px;letter-spacing:.18em;text-transform:uppercase;
-                      color:rgba(212,175,55,0.7);margin-bottom:4px;">${label}</div>
-          <div style="font-size:22px;font-weight:900;color:#D4AF37;line-height:1.1;">${value}</div>
-          <div style="font-size:9px;color:rgba(248,247,243,0.5);margin-top:4px;">${sub}</div>
-        </div>`;
-
-      // ── Accuracy progress bar ──
-      const accBarPx = Math.round(accuracy * 5.3); // 100% ≈ 530px
-      const accBar = `
-        <div style="margin-bottom:18px;">
-          <div style="display:flex;justify-content:space-between;font-size:10px;
-                      letter-spacing:.12em;text-transform:uppercase;
-                      color:rgba(212,175,55,0.8);margin-bottom:6px;">
-            <span>Accuracy</span><span>${accuracy}%</span>
-          </div>
-          <div style="height:8px;background:rgba(212,175,55,0.15);border-radius:999px;
-                      overflow:hidden;border:1px solid rgba(212,175,55,0.3);">
-            <div style="height:100%;width:${accBarPx}px;
-                        background:linear-gradient(90deg,#B8962E,#F5E6A8);
-                        border-radius:999px;"></div>
-          </div>
-        </div>`;
-
-      // ── Correct vs Wrong split bar ──
-      const totalQ      = totalCorrect + totalWrong || 1;
-      const correctPct  = Math.round((totalCorrect / totalQ) * 100);
-      const wrongPct    = 100 - correctPct;
-      const splitBar = `
-        <div style="margin-bottom:22px;">
-          <div style="display:flex;justify-content:space-between;font-size:10px;
-                      letter-spacing:.12em;text-transform:uppercase;
-                      color:rgba(248,247,243,0.55);margin-bottom:6px;">
-            <span style="color:rgba(74,222,128,0.9);">✔ Correct ${totalCorrect} (${correctPct}%)</span>
-            <span style="color:rgba(248,113,113,0.9);">✘ Wrong ${totalWrong} (${wrongPct}%)</span>
-          </div>
-          <div style="height:10px;background:rgba(248,113,113,0.35);border-radius:999px;
-                      overflow:hidden;display:flex;border:1px solid rgba(248,247,243,0.15);">
-            <div style="width:${correctPct}%;background:rgba(74,222,128,0.75);"></div>
-          </div>
-        </div>`;
-
-      // ── PDF calendar renderer ──
-      function renderCalMonth(baseDate, grouped) {
-        const year     = baseDate.getFullYear();
-        const month    = baseDate.getMonth();
-        const firstDay = new Date(year, month, 1).getDay();
-        const numDays  = new Date(year, month + 1, 0).getDate();
-        const monthLabel = baseDate.toLocaleString("en-IN", { month: "long", year: "numeric" });
-
-        const dayHeaders = ["Su","Mo","Tu","We","Th","Fr","Sa"]
-          .map(d => `<div style="font-size:8px;text-align:center;color:rgba(212,175,55,0.7);
-                                 font-weight:700;padding-bottom:3px;">${d}</div>`)
-          .join("");
-
-        let cells = "";
-        for (let i = 0; i < firstDay; i++) cells += `<div></div>`;
-        for (let d = 1; d <= numDays; d++) {
-          const key    = new Date(year, month, d).toDateString();
-          const marked = !!grouped[key];
-          cells += `
-            <div style="
-              background:${marked
-                ? "linear-gradient(135deg,rgba(212,175,55,0.28),rgba(11,11,12,0.9))"
-                : "rgba(17,17,19,0.9)"};
-              border:1px solid ${marked ? "rgba(212,175,55,0.7)" : "rgba(212,175,55,0.18)"};
-              border-radius:5px; min-height:26px;
-              display:flex;flex-direction:column;align-items:center;
-              justify-content:center; padding:2px;
-              ${marked ? "box-shadow:0 0 6px rgba(212,175,55,0.35);" : ""}
-            ">
-              <span style="font-size:8px;font-weight:700;
-                           color:${marked ? "#F5E6A8" : "rgba(248,247,243,0.35)"};">${d}</span>
-              ${marked ? `<span style="font-size:7px;line-height:1;color:#D4AF37;">✦</span>` : ""}
-            </div>`;
+      function fmtVal(key, val, kind) {
+        if (val === null || val === undefined) return "—";
+        if (kind === "empty") return "—";
+        if (kind === "date") {
+          return new Date(val).toLocaleString('en-IN', {
+            timeZone: 'Asia/Kolkata', day: '2-digit', month: 'short', year: 'numeric',
+            hour: '2-digit', minute: '2-digit', hour12: true
+          });
         }
-
-        return `
-          <div style="width:47%;margin-bottom:12px;">
-            <div style="font-size:9px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;
-                        color:rgba(212,175,55,0.85);text-align:center;margin-bottom:6px;
-                        border-bottom:1px solid rgba(212,175,55,0.3);padding-bottom:4px;">
-              ${monthLabel}
-            </div>
-            <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;">
-              ${dayHeaders}${cells}
-            </div>
-          </div>`;
+        if (kind === "boolean") return val ? "Yes" : "No";
+        if (kind === "number") {
+          if (key.includes("accuracy") || key.includes("rate") || key.includes("ratio") || key.includes("percent")) {
+            return `${Math.round(val * 100)}%`;
+          }
+          if (key.includes("time") || key.includes("duration") || key.includes("seconds")) {
+            const s2 = Math.round(val);
+            return `${Math.floor(s2/3600)}h ${Math.floor((s2%3600)/60)}m ${s2%60}s`;
+          }
+          if (val >= 1000) return val.toLocaleString();
+          return String(Math.round(val * 100) / 100);
+        }
+        return String(val);
       }
 
-      // Build calendar HTML
-      let calHTML = "";
-      let cursor  = new Date(CALENDAR_VISIBLE_START.getFullYear(), CALENDAR_VISIBLE_START.getMonth(), 1);
-      const calEnd = new Date(); calEnd.setDate(1);
-      while (cursor <= calEnd) {
-        calHTML += renderCalMonth(new Date(cursor), grouped);
-        cursor.setMonth(cursor.getMonth() + 1);
+      // Gather all displayable fields
+      const numStats  = [];
+      const dateStats = [];
+      const strStats  = [];
+
+      for (const [key, val] of Object.entries(studentObj)) {
+        if (KNOWN_META.has(key) || KNOWN_SKIP.has(key)) continue;
+        const kind = classifyValue(key, val);
+        if (kind === "empty" || kind === "list") continue;
+        const entry = { key, label: colLabel(key), val, kind };
+        if (kind === "number")       numStats.push(entry);
+        else if (kind === "date")    dateStats.push(entry);
+        else                         strStats.push(entry);
       }
 
-      // ── Full page HTML ──
-      wrap.innerHTML = `
-        <div style="
-          width:794px; min-height:1123px; background:#0B0B0C;
-          padding:0 0 32px 0; position:relative;
-        ">
+      // ── COLOUR PALETTE (dark dossier theme) ──────────────────────────
+      const C = {
+        bg:       [10,  9,   8],
+        bg2:      [18,  16,  12],
+        bg3:      [26,  22,  16],
+        bg4:      [36,  30,  20],
+        bg5:      [48,  40,  26],
+        gold:     [201, 168, 76],
+        goldL:    [232, 201, 122],
+        goldD:    [140, 100, 20],
+        goldDim:  [55,  44,  14],
+        cream:    [245, 238, 220],
+        creamD:   [185, 168, 138],
+        inkD:     [120, 108, 88],
+        inkF:     [62,  54,  40],
+      };
 
-          <!-- TOP GOLD BAND -->
-          <div style="
-            background:linear-gradient(90deg,#8B6914,#B8962E,#D4AF37,#F5E6A8,#D4AF37,#B8962E,#8B6914);
-            height:6px; width:100%;
-          "></div>
+      // ── DOCUMENT ─────────────────────────────────────────────────────
+      const doc = new jsPDF({ unit: "pt", format: "a4", orientation: "portrait" });
+      const PW = doc.internal.pageSize.getWidth();
+      const PH = doc.internal.pageSize.getHeight();
+      const M  = 30;
+      const CW = PW - M * 2;
 
-          <!-- HEADER -->
-          <div style="
-            padding:22px 40px 18px;
-            border-bottom:1px solid rgba(212,175,55,0.4);
-            display:flex; align-items:center; justify-content:space-between;
-          ">
-            <div>
-              <div style="font-size:9px;letter-spacing:.26em;text-transform:uppercase;
-                          color:rgba(212,175,55,0.6);margin-bottom:5px;">
-                Mission: Veni, Vidi, Vici!
-              </div>
-              <div style="font-size:19px;font-weight:900;letter-spacing:.05em;text-transform:uppercase;color:#D4AF37;">
-                SRM Valliammai Engineering College
-              </div>
-              <div style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;
-                          color:rgba(212,175,55,0.55);margin-top:4px;">
-                Department of English
-              </div>
-            </div>
-            <div style="text-align:right;font-size:9px;letter-spacing:.12em;
-                        text-transform:uppercase;color:rgba(212,175,55,0.4);line-height:1.8;">
-              Pilot Report<br>
-              ${new Date().toLocaleDateString("en-IN",{day:"2-digit",month:"short",year:"numeric"})}
-            </div>
-          </div>
+      // ── HELPERS ───────────────────────────────────────────────────────
+      const fill   = (x,y,w,h,c)           => { doc.setFillColor(...c); doc.rect(x,y,w,h,"F"); };
+      const rFill  = (x,y,w,h,r,c,sc,lw)  => { doc.setFillColor(...c); if(sc){doc.setDrawColor(...sc);doc.setLineWidth(lw||0.4);doc.roundedRect(x,y,w,h,r,r,"FD");}else{doc.roundedRect(x,y,w,h,r,r,"F");}};
+      const hline  = (y,x1,x2,c,lw)        => { doc.setDrawColor(...(c||C.goldDim));doc.setLineWidth(lw||0.4);doc.line(x1??M,y,x2??(PW-M),y); };
+      const setTxt = (sz,st,c)             => { doc.setFont("helvetica",st||"normal");doc.setFontSize(sz);doc.setTextColor(...(c||C.cream)); };
+      const tw     = (s,sz,st)             => { setTxt(sz,st,C.cream);return doc.getTextWidth(String(s)); };
+      const t      = (s,x,y,sz,st,c,al)   => { setTxt(sz,st,c);doc.text(String(s),x,y,{align:al||"left"}); };
+      const ct     = (s,y,sz,st,c)         => t(s,PW/2,y,sz,st,c,"center");
+      const rt     = (s,x,y,sz,st,c)       => t(s,x,y,sz,st,c,"right");
 
-          <!-- PILOT BANNER -->
-          <div style="
-            margin:20px 40px 0; padding:16px 22px;
-            background:linear-gradient(135deg,rgba(212,175,55,0.18),rgba(11,11,12,0.98));
-            border:1px solid rgba(212,175,55,0.6); border-radius:12px;
-            border-left:4px solid #D4AF37;
-          ">
-            <div style="font-size:9px;letter-spacing:.24em;text-transform:uppercase;
-                        color:rgba(212,175,55,0.6);margin-bottom:5px;">Pilot Profile</div>
-            <div style="font-size:26px;font-weight:900;color:#F8F7F3;letter-spacing:.02em;">
-              ${studentObj.name}
-            </div>
-            <div style="font-size:10px;letter-spacing:.18em;text-transform:uppercase;
-                        color:rgba(212,175,55,0.65);margin-top:5px;">
-              ${department}
-            </div>
-          </div>
+      let curY = 0;
+      let pageNum = 1;
 
-          <!-- TIER / RANK / STREAK STRIP -->
-          <div style="display:flex;gap:10px;margin:12px 40px 0;">
-            <!-- Tier badge -->
-            <div style="flex:1;padding:10px 14px;border-radius:10px;
-                        background:${tier.bg};border:1px solid ${tier.border};text-align:center;">
-              <div style="font-size:18px;line-height:1;">${tier.icon}</div>
-              <div style="font-size:13px;font-weight:900;color:${tier.color};margin-top:3px;">${tier.label}</div>
-              <div style="font-size:8px;letter-spacing:.14em;color:rgba(248,247,243,0.4);margin-top:2px;">TIER</div>
-            </div>
-            <!-- Class rank -->
-            <div style="flex:1;padding:10px 14px;border-radius:10px;text-align:center;
-                        background:rgba(17,17,19,0.97);border:1px solid rgba(212,175,55,0.4);">
-              <div style="font-size:18px;font-weight:900;color:#D4AF37;">#${rank.pos}</div>
-              <div style="font-size:8px;letter-spacing:.14em;color:rgba(248,247,243,0.4);margin-top:2px;">CLASS RANK</div>
-              <div style="font-size:9px;color:rgba(212,175,55,0.6);">${topPct}</div>
-            </div>
-            <!-- Dept rank -->
-            <div style="flex:1;padding:10px 14px;border-radius:10px;text-align:center;
-                        background:rgba(17,17,19,0.97);border:1px solid rgba(212,175,55,0.4);">
-              <div style="font-size:18px;font-weight:900;color:#D4AF37;">#${deptRank.pos}</div>
-              <div style="font-size:8px;letter-spacing:.14em;color:rgba(248,247,243,0.4);margin-top:2px;">DEPT RANK</div>
-              <div style="font-size:9px;color:rgba(212,175,55,0.6);">of ${deptRank.total}</div>
-            </div>
-            <!-- Streak -->
-            <div style="flex:1;padding:10px 14px;border-radius:10px;text-align:center;
-                        background:rgba(17,17,19,0.97);border:1px solid rgba(212,175,55,0.4);">
-              <div style="font-size:18px;font-weight:900;color:${streak.current > 0 ? '#F97316' : 'rgba(212,175,55,0.4)'};">${streak.current}d</div>
-              <div style="font-size:8px;letter-spacing:.14em;color:rgba(248,247,243,0.4);margin-top:2px;">🔥 STREAK</div>
-              <div style="font-size:9px;color:rgba(212,175,55,0.6);">Best: ${streak.longest}d</div>
-            </div>
-          </div>
+      function newPage() {
+        doc.addPage();
+        pageNum++;
+        fill(0,0,PW,PH,C.bg);
+        drawStripe();
+        curY = 24;
+      }
 
-          <!-- STAT CARDS ROW 1: Score · Accuracy · Time -->
-          <div style="display:flex;gap:12px;margin:16px 40px 0;">
-            ${card("Total Score",       totalScore,     "Mission Points")}
-            ${card("Accuracy",          accuracy + "%", "Hit Rate")}
-            ${card("Time on Mission",   formattedTime,  "Cumulative")}
-          </div>
+      function guard(need) {
+        if (curY + need > PH - 46) { newPage(); return true; }
+        return false;
+      }
 
-          <!-- STAT CARDS ROW 2: Quests · Videos · Stories · Attempts -->
-          <div style="display:flex;gap:12px;margin:10px 40px 0;">
-            ${card("Quests",    questCount,   "Completed")}
-            ${card("Videos",    videoCount,   "Watched")}
-            ${card("Stories",   storyCount,   "Read")}
-            ${card("Attempts",  totalAttempts,"Total")}
-          </div>
+      // ── SHIMMER STRIPE ────────────────────────────────────────────────
+      function drawStripe() {
+        const steps = 24;
+        for (let i = 0; i < steps; i++) {
+          const p = Math.sin((i / (steps-1)) * Math.PI);
+          const r = Math.round(C.goldD[0] + (C.goldL[0]-C.goldD[0]) * p);
+          const g = Math.round(C.goldD[1] + (C.goldL[1]-C.goldD[1]) * p);
+          const b = Math.round(C.goldD[2] + (C.goldL[2]-C.goldD[2]) * p);
+          fill(i*(PW/steps), 0, PW/steps+1, 5, [r,g,b]);
+        }
+        fill(0, 5, PW, 1, C.goldDim);
+      }
 
-          <!-- PERFORMANCE BREAKDOWN -->
-          <div style="
-            margin:18px 40px 0; padding:18px 22px;
-            background:rgba(17,17,19,0.97);
-            border:1px solid rgba(212,175,55,0.4); border-radius:10px;
-          ">
-            <div style="font-size:9px;letter-spacing:.22em;text-transform:uppercase;
-                        color:rgba(212,175,55,0.7);margin-bottom:16px;font-weight:800;">
-              Performance Breakdown
-            </div>
-            ${accBar}
-            ${splitBar}
-            <div style="display:flex;gap:8px;font-size:9px;letter-spacing:.12em;
-                        text-transform:uppercase;color:rgba(248,247,243,0.4);">
-              <span>Last Test:</span>
-              <span style="color:rgba(212,175,55,0.75);">${lastTest}</span>
-            </div>
-          </div>
+      // ── SECTION HEADER ────────────────────────────────────────────────
+      function sectionHdr(label, iconChar) {
+        guard(28);
+        fill(M, curY, 3, 14, C.gold);
+        t(label, M+10, curY+11, 8, "bold", C.goldL);
+        if (iconChar) t(iconChar, PW-M, curY+11, 8, "normal", C.goldD, "right");
+        hline(curY+15, M+10, PW-M, C.inkF, 0.3);
+        curY += 24;
+      }
 
-          <!-- ACTIVITY CALENDAR -->
-          <div style="
-            margin:18px 40px 0; padding:18px 22px 12px;
-            background:rgba(11,11,12,0.98);
-            border:1px solid rgba(212,175,55,0.4); border-radius:10px;
-          ">
-            <div style="font-size:9px;letter-spacing:.22em;text-transform:uppercase;
-                        color:rgba(212,175,55,0.7);margin-bottom:14px;font-weight:800;">
-              📅 Mission Activity Grid
-              <span style="color:rgba(248,247,243,0.28);font-size:8px;
-                           letter-spacing:.1em;margin-left:10px;font-weight:400;">
-                ✦ = active day
-              </span>
-            </div>
-            <div style="display:flex;flex-wrap:wrap;gap:14px;justify-content:space-between;">
-              ${calHTML}
-            </div>
-          </div>
+      // ══════════════════════════════════════════════════════════════════
+      //  PAGE 1 — HERO DOSSIER CARD
+      // ══════════════════════════════════════════════════════════════════
+      fill(0,0,PW,PH,C.bg);
+      drawStripe();
+      curY = 20;
 
-          <!-- BOTTOM GOLD BAND -->
-          <div style="
-            background:linear-gradient(90deg,#8B6914,#B8962E,#D4AF37,#F5E6A8,#D4AF37,#B8962E,#8B6914);
-            height:4px; width:100%; margin-top:28px;
-          "></div>
+      // Institution
+      ct("SRM VALLIAMMAI ENGINEERING COLLEGE", curY+10, 8.5, "bold", C.creamD);
+      curY += 12;
+      ct("DEPARTMENT OF ENGLISH", curY+9, 7, "normal", C.inkD);
+      curY += 14;
+      hline(curY, M+40, PW-M-40, C.goldDim, 0.5);
+      curY += 8;
+      ct("MISSION : VENI · VIDI · VICI", curY+8, 7, "bold", C.goldD);
+      curY += 18;
 
-        </div>`;
+      // ── Hero box ──────────────────────────────────────────────────────
+      const heroH = 106;
+      rFill(M, curY, CW, heroH, 8, C.bg3, C.goldDim, 0.7);
+      fill(M, curY, 4, heroH, C.gold);
 
-      // ── 6. Render → canvas → multi-page PDF ──
-      try {
-        await new Promise(r => setTimeout(r, 450));
+      // Dossier label top-right
+      t("PILOT DOSSIER", PW-M-12, curY+14, 6.5, "bold", C.goldD, "right");
+      t("⬛ CLASSIFIED", PW-M-12, curY+25, 6, "normal", C.inkD, "right");
 
-        const canvas = await html2canvas(wrap.firstElementChild, {
-          scale: 2,
-          backgroundColor: "#0B0B0C",
-          useCORS: true,
-          logging: false,
-          allowTaint: true,
+      // Name
+      const nameStr = (studentObj.name||"—").toUpperCase();
+      const nameSz = nameStr.length>24?19:nameStr.length>18?23:27;
+      t(nameStr, M+14, curY+42, nameSz, "bold", C.cream);
+
+      // Department badge
+      if (studentObj.department) {
+        const deptStr = studentObj.department.toUpperCase();
+        const bw = tw(deptStr,7,"bold")+16;
+        rFill(M+14, curY+50, bw, 16, 3, C.goldDim, C.gold, 0.35);
+        t(deptStr, M+14+8, curY+61, 7, "bold", C.goldL);
+      }
+
+      // Last mission
+      const lastTestStr = studentObj.last_test_taken
+        ? new Date(studentObj.last_test_taken).toLocaleString('en-IN',{timeZone:'Asia/Kolkata',day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:true})
+        : "—";
+      t("LAST MISSION", PW-M-14, curY+72, 6, "bold", C.inkD, "right");
+      t(lastTestStr, PW-M-14, curY+84, 8, "normal", C.creamD, "right");
+
+      // Generated
+      const genStr = new Date().toLocaleString('en-IN',{timeZone:'Asia/Kolkata',day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:true});
+      t(`Generated: ${genStr}`, PW-M-14, curY+97, 5.5, "normal", C.inkD, "right");
+
+      curY += heroH + 18;
+
+      // ══════════════════════════════════════════════════════════════════
+      //  NUMERIC STAT CARDS — auto-generated from schema
+      // ══════════════════════════════════════════════════════════════════
+      if (numStats.length > 0) {
+        sectionHdr("MISSION STATISTICS", `${numStats.length} metrics`);
+
+        // Decide grid columns: 2 for small counts, 3 for larger
+        const cols  = numStats.length <= 4 ? 2 : 3;
+        const gap   = 8;
+        const cardW = (CW - gap*(cols-1)) / cols;
+        const cardH = 54;
+
+        numStats.forEach((stat, i) => {
+          const col = i % cols;
+          const row = Math.floor(i / cols);
+
+          // Page break at start of each new row
+          if (col === 0 && row > 0) guard(cardH + gap);
+
+          const cx2 = M + col*(cardW+gap);
+          const cy2 = curY + (i % cols === 0 && row > 0 ? 0 : row*(cardH+gap));
+
+          // Recalculate y properly
+          const rowOffset = Math.floor(i/cols)*(cardH+gap);
+          if (col === 0) guard(cardH+gap);
+
+          // Card bg + left accent
+          const actualCy = curY + (Math.floor(i / cols) - Math.floor((i - col) / cols)) * (cardH + gap);
+          // Simpler: render row by row
         });
 
-        const imgW      = canvas.width;
-        const imgH      = canvas.height;
-        const pdf       = new jsPDF("p", "pt", "a4");
-        const pageW     = pdf.internal.pageSize.getWidth();
-        const pageH     = pdf.internal.pageSize.getHeight();
-        const ratio     = pageW / imgW;
-        const rendered  = imgH * ratio;
+        // Simpler row-by-row render
+        curY -= 0; // reset (rows were calculated above for guard)
+        let rowStart = curY;
+        numStats.forEach((stat, i) => {
+          const col = i % cols;
+          if (col === 0 && i > 0) {
+            rowStart += cardH + gap;
+            guard(cardH + gap);
+          }
 
-        let yOffset   = 0;
-        let remaining = rendered;
+          const cx2 = M + col*(cardW+gap);
+          rFill(cx2, rowStart, cardW, cardH, 6, C.bg3, C.inkF, 0.3);
+          fill(cx2, rowStart+6, 3, cardH-12, C.gold);
 
-        while (remaining > 0) {
-          const sliceH   = Math.min(remaining, pageH);
-          const srcY     = yOffset / ratio;
-          const srcH     = sliceH / ratio;
+          // Highlight special fields
+          const isKeyMetric = stat.key.includes("score") || stat.key.includes("accuracy");
+          const valStr = fmtVal(stat.key, stat.val, stat.kind);
+          const valSz  = valStr.length>8?13:valStr.length>5?16:20;
 
-          const pg       = document.createElement("canvas");
-          pg.width       = imgW;
-          pg.height      = Math.ceil(srcH);
-          pg.getContext("2d").drawImage(canvas, 0, srcY, imgW, srcH, 0, 0, imgW, Math.ceil(srcH));
+          t(valStr, cx2+12, rowStart+28, valSz, "bold", isKeyMetric?C.goldL:C.cream);
+          t(stat.label.toUpperCase(), cx2+12, rowStart+43, 6, "bold", C.inkD);
+        });
 
-          if (yOffset > 0) pdf.addPage();
-          pdf.addImage(pg.toDataURL("image/png"), "PNG", 0, 0, pageW, sliceH);
+        const totalRows2 = Math.ceil(numStats.length / cols);
+        curY = rowStart + cardH + 18;
+      }
 
-          yOffset   += sliceH;
-          remaining -= sliceH;
+      // ══════════════════════════════════════════════════════════════════
+      //  STRING / BOOLEAN FIELDS — auto-generated
+      // ══════════════════════════════════════════════════════════════════
+      if (strStats.length > 0) {
+        guard(40);
+        sectionHdr("ADDITIONAL FIELDS", `${strStats.length} fields`);
+
+        strStats.forEach(stat => {
+          guard(22);
+          rFill(M, curY, CW, 19, 3, C.bg3, C.inkF, 0.25);
+          t(stat.label.toUpperCase(), M+10, curY+12, 6.5, "bold", C.inkD);
+          rt(fmtVal(stat.key, stat.val, stat.kind), PW-M-10, curY+12, 8, "normal", C.cream);
+          curY += 23;
+        });
+        curY += 8;
+      }
+
+      // ══════════════════════════════════════════════════════════════════
+      //  DATE / TIMESTAMP FIELDS — auto-generated
+      // ══════════════════════════════════════════════════════════════════
+      if (dateStats.length > 0) {
+        guard(40);
+        sectionHdr("TIMESTAMPS", `${dateStats.length} records`);
+
+        dateStats.forEach(stat => {
+          guard(22);
+          rFill(M, curY, CW, 19, 3, C.bg4, C.inkF, 0.25);
+          t(stat.label.toUpperCase(), M+10, curY+12, 6.5, "bold", C.inkD);
+          rt(fmtVal(stat.key, stat.val, stat.kind), PW-M-10, curY+12, 8, "normal", C.creamD);
+          curY += 23;
+        });
+        curY += 8;
+      }
+
+      // ══════════════════════════════════════════════════════════════════
+      //  ACTIVITY CALENDAR
+      // ══════════════════════════════════════════════════════════════════
+      const quests  = parseItems(studentObj.quest_list  || "");
+      const videos  = parseItems(studentObj.video_list  || "");
+      const stories = parseItems(studentObj.story_list  || "");
+      const grouped = groupByDate(quests, videos, stories);
+      const activeDays = Object.keys(grouped).length;
+
+      guard(60);
+      sectionHdr("MISSION ACTIVITY CALENDAR", `${activeDays} active days`);
+
+      // Legend
+      fill(M+10, curY, 8, 8, C.gold);
+      t("= Quest / Video / Story activity", M+22, curY+7, 6.5, "normal", C.inkD);
+      curY += 16;
+
+      // 3-column calendar
+      const calCols  = 3;
+      const calGap   = 8;
+      const calW     = (CW - calGap*(calCols-1)) / calCols;
+      const daySz    = Math.floor((calW - 8) / 7);
+
+      const TODAY    = new Date();
+      const endMonth = new Date(TODAY.getFullYear(), TODAY.getMonth(), 1);
+      let cursor2    = new Date(CALENDAR_VISIBLE_START.getFullYear(), CALENDAR_VISIBLE_START.getMonth(), 1);
+
+      let calCol = 0;
+      let rowTopY = curY;
+      let rowMaxH = 0;
+
+      while (cursor2 <= endMonth) {
+        const yr = cursor2.getFullYear(), mo = cursor2.getMonth();
+        const fd = new Date(yr,mo,1).getDay();
+        const nd = new Date(yr,mo+1,0).getDate();
+        const weeks = Math.ceil((fd+nd)/7);
+        const mH = 14 + 10 + weeks*(daySz+2) + 8;
+
+        if (calCol === 0) {
+          guard(mH+10);
+          rowTopY = curY;
+          rowMaxH = 0;
         }
 
-        pdf.save(`${studentObj.name}_MissionReport.pdf`);
-      } catch (err) {
-        console.error("PDF generation failed:", err);
-        alert("PDF generation failed: " + err.message);
-      } finally {
-        wrap.remove();
-        if (btn) { btn.innerHTML = origText; btn.disabled = false; }
+        const bx = M + calCol*(calW+calGap);
+        let cy2 = rowTopY;
+
+        rFill(bx, cy2, calW, mH, 5, C.bg3, C.inkF, 0.3);
+
+        const mLabel = cursor2.toLocaleString('en-IN',{month:'short',year:'numeric'}).toUpperCase();
+        t(mLabel, bx+calW/2, cy2+11, 6.5, "bold", C.goldL, "center");
+        cy2 += 14;
+
+        ["Su","Mo","Tu","We","Th","Fr","Sa"].forEach((d2,di) => {
+          t(d2, bx+4+di*(daySz+2)+daySz/2, cy2+8, 5, "bold", C.inkF, "center");
+        });
+        cy2 += 10;
+
+        let dc=fd, dr=0;
+        for (let d=1; d<=nd; d++) {
+          const k = new Date(yr,mo,d).toDateString();
+          const act = !!grouped[k];
+          const dx = bx+4+dc*(daySz+2);
+          const dy = cy2+dr*(daySz+2);
+
+          doc.setFillColor(...(act?C.gold:C.bg4));
+          doc.setDrawColor(...(act?C.goldD:C.inkF));
+          doc.setLineWidth(0.25);
+          doc.rect(dx,dy,daySz,daySz,"FD");
+
+          t(String(d), dx+daySz/2, dy+daySz*0.70, 5, act?"bold":"normal", act?C.bg:C.inkD, "center");
+          dc++; if(dc===7){dc=0;dr++;}
+        }
+
+        rowMaxH = Math.max(rowMaxH, mH);
+        calCol++;
+
+        if (calCol >= calCols) {
+          curY = rowTopY + rowMaxH + calGap;
+          calCol = 0;
+        }
+
+        cursor2.setMonth(cursor2.getMonth()+1);
       }
+      if (calCol > 0) curY = rowTopY + rowMaxH + calGap;
+
+      // ── RAW DATA TABLE (catch-all for any unknown future field types) ──
+      // Any field we haven't categorised yet appears here
+      const allHandled = new Set([
+        ...KNOWN_META, ...KNOWN_SKIP,
+        ...numStats.map(s=>s.key),
+        ...dateStats.map(s=>s.key),
+        ...strStats.map(s=>s.key)
+      ]);
+      const uncategorised = Object.entries(studentObj).filter(([k,v]) => !allHandled.has(k) && v !== null && v !== undefined);
+      if (uncategorised.length > 0) {
+        guard(40);
+        sectionHdr("OTHER DATA", `${uncategorised.length} fields`);
+        uncategorised.forEach(([k,v]) => {
+          guard(22);
+          rFill(M, curY, CW, 19, 3, C.bg5, C.inkF, 0.25);
+          t(colLabel(k).toUpperCase(), M+10, curY+12, 6.5, "bold", C.inkD);
+          const vStr = typeof v === "object" ? JSON.stringify(v) : String(v);
+          rt(vStr.length>60?vStr.slice(0,57)+"…":vStr, PW-M-10, curY+12, 7.5, "normal", C.creamD);
+          curY += 23;
+        });
+      }
+
+      // ══════════════════════════════════════════════════════════════════
+      //  FOOTER ON EVERY PAGE
+      // ══════════════════════════════════════════════════════════════════
+      const totalPages = doc.internal.getNumberOfPages();
+      for (let p=1; p<=totalPages; p++) {
+        doc.setPage(p);
+        fill(0, PH-20, PW, 20, C.bg2);
+        hline(PH-20, 0, PW, C.goldDim, 0.4);
+        ct(
+          `Mission: Veni, Vidi, Vici!  ·  ${studentObj.name||""}  ·  SRM Valliammai Engineering College`,
+          PH-8, 6, "normal", C.inkD
+        );
+        rt(`${p} / ${totalPages}`, PW-M, PH-8, 6, "bold", C.inkD);
+        // Bottom gold strip
+        fill(0, PH-5, PW, 5, C.gold);
+      }
+
+      doc.save(`${studentObj.name||"Dossier"}_MissionReport.pdf`);
     }
 
   </script>
 
   <style>
     :root {
-      --bg-deep: #0B0B0C;
-      --bg-surface: rgba(17,17,19,0.94);
-      --bg-surface-strong: rgba(11,11,12,0.98);
-      --bg-muted: rgba(24,24,27,0.9);
-      --text-primary: #F8F7F3;
-      --text-secondary: rgba(212,175,55,0.65);
-      --accent-primary: #D4AF37;
-      --accent-secondary: #E6C45A;
-      --accent-warm: #F5E6A8;
-      --gold: #D4AF37;
-      --silver: #C7C7C7;
-      --bronze: #B87333;
-      --danger: #B91C1C;
+      --cream:        #faf7f2;
+      --cream-dark:   #f2ece0;
+      --cream-mid:    #ede5d5;
+      --surface:      #ffffff;
+
+      --gold:         #c9a84c;
+      --gold-light:   #e8c97a;
+      --gold-deep:    #a07a28;
+      --gold-dim:     rgba(201, 168, 76, 0.12);
+      --gold-border:  rgba(201, 168, 76, 0.35);
+
+      --rank-gold:    #c9a84c;
+      --rank-silver:  #9ca3af;
+      --rank-bronze:  #b87333;
+
+      --text-primary:   #1a1714;
+      --text-secondary: #7a6a52;
+      --text-dim:       #b0a090;
+
+      --border-soft:    rgba(0, 0, 0, 0.07);
+      --border-mid:     rgba(0, 0, 0, 0.12);
+
       --success: #15803D;
-      --border-color: rgba(212,175,55,0.4);
+      --danger:  #B91C1C;
+
+      --radius-sm: 10px;
+      --radius-md: 14px;
+      --radius-lg: 20px;
     }
 
-    * { margin:0; padding:0; box-sizing:border-box; }
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
     body {
-      background:
-        radial-gradient(circle at top, rgba(212,175,55,0.18), transparent 55%),
-        radial-gradient(circle at bottom, rgba(255,215,0,0.12), transparent 60%),
-        #0B0B0C;
+      font-family: 'DM Sans', system-ui, sans-serif;
+      background: var(--cream);
       color: var(--text-primary);
-      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       min-height: 100vh;
-      padding: 14px 10px 32px;
-      overflow-x: hidden;
-    }
-
-    body::before {
-      content:""; position:fixed; inset:0;
+      padding: 20px 12px 48px;
       background-image:
-        radial-gradient(1px 1px at 10% 20%, rgba(245,230,168,0.9), transparent),
-        radial-gradient(1px 1px at 30% 80%, rgba(212,175,55,0.8), transparent),
-        radial-gradient(1px 1px at 50% 40%, rgba(255,255,255,0.6), transparent),
-        radial-gradient(1px 1px at 70% 10%, rgba(212,175,55,0.7), transparent),
-        radial-gradient(1px 1px at 90% 60%, rgba(245,230,168,0.85), transparent),
-        radial-gradient(1px 1px at 20% 50%, rgba(255,255,255,0.5), transparent),
-        radial-gradient(1px 1px at 80% 90%, rgba(212,175,55,0.6), transparent);
-      animation: twinkle-small 9s infinite ease-in-out;
-      pointer-events:none; z-index:-2;
+        radial-gradient(circle at 70% 5%, rgba(201,168,76,0.10) 0%, transparent 45%),
+        radial-gradient(circle at 10% 95%, rgba(201,168,76,0.08) 0%, transparent 40%);
     }
-
-    body::after {
-      content:""; position:fixed; inset:0;
-      background-image:
-        radial-gradient(2px 2px at 15% 35%, rgba(245,230,168,0.9), transparent),
-        radial-gradient(2px 2px at 45% 65%, rgba(212,175,55,0.85), transparent),
-        radial-gradient(2px 2px at 75% 25%, rgba(255,255,255,0.7), transparent),
-        radial-gradient(2px 2px at 85% 75%, rgba(245,230,168,0.8), transparent);
-      animation: twinkle-medium 14s infinite ease-in-out;
-      opacity:0.65; pointer-events:none; z-index:-2;
-    }
-
-    @keyframes twinkle-small { 0%,100%{opacity:.6} 50%{opacity:1} }
-    @keyframes twinkle-medium { 0%,100%{opacity:.4} 50%{opacity:.85} }
 
     .command-frame {
-      max-width:960px; margin:0 auto; border-radius:18px;
-      border:1px solid rgba(212,175,55,0.65);
-      background:linear-gradient(135deg,rgba(11,11,12,0.96),rgba(17,17,19,0.98));
+      max-width: 960px;
+      margin: 0 auto;
+      border-radius: var(--radius-lg);
+      background: var(--surface);
+      border: 1px solid var(--gold-border);
       box-shadow:
-        0 0 0 1px rgba(0,0,0,0.9),
-        0 30px 80px rgba(0,0,0,0.95),
-        0 0 28px rgba(212,175,55,0.35);
-      overflow:hidden; position:relative;
-    }
-
-    .command-frame::before {
-      content:"SRM VEC · ENGLISH COMMAND";
-      position:absolute; top:10px; right:18px;
-      font-size:9px; letter-spacing:.16em; text-transform:uppercase;
-      color:rgba(212,175,55,0.4);
-    }
-
-    .command-frame::after {
-      content:""; position:absolute; inset:-40%;
-      background:
-        radial-gradient(circle at 30% 20%, rgba(212,175,55,0.08), transparent 55%),
-        radial-gradient(circle at 70% 80%, rgba(245,230,168,0.06), transparent 60%);
-      pointer-events:none; z-index:-1;
-    }
-
-    /* HEADER */
-    .header {
-      padding:18px 18px 10px;
-      border-bottom:1px solid rgba(212,175,55,0.4);
-    }
-
-    .header-top {
-      display:flex; justify-content:space-between; align-items:center;
-      gap:12px; margin-bottom:10px;
-    }
-
-    .title-block { display:flex; flex-direction:column; gap:4px; }
-
-    .mission-title {
-      font-size:12px; letter-spacing:.18em; text-transform:uppercase;
-      color:rgba(212,175,55,0.65); white-space:nowrap;
-    }
-
-    .title {
-      font-size:22px; font-weight:900; letter-spacing:.06em; text-transform:uppercase;
-      background:linear-gradient(120deg,#F5E6A8,#D4AF37,#B8962E);
-      -webkit-background-clip:text; color:transparent; white-space:nowrap;
-    }
-
-    .subtitle {
-      font-size:11px; color:rgba(212,175,55,0.7); min-height:1.2em;
-    }
-
-    .badge-live {
-      display:inline-flex; align-items:center; gap:6px;
-      padding:6px 10px; border-radius:999px;
-      background:rgba(11,11,12,0.95);
-      border:1px solid rgba(212,175,55,0.6);
-      box-shadow:0 0 12px rgba(212,175,55,0.5);
-      cursor:pointer;
-      transition:transform .12s ease, box-shadow .12s ease;
-    }
-
-    .badge-live:hover {
-      transform:translateY(-1px);
-      box-shadow:0 0 18px rgba(212,175,55,0.7);
-    }
-
-    .badge-dot {
-      width:6px; height:6px; border-radius:999px;
-      background:var(--accent-primary);
-      box-shadow:0 0 10px var(--accent-primary);
-      animation:pulse 1.2s infinite;
-    }
-
-    @keyframes pulse {
-      0%{transform:scale(1);opacity:1}
-      60%{transform:scale(1.8);opacity:0}
-      100%{transform:scale(1.8);opacity:0}
-    }
-
-    /* CONTROLS */
-    .top-controls {
-      display:flex; gap:10px; padding:12px 18px 14px; align-items:stretch;
-      border-bottom:1px solid rgba(212,175,55,0.3);
-    }
-
-    .department-filter select {
-      width:100%; padding:10px 12px; border-radius:14px;
-      background:rgba(11,11,12,0.96);
-      color:var(--text-primary);
-      border:1px solid rgba(212,175,55,0.6);
-      font-size:12px; font-weight:700; letter-spacing:.1em;
-      text-transform:uppercase; cursor:pointer;
-    }
-
-    .department-filter select option { background:#0B0B0C; color:#F8F7F3; }
-
-    .sort-panel { flex:1; display:flex; flex-direction:column; gap:6px; }
-    .sort-label-row { display:none !important; }
-
-    .sort-buttons {
-      flex:1; display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px;
-    }
-
-    .sort-btn, #time-toggle {
-      display:inline-flex; align-items:center; justify-content:center; gap:5px;
-      background:radial-gradient(circle at 0 0,rgba(212,175,55,0.35),transparent 55%),
-                 rgba(11,11,12,0.96);
-      color:var(--text-primary);
-      border:1px solid rgba(212,175,55,0.55);
-      padding:7px 8px; border-radius:999px;
-      font-size:11px; font-weight:700; cursor:pointer;
-      white-space:nowrap; text-transform:uppercase; letter-spacing:.1em;
-      transition:all .14s ease; min-height:30px;
-    }
-
-    .sort-btn .sort-indicator { font-size:9px; opacity:.8; }
-
-    .sort-btn.active {
-      background:linear-gradient(135deg,#D4AF37,#B8962E);
-      color:#0B0B0C; border-color:#F5E6A8;
-      box-shadow:0 0 16px rgba(212,175,55,0.6);
-    }
-
-    #time-toggle { font-size:10px; padding-inline:10px; justify-self:flex-end; }
-
-    /* LEADERBOARD */
-    #leaderboard {
-      margin:12px; border-radius:14px;
-      border:1px solid rgba(212,175,55,0.55);
-      background:rgba(11,11,12,0.97); overflow:hidden;
-    }
-
-    .leaderboard-header-row {
-      display:grid; grid-template-columns:48px 1fr auto;
-      padding:6px 12px; font-size:10px; text-transform:uppercase;
-      letter-spacing:.14em; color:rgba(212,175,55,0.6);
-      border-bottom:1px solid rgba(212,175,55,0.3);
-    }
-
-    .leaderboard-row {
-      display:grid; grid-template-columns:48px 1fr auto;
-      padding:10px 12px;
-      border-bottom:1px solid rgba(212,175,55,0.25);
-      cursor:pointer; align-items:center;
-      transition:background .15s ease, transform .12s ease;
-    }
-
-    .leaderboard-row:last-child { border-bottom:none; }
-
-    .leaderboard-row:hover { background:rgba(212,175,55,0.08); transform:translateY(-1px); }
-
-    .leaderboard-row.gold   { border-left:3px solid var(--gold); }
-    .leaderboard-row.silver { border-left:3px solid var(--silver); }
-    .leaderboard-row.bronze { border-left:3px solid var(--bronze); }
-
-    .rank {
-      font-size:13px; font-weight:800; text-align:center;
-      color:rgba(212,175,55,0.75);
-    }
-
-    .leaderboard-row.gold .rank,
-    .leaderboard-row.silver .rank,
-    .leaderboard-row.bronze .rank { font-size:18px; }
-
-    .name {
-      padding:0 10px; display:flex; flex-direction:column; justify-content:center;
-    }
-
-    .cadet-name, .full-name {
-      font-size:14px; font-weight:700; color:var(--text-primary);
-      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-    }
-
-    .dept-inline {
-      margin-left:6px; font-size:10px; font-weight:600;
-      letter-spacing:.12em; text-transform:uppercase;
-      color:rgba(212,175,55,0.65); white-space:nowrap;
-    }
-
-    .metric-tag {
-      margin-top:2px; font-size:9px; text-transform:uppercase;
-      letter-spacing:.18em; color:rgba(212,175,55,0.6);
-    }
-
-    .last-test-small {
-      font-size:10px; color:rgba(212,175,55,0.65); margin-top:3px;
-    }
-
-    .score {
-      font-size:18px; font-weight:800; color:var(--accent-primary);
-      text-align:right; min-width:90px; display:flex;
-      align-items:center; justify-content:flex-end;
-      font-variant-numeric:tabular-nums;
-    }
-
-    .score-seconds { font-size:16px; color:var(--accent-primary); }
-
-    /* TIME BLOCKS */
-    .time-block { display:inline-flex; align-items:baseline; gap:3px; margin-right:10px; }
-    .time-num { font-size:16px; font-weight:600; color:var(--text-primary); font-variant-numeric:tabular-nums; }
-    .time-unit { font-size:12px; font-weight:600; position:relative; top:-1px;
-                 background:transparent!important; padding:0!important;
-                 margin:0!important; border-radius:0!important; }
-    .time-unit.h { color:#A855F7; }
-    .time-unit.m { color:#38BDF8; }
-    .time-unit.s { color:#34D399; }
-    .aligned-time { display:flex; flex-direction:column; }
-    .time-row { display:grid; grid-template-columns:repeat(3,1fr); text-align:center; margin-top:2px; }
-    .t-block { display:flex; justify-content:center; align-items:baseline; gap:2px; }
-    .t-num { font-size:14px; font-weight:700; color:var(--text-primary); font-variant-numeric:tabular-nums; }
-    .t-unit { font-size:10px; font-weight:600; position:relative; top:-1px; padding-left:1px; }
-    .t-unit.h { color:#A855F7; }
-    .t-unit.m { color:#38BDF8; }
-    .t-unit.s { color:#34D399; }
-
-    /* LOADER */
-    #loader { display:none; justify-content:center; align-items:center; padding:40px 0 20px; }
-
-    .spinner {
-      width:46px; height:46px; border-radius:999px;
-      border:3px solid rgba(212,175,55,0.3);
-      border-top-color:#D4AF37; border-right-color:#F5E6A8;
-      animation:spin .9s linear infinite;
-      box-shadow:0 0 18px rgba(212,175,55,0.5);
-    }
-
-    @keyframes spin { to{transform:rotate(360deg)} }
-
-    #error {
-      color:var(--danger); text-align:center;
-      padding:12px 16px 18px; font-weight:600; font-size:12px;
-    }
-
-    /* MODAL */
-    #modal {
-      display:none; position:fixed; inset:0;
-      background:rgba(11,11,12,0.92); backdrop-filter:blur(6px);
-      justify-content:center; align-items:flex-start;
-      z-index:1000; overflow-y:auto; padding:25px 12px;
-    }
-
-    #modal-content {
-      background:rgba(11,11,12,0.98); border-radius:18px;
-      padding:18px 16px 20px; width:100%; max-width:520px;
-      margin:0 auto; border:1px solid rgba(212,175,55,0.7);
-      box-shadow:0 30px 80px rgba(0,0,0,0.95),0 0 26px rgba(212,175,55,0.3);
-      position:relative;
-    }
-
-    .modal-header {
-      display:flex; justify-content:space-between; align-items:center;
-      gap:10px; margin-bottom:16px; padding-bottom:12px;
-      border-bottom:1px solid rgba(212,175,55,0.35);
-    }
-
-    .modal-header h2 { font-size:18px; font-weight:800; color:#F8F7F3; }
-
-    .modal-id-tag {
-      position:absolute; top:-10px; left:16px;
-      font-size:10px; text-transform:uppercase; letter-spacing:.16em;
-      padding:3px 8px; border-radius:999px;
-      background:rgba(11,11,12,0.95);
-      border:1px solid rgba(212,175,55,0.6);
-      color:rgba(212,175,55,0.8);
-    }
-
-    .close-btn {
-      background:rgba(11,11,12,0.95); border:1px solid rgba(212,175,55,0.55);
-      color:#F8F7F3; font-size:20px; cursor:pointer;
-      width:32px; height:32px; border-radius:999px;
-      display:flex; align-items:center; justify-content:center; line-height:1;
-      transition:all .1s ease;
-    }
-
-    .close-btn:hover { background:rgba(212,175,55,0.2); transform:translateY(-1px); }
-
-    .stats-grid {
-      display:grid; grid-template-columns:repeat(auto-fit,minmax(110px,1fr));
-      gap:10px; margin-bottom:16px;
-    }
-
-    .stat-box {
-      background:rgba(17,17,19,0.96); padding:10px 10px 9px;
-      border-radius:10px; text-align:left;
-      border:1px solid rgba(212,175,55,0.55); position:relative; overflow:hidden;
-    }
-
-    .stat-label {
-      font-size:10px; color:rgba(212,175,55,0.65); text-transform:uppercase;
-      margin-bottom:2px; letter-spacing:.16em;
-    }
-
-    .stat-value { font-size:20px; font-weight:800; color:var(--accent-primary); line-height:1.2; font-variant-numeric:tabular-nums; }
-    .time-stat { font-size:0; }
-    .stat-foot { font-size:10px; color:rgba(212,175,55,0.5); margin-top:4px; }
-
-    .detail-box {
-      background:rgba(11,11,12,0.98); padding:12px 11px 11px;
-      border-radius:10px; margin-bottom:12px;
-      border:1px solid rgba(212,175,55,0.45);
-    }
-
-    .detail-box h3 {
-      color:#F8F7F3; margin-bottom:6px; font-size:14px; font-weight:700;
-      display:flex; align-items:center; gap:6px;
-    }
-
-    .detail-box p { color:rgba(248,247,243,0.9); line-height:1.5; font-size:12px; word-wrap:break-word; }
-    .detail-caption { font-size:10px; color:rgba(212,175,55,0.5); margin-bottom:8px; }
-
-    /* MINI CALENDAR */
-    .mission-calendar { display:flex; flex-direction:column; gap:14px; }
-
-    .mini-cal-title {
-      text-align:center; font-weight:600; margin-bottom:6px; font-size:11px;
-      color:rgba(212,175,55,0.8); text-transform:uppercase; letter-spacing:.12em;
-    }
-
-    .mini-cal-grid {
-      display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:4px; font-size:9px;
-    }
-
-    .mini-cal-grid > div:nth-child(-n+7) {
-      font-weight:600; text-align:center; color:rgba(212,175,55,0.6); padding-bottom:2px;
-    }
-
-    .mini-cal-day {
-      background:rgba(11,11,12,0.96); padding:4px 3px; border-radius:6px;
-      min-height:46px; font-size:9px; color:#F8F7F3;
-      border:1px solid rgba(212,175,55,0.35);
-      display:flex; flex-direction:column; align-items:flex-start;
-    }
-
-    .mini-cal-day.marked {
-      background:rgba(212,175,55,0.25);
-      border-color:var(--accent-primary);
-      box-shadow:0 0 12px rgba(212,175,55,0.5);
-    }
-
-    .mini-cal-date { font-weight:700; margin-bottom:2px; }
-    .mini-cal-items div { font-size:9px; line-height:1.1; }
-
-    /* RESPONSIVE */
-    @media (max-width:600px) {
-      .top-controls { flex-direction:column; }
-      #leaderboard { margin-inline:10px; }
-      .leaderboard-header-row { display:none; }
-      .dept-inline { display:block; margin-left:0; margin-top:2px; font-size:9px; }
-    }
-    /* ── ANALYTICS PANEL ─────────────────────────────────── */
-    .analytics-panel {
-      margin: 0 12px 24px;
-      border-radius: 14px;
-      border: 1px solid rgba(212,175,55,0.5);
-      background: rgba(11,11,12,0.97);
+        0 1px 0 0 rgba(255,255,255,0.9) inset,
+        0 24px 60px rgba(0, 0, 0, 0.09),
+        0 4px 16px rgba(201,168,76,0.12);
       overflow: hidden;
     }
 
-    .ap-header {
-      padding: 14px 18px 10px;
-      border-bottom: 1px solid rgba(212,175,55,0.3);
-      background: linear-gradient(90deg, rgba(212,175,55,0.1), transparent);
+    .header {
+      padding: 22px 24px 16px;
+      border-bottom: 1px solid var(--border-soft);
+      background: linear-gradient(160deg, var(--surface) 60%, var(--cream-dark) 100%);
     }
 
-    .ap-title {
-      font-size: 13px; font-weight: 800; text-transform: uppercase;
-      letter-spacing: .18em; color: rgba(212,175,55,0.9);
+    .header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 8px;
     }
 
-    .ap-sub {
-      font-size: 9px; letter-spacing: .12em; text-transform: uppercase;
-      color: rgba(212,175,55,0.4); margin-top: 3px;
+    .title-block { display: flex; flex-direction: column; gap: 2px; }
+
+    .mission-title {
+      font-size: 11px;
+      letter-spacing: 0.20em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      font-weight: 600;
     }
 
-    .ap-section {
-      padding: 14px 18px;
-      border-bottom: 1px solid rgba(212,175,55,0.18);
+    .title {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 30px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      color: var(--gold-deep);
+      line-height: 1;
     }
 
-    .ap-section:last-child { border-bottom: none; }
+    .subtitle { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
 
-    .ap-section-label {
-      font-size: 10px; font-weight: 700; letter-spacing: .18em;
-      text-transform: uppercase; color: rgba(212,175,55,0.7);
-      margin-bottom: 10px; display: flex; align-items: center; gap: 10px;
-    }
-
-    .ap-section-sub {
-      font-size: 9px; font-weight: 400; color: rgba(248,247,243,0.3);
-      letter-spacing: .1em;
-    }
-
-    /* Tier cards */
-    .ap-tier-row {
-      display: grid; grid-template-columns: repeat(4,1fr); gap: 10px;
-    }
-
-    .ap-tier-card {
-      border-radius: 10px; border: 1px solid; padding: 12px 8px;
-      text-align: center;
-    }
-
-    .ap-tier-icon { font-size: 16px; line-height: 1; }
-    .ap-tier-count { font-size: 26px; font-weight: 900; line-height: 1.1; margin-top: 4px; }
-    .ap-tier-label { font-size: 9px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; margin-top: 2px; }
-    .ap-tier-pct { font-size: 10px; color: rgba(248,247,243,0.35); margin-top: 4px; }
-
-    /* Dept table */
-    .ap-dept-table { display: flex; flex-direction: column; gap: 4px; }
-
-    .ap-dept-head {
-      display: grid; grid-template-columns: 2fr 1fr 2fr 1fr;
-      padding: 5px 10px; font-size: 9px; font-weight: 700;
-      letter-spacing: .14em; text-transform: uppercase;
-      color: rgba(212,175,55,0.5);
-    }
-
-    .ap-dept-row {
-      display: grid; grid-template-columns: 2fr 1fr 2fr 1fr;
-      padding: 8px 10px; border-radius: 8px; align-items: center;
-      background: rgba(17,17,19,0.8);
-      border: 1px solid rgba(212,175,55,0.15);
-      transition: background .12s ease;
-    }
-
-    .ap-dept-row:hover { background: rgba(212,175,55,0.07); }
-
-    .ap-dept-top {
-      border-color: rgba(212,175,55,0.4);
-      background: rgba(212,175,55,0.08);
-    }
-
-    .ap-dept-name {
-      font-size: 11px; font-weight: 700; color: #F8F7F3;
-      letter-spacing: .06em; text-transform: uppercase;
-    }
-
-    .ap-dept-val {
-      font-size: 11px; font-weight: 600; color: rgba(212,175,55,0.8);
-      display: flex; align-items: center; gap: 6px;
-    }
-
-    .ap-at-risk-num { color: #F87171 !important; font-weight: 800; }
-
-    .ap-acc-bar-wrap {
-      display: inline-block; width: 50px; height: 5px;
-      background: rgba(212,175,55,0.15); border-radius: 999px; overflow: hidden;
-      vertical-align: middle;
-    }
-
-    .ap-acc-bar-fill {
-      display: block; height: 100%;
-      background: linear-gradient(90deg, #B8962E, #F5E6A8);
+    .badge-live {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 8px 16px;
       border-radius: 999px;
-    }
-
-    .ap-acc-num { font-size: 11px; color: rgba(212,175,55,0.8); }
-
-    /* At-risk grid */
-    .ap-risk-grid {
-      display: grid; grid-template-columns: repeat(auto-fill, minmax(150px,1fr));
-      gap: 8px;
-    }
-
-    .ap-risk-card {
-      background: rgba(248,113,113,0.08);
-      border: 1px solid rgba(248,113,113,0.35);
-      border-radius: 8px; padding: 9px 10px;
+      background: var(--gold-dim);
+      border: 1px solid var(--gold-border);
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--gold-deep);
       cursor: pointer;
-      transition: background .12s ease, transform .12s ease;
+      letter-spacing: 0.04em;
+      transition: background 0.2s ease, box-shadow 0.2s ease;
+      white-space: nowrap;
+    }
+    .badge-live:hover { background: rgba(201,168,76,0.22); box-shadow: 0 2px 12px rgba(201,168,76,0.22); }
+
+    .badge-dot {
+      width: 7px; height: 7px;
+      border-radius: 999px;
+      background: var(--gold);
+      animation: pulse-dot 2s ease-in-out infinite;
+    }
+    @keyframes pulse-dot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(0.7)} }
+
+    .top-controls {
+      display: flex;
+      gap: 12px;
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border-soft);
+      background: var(--cream);
+      align-items: flex-start;
+      flex-wrap: wrap;
     }
 
-    .ap-risk-card:hover {
-      background: rgba(248,113,113,0.15);
-      transform: translateY(-1px);
+    .department-filter { flex-shrink: 0; }
+
+    .department-filter select {
+      padding: 9px 14px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-mid);
+      background: var(--surface);
+      color: var(--text-primary);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      cursor: pointer;
+      appearance: none;
+      -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%237a6a52' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      padding-right: 32px;
+      min-width: 160px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+    .department-filter select:focus { outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,168,76,0.15); }
+
+    .sort-panel { flex:1;display:flex;flex-direction:column;gap:8px;min-width:0; }
+    .sort-label-row { display:none; }
+    .sort-buttons { display:flex;flex-wrap:wrap;gap:7px; }
+
+    .sort-btn, #time-toggle {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      padding: 7px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--border-mid);
+      background: var(--surface);
+      color: var(--text-secondary);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.18s ease;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .sort-btn:hover { border-color:var(--gold);color:var(--gold-deep);background:var(--gold-dim); }
+    .sort-btn.active { background:var(--gold);color:#fff;border-color:var(--gold);box-shadow:0 2px 10px rgba(201,168,76,0.35); }
+    .sort-btn .sort-indicator { font-size:10px; }
+    #time-toggle { font-size:10px; }
+
+    #leaderboard {
+      margin: 16px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-soft);
+      background: var(--surface);
+      overflow: hidden;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.05);
     }
 
-    .ap-risk-name {
-      font-size: 11px; font-weight: 700; color: #F8F7F3;
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    .leaderboard-header-row {
+      display: grid;
+      grid-template-columns: 48px 1fr auto;
+      padding: 8px 16px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      border-bottom: 1px solid var(--border-soft);
+      background: var(--cream);
     }
 
-    .ap-risk-dept {
-      font-size: 9px; letter-spacing: .1em; text-transform: uppercase;
-      color: rgba(248,113,113,0.6); margin-top: 2px;
+    .leaderboard-row {
+      display: grid;
+      grid-template-columns: 48px 1fr auto;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border-soft);
+      cursor: pointer;
+      align-items: center;
+      transition: background 0.14s ease;
+      position: relative;
     }
+    .leaderboard-row:last-child { border-bottom: none; }
+    .leaderboard-row:hover { background: var(--cream); }
+    .leaderboard-row.gold   { border-left: 3px solid var(--rank-gold); }
+    .leaderboard-row.silver { border-left: 3px solid var(--rank-silver); }
+    .leaderboard-row.bronze { border-left: 3px solid var(--rank-bronze); }
 
-    .ap-risk-days {
-      font-size: 10px; font-weight: 700; color: #F87171; margin-top: 4px;
-    }
+    .rank { font-size:14px;font-weight:800;text-align:center;color:var(--text-dim);line-height:1; }
+    .leaderboard-row.gold .rank,
+    .leaderboard-row.silver .rank,
+    .leaderboard-row.bronze .rank { font-size:20px; }
 
-    .ap-empty {
-      font-size: 12px; color: rgba(74,222,128,0.8); padding: 8px 0;
-      letter-spacing: .06em;
+    .name { padding:0 12px;display:flex;flex-direction:column;justify-content:center;gap:3px;min-width:0; }
+    .cadet-name, .full-name { font-size:14px;font-weight:700;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2; }
+    .dept-inline { font-size:12px;font-weight:500;color:var(--text-dim); }
+    .metric-tag { font-size:9px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:var(--text-dim); }
+    .last-test-small { font-size:11px;color:var(--text-secondary); }
+
+    .score { font-size:20px;font-weight:800;color:var(--gold-deep);text-align:right;min-width:80px;display:flex;align-items:center;justify-content:flex-end;font-variant-numeric:tabular-nums;gap:2px; }
+    .score-time { font-size:14px;gap:4px; }
+
+    .time-block { display:inline-flex;align-items:baseline;gap:2px; }
+    .time-num { font-size:15px;font-weight:700;color:var(--text-primary);font-variant-numeric:tabular-nums; }
+    .time-unit { font-size:11px;font-weight:600;color:var(--text-dim); }
+    .time-unit.h { color:var(--gold-deep); }
+    .time-unit.m { color:var(--gold); }
+    .time-unit.s { color:var(--text-secondary); }
+
+    .t-block { display:inline-flex;align-items:baseline;gap:2px; }
+    .t-num { font-size:14px;font-weight:700;color:var(--text-primary);font-variant-numeric:tabular-nums; }
+    .t-unit { font-size:10px;font-weight:600; }
+    .t-unit.h { color:var(--gold-deep); }
+    .t-unit.m { color:var(--gold); }
+    .t-unit.s { color:var(--text-secondary); }
+
+    #loader { display:none;justify-content:center;align-items:center;padding:48px 0 24px; }
+    .spinner { width:40px;height:40px;border-radius:999px;border:3px solid var(--cream-mid);border-top-color:var(--gold);animation:spin 0.85s linear infinite; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+
+    #error { color:var(--danger);text-align:center;padding:16px;font-weight:600;font-size:13px; }
+
+    #modal { display:none;position:fixed;inset:0;background:rgba(26,23,20,0.40);backdrop-filter:blur(5px);justify-content:center;align-items:flex-start;z-index:1000;overflow-y:auto;padding:30px 12px; }
+    #modal-content { background:var(--surface);border-radius:var(--radius-lg);padding:22px 20px 24px;width:100%;max-width:520px;margin:0 auto;border:1px solid var(--gold-border);box-shadow:0 30px 70px rgba(0,0,0,0.18),0 4px 16px rgba(201,168,76,0.12);position:relative; }
+
+    .modal-header { display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:4px;padding-bottom:14px;border-bottom:1px solid var(--border-soft); }
+    .modal-header h2 { font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;font-weight:700;color:var(--text-primary);flex:1; }
+    .modal-id-tag { position:absolute;top:-12px;left:20px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.16em;padding:4px 10px;border-radius:999px;background:var(--surface);border:1px solid var(--gold-border);color:var(--gold-deep); }
+    .modal-dept { text-align:center;font-size:11px;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:var(--text-dim);margin-bottom:16px; }
+
+    .close-btn { background:var(--cream);border:1px solid var(--border-mid);color:var(--text-secondary);font-size:20px;cursor:pointer;width:32px;height:32px;border-radius:999px;display:flex;align-items:center;justify-content:center;flex-shrink:0;line-height:1;transition:all 0.15s ease; }
+    .close-btn:hover { background:var(--gold-dim);border-color:var(--gold);color:var(--gold-deep); }
+
+    .stats-grid { display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin-bottom:16px; }
+    .stat-box { background:var(--cream);padding:12px 12px 10px;border-radius:var(--radius-sm);border:1px solid var(--border-soft);text-align:left; }
+    .stat-label { font-size:10px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--text-dim);margin-bottom:4px; }
+    .stat-value { font-size:22px;font-weight:800;color:var(--gold-deep);line-height:1.1;font-variant-numeric:tabular-nums; }
+    .time-stat { font-size:0;display:flex;flex-wrap:wrap;gap:4px;align-items:baseline; }
+    .time-stat .time-num { font-size:16px; }
+    .time-stat .time-unit { font-size:11px; }
+    .stat-foot { font-size:10px;color:var(--text-dim);margin-top:4px; }
+
+    .detail-box { background:var(--cream);padding:14px 13px 13px;border-radius:var(--radius-sm);margin-bottom:12px;border:1px solid var(--border-soft); }
+    .detail-box h3 { color:var(--text-primary);margin-bottom:6px;font-size:14px;font-weight:700; }
+    .detail-box p { color:var(--text-secondary);line-height:1.6;font-size:13px; }
+    .detail-caption { font-size:11px;color:var(--text-dim);margin-bottom:10px; }
+
+    .mission-calendar { display:flex;flex-direction:column;gap:16px; }
+    .mini-cal-title { text-align:center;font-weight:700;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:var(--gold-deep);margin-bottom:6px; }
+    .mini-cal-grid { display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;font-size:9px; }
+    .mini-cal-grid > div:nth-child(-n+7) { font-weight:700;text-align:center;color:var(--text-dim);padding-bottom:3px; }
+    .mini-cal-day { background:var(--surface);border:1px solid var(--border-soft);border-radius:5px;min-height:38px;padding:3px 3px;font-size:9px;color:var(--text-secondary);display:flex;flex-direction:column;align-items:flex-start; }
+    .mini-cal-day.marked { background:rgba(201,168,76,0.14);border-color:rgba(201,168,76,0.50); }
+    .mini-cal-date { font-weight:700;margin-bottom:2px;color:var(--text-primary); }
+    .mini-cal-items div { font-size:9px;line-height:1.1; }
+
+    .action-btn-row { display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px; }
+
+    .pdf-btn, .wa-btn {
+      display:flex;align-items:center;justify-content:center;gap:7px;
+      padding:12px 10px;
+      font-family:'DM Sans',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.05em;
+      border-radius:var(--radius-sm);cursor:pointer;
+      transition:all 0.18s ease;white-space:nowrap;
     }
+    .pdf-btn { border:1px solid var(--gold-border);background:var(--gold-dim);color:var(--gold-deep); }
+    .pdf-btn:hover { background:var(--gold);color:#fff;border-color:var(--gold); }
+    .wa-btn { border:1px solid rgba(37,167,82,0.5);background:linear-gradient(135deg,#1fad4e 0%,#128C3E 100%);color:#fff;box-shadow:0 2px 12px rgba(18,140,62,0.30); }
+    .wa-btn:hover { background:linear-gradient(135deg,#25D366 0%,#1aaa48 100%);box-shadow:0 4px 20px rgba(37,211,102,0.40);transform:translateY(-1px); }
+    .wa-btn:disabled { opacity:0.6;cursor:not-allowed;transform:none; }
+    .wa-icon { width:15px;height:15px;flex-shrink:0; }
+    .btn-icon { font-size:14px;line-height:1; }
 
     @media (max-width: 600px) {
-      .ap-tier-row { grid-template-columns: repeat(2,1fr); }
-      .ap-dept-head, .ap-dept-row { grid-template-columns: 2fr 1fr 1.5fr 1fr; }
-      .ap-acc-bar-wrap { display: none; }
-      .analytics-panel { margin-inline: 10px; }
+      body { padding:12px 8px 36px; }
+      .command-frame { border-radius:16px; }
+      .header { padding:16px 16px 12px; }
+      .title { font-size:24px; }
+      .top-controls { flex-direction:column;padding:12px 14px; }
+      .department-filter select { min-width:100%; }
+      .sort-buttons { gap:6px; }
+      .sort-btn { font-size:10px;padding:6px 11px; }
+      #leaderboard { margin:10px; }
+      .leaderboard-header-row { display:none; }
+      .leaderboard-row { padding:11px 12px; }
+      .cadet-name,.full-name { font-size:13px; }
+      .score { font-size:17px;min-width:70px; }
+      .stats-grid { grid-template-columns:repeat(2,1fr); }
     }
   </style>
 </head>
 
 <body>
   <div class="command-frame">
+
     <div class="header">
       <div class="header-top">
         <div class="title-block">
@@ -1768,7 +1338,7 @@
         </div>
         <button class="badge-live" onclick="showClassStats()">
           <span class="badge-dot"></span>
-          🔍
+          Squad Overview
         </button>
       </div>
       <div class="subtitle" id="last-test-info">Initializing mission feed...</div>
@@ -1784,35 +1354,16 @@
       <div class="sort-panel">
         <div class="sort-label-row"></div>
         <div class="sort-buttons">
-          <button class="sort-btn" data-sort="accuracy" onclick="sortData('accuracy')">
-            Accuracy <span class="sort-indicator"></span>
-          </button>
-          <button class="sort-btn" data-sort="total_time" onclick="sortData('total_time')">
-            Time <span class="sort-indicator"></span>
-          </button>
-          <button class="sort-btn" data-sort="quests_completed" onclick="sortData('quests_completed')">
-            Quests <span class="sort-indicator"></span>
-          </button>
-          <button class="sort-btn" data-sort="videos_completed" onclick="sortData('videos_completed')">
-            Videos <span class="sort-indicator"></span>
-          </button>
-          <button class="sort-btn" data-sort="stories_completed" onclick="sortData('stories_completed')">
-            Stories <span class="sort-indicator"></span>
-          </button>
-          <button class="sort-btn" data-sort="last_test_taken" onclick="sortData('last_test_taken')">
-            Last Test <span class="sort-indicator"></span>
-          </button>
+          <button class="sort-btn" data-sort="cryptic_completed" onclick="sortData('cryptic_completed')">Cryptic <span class="sort-indicator"></span></button>
+          <button class="sort-btn" data-sort="wordle_completed" onclick="sortData('wordle_completed')">Wordle <span class="sort-indicator"></span></button>
+          <button class="sort-btn" data-sort="total_time" onclick="sortData('total_time')">Time <span class="sort-indicator"></span></button>
+          <button class="sort-btn" data-sort="quests_completed" onclick="sortData('quests_completed')">Quests <span class="sort-indicator"></span></button>
+          <button class="sort-btn" data-sort="videos_completed" onclick="sortData('videos_completed')">Videos <span class="sort-indicator"></span></button>
+          <button class="sort-btn" data-sort="stories_completed" onclick="sortData('stories_completed')">Stories <span class="sort-indicator"></span></button>
+          <button class="sort-btn" data-sort="last_test_taken" onclick="sortData('last_test_taken')">Last Test <span class="sort-indicator"></span></button>
+          <button id="time-toggle" class="sort-btn" style="display:none;" onclick="toggleTimeFormat()">Show Seconds</button>
         </div>
       </div>
-    </div>
-
-    <div style="display:flex; justify-content:flex-end; padding:4px 18px 0;">
-      <button id="time-toggle"
-        class="sort-btn"
-        style="display:none; font-size:10px; padding-inline:12px; min-width:auto;"
-        onclick="toggleTimeFormat()">
-        Show Seconds
-      </button>
     </div>
 
     <div id="loader"><div class="spinner"></div></div>
@@ -1826,12 +1377,10 @@
       </div>
     </div>
 
-    <!-- ── ANALYTICS PANEL ── -->
-    <div id="analytics-panel" class="analytics-panel"></div>
+  </div>
 
-    <div id="modal">
-      <div id="modal-content"></div>
-    </div>
+  <div id="modal">
+    <div id="modal-content"></div>
   </div>
 </body>
 </html>

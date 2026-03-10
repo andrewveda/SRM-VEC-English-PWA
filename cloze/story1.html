@@ -723,35 +723,22 @@ label {
 </div>
 
 <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script>
-// === SUPABASE ===
-const supabase = window.supabase.createClient(
-  "https://yellow-lab-4999.andrewveda.workers.dev",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoZXpzc29jenZwYmt0ZWZmY2d6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI4NTk1ODUsImV4cCI6MjA3ODQzNTU4NX0.2ZlqXnZxv0opkhynAT7OlK4S-xPygcc7ETUyTXRfGHE"
-);
-fetch("https://yellow-lab-4999.andrewveda.workers.dev/rest/v1/", { mode: "no-cors" });
-
-// === AMBIENT PARTICLES ===
-function spawnParticles() {
-  const container = document.getElementById('particles');
-  const symbols = ['✦','◆','❧','✿','⟡','◇','✤'];
-  for (let i = 0; i < 18; i++) {
-    const p = document.createElement('div');
-    p.className = 'particle';
-    p.textContent = symbols[Math.floor(Math.random() * symbols.length)];
-    p.style.left = Math.random() * 100 + 'vw';
-    p.style.animationDuration = (12 + Math.random() * 20) + 's';
-    p.style.animationDelay = -(Math.random() * 30) + 's';
-    p.style.fontSize = (0.7 + Math.random() * 0.8) + 'rem';
-    p.style.opacity = 0.15 + Math.random() * 0.25;
-    p.style.color = ['#c8962a','#4a6741','#8b3a1e'][Math.floor(Math.random() * 3)];
-    container.appendChild(p);
+// === SUPABASE — safe, won't crash if CDN blocked ===
+let supabase = null;
+try {
+  if (window.supabase && window.supabase.createClient) {
+    supabase = window.supabase.createClient(
+      "https://yellow-lab-4999.andrewveda.workers.dev",
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoZXpzc29jenZwYmt0ZWZmY2d6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI4NTk1ODUsImV4cCI6MjA3ODQzNTU4NX0.2ZlqXnZxv0opkhynAT7OlK4S-xPygcc7ETUyTXRfGHE"
+    );
   }
-}
-spawnParticles();
+} catch(e) { console.warn("Supabase unavailable:", e); }
+try { fetch("https://yellow-lab-4999.andrewveda.workers.dev/rest/v1/", { mode: "no-cors" }); } catch(e) {}
 
 // === HELPERS ===
-function autoGenerateBlanks(passage, frequency = 7) {
+function autoGenerateBlanks(passage, frequency) {
   const words = passage.split(/(\s+)/);
   const answers = [];
   let wordCount = 0;
@@ -780,29 +767,41 @@ let startTime, timerInterval, playerName = "", playerDept = "";
 let selectedOption = null, totalQuestionsInQuiz = 0;
 const blanksPerPage = 10;
 
-// === DOM ===
-const dragOptionsEl   = document.getElementById("dragOptions");
-const dropContainerEl = document.getElementById("dropContainer");
-const timerEl         = document.getElementById("timer");
-const gemsCounterEl   = document.getElementById("gemsCounter");
-const progressTracker = document.getElementById("progressTracker");
-const scoreCard       = document.getElementById("scoreCard");
-const restartBtn      = document.getElementById("restartBtn");
-const nextPageBtn     = document.getElementById("nextPageBtn");
-const quizContentEl   = document.getElementById("quizContent");
-const nameFormEl      = document.getElementById("nameForm");
-const nameInputEl     = document.getElementById("nameInput");
-const deptSelectEl    = document.getElementById("departmentSelect");
-const topStripEl      = document.getElementById("topStrip");
-const progressBarWrap = document.getElementById("progressBarWrap");
-const progressBarFill = document.getElementById("progressBarFill");
+// === DOM REFS — assigned in DOMContentLoaded ===
+let dragOptionsEl, dropContainerEl, timerEl, gemsCounterEl, progressTracker;
+let scoreCard, restartBtn, nextPageBtn, quizContentEl, nameFormEl;
+let nameInputEl, deptSelectEl, topStripEl, progressBarWrap, progressBarFill;
+
+// =============================================
+// ALL FUNCTIONS
+// =============================================
+
+function spawnParticles() {
+  const container = document.getElementById('particles');
+  if (!container) return;
+  const symbols = ['✦','◆','❧','✿','⟡','◇','✤'];
+  for (let i = 0; i < 18; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    p.textContent = symbols[Math.floor(Math.random() * symbols.length)];
+    p.style.left = Math.random() * 100 + 'vw';
+    p.style.animationDuration = (12 + Math.random() * 20) + 's';
+    p.style.animationDelay = -(Math.random() * 30) + 's';
+    p.style.fontSize = (0.7 + Math.random() * 0.8) + 'rem';
+    p.style.opacity = 0.15 + Math.random() * 0.25;
+    p.style.color = ['#c8962a','#4a6741','#8b3a1e'][Math.floor(Math.random() * 3)];
+    container.appendChild(p);
+  }
+}
 
 function adjustForTopStrip() {
-  const h = topStripEl ? topStripEl.offsetHeight : 0;
+  if (!topStripEl || !dropContainerEl) return;
+  const h = topStripEl.offsetHeight;
   dropContainerEl.style.paddingTop = (h + 12) + "px";
 }
 
 function updateProgressBar() {
+  if (!progressBarFill) return;
   const total = quizData.length;
   const done = Math.min(current, total);
   progressBarFill.style.width = (total ? (done / total) * 100 : 0) + '%';
@@ -817,8 +816,8 @@ function autoFillFromStorage() {
 }
 
 async function resendPendingSubmissions() {
-  const key = 'pendingQuestSubmissions';
-  let pending = JSON.parse(localStorage.getItem(key) || "[]");
+  let pending = [];
+  try { pending = JSON.parse(localStorage.getItem('pendingQuestSubmissions') || "[]"); } catch(e) { return; }
   if (!pending.length) return;
   const stillPending = [];
   for (const entry of pending) {
@@ -827,13 +826,22 @@ async function resendPendingSubmissions() {
       if (!ok) throw new Error();
     } catch(e) { stillPending.push(entry); }
   }
-  localStorage[stillPending.length ? 'setItem' : 'removeItem'](key, JSON.stringify(stillPending));
+  try {
+    if (stillPending.length) localStorage.setItem('pendingQuestSubmissions', JSON.stringify(stillPending));
+    else localStorage.removeItem('pendingQuestSubmissions');
+  } catch(e) {}
 }
 
-// === BEGIN QUIZ ===
 function beginQuiz() {
-  if (!nameInputEl.value.trim()) { nameInputEl.focus(); nameInputEl.style.borderColor = "#c0392b"; return; }
-  if (!deptSelectEl.value) { deptSelectEl.style.borderColor = "#c0392b"; return; }
+  if (!nameInputEl.value.trim()) {
+    nameInputEl.focus();
+    nameInputEl.style.borderColor = "#c0392b";
+    return;
+  }
+  if (!deptSelectEl.value) {
+    deptSelectEl.style.borderColor = "#c0392b";
+    return;
+  }
   nameInputEl.style.borderColor = "";
   deptSelectEl.style.borderColor = "";
 
@@ -841,15 +849,17 @@ function beginQuiz() {
   playerDept = deptSelectEl.value;
   try { localStorage.setItem('playerName', playerName); localStorage.setItem('playerDept', playerDept); } catch(e) {}
 
-  // Animate out the form
+  // Animate out then switch
   const card = nameFormEl.querySelector('.form-card');
-  card.style.animation = 'scoreReveal 0.3s ease reverse forwards';
+  card.style.transition = "opacity 0.25s ease, transform 0.25s ease";
+  card.style.opacity = "0";
+  card.style.transform = "scale(0.95) translateY(10px)";
   setTimeout(() => {
     nameFormEl.style.display = "none";
     quizContentEl.style.display = "block";
     progressBarWrap.style.display = "block";
     startQuiz();
-  }, 280);
+  }, 260);
 }
 window.beginQuiz = beginQuiz;
 
@@ -859,7 +869,14 @@ function startQuiz() {
     const total = p.answers.length;
     const pages = Math.ceil(total / blanksPerPage);
     for (let i = 0; i < pages; i++) {
-      quizData.push({ originalPassage: p.passage, originalAnswers: p.answers, pageIndex: i, passageIndex: idx, totalPassagePages: pages, pageId: `p${idx}-pg${i}` });
+      quizData.push({
+        originalPassage: p.passage,
+        originalAnswers: p.answers,
+        pageIndex: i,
+        passageIndex: idx,
+        totalPassagePages: pages,
+        pageId: `p${idx}-pg${i}`
+      });
     }
   });
   current = 0; correctCount = 0; totalWrongGuesses = 0; gemsCount = 0;
@@ -878,7 +895,7 @@ function updateProgress() {
   updateProgressBar();
 }
 
-function loadQuestion(isTransition = false) {
+function loadQuestion(isTransition) {
   if (current >= quizData.length) return showScore();
   selectedOption = null;
   const d = quizData[current];
@@ -893,7 +910,7 @@ function loadQuestion(isTransition = false) {
     const answers = d.originalAnswers.slice(s, e);
     const parts = d.originalPassage.split("___").slice(s, e + 1);
 
-    // Shuffled options — staggered entry
+    // Answer chips — staggered spring entry
     const shuffled = [...answers].sort(() => Math.random() - 0.5);
     shuffled.forEach((ans, i) => {
       const div = document.createElement("div");
@@ -910,7 +927,7 @@ function loadQuestion(isTransition = false) {
       }, i * 40 + 50);
     });
 
-    // Passage
+    // Passage with blanks
     if (s > 0) dropContainerEl.appendChild(document.createTextNode("… "));
     parts.forEach((part, i) => {
       dropContainerEl.appendChild(document.createTextNode(part));
@@ -950,7 +967,6 @@ function selectOption(div) {
 function placeOption(dz) {
   if (!selectedOption || dz.classList.contains("filled")) return;
 
-  // ripple
   dz.classList.add('ripple');
   setTimeout(() => dz.classList.remove('ripple'), 400);
 
@@ -963,9 +979,7 @@ function placeOption(dz) {
     gemsCounterEl.classList.remove('gem-anim');
     void gemsCounterEl.offsetWidth;
     gemsCounterEl.classList.add('gem-anim');
-
     createSparkleEffect(dz);
-
     dz.textContent = ans;
     dz.classList.add("filled");
     dz.disabled = true;
@@ -977,7 +991,6 @@ function placeOption(dz) {
     dz.classList.add("wrong");
     setTimeout(() => dz.classList.remove("wrong"), 600);
     createWrongEffect(dz);
-
     const currentData = quizData[current];
     if (!wrongQuestions.includes(currentData)) {
       wrongQuestions.push(currentData);
@@ -986,9 +999,13 @@ function placeOption(dz) {
     }
   }
 
-  if (selectedOption) { selectedOption.classList.remove("selected"); selectedOption = null; }
+  selectedOption.classList.remove("selected");
+  selectedOption = null;
+
   if (!dropContainerEl.querySelector(".drop-zone:not(.filled)")) {
     nextPageBtn.style.display = "inline-block";
+    nextPageBtn.style.animation = 'none';
+    void nextPageBtn.offsetWidth;
     nextPageBtn.style.animation = 'bounceIn 0.5s cubic-bezier(0.34,1.56,0.64,1)';
   }
 }
@@ -1067,19 +1084,20 @@ async function showScore() {
   dragOptionsEl.innerHTML = "";
   progressBarFill.style.width = '100%';
 
-  async function trySave(attempt = 1) {
+  async function trySave(attempt) {
+    attempt = attempt || 1;
     const sub = { student_name: playerName, department: playerDept, correct: correctCount, wrong: totalWrongGuesses, time_spent: totalTime, quest_id: currentQuestID };
     try {
       const ok = await sendViaEdgeFunction(sub);
       if (ok) return true;
-      throw new Error();
+      throw new Error("failed");
     } catch(e) {
       if (attempt < 3) { await new Promise(r => setTimeout(r, 1000)); return trySave(attempt + 1); }
       return false;
     }
   }
 
-  const saved = await trySave();
+  const saved = await trySave(1);
   document.getElementById("savingSpinner").style.display = "none";
   progressTracker.textContent = "✦ Complete";
 
@@ -1087,13 +1105,21 @@ async function showScore() {
 
   const mins = Math.floor(totalTime / 60), secs = totalTime % 60;
   const timeStr = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
-
   const flawless = totalWrongGuesses === 0;
 
-  let saveHTML = saved
-    ? `<p class="save-ok" style="margin-top:0.5rem">✓ Saved to server</p>`
-    : `<p class="save-fail" style="margin-top:0.5rem">⚠ Could not reach server — saved locally</p>
-       <button id="retrySaveBtn" style="margin-top:0.5rem;padding:5px 14px;background:#8b3a1e;color:white;border:none;border-radius:8px;cursor:pointer;font-family:'Crimson Pro',serif;font-size:1rem">↺ Retry</button>`;
+  let saveHTML = '';
+  if (saved) {
+    saveHTML = `<p class="save-ok" style="margin-top:0.5rem">✓ Saved to server</p>`;
+  } else {
+    try {
+      const key = 'pendingQuestSubmissions';
+      const pending = JSON.parse(localStorage.getItem(key) || "[]");
+      pending.push({ student_name: playerName, department: playerDept, correct: correctCount, wrong: totalWrongGuesses, time_spent: totalTime, quest_id: currentQuestID, timestamp: Date.now() });
+      localStorage.setItem(key, JSON.stringify(pending));
+    } catch(e) {}
+    saveHTML = `<p class="save-fail" style="margin-top:0.5rem">⚠ Could not reach server</p>
+      <button id="retrySaveBtn" style="margin-top:0.5rem;padding:5px 14px;background:#8b3a1e;color:white;border:none;border-radius:8px;cursor:pointer;font-family:'Crimson Pro',serif;font-size:1rem">↺ Retry</button>`;
+  }
 
   scoreCard.innerHTML = `
     <div class="score-card">
@@ -1121,7 +1147,8 @@ async function showScore() {
     if (rb) rb.onclick = async () => {
       rb.textContent = "Trying…"; rb.style.opacity = "0.6";
       await resendPendingSubmissions();
-      const p = JSON.parse(localStorage.getItem('pendingQuestSubmissions') || "[]");
+      let p = [];
+      try { p = JSON.parse(localStorage.getItem('pendingQuestSubmissions') || "[]"); } catch(e) {}
       rb.textContent = p.length === 0 ? "✓ Saved!" : "Still failed";
       rb.style.background = p.length === 0 ? "#4a6741" : "#8b3a1e";
       rb.style.opacity = "1";
@@ -1166,7 +1193,7 @@ function downloadPDFReport() {
   doc.setFont("times","bold"); doc.text("QUESTION BANK", mL, y); y += 6;
   quizDataStore.forEach((item, i) => {
     let fp = item.passage;
-    item.answers.forEach(a => fp = fp.replace("___", ` [${a}] `));
+    item.answers.forEach(a => { fp = fp.replace("___", ` [${a}] `); });
     const lines = doc.splitTextToSize(fp, uW);
     const bh = lines.length * 5 + 10;
     if (y + bh > pageH-20) { doc.addPage(); y = 20; }
@@ -1180,33 +1207,62 @@ function downloadPDFReport() {
   doc.setDrawColor(184,134,11); doc.setLineWidth(0.5); doc.line(mL,pageH-17,190,pageH-17);
   doc.setFontSize(8); doc.setTextColor(128,128,128); doc.setFont("times","italic");
   doc.text("System-generated report", 105, pageH-10, {align:"center"});
-
   doc.save(`${playerName.replace(/[^a-zA-Z0-9]/g,"_")}_${currentQuestID.replace(/[^a-zA-Z0-9]/g,"_")}_Report.pdf`);
 }
 window.downloadPDFReport = downloadPDFReport;
 
-// === BUTTONS ===
-restartBtn.onclick = () => {
-  quizContentEl.style.display = "none";
-  progressBarWrap.style.display = "none";
-  progressBarFill.style.width = "0%";
-  nameFormEl.style.display = "flex";
-  nameInputEl.value = ""; deptSelectEl.value = "";
-  try { localStorage.removeItem('playerName'); localStorage.removeItem('playerDept'); } catch(e) {}
-  restartBtn.style.display = nextPageBtn.style.display = "none";
-};
+// =============================================
+// INIT — runs after DOM is fully ready
+// =============================================
+window.addEventListener('DOMContentLoaded', () => {
+  // Assign all DOM refs here so elements are guaranteed to exist
+  dragOptionsEl   = document.getElementById("dragOptions");
+  dropContainerEl = document.getElementById("dropContainer");
+  timerEl         = document.getElementById("timer");
+  gemsCounterEl   = document.getElementById("gemsCounter");
+  progressTracker = document.getElementById("progressTracker");
+  scoreCard       = document.getElementById("scoreCard");
+  restartBtn      = document.getElementById("restartBtn");
+  nextPageBtn     = document.getElementById("nextPageBtn");
+  quizContentEl   = document.getElementById("quizContent");
+  nameFormEl      = document.getElementById("nameForm");
+  nameInputEl     = document.getElementById("nameInput");
+  deptSelectEl    = document.getElementById("departmentSelect");
+  topStripEl      = document.getElementById("topStrip");
+  progressBarWrap = document.getElementById("progressBarWrap");
+  progressBarFill = document.getElementById("progressBarFill");
 
-nextPageBtn.onclick = () => {
-  current++;
-  if (current >= quizData.length && wrongQuestions.length > 0) {
-    quizData.push(...wrongQuestions);
-    wrongQuestions = [];
-  }
-  loadQuestion(true);
-};
+  // Wire buttons
+  restartBtn.onclick = () => {
+    clearInterval(timerInterval);
+    quizContentEl.style.display = "none";
+    progressBarWrap.style.display = "none";
+    progressBarFill.style.width = "0%";
+    nameFormEl.style.display = "flex";
+    nameInputEl.value = ""; deptSelectEl.value = "";
+    const card = nameFormEl.querySelector('.form-card');
+    card.style.transition = "none";
+    card.style.opacity = "1"; card.style.transform = "";
+    try { localStorage.removeItem('playerName'); localStorage.removeItem('playerDept'); } catch(e) {}
+    restartBtn.style.display = nextPageBtn.style.display = "none";
+  };
 
-window.addEventListener('DOMContentLoaded', () => { autoFillFromStorage(); resendPendingSubmissions(); });
-window.addEventListener('resize', adjustForTopStrip);
+  nextPageBtn.onclick = () => {
+    current++;
+    if (current >= quizData.length && wrongQuestions.length > 0) {
+      quizData.push(...wrongQuestions);
+      wrongQuestions = [];
+    }
+    loadQuestion(true);
+  };
+
+  // Spawn particles and auto-fill
+  spawnParticles();
+  autoFillFromStorage();
+  resendPendingSubmissions();
+
+  window.addEventListener('resize', adjustForTopStrip);
+});
 </script>
 
 <script>

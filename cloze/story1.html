@@ -326,7 +326,7 @@ label {
 
 /* === CHAT LAYOUT === */
 .chat-area {
-  padding: 1rem 1rem 7rem;
+  padding: 1rem 1rem 9rem;
   display: flex;
   flex-direction: column;
   gap: 1rem;
@@ -334,33 +334,52 @@ label {
   margin: 0 auto;
 }
 
-/* Each bubble row */
+/* Each bubble row — avatar always on outer edge, bubble fills inward */
 .bubble-row {
   display: flex;
   align-items: flex-end;
-  gap: 0.6rem;
+  gap: 0.55rem;
   opacity: 0;
   transform: translateY(16px);
   animation: bubbleIn 0.45s cubic-bezier(0.16,1,0.3,1) forwards;
+  width: 100%;
 }
-.bubble-row.left  { flex-direction: row; }
-.bubble-row.right { flex-direction: row-reverse; }
+/* Teacher: avatar LEFT, bubble grows rightward */
+.bubble-row.left  {
+  flex-direction: row;
+  padding-right: 3rem; /* leave space so bubble never full-width */
+}
+/* Scholar: avatar RIGHT, bubble grows leftward */
+.bubble-row.right {
+  flex-direction: row-reverse;
+  padding-left: 3rem;
+}
 
 @keyframes bubbleIn {
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* Avatar */
+/* Avatar circle — fixed size, never shrinks */
 .avatar {
-  width: 38px; height: 38px;
+  width: 42px; height: 42px;
   border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
-  font-size: 1.3rem;
+  font-size: 1.4rem;
   flex-shrink: 0;
-  box-shadow: 0 2px 8px rgba(26,18,8,0.15);
+  flex-grow: 0;
+  box-shadow: 0 2px 10px rgba(26,18,8,0.18);
+  align-self: flex-end;
 }
 .left  .avatar { background: linear-gradient(135deg, #c8962a, #e8b84b); }
 .right .avatar { background: linear-gradient(135deg, #4a6741, #6a9b60); }
+
+/* Col: takes remaining space but max 80% of row */
+.bubble-col {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
 
 /* Speaker label */
 .speaker-name {
@@ -368,14 +387,13 @@ label {
   font-weight: 700;
   letter-spacing: 0.07em;
   text-transform: uppercase;
-  margin-bottom: 0.2rem;
+  margin-bottom: 0.25rem;
   color: #9a7a4a;
 }
 .right .speaker-name { text-align: right; }
 
-/* Bubble */
+/* Bubble fills the col width */
 .bubble {
-  max-width: 82%;
   padding: 0.75rem 1rem;
   border-radius: 18px;
   font-size: 1.15rem;
@@ -383,6 +401,7 @@ label {
   font-family: 'Crimson Pro', serif;
   position: relative;
   box-shadow: 0 3px 12px rgba(26,18,8,0.1);
+  word-break: break-word;
 }
 .left .bubble {
   background: var(--cream);
@@ -400,6 +419,7 @@ label {
 /* Narrator bubble (centered, italic) */
 .bubble-row.narrator {
   justify-content: center;
+  padding: 0;
 }
 .narrator .bubble {
   background: transparent;
@@ -409,7 +429,6 @@ label {
   color: #7a6040;
   font-size: 1rem;
   text-align: center;
-  max-width: 90%;
   padding: 0.3rem 1rem;
 }
 
@@ -1010,7 +1029,7 @@ function showNextLine() {
     avatar.textContent = avatarEmoji;
 
     const col = document.createElement('div');
-    col.style.cssText = 'display:flex;flex-direction:column;min-width:0';
+    col.className = 'bubble-col';
 
     const name = document.createElement('div');
     name.className = 'speaker-name';

@@ -532,7 +532,11 @@ label {
 
 /* === BUTTONS === */
 #nextPageBtn {
-  margin: 1.5rem auto;
+  position: fixed;
+  bottom: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 40;
   display: none;
   padding: 0.8rem 2.5rem;
   font-size: 1.1rem;
@@ -547,7 +551,7 @@ label {
   box-shadow: 0 4px 20px rgba(74,103,65,0.4);
   letter-spacing: 0.05em;
 }
-#nextPageBtn:hover { transform: translateY(-3px) scale(1.04); box-shadow: 0 8px 28px rgba(74,103,65,0.5); }
+#nextPageBtn:hover { transform: translateX(-50%) translateY(-3px) scale(1.04); box-shadow: 0 8px 28px rgba(74,103,65,0.5); }
 
 #restartBtn {
   margin: 1rem auto;
@@ -877,8 +881,9 @@ function startQuiz() {
   scoreCard.innerHTML = "";
   chatAreaEl.innerHTML = "";
   wordTrayEl.innerHTML = "";
+  wordTrayEl.style.display = "flex";
   restartBtn.style.display = nextPageBtn.style.display = "none";
-  adjustForTopStrip();
+  setTimeout(adjustForTopStrip, 50); // defer so topStrip has rendered height
   showNextLine();
   startTimer();
 }
@@ -1174,9 +1179,15 @@ function launchConfetti() {
 
 async function sendViaEdgeFunction(payload) {
   try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 4000); // 4s max
     const r = await fetch("https://yellow-lab-4999.andrewveda.workers.dev/functions/v1/logQuest", {
-      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload)
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+      signal: controller.signal
     });
+    clearTimeout(timeout);
     if (!r.ok) return false;
     const d = await r.json();
     return d.success === true;
@@ -1190,8 +1201,9 @@ async function showScore() {
   document.getElementById("savingSpinner").style.display = "block";
   scoreCard.innerHTML = "";
   nextPageBtn.style.display = "none";
-  dropContainerEl.innerHTML = "";
-  dragOptionsEl.innerHTML = "";
+  // Clear chat UI
+  if (chatAreaEl) chatAreaEl.innerHTML = "";
+  if (wordTrayEl) wordTrayEl.style.display = "none";
   progressBarFill.style.width = '100%';
 
   async function trySave(attempt) {
@@ -1200,9 +1212,14 @@ async function showScore() {
     try {
       const ok = await sendViaEdgeFunction(sub);
       if (ok) return true;
-      throw new Error("failed");
+      throw new Error('failed');
     } catch(e) {
-      if (attempt < 3) { await new Promise(r => setTimeout(r, 1000)); return trySave(attempt + 1); }
+      if (attempt < 3) {
+        const label = document.querySelector('#savingSpinner div:last-child');
+        if (label) label.textContent = 'Retrying… (' + attempt + ' of 3)';
+        await new Promise(r => setTimeout(r, 1500));
+        return trySave(attempt + 1);
+      }
       return false;
     }
   }
@@ -1356,7 +1373,7 @@ window.addEventListener('DOMContentLoaded', () => {
     try { localStorage.removeItem('playerName'); localStorage.removeItem('playerDept'); } catch(e) {}
     restartBtn.style.display = nextPageBtn.style.display = "none";
     if (chatAreaEl) chatAreaEl.innerHTML = "";
-    if (wordTrayEl) wordTrayEl.innerHTML = "";
+    if (wordTrayEl) { wordTrayEl.innerHTML = ""; wordTrayEl.style.display = "flex"; }
   };
 
   nextPageBtn.onclick = () => {

@@ -3,242 +3,514 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no" />
-  <title>Blossom — Word Game</title>
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <title>Blossom Hard — Word Game</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    :root {
-      --petal:#f9c6d0; --petal-hover:#f4a3b5; --center:#f6654a; --center-hover:#e04e35;
-      --stem:#4a8c5c; --stem-light:#7dbb8f; --ink:#2a1f1a; --ink-muted:#8a7060;
-      --gold:#e8a020; --bg:#fdf0e2; --card:#fffdf9; --shadow:rgba(74,60,50,0.12);
-    }
-    body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--ink); min-height:100vh; display:flex; flex-direction:column; align-items:center; overflow-y:auto; }
-    body::before { content:''; position:fixed; inset:0; background:radial-gradient(ellipse 80% 60% at 10% 20%,#fde8d880 0%,transparent 60%),radial-gradient(ellipse 60% 50% at 90% 80%,#f9c6d040 0%,transparent 60%); pointer-events:none; z-index:0; }
-    .screen { display:none; flex-direction:column; align-items:center; width:100%; position:relative; z-index:1; }
-    .screen.active { display:flex; }
 
-    /* ══ GAME SCREEN ══ */
-    #gameScreen header { width:100%; text-align:center; padding:28px 20px 10px; }
-    #gameScreen header h1 { font-family:'Playfair Display',serif; font-size:clamp(2rem,6vw,3.2rem); font-weight:900; letter-spacing:-1px; color:var(--ink); line-height:1; }
-    #gameScreen header h1 span { color:var(--center); }
-    .tagline { margin-top:6px; font-size:0.82rem; color:var(--ink-muted); font-weight:400; letter-spacing:0.06em; text-transform:uppercase; }
-    .main-wrap { display:flex; flex-direction:column; align-items:center; width:100%; max-width:480px; padding:0 16px 40px; gap:14px; }
-    .top-row { display:flex; gap:10px; width:100%; align-items:stretch; }
+    :root {
+      /* Intensified palette — same hues, deeper & more saturated */
+      --petal: #e8889a;
+      --petal-hover: #d4607a;
+      --center: #c93a22;
+      --center-hover: #a82a14;
+      --stem: #2d6b42;
+      --stem-light: #4a9660;
+      --ink: #160e0a;
+      --ink-muted: #5c3d2e;
+      --gold: #c47a00;
+      --bg: #1a0f09;
+      --bg2: #251309;
+      --card: #2a160d;
+      --card-border: rgba(200,80,50,0.25);
+      --shadow: rgba(0,0,0,0.5);
+      --glow: rgba(200,58,34,0.35);
+
+      /* Badge colours */
+      --badge-bronze: #cd7f32;
+      --badge-silver: #a8a9ad;
+      --badge-gold: #ffd700;
+      --badge-crimson: #c93a22;
+      --badge-emerald: #2d6b42;
+      --badge-obsidian: #3a1f3a;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: #f0e0d0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      overflow-y: auto;
+    }
+
+    /* Subtle dark vignette + ember grain */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background:
+        radial-gradient(ellipse 70% 50% at 50% 0%, rgba(200,58,34,0.12) 0%, transparent 70%),
+        radial-gradient(ellipse 60% 40% at 80% 100%, rgba(45,107,66,0.08) 0%, transparent 60%);
+      pointer-events: none; z-index: 0;
+    }
+
+    .screen { display: none; flex-direction: column; align-items: center; width: 100%; position: relative; z-index: 1; }
+    .screen.active { display: flex; }
+
+    /* ══ HARD MODE BADGE (header) ══ */
+    #gameScreen header {
+      width: 100%; text-align: center; padding: 24px 20px 8px;
+      position: relative;
+    }
+    .hard-mode-pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: linear-gradient(135deg, var(--center), #8a1a08);
+      color: #fff;
+      font-size: 0.65rem; font-weight: 700; letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 4px 14px; border-radius: 99px;
+      margin-bottom: 8px;
+      box-shadow: 0 0 18px rgba(200,58,34,0.6);
+      animation: pillPulse 3s ease-in-out infinite;
+    }
+    @keyframes pillPulse {
+      0%,100% { box-shadow: 0 0 18px rgba(200,58,34,0.6); }
+      50%      { box-shadow: 0 0 32px rgba(200,58,34,0.9); }
+    }
+    #gameScreen header h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(2rem, 6vw, 3rem);
+      font-weight: 900; letter-spacing: -1px;
+      color: #f0e0d0; line-height: 1;
+    }
+    #gameScreen header h1 span { color: var(--center); }
+    .tagline {
+      margin-top: 6px; font-size: 0.78rem;
+      color: var(--ink-muted); font-weight: 400;
+      letter-spacing: 0.06em; text-transform: uppercase;
+      color: #8a6a58;
+    }
+    .rule-chips {
+      display: flex; flex-wrap: wrap; justify-content: center;
+      gap: 6px; margin-top: 10px;
+    }
+    .rule-chip {
+      background: rgba(200,58,34,0.18);
+      border: 1px solid rgba(200,58,34,0.4);
+      color: #e08070;
+      font-size: 0.68rem; font-weight: 600;
+      letter-spacing: 0.06em; text-transform: uppercase;
+      padding: 3px 10px; border-radius: 6px;
+    }
+
+    /* ══ MAIN LAYOUT ══ */
+    .main-wrap {
+      display: flex; flex-direction: column; align-items: center;
+      width: 100%; max-width: 480px; padding: 0 16px 40px; gap: 12px;
+    }
+    .top-row { display: flex; gap: 10px; width: 100%; align-items: stretch; }
 
     /* Timer */
-    .timer-card { flex:0 0 auto; background:var(--card); border-radius:14px; padding:12px 14px; box-shadow:0 2px 12px var(--shadow); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; min-width:88px; }
-    .timer-arc-wrap { position:relative; width:56px; height:56px; }
-    #timerArc { transform:rotate(-90deg); }
-    .timer-text { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-family:'Playfair Display',serif; font-size:0.92rem; font-weight:700; color:var(--ink); transition:color 0.4s; }
-    .timer-text.amber { color:var(--gold); }
-    .timer-text.danger { color:var(--center); animation:timerPulse 0.6s ease-in-out infinite; }
+    .timer-card {
+      flex: 0 0 auto; background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 14px; padding: 12px 14px;
+      box-shadow: 0 2px 16px var(--shadow);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 4px; min-width: 88px;
+    }
+    .timer-arc-wrap { position: relative; width: 56px; height: 56px; }
+    #timerArc { transform: rotate(-90deg); }
+    .timer-text {
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Playfair Display', serif;
+      font-size: 0.92rem; font-weight: 700; color: #f0e0d0;
+      transition: color 0.4s;
+    }
+    .timer-text.amber { color: var(--gold); }
+    .timer-text.danger { color: var(--center); animation: timerPulse 0.6s ease-in-out infinite; }
     @keyframes timerPulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.15)} }
-    .timer-label { font-size:0.65rem; color:var(--ink-muted); text-transform:uppercase; letter-spacing:0.05em; }
+    .timer-label { font-size: 0.62rem; color: #6a4a38; text-transform: uppercase; letter-spacing: 0.06em; }
 
-    /* Scores */
-    .score-bar { flex:1; display:flex; justify-content:space-between; align-items:center; background:var(--card); border-radius:14px; padding:10px 20px; box-shadow:0 2px 12px var(--shadow); }
-    .score-bar .label { color:var(--ink-muted); font-weight:500; text-transform:uppercase; letter-spacing:0.05em; font-size:0.72rem; }
-    .score-bar .value { font-family:'Playfair Display',serif; font-size:1.5rem; font-weight:700; color:var(--stem); line-height:1; }
-    .score-item { display:flex; flex-direction:column; align-items:center; gap:2px; }
+    /* Score bar */
+    .score-bar {
+      flex: 1; display: flex; justify-content: space-between;
+      align-items: center; background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 14px; padding: 10px 18px;
+      box-shadow: 0 2px 16px var(--shadow);
+    }
+    .score-bar .label { color: #6a4a38; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.68rem; }
+    .score-bar .value { font-family: 'Playfair Display', serif; font-size: 1.4rem; font-weight: 700; color: var(--stem-light); line-height: 1; }
+    .score-item { display: flex; flex-direction: column; align-items: center; gap: 2px; }
 
-    /* Rank */
-    .rank-bar { width:100%; background:var(--card); border-radius:14px; padding:12px 20px; box-shadow:0 2px 12px var(--shadow); }
-    .rank-label { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
-    .rank-name { font-family:'Playfair Display',serif; font-size:1rem; font-weight:700; color:var(--center); }
-    .rank-pts { font-size:0.78rem; color:var(--ink-muted); }
-    .rank-track { height:7px; background:#f0e6d8; border-radius:99px; overflow:hidden; }
-    .rank-fill { height:100%; background:linear-gradient(90deg,var(--stem-light),var(--center)); border-radius:99px; transition:width 0.6s cubic-bezier(.4,0,.2,1); }
+    /* Multiplier badge */
+    .multiplier-badge {
+      display: flex; align-items: center; gap: 4px;
+      background: linear-gradient(135deg, #8a1a08, var(--center));
+      color: #fff; font-size: 0.7rem; font-weight: 700;
+      padding: 2px 8px; border-radius: 6px; letter-spacing: 0.04em;
+      box-shadow: 0 2px 8px rgba(200,58,34,0.5);
+    }
 
-    /* Input */
-    .input-row { display:flex; align-items:center; gap:8px; width:100%; }
-    .word-display { flex:1; background:var(--card); border:2px solid #e8d8c8; border-radius:12px; padding:12px 16px; font-family:'Playfair Display',serif; font-size:1.5rem; letter-spacing:0.06em; color:var(--ink); min-height:54px; display:flex; align-items:center; box-shadow:0 2px 12px var(--shadow); text-transform:uppercase; transition:border-color 0.2s; }
-    .word-display.error  { border-color:#e04e35; animation:shake 0.35s ease; }
-    .word-display.success{ border-color:var(--stem); }
+    /* Rank bar */
+    .rank-bar {
+      width: 100%; background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 14px; padding: 10px 18px;
+      box-shadow: 0 2px 16px var(--shadow);
+    }
+    .rank-label { display: flex; justify-content: space-between; align-items: center; margin-bottom: 7px; }
+    .rank-name { font-family: 'Playfair Display', serif; font-size: 0.95rem; font-weight: 700; color: var(--center); }
+    .rank-pts { font-size: 0.72rem; color: #6a4a38; }
+    .rank-track { height: 6px; background: rgba(255,255,255,0.06); border-radius: 99px; overflow: hidden; }
+    .rank-fill { height: 100%; background: linear-gradient(90deg, var(--stem), var(--center)); border-radius: 99px; transition: width 0.6s cubic-bezier(.4,0,.2,1); }
+
+    /* Input row */
+    .input-row { display: flex; align-items: center; gap: 8px; width: 100%; }
+    .word-display {
+      flex: 1; background: var(--card);
+      border: 2px solid rgba(200,58,34,0.3);
+      border-radius: 12px; padding: 12px 16px;
+      font-family: 'Playfair Display', serif;
+      font-size: 1.5rem; letter-spacing: 0.08em;
+      color: #f0e0d0; min-height: 54px;
+      display: flex; align-items: center;
+      box-shadow: 0 2px 12px var(--shadow);
+      text-transform: uppercase; transition: border-color 0.2s;
+    }
+    .word-display.error  { border-color: var(--center); animation: shake 0.35s ease; }
+    .word-display.success{ border-color: var(--stem-light); }
     @keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-6px)} 40%{transform:translateX(6px)} 60%{transform:translateX(-4px)} 80%{transform:translateX(4px)} }
-    .word-display .cursor { display:inline-block; width:2px; height:1.2em; background:var(--ink-muted); margin-left:2px; animation:blink 1s step-end infinite; vertical-align:middle; }
+    .word-display .cursor {
+      display: inline-block; width: 2px; height: 1.2em;
+      background: var(--petal); margin-left: 2px;
+      animation: blink 1s step-end infinite; vertical-align: middle;
+    }
     @keyframes blink { 50%{opacity:0} }
-    .btn-delete { background:var(--card); border:2px solid #e8d8c8; border-radius:12px; width:54px; height:54px; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:1.3rem; box-shadow:0 2px 12px var(--shadow); transition:background 0.15s,transform 0.1s; color:var(--ink-muted); }
-    .btn-delete:hover { background:#fde8d8; transform:scale(1.05); }
-    .btn-delete:active { transform:scale(0.95); }
-
-    /* ── Inline shuffle button (below input) ── */
-    .inline-shuffle-row { display:flex; justify-content:center; width:100%; margin-top:-6px; }
-    .btn-inline-shuffle {
-      display:flex; align-items:center; gap:6px;
-      background:var(--card); border:1.5px solid #e8d8c8;
-      border-radius:99px; padding:6px 16px;
-      font-family:'DM Sans',sans-serif; font-size:0.75rem; font-weight:600;
-      color:var(--ink-muted); letter-spacing:0.05em; text-transform:uppercase;
-      cursor:pointer; box-shadow:0 2px 8px var(--shadow);
-      transition:background 0.15s, color 0.15s, transform 0.12s, box-shadow 0.15s;
-      user-select:none;
+    .btn-delete {
+      background: var(--card); border: 2px solid rgba(200,58,34,0.3);
+      border-radius: 12px; width: 54px; height: 54px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; font-size: 1.3rem;
+      box-shadow: 0 2px 12px var(--shadow);
+      transition: background 0.15s, transform 0.1s; color: #8a6a58;
     }
-    .btn-inline-shuffle:hover {
-      background:#fde8d8; color:var(--center);
-      border-color:var(--petal-hover);
-      box-shadow:0 4px 14px rgba(249,100,74,0.18);
-      transform:translateY(-1px);
+    .btn-delete:hover { background: rgba(200,58,34,0.2); transform: scale(1.05); }
+    .btn-delete:active { transform: scale(0.95); }
+
+    /* ══ FLOWER ══ */
+    .flower-svg { width: 100%; max-width: 310px; height: auto; margin: 4px 0; }
+    .outer-petal {
+      fill: var(--petal);
+      transition: transform 0.15s ease, fill 0.15s ease, filter 0.15s ease;
+      cursor: pointer; filter: drop-shadow(0 3px 8px rgba(0,0,0,0.4));
     }
-    .btn-inline-shuffle:active { transform:scale(0.94); }
-    .shuffle-icon { font-size:1rem; display:inline-block; transition:transform 0.35s cubic-bezier(.4,0,.2,1); }
-    .btn-inline-shuffle:hover .shuffle-icon { transform:rotate(180deg); }
+    .outer-petal:hover { fill: var(--petal-hover); filter: drop-shadow(0 4px 12px rgba(200,58,34,0.5)); }
+    .center-petal {
+      fill: var(--center); cursor: pointer;
+      filter: drop-shadow(0 4px 16px rgba(200,58,34,0.7));
+    }
+    .center-petal:hover { fill: var(--center-hover); }
+    .flower-letter {
+      font-family: 'Playfair Display', serif; font-weight: 700;
+      text-anchor: middle; dominant-baseline: middle;
+      cursor: pointer; user-select: none; pointer-events: none;
+    }
 
-    /* Flower */
-    .flower-wrap { position:relative; width:280px; height:280px; margin:4px 0; }
-    .petal-btn { position:absolute; width:86px; height:86px; border-radius:50%; border:none; cursor:pointer; font-family:'Playfair Display',serif; font-size:1.6rem; font-weight:700; text-transform:uppercase; letter-spacing:0.02em; transition:transform 0.12s ease,box-shadow 0.12s ease,background 0.12s; display:flex; align-items:center; justify-content:center; user-select:none; -webkit-user-select:none; box-shadow:0 4px 14px var(--shadow); }
-    .petal-btn:active { transform:scale(0.91) !important; }
-    .petal-btn.outer { background:var(--petal); color:var(--ink); }
-    .petal-btn.outer:hover { background:var(--petal-hover); transform:scale(1.07); box-shadow:0 6px 20px rgba(249,100,74,0.22); }
-    .petal-btn.center-btn { background:var(--center); color:#fff; width:94px; height:94px; font-size:1.8rem; box-shadow:0 6px 20px rgba(240,80,55,0.35); left:50%; top:50%; transform:translate(-50%,-50%); z-index:5; }
-    .petal-btn.center-btn:hover { background:var(--center-hover); transform:translate(-50%,-50%) scale(1.07); }
-    .petal-btn.center-btn:active { transform:translate(-50%,-50%) scale(0.93) !important; }
-
-    /* Buttons */
-    .btn-enter { width:100%; padding:15px; background:var(--stem); color:#fff; border:none; border-radius:14px; font-family:'DM Sans',sans-serif; font-size:1rem; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; cursor:pointer; box-shadow:0 4px 16px rgba(74,140,92,0.3); transition:background 0.15s,transform 0.1s; }
-    .btn-enter:hover { background:#3a7a4c; transform:translateY(-1px); }
-    .btn-enter:active { transform:translateY(1px); }
-    .btn-enter:disabled { background:#c8d8c0; cursor:default; transform:none; box-shadow:none; }
-    .spinner { display:inline-block; width:18px; height:18px; border:2.5px solid #ffffff44; border-top-color:#fff; border-radius:50%; animation:spin 0.7s linear infinite; vertical-align:middle; }
+    /* Enter button */
+    .btn-enter {
+      width: 100%; padding: 15px;
+      background: linear-gradient(135deg, var(--stem), var(--stem-light));
+      color: #fff; border: none; border-radius: 14px;
+      font-family: 'DM Sans', sans-serif; font-size: 1rem;
+      font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+      cursor: pointer;
+      box-shadow: 0 4px 20px rgba(45,107,66,0.5);
+      transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+    }
+    .btn-enter:hover { transform: translateY(-2px); box-shadow: 0 6px 28px rgba(45,107,66,0.7); }
+    .btn-enter:active { transform: translateY(1px); }
+    .btn-enter:disabled { background: #2a1f1a; color: #4a3228; cursor: default; transform: none; box-shadow: none; }
+    .spinner { display: inline-block; width: 18px; height: 18px; border: 2.5px solid rgba(255,255,255,0.2); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; }
     @keyframes spin { to{transform:rotate(360deg)} }
-    .controls { display:flex; gap:8px; width:100%; }
-    .btn-secondary { flex:1; padding:10px; background:var(--card); color:var(--ink-muted); border:2px solid #e8d8c8; border-radius:12px; font-family:'DM Sans',sans-serif; font-size:0.82rem; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; cursor:pointer; box-shadow:0 2px 8px var(--shadow); transition:background 0.15s,color 0.15s; }
-    .btn-secondary:hover { background:#fde8d8; color:var(--center); border-color:var(--petal-hover); }
-    .btn-end-game { flex:1; padding:10px; background:#fff0ee; color:var(--center); border:2px solid var(--petal-hover); border-radius:12px; font-family:'DM Sans',sans-serif; font-size:0.82rem; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; cursor:pointer; transition:background 0.15s; }
-    .btn-end-game:hover { background:var(--petal); }
 
-    /* Toast */
-    .toast { position:fixed; top:24px; left:50%; transform:translateX(-50%) translateY(-80px); background:var(--ink); color:#fff; padding:10px 22px; border-radius:99px; font-size:0.9rem; font-weight:500; z-index:200; pointer-events:none; transition:transform 0.35s cubic-bezier(.2,1.4,.4,1),opacity 0.35s; opacity:0; white-space:nowrap; }
-    .toast.show { transform:translateX(-50%) translateY(0); opacity:1; }
-    .toast.good { background:var(--stem); }
-    .toast.bad  { background:var(--center); }
+    /* Controls */
+    .controls { display: flex; gap: 8px; width: 100%; }
+    .btn-secondary {
+      flex: 1; padding: 10px; background: var(--card);
+      color: #8a6a58; border: 1px solid rgba(200,58,34,0.25);
+      border-radius: 12px; font-family: 'DM Sans', sans-serif;
+      font-size: 0.8rem; font-weight: 600; letter-spacing: 0.05em;
+      text-transform: uppercase; cursor: pointer;
+      box-shadow: 0 2px 8px var(--shadow);
+      transition: background 0.15s, color 0.15s;
+    }
+    .btn-secondary:hover { background: rgba(200,58,34,0.15); color: var(--petal); border-color: var(--petal); }
+    .btn-end-game {
+      flex: 1; padding: 10px;
+      background: rgba(200,58,34,0.12);
+      color: var(--petal); border: 1px solid rgba(200,58,34,0.4);
+      border-radius: 12px; font-family: 'DM Sans', sans-serif;
+      font-size: 0.8rem; font-weight: 600; letter-spacing: 0.05em;
+      text-transform: uppercase; cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-end-game:hover { background: rgba(200,58,34,0.25); }
 
-    /* Found words */
-    .found-section { width:100%; background:var(--card); border-radius:14px; padding:14px 18px; box-shadow:0 2px 12px var(--shadow); }
-    .found-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
-    .found-header h3 { font-family:'Playfair Display',serif; font-size:0.95rem; font-weight:700; color:var(--ink-muted); text-transform:uppercase; letter-spacing:0.08em; }
-    .found-count { background:var(--stem-light); color:#fff; border-radius:99px; padding:2px 10px; font-size:0.78rem; font-weight:600; }
-    .found-list { display:flex; flex-wrap:wrap; gap:6px; }
-    .found-word { background:#f0f8f2; border:1.5px solid #c8e8d4; color:var(--stem); border-radius:8px; padding:3px 10px; font-size:0.82rem; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; animation:pop-in 0.3s cubic-bezier(.2,1.5,.4,1); }
+    /* ══ TOAST ══ */
+    .toast {
+      position: fixed; top: 24px; left: 50%;
+      transform: translateX(-50%) translateY(-80px);
+      background: var(--ink); color: #f0e0d0;
+      padding: 10px 22px; border-radius: 99px;
+      font-size: 0.9rem; font-weight: 600; z-index: 200;
+      pointer-events: none;
+      transition: transform 0.35s cubic-bezier(.2,1.4,.4,1), opacity 0.35s;
+      opacity: 0; white-space: nowrap;
+      border: 1px solid rgba(200,58,34,0.3);
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+    .toast.good { background: var(--stem); border-color: var(--stem-light); }
+    .toast.bad  { background: #6a1a0a; border-color: var(--center); }
+
+    /* ══ FLASH CHALLENGE BANNER ══ */
+    .challenge-banner {
+      position: fixed; top: 80px; left: 50%;
+      transform: translateX(-50%) translateY(-120px);
+      background: linear-gradient(135deg, #1a0800, #3a1008);
+      border: 2px solid var(--center);
+      border-radius: 16px; padding: 14px 24px;
+      z-index: 190; pointer-events: none;
+      box-shadow: 0 0 40px rgba(200,58,34,0.5);
+      transition: transform 0.4s cubic-bezier(.2,1.4,.4,1), opacity 0.4s;
+      opacity: 0; text-align: center; max-width: 340px; width: 90%;
+    }
+    .challenge-banner.show { transform: translateX(-50%) translateY(0); opacity: 1; pointer-events: all; }
+    .challenge-title { font-family: 'Playfair Display', serif; font-size: 1.05rem; font-weight: 900; color: var(--center); margin-bottom: 4px; }
+    .challenge-desc { font-size: 0.82rem; color: #c0a090; }
+    .challenge-timer-bar { height: 4px; background: rgba(255,255,255,0.1); border-radius: 99px; margin-top: 10px; overflow: hidden; }
+    .challenge-timer-fill { height: 100%; background: var(--center); border-radius: 99px; transition: width 1s linear; }
+
+    /* ══ BADGE UNLOCK OVERLAY ══ */
+    .badge-overlay {
+      position: fixed; inset: 0; z-index: 300;
+      background: rgba(0,0,0,0.8);
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.4s;
+    }
+    .badge-overlay.show { opacity: 1; pointer-events: all; }
+    .badge-popup {
+      background: linear-gradient(135deg, #1a0800, #2a1208);
+      border: 2px solid var(--gold);
+      border-radius: 24px; padding: 40px 36px;
+      text-align: center; max-width: 340px; width: 90%;
+      box-shadow: 0 0 60px rgba(200,160,0,0.4);
+      animation: badgePop 0.5s cubic-bezier(0.34,1.6,0.64,1) forwards;
+    }
+    @keyframes badgePop { from{transform:scale(0.5) rotate(-8deg);opacity:0} to{transform:none;opacity:1} }
+    .badge-emoji { font-size: 4rem; margin-bottom: 10px; display: block; animation: badgeSpin 0.6s ease-out; }
+    @keyframes badgeSpin { from{transform:rotate(-20deg) scale(0.5)} to{transform:none} }
+    .badge-popup h3 { font-family: 'Playfair Display', serif; font-size: 1.4rem; font-weight: 900; color: var(--gold); margin-bottom: 6px; }
+    .badge-popup p { font-size: 0.85rem; color: #c0a090; margin-bottom: 20px; }
+    .badge-popup button { padding: 10px 28px; background: var(--gold); color: #1a0800; border: none; border-radius: 10px; font-weight: 700; font-size: 0.9rem; cursor: pointer; letter-spacing: 0.06em; text-transform: uppercase; }
+
+    /* ══ FOUND WORDS ══ */
+    .found-section {
+      width: 100%; background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 14px; padding: 14px 18px;
+      box-shadow: 0 2px 12px var(--shadow);
+    }
+    .found-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .found-header h3 { font-family: 'Playfair Display', serif; font-size: 0.9rem; font-weight: 700; color: #8a6a58; text-transform: uppercase; letter-spacing: 0.08em; }
+    .found-count { background: var(--stem); color: #fff; border-radius: 99px; padding: 2px 10px; font-size: 0.75rem; font-weight: 700; }
+    .found-list { display: flex; flex-wrap: wrap; gap: 6px; }
+    .found-word {
+      background: rgba(45,107,66,0.2);
+      border: 1px solid rgba(74,150,96,0.4);
+      color: var(--stem-light); border-radius: 8px;
+      padding: 3px 10px; font-size: 0.8rem; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.05em;
+      animation: pop-in 0.3s cubic-bezier(.2,1.5,.4,1);
+    }
     @keyframes pop-in { from{transform:scale(0.6);opacity:0} to{transform:scale(1);opacity:1} }
-    .found-word.pangram { background:#fff8e6; border-color:var(--gold); color:#b07010; }
-    .found-word.pangram::before { content:'★ '; }
-    footer { position:relative; z-index:1; padding-bottom:20px; font-size:0.72rem; color:var(--ink-muted); text-align:center; }
+    .found-word.pangram { background: rgba(196,122,0,0.2); border-color: var(--gold); color: var(--gold); }
+    .found-word.pangram::before { content: '★ '; }
+
+    /* ══ BADGES SECTION (in-game) ══ */
+    .badges-section {
+      width: 100%; background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 14px; padding: 12px 18px;
+      box-shadow: 0 2px 12px var(--shadow);
+    }
+    .badges-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .badges-header h3 { font-family: 'Playfair Display', serif; font-size: 0.9rem; font-weight: 700; color: #8a6a58; text-transform: uppercase; letter-spacing: 0.08em; }
+    .badges-row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .badge-item {
+      display: flex; flex-direction: column; align-items: center; gap: 3px;
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 10px; padding: 8px 10px; min-width: 64px;
+      transition: all 0.3s;
+    }
+    .badge-item.unlocked { background: rgba(196,122,0,0.15); border-color: var(--gold); }
+    .badge-item .b-icon { font-size: 1.5rem; filter: grayscale(1) opacity(0.3); transition: filter 0.4s; }
+    .badge-item.unlocked .b-icon { filter: none; }
+    .badge-item .b-name { font-size: 0.6rem; color: #6a4a38; text-transform: uppercase; letter-spacing: 0.05em; text-align: center; font-weight: 600; }
+    .badge-item.unlocked .b-name { color: var(--gold); }
+
+    footer { position: relative; z-index: 1; padding-bottom: 20px; font-size: 0.7rem; color: #4a2a1a; text-align: center; }
 
     /* ══ END SCREEN ══ */
-    #endScreen { min-height:100vh; justify-content:flex-start; padding:30px 16px 50px; }
-    .end-card { background:var(--card); border:1.5px solid rgba(246,101,74,0.18); border-radius:24px; padding:36px 28px; max-width:480px; width:100%; box-shadow:0 0 50px rgba(246,101,74,0.07),0 20px 60px rgba(0,0,0,0.08); animation:cardIn 0.6s cubic-bezier(0.34,1.4,0.64,1) forwards; }
+    #endScreen { min-height: 100vh; justify-content: flex-start; padding: 30px 16px 50px; }
+    .end-card {
+      background: var(--card);
+      border: 1.5px solid rgba(200,58,34,0.3);
+      border-radius: 24px; padding: 34px 26px;
+      max-width: 480px; width: 100%;
+      box-shadow: 0 0 60px rgba(200,58,34,0.1), 0 20px 60px rgba(0,0,0,0.4);
+      animation: cardIn 0.6s cubic-bezier(0.34,1.4,0.64,1) forwards;
+    }
     @keyframes cardIn { from{opacity:0;transform:translateY(32px) scale(0.96)} to{opacity:1;transform:none} }
-    .end-title { font-family:'Playfair Display',serif; font-size:2.4rem; font-weight:900; text-align:center; color:var(--center); margin-bottom:4px; }
-    .end-subtitle { text-align:center; font-size:0.82rem; color:var(--ink-muted); letter-spacing:0.06em; text-transform:uppercase; margin-bottom:22px; }
-    .end-stats { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:20px; }
-    .stat-box { background:#fdf0e2; border-radius:12px; padding:14px 8px; text-align:center; border:1.5px solid #f0d8c0; }
-    .stat-num { font-family:'Playfair Display',serif; font-size:2rem; font-weight:700; color:var(--stem); line-height:1; }
-    .stat-lbl { font-size:0.68rem; color:var(--ink-muted); text-transform:uppercase; letter-spacing:0.08em; margin-top:4px; }
+    .end-title { font-family: 'Playfair Display', serif; font-size: 2.2rem; font-weight: 900; text-align: center; color: var(--center); margin-bottom: 4px; }
+    .end-subtitle { text-align: center; font-size: 0.78rem; color: #6a4a38; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 20px; }
+    .end-stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 18px; }
+    .stat-box { background: rgba(255,255,255,0.04); border-radius: 12px; padding: 14px 8px; text-align: center; border: 1px solid rgba(200,58,34,0.2); }
+    .stat-num { font-family: 'Playfair Display', serif; font-size: 1.9rem; font-weight: 700; color: var(--stem-light); line-height: 1; }
+    .stat-lbl { font-size: 0.65rem; color: #6a4a38; text-transform: uppercase; letter-spacing: 0.08em; margin-top: 4px; }
 
-    /* Word chips */
-    .words-section-title { font-size:0.78rem; color:var(--ink-muted); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:10px; }
-    .end-words-grid { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:18px; }
-    .end-word-chip { background:#f0f8f2; border:1.5px solid #c8e8d4; color:var(--stem); border-radius:8px; padding:4px 12px; font-size:0.82rem; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; animation:pop-in 0.35s cubic-bezier(.2,1.5,.4,1) backwards; }
-    .end-word-chip.pangram { background:#fff8e6; border-color:var(--gold); color:#b07010; }
-    .end-word-chip.pangram::before { content:'★ '; }
-    .end-word-chip.missed { background:#fff0ee; border-color:var(--petal-hover); color:#c0604a; opacity:0.85; }
-    .end-word-chip.missed.pangram { background:#fff3e0; border-color:#e8a020; color:#9a6010; }
-
-    /* Possible words section */
-    .possible-section { background:#fdf0e2; border-radius:14px; padding:14px 18px; border:1.5px solid #f0d8c0; margin-bottom:18px; }
-    .possible-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:4px; }
-    .possible-title { font-family:'Playfair Display',serif; font-size:0.95rem; font-weight:700; color:var(--ink); }
-    .possible-subtitle { font-size:0.72rem; color:var(--ink-muted); margin-bottom:10px; }
-    .possible-loading { display:flex; align-items:center; gap:8px; font-size:0.82rem; color:var(--ink-muted); }
-    .progress-bar { height:5px; background:#e8d8c8; border-radius:99px; overflow:hidden; margin-bottom:10px; }
-    .progress-fill { height:100%; background:linear-gradient(90deg,var(--stem-light),var(--stem)); border-radius:99px; transition:width 0.3s; }
-
-    /* Legend */
-    .legend { display:flex; gap:12px; flex-wrap:wrap; margin-bottom:10px; font-size:0.72rem; color:var(--ink-muted); }
-    .legend-item { display:flex; align-items:center; gap:4px; }
-    .legend-dot { width:10px; height:10px; border-radius:2px; }
+    /* End badges */
+    .end-badges-section { margin-bottom: 18px; }
+    .end-badges-title { font-size: 0.78rem; color: #8a6a58; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; font-weight: 600; }
+    .end-badges-grid { display: flex; gap: 10px; flex-wrap: wrap; }
+    .end-badge-chip {
+      display: flex; align-items: center; gap: 8px;
+      background: rgba(196,122,0,0.1);
+      border: 1.5px solid var(--gold);
+      border-radius: 10px; padding: 8px 14px;
+      animation: pop-in 0.4s cubic-bezier(.2,1.5,.4,1) backwards;
+    }
+    .end-badge-chip .icon { font-size: 1.4rem; }
+    .end-badge-chip .info .name { font-size: 0.82rem; font-weight: 700; color: var(--gold); }
+    .end-badge-chip .info .desc { font-size: 0.68rem; color: #8a6a58; }
+    .no-badges-msg { font-size: 0.82rem; color: #4a2a1a; font-style: italic; }
 
     /* Identity */
-    .identity-section { background:#fdf0e2; border-radius:14px; padding:16px 18px; border:1.5px solid #f0d8c0; margin-bottom:18px; }
-    .identity-section h4 { font-family:'Playfair Display',serif; font-size:0.95rem; font-weight:700; color:var(--ink); margin-bottom:12px; }
-    .identity-known { font-family:'Playfair Display',serif; font-size:1.05rem; font-weight:700; color:var(--stem); display:flex; align-items:center; gap:8px; }
-    .identity-known .id-sub { font-family:'DM Sans',sans-serif; font-size:0.8rem; color:var(--ink-muted); font-weight:400; }
-    .identity-fields { display:flex; flex-direction:column; gap:8px; }
-    .identity-fields input, .identity-fields select { padding:10px 14px; border-radius:10px; border:1.5px solid #e8d8c8; background:var(--card); color:var(--ink); font-size:0.92rem; font-family:'DM Sans',sans-serif; outline:none; transition:border-color 0.2s; width:100%; }
-    .identity-fields input:focus, .identity-fields select:focus { border-color:var(--stem); }
-    .id-note { font-size:0.72rem; color:var(--ink-muted); margin-top:4px; text-align:center; }
-    .submit-status { font-size:0.78rem; text-align:center; margin-top:8px; min-height:18px; color:var(--stem); }
-    .submit-status.err { color:var(--center); }
+    .identity-section {
+      background: rgba(255,255,255,0.03);
+      border-radius: 14px; padding: 14px 16px;
+      border: 1px solid rgba(200,58,34,0.2);
+      margin-bottom: 16px;
+    }
+    .identity-section h4 { font-family: 'Playfair Display', serif; font-size: 0.9rem; font-weight: 700; color: #c0a090; margin-bottom: 10px; }
+    .identity-known { font-family: 'Playfair Display', serif; font-size: 1rem; font-weight: 700; color: var(--stem-light); display: flex; align-items: center; gap: 8px; }
+    .identity-known .id-sub { font-family: 'DM Sans', sans-serif; font-size: 0.78rem; color: #6a4a38; font-weight: 400; }
+    .identity-fields { display: flex; flex-direction: column; gap: 8px; }
+    .identity-fields input, .identity-fields select {
+      padding: 10px 14px; border-radius: 10px;
+      border: 1px solid rgba(200,58,34,0.3);
+      background: rgba(255,255,255,0.05); color: #f0e0d0;
+      font-size: 0.9rem; font-family: 'DM Sans', sans-serif;
+      outline: none; transition: border-color 0.2s; width: 100%;
+    }
+    .identity-fields input:focus, .identity-fields select:focus { border-color: var(--stem-light); }
+    .identity-fields select option { background: #2a160d; }
+    .id-note { font-size: 0.7rem; color: #4a2a1a; margin-top: 4px; text-align: center; }
+    .submit-status { font-size: 0.75rem; text-align: center; margin-top: 8px; min-height: 18px; color: var(--stem-light); }
+    .submit-status.err { color: var(--center); }
+
+    /* Word chips */
+    .words-section-title { font-size: 0.75rem; color: #6a4a38; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; font-weight: 600; }
+    .end-words-grid { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+    .end-word-chip {
+      background: rgba(45,107,66,0.2); border: 1px solid rgba(74,150,96,0.4);
+      color: var(--stem-light); border-radius: 8px;
+      padding: 4px 12px; font-size: 0.8rem; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.05em;
+      animation: pop-in 0.35s cubic-bezier(.2,1.5,.4,1) backwards;
+    }
+    .end-word-chip.pangram { background: rgba(196,122,0,0.2); border-color: var(--gold); color: var(--gold); }
+    .end-word-chip.pangram::before { content: '★ '; }
+    .end-word-chip.missed { background: rgba(200,58,34,0.15); border-color: rgba(200,58,34,0.4); color: #c06050; }
+    .end-word-chip.missed.pangram { background: rgba(196,122,0,0.12); border-color: rgba(196,122,0,0.4); color: #a07030; }
+
+    /* Possible words */
+    .possible-section {
+      background: rgba(255,255,255,0.03);
+      border-radius: 14px; padding: 14px 16px;
+      border: 1px solid rgba(200,58,34,0.2); margin-bottom: 16px;
+    }
+    .possible-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+    .possible-title { font-family: 'Playfair Display', serif; font-size: 0.9rem; font-weight: 700; color: #c0a090; }
+    .possible-subtitle { font-size: 0.7rem; color: #6a4a38; margin-bottom: 10px; }
+    .progress-bar { height: 4px; background: rgba(255,255,255,0.06); border-radius: 99px; overflow: hidden; margin-bottom: 10px; }
+    .progress-fill { height: 100%; background: linear-gradient(90deg, var(--stem), var(--center)); border-radius: 99px; transition: width 0.3s; }
+    .legend { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; font-size: 0.7rem; color: #6a4a38; }
+    .legend-item { display: flex; align-items: center; gap: 4px; }
+    .legend-dot { width: 10px; height: 10px; border-radius: 2px; }
 
     /* End buttons */
-    .end-btn-row { display:flex; gap:10px; flex-wrap:wrap; }
-    .btn-end { flex:1; padding:13px 10px; border:none; border-radius:12px; font-family:'DM Sans',sans-serif; font-size:0.88rem; font-weight:600; letter-spacing:0.04em; cursor:pointer; transition:transform 0.15s; text-transform:uppercase; min-width:90px; }
-    .btn-end:hover { transform:scale(1.03); }
-    .btn-end-primary   { background:linear-gradient(135deg,var(--stem),#7dbb8f); color:white; box-shadow:0 4px 16px rgba(74,140,92,0.25); }
-    .btn-end-share     { background:linear-gradient(135deg,#128c7e,#25d366); color:white; }
-    .btn-end-secondary { background:#fdf0e2; color:var(--ink-muted); border:1.5px solid #e8d8c8; }
+    .end-btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
+    .btn-end {
+      flex: 1; padding: 13px 10px; border: none; border-radius: 12px;
+      font-family: 'DM Sans', sans-serif; font-size: 0.86rem; font-weight: 700;
+      letter-spacing: 0.04em; cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s;
+      text-transform: uppercase; min-width: 90px;
+    }
+    .btn-end:hover { transform: scale(1.03); }
+    .btn-end-primary { background: linear-gradient(135deg, var(--stem), var(--stem-light)); color: white; box-shadow: 0 4px 16px rgba(45,107,66,0.4); }
+    .btn-end-share { background: linear-gradient(135deg, #0a5c4e, #128c7e); color: white; }
+    .btn-end-secondary { background: rgba(255,255,255,0.06); color: #8a6a58; border: 1px solid rgba(200,58,34,0.2); }
 
     @media(max-width:360px) {
-      .flower-wrap { width:240px; height:240px; }
-      .petal-btn { width:74px; height:74px; font-size:1.4rem; }
-      .petal-btn.center-btn { width:82px; height:82px; font-size:1.6rem; }
+      .flower-svg { max-width: 260px; }
     }
-    .flower-svg {
-  width: 100%;
-  max-width: 320px;
-  height: auto;
-  margin: 10px 0;
-}
-
-.flower-letter {
-  font-family: 'Playfair Display', serif;
-  font-weight: 700;
-  text-anchor: middle;
-  dominant-baseline: middle;
-  cursor: pointer;
-  user-select: none;
-}
-
-.outer-petal {
-  fill: var(--petal);
-  transition: transform 0.15s ease, fill 0.15s ease;
-  cursor: pointer;
-}
-
-.outer-petal:hover {
-  fill: var(--petal-hover);
-}
-
-.center-petal {
-  fill: var(--center);
-  cursor: pointer;
-}
-
-.center-petal:hover {
-  fill: var(--center-hover);
-}
   </style>
 </head>
 <body>
 
-<!-- Hidden canvas for stats image -->
 <canvas id="statsCanvas" style="display:none;"></canvas>
-
 <div class="toast" id="toast"></div>
+<div class="challenge-banner" id="challengeBanner">
+  <div class="challenge-title" id="challengeTitle">⚡ FLASH CHALLENGE</div>
+  <div class="challenge-desc" id="challengeDesc"></div>
+  <div class="challenge-timer-bar"><div class="challenge-timer-fill" id="challengeTimerFill" style="width:100%"></div></div>
+</div>
+<div class="badge-overlay" id="badgeOverlay">
+  <div class="badge-popup">
+    <span class="badge-emoji" id="badgePopupIcon">🏆</span>
+    <h3 id="badgePopupName">Badge Unlocked!</h3>
+    <p id="badgePopupDesc"></p>
+    <button onclick="dismissBadge()">Awesome!</button>
+  </div>
+</div>
 
 <!-- ══ GAME SCREEN ══ -->
 <div class="screen active" id="gameScreen">
   <header>
+    <div class="hard-mode-pill">🔥 Hard Mode</div>
     <h1>Bloss<span>✿</span>m</h1>
-    <p class="tagline">May your words blossom! Must use the center letter</p>
+    <p class="tagline">5+ letters · Center required · Earn your glory</p>
+    <div class="rule-chips">
+      <span class="rule-chip">⚔ 5+ letter words only</span>
+      <span class="rule-chip">⚡ Flash challenges</span>
+      <span class="rule-chip">🏅 Exclusive badges</span>
+    </div>
   </header>
   <div class="main-wrap">
     <div class="top-row">
       <div class="timer-card">
         <div class="timer-arc-wrap">
           <svg id="timerArc" width="56" height="56" viewBox="0 0 56 56">
-            <circle cx="28" cy="28" r="22" fill="none" stroke="rgba(74,60,50,0.1)" stroke-width="4"/>
-            <circle id="arcPath" cx="28" cy="28" r="22" fill="none" stroke="var(--stem)" stroke-width="4"
+            <circle cx="28" cy="28" r="22" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="4"/>
+            <circle id="arcPath" cx="28" cy="28" r="22" fill="none" stroke="var(--stem-light)" stroke-width="4"
               stroke-dasharray="138.2" stroke-dashoffset="0" stroke-linecap="round"
               style="transition:stroke-dashoffset 1s linear,stroke 0.5s ease;"/>
           </svg>
@@ -253,47 +525,58 @@
       </div>
     </div>
     <div class="rank-bar">
-      <div class="rank-label"><span class="rank-name" id="rank-name">Seedling 🌱</span><span class="rank-pts" id="rank-pts">Next rank at 10 pts</span></div>
+      <div class="rank-label">
+        <span class="rank-name" id="rank-name">Ember 🔥</span>
+        <span class="rank-pts" id="rank-pts">Next rank at 15 pts</span>
+      </div>
       <div class="rank-track"><div class="rank-fill" id="rank-fill" style="width:0%"></div></div>
     </div>
     <div class="input-row">
       <div class="word-display" id="word-display"><span id="typed-letters"></span><span class="cursor"></span></div>
       <button class="btn-delete" id="btn-delete">⌫</button>
     </div>
-
-    <!-- ── Inline shuffle button ── -->
-    <div class="inline-shuffle-row">
-      <button class="btn-inline-shuffle" id="btn-inline-shuffle">
-        <span class="shuffle-icon">⇄</span> Shuffle
-      </button>
-    </div>
-
     <svg id="flower" viewBox="0 0 300 300" class="flower-svg"></svg>
     <button class="btn-enter" id="btn-enter">Enter Word</button>
     <div class="controls">
       <button class="btn-secondary" id="btn-shuffle">⇄ Shuffle</button>
       <button class="btn-secondary" id="btn-new">✿ New Puzzle</button>
-      <button class="btn-end-game" id="btn-end-game">🏁 End Game</button>
+      <button class="btn-end-game" id="btn-end-game">🏁 End</button>
+    </div>
+    <div class="badges-section">
+      <div class="badges-header"><h3>🏅 Hard Mode Badges</h3></div>
+      <div class="badges-row" id="badgesRow"></div>
     </div>
     <div class="found-section">
-      <div class="found-header"><h3>Found Words</h3><span class="found-count" id="found-count">0</span></div>
-      <div class="found-list" id="found-list"><span style="font-size:0.8rem;color:var(--ink-muted)">Words you find will appear here…</span></div>
+      <div class="found-header">
+        <h3>Found Words</h3>
+        <span class="found-count" id="found-count">0</span>
+      </div>
+      <div class="found-list" id="found-list">
+        <span style="font-size:0.78rem;color:#4a2a1a">5+ letter words will appear here…</span>
+      </div>
     </div>
   </div>
-  <footer>Words must be 4+ letters · Center letter required · Pangrams use all 7 letters ★</footer>
+  <footer>Hard Mode · 5+ letters · Center letter required · Pangrams use all 7 ★</footer>
 </div>
 
 <!-- ══ END SCREEN ══ -->
 <div class="screen" id="endScreen">
   <div class="end-card">
-    <div class="end-title" id="endTitle">🌸 Time's Up!</div>
-    <div class="end-subtitle" id="endSubtitle">Blossom Word Game</div>
+    <div class="end-title" id="endTitle">🔥 Time's Up!</div>
+    <div class="end-subtitle" id="endSubtitle">Blossom Hard Mode</div>
     <div class="end-stats">
       <div class="stat-box"><div class="stat-num" id="endScore">0</div><div class="stat-lbl">Score</div></div>
-      <div class="stat-box"><div class="stat-num" id="endWords">0</div><div class="stat-lbl">Words Found</div></div>
+      <div class="stat-box"><div class="stat-num" id="endWords">0</div><div class="stat-lbl">Words</div></div>
       <div class="stat-box"><div class="stat-num" id="endPangrams">0</div><div class="stat-lbl">Pangrams ★</div></div>
     </div>
- <!-- Identity -->
+
+    <!-- Badges earned this round -->
+    <div class="end-badges-section">
+      <div class="end-badges-title">🏅 Badges Earned This Round</div>
+      <div class="end-badges-grid" id="endBadgesGrid"></div>
+    </div>
+
+    <!-- Identity -->
     <div class="identity-section">
       <h4>📋 Record Your Score</h4>
       <div class="identity-known" id="identityKnown" style="display:none;">
@@ -304,43 +587,40 @@
         <input type="text" id="playerName" placeholder="Your name" maxlength="60"/>
         <select id="playerDept">
           <option value="">— Select Department —</option>
-          <option value="Cyber Security">Cyber Security</option>
-          <option value="EIE">EIE</option>
-          <option value="CSE-1">CSE-1</option><option value="CSE-2">CSE-2</option><option value="CSE-3">CSE-3</option>
-          <option value="Mechanical Engineering">Mechanical Engineering</option>
-          <option value="ECE-1">ECE-1</option><option value="ECE-2">ECE-2</option><option value="ECE-3">ECE-3</option>
-          <option value="AI DS-1">AI DS-1</option><option value="AI DS-2">AI DS-2</option>
-          <option value="Agri and Civil">Agri and Civil</option>
-          <option value="EEE">EEE</option>
-          <option value="Medical Electronics">Medical Electronics</option>
-          <option value="IT-1">IT-1</option><option value="IT-2">IT-2</option>
+          <option>Cyber Security</option><option>EIE</option>
+          <option>CSE-1</option><option>CSE-2</option><option>CSE-3</option>
+          <option>Mechanical Engineering</option>
+          <option>ECE-1</option><option>ECE-2</option><option>ECE-3</option>
+          <option>AI DS-1</option><option>AI DS-2</option>
+          <option>Agri and Civil</option><option>EEE</option>
+          <option>Medical Electronics</option>
+          <option>IT-1</option><option>IT-2</option>
         </select>
-        <div class="id-note">Your score will be submitted to the leaderboard.</div>
+        <div class="id-note">Your score will be submitted to the Hard Mode leaderboard.</div>
       </div>
       <div class="submit-status" id="submitStatus"></div>
     </div>
 
     <div class="end-btn-row">
-      <button class="btn-end btn-end-primary"   id="btnPlayAgain">✿ Play Again</button>
-      <button class="btn-end btn-end-share"      id="btnShare">📲 Share</button>
-      <button class="btn-end btn-end-secondary"  id="btnLeaderboard">🏆 Board</button>
+      <button class="btn-end btn-end-primary"  id="btnPlayAgain">🔥 Play Again</button>
+      <button class="btn-end btn-end-share"     id="btnShare">📲 Share</button>
+      <button class="btn-end btn-end-secondary" id="btnLeaderboard">🏆 Board</button>
     </div>
-    <!-- Words YOU found -->
+
     <div class="words-section-title">✅ Words You Found</div>
     <div class="end-words-grid" id="endWordsFound"></div>
 
-    <!-- All possible words (loaded after game) -->
     <div class="possible-section" id="possibleSection">
       <div class="possible-header">
-        <div class="possible-title">🌸 Missed Words</div>
-        <div id="possibleCount" style="font-size:0.78rem;color:var(--ink-muted);"></div>
+        <div class="possible-title">💀 Missed Words</div>
+        <div id="possibleCount" style="font-size:0.75rem;color:#6a4a38;"></div>
       </div>
-      <div class="possible-subtitle" id="possibleSubtitle">Finding all valid words for this puzzle…</div>
+      <div class="possible-subtitle" id="possibleSubtitle">Finding all valid words…</div>
       <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
       <div class="legend">
-        <div class="legend-item"><div class="legend-dot" style="background:#c8e8d4;border:1px solid #4a8c5c;"></div> Found by you</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#ffe0d8;border:1px solid #f4a3b5;"></div> Missed</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#fff8e6;border:1px solid #e8a020;"></div> Pangram</div>
+        <div class="legend-item"><div class="legend-dot" style="background:rgba(45,107,66,0.4);border:1px solid #4a9660;"></div> Found</div>
+        <div class="legend-item"><div class="legend-dot" style="background:rgba(200,58,34,0.3);border:1px solid var(--petal);"></div> Missed</div>
+        <div class="legend-item"><div class="legend-dot" style="background:rgba(196,122,0,0.3);border:1px solid var(--gold);"></div> Pangram</div>
       </div>
       <div class="end-words-grid" id="endWordsAll"></div>
     </div>
@@ -348,210 +628,148 @@
 </div>
 
 <script>
+/* ═══════════════════════════════════════════════
+   WORD BANK (5+ letter words only)
+═══════════════════════════════════════════════ */
+const WORD_BANK_RAW = `acorn,acres,acted,adorn,agent,agree,aider,alien,align,alone,along,alter,angel,anger,
+angle,antic,arced,areal,argon,arose,arson,atone,crane,dated,dealt,dance,dares,darts,dates,deals,
+earns,edits,eight,elect,elide,elite,ember,ended,enter,entry,erode,exact,exist,exert,facet,faded,
+faint,faith,false,farce,fared,fatal,fated,feign,feast,felon,fence,feral,finer,first,fixed,flare,
+flint,float,floor,flora,floss,fluid,focal,force,forge,forte,found,franc,frank,freak,freed,fresh,
+front,frost,froth,frown,froze,fruit,gales,gents,ghost,giant,gland,glare,glean,glide,globe,gloss,
+glove,grace,grade,graft,grain,grand,grant,grasp,greet,grind,groan,groom,grope,gross,grout,grove,
+grunt,guard,guile,guise,handy,harsh,haste,haven,heron,hinge,horse,hoist,hotel,human,ideal,inner,
+inset,inter,intro,irate,irked,joint,joust,lance,later,large,laser,latch,lathe,lapse,learn,ledge,
+lemon,liner,lingo,liver,local,lodge,logic,loner,loose,lowly,lunar,mango,maple,march,major,melon,
+metal,micro,mirth,molar,manor,moron,motor,mourn,naive,natal,nerve,night,noble,north,notch,noted,
+novel,oaken,ocean,often,onset,optic,orbit,order,other,outdo,outer,ovoid,ozone,panel,pangs,parch,
+parse,party,patch,pause,peace,penal,perch,pilot,pinch,pitch,place,plaid,plain,plane,plant,plate,
+pleat,plier,point,posed,poise,poker,polar,porch,power,price,pride,prime,print,prior,prize,probe,
+proof,prose,proud,prove,queen,quest,radio,ranch,range,raven,reach,realm,reign,relay,renal,repay,
+rider,river,rivet,robot,rocky,rouge,rough,round,route,royal,ruler,saint,salon,salve,saner,satin,
+scale,scald,scant,scone,score,scout,scram,screw,seize,sense,serum,seven,shade,shaft,shale,shape,
+share,sharp,shear,shelf,shell,shift,shire,shore,short,shout,shove,sight,silky,since,sinew,sixth,
+sixty,skill,slack,slain,slant,slate,slave,sleek,sleep,sleet,snare,sneak,snide,snore,solar,solid,
+solve,sonic,sorry,south,space,spare,spark,spawn,speak,spear,speed,spend,spire,spite,spoke,spool,
+sport,spout,squad,stain,stale,stall,stand,stare,stark,start,state,steak,steal,steel,steep,steer,
+stern,stick,stiff,sting,stink,stone,stood,store,stork,storm,story,stove,straw,stray,strip,strum,
+stuck,stunt,surge,swear,sweat,sweet,swept,swore,sworn,swung,table,talon,tango,tangy,taste,thorn,
+those,three,threw,throw,tiger,tinge,title,tonic,torch,total,totem,touch,tower,toxic,trace,track,
+trade,trail,train,trait,tread,treat,trend,trial,tribe,trick,tried,troop,trope,truck,trust,truth,
+tuner,tutor,twirl,twist,ultra,under,undue,unfit,unlit,until,upper,risen,ripen,resin,repaid,rents,
+reads,raids,snore,ingrained,tangled,granted,ranted,garnet,antler,tangle,rental,alerts,alters,angels,
+angles,angers,giants,grants,ranges,grates,danger,garden,lantern,strangled,grandest,entangle,internal,
+integral,triangles,regal,legal,eagle,algebra,stale,tread,trade,reads,lanes,leans,leads,renal,solar,
+snore,stone,tones,notes,hones,drones,bones,cones,prods,lords,cords,fords,wards,hordes,stored,thorn,
+short,sport,terns,ferns,stern,stead,steal,steals,deals,heals,seals,tears,gears,bears,pears,fears,
+years,wears,shears,clears,smears,spears,board,bored,cored,soared,roared,poured,toured,soured,stored,
+adored,scored,snared,stared,flared,shared,spared,glared,blends,spends,bends,tends,fends,lends,rends,
+trend,trends,sends,amend,amends,blend,blends,spend,spends,trend,trends,lends,mends,sends,stoned,
+tones,stones,drones,zones,alert,alters,rated,rates,trade,trades,stared,daters,stander,lander,landers,
+strand,strands,garden,gardens,granted,ranted,ranter,ranters,antler,antlers,tangle,tangles,rental,
+rentals,entangle,strained,trained,trainer,trainers,retain,retains,integer,integers,integral,integrals,
+certain,certains,contain,contains,ordinal,ordinals,mineral,minerals,seminal,seminals,nominal,nominals,
+journal,journals,lantern,lanterns,eastern,western,pastern,pattern,patterns,flatten,flattens,sharpen,
+sharpens,darken,darkens,fasten,fastens,listen,listens,glisten,glistens,frighten,frightens,enlighten,
+brighten,lightens,tighten,tightens,strengthen,lengthen,lengthens,garden,pardon,pardons,harden,hardens,
+warden,wardens,burden,burdens,modern,moderns,golden,olden,frozen,chosen,broken,spoken,stolen,woken,
+rotten,gotten,beaten,eaten,bitten,written,kitten,mitten,button,cotton,bottom,blossom,blossom,custom,
+random,seldom,wisdom,kingdom,freedom,boredom,tandem,problem,system,rhythm,victim,pilgrim,phantom`;
 
-const WORD_BANK = `able,aced,aces,acne,acre,acres,acts,aged,ages,aide,ails,aims,airs,ales,aloe,also,
-ante,anti,ants,apes,apse,arch,arcs,area,arid,arms,arns,arts,ashe,ates,atop,awed,
-awes,axed,axes,band,bane,bans,bare,barn,bars,base,bash,bast,bath,bats,bead,bean,
-bear,beat,beds,been,beer,bees,beet,bell,belt,bend,bent,berg,best,beta,bile,bill,
-bind,bine,bins,bird,bite,bits,bled,blew,boas,boast,boat,bond,bone,bong,bore,born,
-brag,bran,bras,bred,brew,brig,brine,bris,brits,brod,bros,brow,brut,cane,cape,
-caps,care,carp,cart,case,cast,cats,ceil,cell,cent,cert,chad,chap,char,chat,chin,
-chip,clan,clap,claw,clod,clop,cobs,code,cods,cogs,cola,cold,cols,cone,cons,cope,
-cord,core,corn,cost,cote,cots,crag,cram,crap,crop,crow,crus,cure,curl,curs,dace,
-dale,dame,damp,dare,dark,darn,dart,date,deco,deed,deem,deep,deer,deli,dens,dent,
-deter,dice,dies,digs,dine,ding,dips,dire,dirt,disc,dish,disk,dive,dole,dome,done,
-dose,dote,drab,drag,draw,dray,drip,drop,duel,dune,dupe,dusk,dust,each,earl,earn,
-ears,ease,east,eats,edge,eels,egad,else,emit,ends,epic,eros,even,ever,evil,exam,
-face,fact,fade,fail,fain,fair,fake,fame,fang,fans,fare,farm,fart,fast,fate,fawn,
-feat,fend,fern,feta,find,fine,fir,fire,firm,fist,flag,flan,flap,flat,flaw,flay,
-fled,flog,flog,flop,flow,foam,foci,fold,fond,fore,fork,form,fort,frag,fray,free,
-fret,from,fuel,gale,gall,game,gang,gape,garb,gear,geld,gels,gems,gent,germ,gift,
-gild,gill,gilt,gist,glee,glen,glib,glob,glod,glom,glop,glow,glut,gnaw,goad,goat,
-gold,gone,gore,gown,grab,grad,gram,gras,grate,gray,grew,grey,grim,grin,grip,grit,
-grow,grub,hail,hair,hale,hall,halt,hand,hang,hard,hare,hark,harm,harp,hart,hate,
-haul,heal,heap,hear,heat,helm,help,hens,herd,here,hern,hero,hide,high,hike,hill,
-hind,hint,hire,hits,hold,hole,holm,home,hone,hong,hood,hook,hoop,horn,hot,hose,
-host,howl,hurl,idle,inch,into,ions,isle,item,jail,jars,jest,jigs,join,jot,
-jots,jute,kale,keel,keen,kegs,kelp,kept,kern,keys,kind,king,kink,knob,knot,
-lace,lack,laid,lake,lame,lamp,land,lane,lard,lark,lash,last,late,lawn,lead,lean,
-leap,left,lend,lens,lent,lest,lids,lies,lift,like,limb,lime,limp,line,link,lion,
-list,live,load,loam,loan,loch,lode,loft,long,lore,lorn,lour,lout,love,lung,lure,
-lurk,made,mage,mail,main,make,male,mall,malt,mane,mare,mast,mate,mean,meat,meld,
-melt,mere,mesh,mild,mile,mine,mink,mint,mire,mist,moan,moat,mode,mole,molt,mope,
-more,morn,most,moth,move,much,mule,nail,name,nape,nard,nark,neat,need,nerd,nett,
-news,nice,nigh,noel,none,nope,norm,nose,note,nous,nude,nuns,oars,oboe,omen,once,
-ones,only,open,oral,orbs,orca,ores,orts,oval,over,owed,owes,owns,pace,pack,pact,
-pads,page,paid,pain,pair,pale,pane,pang,pans,park,part,pash,past,pate,path,pave,
-peak,peal,pear,peat,peel,peer,pelt,pens,peon,perm,pest,pile,pine,ping,pint,pips,
-pirn,pits,plod,plot,plow,ploy,plug,plum,plus,pore,porn,port,pose,post,pour,prey,
-prig,prod,prong,prop,pros,prow,prude,pull,punt,pure,push,puts,race,rack,rage,
-raid,rail,rain,rake,ramp,rang,rant,rape,rapt,rare,rash,rasp,rate,rave,read,real,
-reap,rein,rent,rest,rice,rich,ride,rift,ring,rink,rise,risk,road,roam,roar,rode,
-role,romp,rope,rose,rota,rote,rots,rout,rune,rung,runs,ruse,rust,sage,said,sail,
-sane,sang,sank,sate,save,scan,scar,seal,seam,seat,sect,seed,seek,seer,self,send,
-sent,shed,shim,shin,ship,shoe,shod,shop,shot,show,sigh,silk,silt,sing,sink,site,
-size,skin,skip,slab,slag,slap,slat,slaw,sled,slid,slim,slip,slot,slow,slug,slum,
-snap,snog,snot,snow,snog,soar,soda,sole,some,song,soon,sore,sort,soul,soup,span,
-spar,sped,spin,spit,spot,spud,spur,stab,stag,star,stem,step,stew,stir,stop,stow,
-strap,stud,such,sued,suit,sulk,sung,sunk,sure,tail,tale,tall,tame,tamp,tang,tape,
-tare,tarn,tart,task,teal,team,tear,tech,tend,tens,term,tern,test,than,that,thin,
-tins,tire,toad,toil,told,toll,tome,tone,tong,tore,torn,tors,tote,tour,tram,trap,
-tray,tree,trim,trio,trod,trod,trek,trode,trot,true,tub,tune,turf,twin,tyke,
-undo,urge,vane,vase,veer,veil,vein,verb,very,vest,veto,vice,view,vine,void,vote,
-wade,wager,wail,wait,wake,wale,wand,wane,ward,ware,warp,wart,weal,wear,weld,well,
-wend,went,were,when,whip,wide,wile,will,wilt,wine,wing,wink,wipe,wire,wise,wish,
-wisp,woad,woes,woke,wold,wont,wood,wool,word,wore,work,worn,wove,wrap,wren,
-yore,your,acned,acorn,acres,acted,adorn,agent,agree,aider,alien,align,alone,
-along,alter,angel,anger,angle,antic,aptly,arced,areal,arest,argon,arose,arson,
-astern,atone,crane,dated,dealt,dance,dares,darts,dates,deals,earns,earns,edits,
-eight,elect,elide,elite,ember,ended,enter,entry,erode,error,escap,ester,etude,
-exact,exist,exert,facet,faded,faint,faith,false,farce,fared,fatal,fated,feign,
-feast,felon,fence,feral,finer,first,fixed,flare,flint,float,floor,flora,floss,
-fluid,focal,force,forge,forte,found,franc,frank,freak,freed,fresh,front,frost,
-froth,frown,froze,frugal,fruit,gales,garnet,gales,gents,ghost,giant,gland,glare,
-glean,glide,globe,gloss,glove,grace,grade,graft,grain,grand,grant,grasp,gruel,
-greet,grind,groan,groom,grope,gross,grout,grove,gruel,grunt,guard,guile,guise,
-handy,harsh,haste,haven,heron,hinge,horse,hoist,hotel,human,ideal,inner,inset,
-inter,intro,irate,irked,joint,joust,lance,later,large,laser,latch,later,lathe,
-lapse,learn,ledge,lemon,lends,lends,liner,lingo,liver,local,lodge,logic,loner,
-loose,loran,lowly,lunar,mango,maple,march,major,melon,metal,micro,mirth,molar,
-manor,moron,motor,mourn,naive,natal,nerve,nerdy,night,noble,north,notch,noted,
-novel,nether,oaken,ocean,often,onset,optic,orbit,order,other,outdo,outer,ovoid,
-ozone,panel,pangs,parch,parse,party,patch,pause,peace,penal,perch,pilot,pinch,
-pitch,place,plaid,plain,plane,plant,plate,plaza,pleat,plier,point,posed,poise,
-poker,polar,porch,power,price,pride,priest,prime,print,prior,prize,probe,proof,
-prose,prose,proud,prove,purer,queen,quest,radio,ranch,range,raven,reach,realm,
-reign,relay,renal,repay,rider,river,rivet,robot,rocky,rouge,rough,rouge,round,
-route,royal,ruler,safes,saint,salon,salve,saner,satin,scale,scald,scant,scone,
-score,scout,scram,screw,seize,sense,serum,seven,shade,shaft,shale,shape,share,
-sharp,shear,sheds,shelf,shell,shift,shire,shore,short,shout,shove,shrine,sight,
-silky,since,sinew,sixth,sixty,skill,slack,slain,slant,slate,slave,sleek,sleep,
-sleet,slept,slew,snare,sneak,snide,snore,solar,solid,solve,sonic,sorry,south,
-space,spare,spark,spawn,speak,spear,speed,spend,spire,spite,splat,spoke,spool,
-sport,spout,sprig,sprig,squad,stain,stale,stall,stand,stare,stark,start,state,
-stead,steak,steal,steel,steep,steer,stern,stick,stiff,sting,stink,stone,stood,
-store,stork,storm,story,stove,straw,stray,strep,strip,strode,stroll,strong,stripe,
-strum,strung,stuck,stunt,surge,swear,sweat,sweet,swept,swore,sworn,swung,table,
-talon,tango,tangy,tarot,tartan,taste,thorn,those,three,threw,throw,tiger,tinge,
-title,tonic,torch,total,totem,touch,tower,toxic,trace,track,trade,trail,train,
-trait,tread,treat,trend,trial,tribe,trick,tried,troop,trope,truck,trundle,trust,
-truth,tuner,tutor,twirl,twist,ultra,under,undue,unfit,unlit,until,unzip,upper,
-upright,risen,ripen,resin,reins,repaid,rents,reign,reads,reach,raids,padre,snore,
-ingrained,tangled,granted,ranted,garnet,antler,tangle,garnet,rental,tangle,alerts,
-alters,angels,angles,angers,giants,grants,ranges,grates,danger,garden,latern,
-strangled,entrapped,grandest,entangle,internal,tanglers,integral,triangles,
-regal,legal,eagle,algae,algebra,stale,tales,tread,trade,reads,lanes,lanes,leans,
-leads,renal,solar,snore,stone,tones,notes,hones,drones,bones,cones,zones,zones,
-prods,words,lords,cords,swords,fords,wards,hordes,stored,thorn,short,sport,ports,
-certs,certs,terns,ferns,sterns,stern,stern,stead,steal,steals,deals,heals,reals,
-seals,tears,gears,bears,pears,fears,years,wears,nears,sears,hears,rears,shears,
-clears,smears,spears,beard,board,bored,cored,gored,lured,cured,lured,oared,soared,
-roared,poured,toured,soured,coured,toured,poured,stored,adored,scored,gored,bored,
-snared,stared,flared,shared,spared,glared,dared,cared,bared,fared,pared,bared,
-gland,blend,blends,spends,bends,tends,fends,lends,rends,wends,vends,fends,trend,
-trends,sends,fends,tends,rends,ends,pends,bends,lends,mends,amend,amends,blend,
-blends,spend,spends,trend,trends,rend,rends,bend,bends,tend,tends,fend,fends,
-lend,lends,mend,mends,send,sends,wend,wends,vend,vends`;
-
-// Parse and deduplicate
 const ALL_WORDS = [...new Set(
-  WORD_BANK.replace(/\n/g,'').split(',').map(w=>w.trim().toLowerCase()).filter(w=>/^[a-z]{4,}$/.test(w))
+  WORD_BANK_RAW.replace(/\n/g,'').split(',')
+    .map(w => w.trim().toLowerCase())
+    .filter(w => /^[a-z]{5,}$/.test(w))  // 5+ letters only
 )];
 
-const EDGE_URL  = "https://yellow-lab-4999.andrewveda.workers.dev/functions/v1/submit-quest"; 
-const NAME_KEY  = 'blossomPlayerName';
-const DEPT_KEY  = 'blossomPlayerDept';
-const BEST_KEY  = 'blossomBest';
-const GAME_SECS = 180;
-const ARC_CIRC  = 138.2;
+/* ═══════════════════════════════════════════════
+   CONFIG
+═══════════════════════════════════════════════ */
+const EDGE_URL   = "https://yellow-lab-4999.andrewveda.workers.dev/functions/v1/submit-quest";
+const NAME_KEY   = 'blossomPlayerName';
+const DEPT_KEY   = 'blossomPlayerDept';
+const BEST_KEY   = 'blossomHardBest';
+const BADGES_KEY = 'blossomHardBadges';
+const GAME_SECS  = 180;
+const ARC_CIRC   = 138.2;
+const MIN_LEN    = 5; // HARD MODE: 5+ letters
 
+// Hard-mode puzzles (selected for richer 5+ letter word potential)
 const PUZZLES = [
-  ['A','R','N','T','E','G','L'],['E','S','T','R','A','N','D'],
-  ['I','N','G','H','T','S','L'],['O','R','P','W','E','D','S'],
-  ['U','N','D','S','R','A','E'],['A','M','P','L','E','S','T'],
-  ['E','C','R','A','T','S','N'],['I','L','P','E','S','C','A'],
-  ['O','N','C','E','T','S','I'],['A','T','R','I','N','G','S'],
-  ['E','B','L','A','S','T','R'],['I','G','H','T','S','E','R'],
-  ['O','F','L','W','E','R','S'],['A','H','N','D','S','T','R'],
-  ['E','G','R','A','S','N','D'],['U','S','E','D','R','A','N'],
-  ['A','C','L','E','S','P','I'],['I','N','T','E','R','S','A'],
-  ['O','S','T','A','R','E','D'],['E','R','P','A','S','T','N'],
- ['A','L','E','R','T','S','D'],
-  ['S','T','O','N','E','R','A'],
-  ['R','E','L','A','T','I','O'],
-  ['P','L','A','N','E','T','S'],
-  ['A','N','G','L','E','R','S'],
-  ['C','R','E','A','T','O','R'],
-  ['T','R','I','A','N','G','L'],
-  ['S','I','L','E','N','T','R'],
-  ['A','R','T','I','S','E','N'],
-  ['F','L','O','W','E','R','T'],
-  ['G','R','A','N','D','E','S'],
-  ['S','H','A','R','E','D','T'],
-  ['S','T','R','A','I','N','E'],
-  ['C','H','A','R','T','E','S'],
-  ['B','R','I','G','H','T','E'],
-  ['T','R','E','A','S','O','N'],
-  ['P','A','R','T','I','N','G'],
-  ['R','E','A','D','I','N','G'],
-  ['D','R','E','A','M','S','T'],
-  ['M','A','R','K','E','T','S'],
-  ['A','R','O','S','E','N','T'],
-  ['L','E','A','R','N','I','T'],
-  ['A','T','T','A','I','N','R'],
-  ['S','P','A','R','K','E','T'],
-  ['A','N','T','L','E','R','S'],
-  ['S','T','E','P','A','R','N'],
-  ['A','R','C','H','E','S','T'],
-  ['C','A','R','P','E','T','S'],
-  ['S','E','R','V','A','N','T'],
-  ['S','T','A','T','I','O','N'],
-  ['P','R','O','T','E','I','N'],
-  ['A','R','T','H','E','R','S'],
-  ['S','H','E','L','T','E','R'],
-  ['S','T','R','O','N','G','E'],
-  ['S','P','O','R','T','E','D'],
-  ['S','C','A','R','L','E','T'],
-  ['S','I','D','E','N','T','R'],
-  ['F','A','S','T','E','R','N'],
-  ['S','E','C','T','O','R','A'],
-  ['A','R','E','N','A','L','S'],
-  ['C','L','E','A','R','S','T'],
-  ['S','T','R','A','W','E','D'],
-  ['S','A','L','T','E','R','N'],
-  ['G','A','R','D','E','N','S'],
-  ['S','T','E','A','D','I','N'],
-  ['S','T','R','A','N','D','E'],
-  ['A','R','M','E','D','S','T'],
-  ['S','E','A','T','E','R','N'],
-  ['L','A','T','E','R','N','S'],
-  ['T','R','A','I','N','E','D'],
-  ['S','E','R','E','N','A','T'],
-  ['R','A','T','I','N','G','S'],
-  ['T','E','A','C','H','E','R'],
-  ['R','E','C','I','P','E','T'],
-  ['S','H','A','D','E','R','T'],
-  ['S','T','A','R','I','N','G'],
-  ['A','R','E','N','D','S','T']
+  ['A','R','N','T','E','G','L'], ['E','S','T','R','A','N','D'],
+  ['I','N','G','H','T','S','L'], ['O','R','P','W','E','D','S'],
+  ['A','M','P','L','E','S','T'], ['E','C','R','A','T','S','N'],
+  ['I','L','P','E','S','C','A'], ['A','T','R','I','N','G','S'],
+  ['E','B','L','A','S','T','R'], ['O','F','L','W','E','R','S'],
+  ['A','H','N','D','S','T','R'], ['E','G','R','A','S','N','D'],
+  ['A','C','L','E','S','P','I'], ['I','N','T','E','R','S','A'],
+  ['O','S','T','A','R','E','D'], ['A','L','E','R','T','S','D'],
+  ['S','T','O','N','E','R','A'], ['R','E','L','A','T','I','O'],
+  ['P','L','A','N','E','T','S'], ['A','N','G','L','E','R','S'],
+  ['C','R','E','A','T','O','R'], ['T','R','I','A','N','G','L'],
+  ['S','I','L','E','N','T','R'], ['A','R','T','I','S','E','N'],
+  ['G','R','A','N','D','E','S'], ['S','T','R','A','I','N','E'],
+  ['T','R','E','A','S','O','N'], ['P','A','R','T','I','N','G'],
+  ['R','E','A','D','I','N','G'], ['D','R','E','A','M','S','T'],
+  ['A','N','T','L','E','R','S'], ['A','R','C','H','E','S','T'],
+  ['C','A','R','P','E','T','S'], ['S','H','E','L','T','E','R'],
+  ['S','T','R','O','N','G','E'], ['S','C','A','R','L','E','T'],
+  ['G','A','R','D','E','N','S'], ['S','T','R','A','N','D','E'],
+  ['T','R','A','I','N','E','D'], ['R','A','T','I','N','G','S'],
+  ['S','T','A','R','I','N','G'], ['L','A','T','E','R','N','S'],
 ];
 
 const RANKS = [
-  {name:'Seedling 🌱',min:0},{name:'Sprout 🌿',min:10},
-  {name:'Budding 🌸',min:25},{name:'Blooming 🌺',min:50},
-  {name:'Flourishing 🌻',min:80},{name:'Garden Genius 🏆',min:120},
+  {name:'Ember 🔥',min:0},    {name:'Blaze 🌋',min:15},
+  {name:'Inferno 💥',min:35}, {name:'Crimson 🌹',min:65},
+  {name:'Scarlet ⚔️',min:100},{name:'Dark Master 💀',min:150},
 ];
 
+/* ═══════════════════════════════════════════════
+   HARD MODE BADGES DEFINITION
+═══════════════════════════════════════════════ */
+const BADGE_DEFS = [
+  { id:'first_blood',   icon:'🗡️',  name:'First Blood',     desc:'Find your first word in Hard Mode',           check: (s,w,p,t) => w.size >= 1 },
+  { id:'five_words',    icon:'⚔️',  name:'Battle-Hardened', desc:'Find 5 words in a single Hard Mode game',     check: (s,w,p,t) => w.size >= 5 },
+  { id:'ten_words',     icon:'🔱',  name:'Warlord',         desc:'Find 10 words in a single Hard Mode game',    check: (s,w,p,t) => w.size >= 10 },
+  { id:'score_50',      icon:'💥',  name:'Inferno',         desc:'Score 50+ points in Hard Mode',               check: (s,w,p,t) => s >= 50 },
+  { id:'score_100',     icon:'💀',  name:'Dark Sovereign',  desc:'Score 100+ points in Hard Mode',              check: (s,w,p,t) => s >= 100 },
+  { id:'pangram',       icon:'🌟',  name:'Pangram Hunter',  desc:'Find a pangram in Hard Mode',                 check: (s,w,p,t) => p.length >= 1 },
+  { id:'double_pangram',icon:'✨',  name:'Double Star',     desc:'Find 2 pangrams in one Hard Mode game',       check: (s,w,p,t) => p.length >= 2 },
+  { id:'long_word',     icon:'📜',  name:'Lexicon Lord',    desc:'Find a 8+ letter word in Hard Mode',          check: (s,w,p,t) => [...w].some(x => x.length >= 8) },
+  { id:'long_word_10',  icon:'🏛️',  name:'Grand Scribe',    desc:'Find a 10+ letter word in Hard Mode',         check: (s,w,p,t) => [...w].some(x => x.length >= 10) },
+  { id:'fast_5',        icon:'⚡',  name:'Lightning',       desc:'Find 5 words with 2+ minutes remaining',      check: (s,w,p,t) => w.size >= 5 && t >= 120 },
+  { id:'flash_win',     icon:'🎯',  name:'Challenge Master', desc:'Complete a Flash Challenge',                 check: (s,w,p,t) => flashChallengesWon >= 1 },
+  { id:'survivor',      icon:'🛡️',  name:'Survivor',        desc:'Play until the very last second (0 sec left)',check: (s,w,p,t) => timeLeft <= 0 },
+];
+
+/* ═══════════════════════════════════════════════
+   STATE
+═══════════════════════════════════════════════ */
 let letters=[], outerLetters=[];
 let currentWord='', foundWords=new Set(), pangrams=[];
 let score=0, bestScore=parseInt(localStorage.getItem(BEST_KEY)||'0');
 let validating=false;
 let timeLeft=GAME_SECS, timerInterval=null, gameActive=false;
 let allPossibleWords=[];
+let earnedBadges=[];          // badges earned THIS round
+let allEarnedBadgeIds = new Set(JSON.parse(localStorage.getItem(BADGES_KEY)||'[]'));
+let newBadgeQueue = [];       // queue for sequential popup
+let flashChallengesWon = 0;
+let challengeActive = false;
+let challengeTimeout = null;
+let challengeInterval = null;
+let challengeTimeLeft = 0;
+let challengeTarget = null;
 
+/* ═══════════════════════════════════════════════
+   INIT
+═══════════════════════════════════════════════ */
 newPuzzle();
 
 function newPuzzle() {
   clearInterval(timerInterval);
+  clearChallenge();
   const pick = PUZZLES[Math.floor(Math.random()*PUZZLES.length)];
   letters      = [...pick];
   outerLetters = letters.slice(1);
@@ -562,109 +780,180 @@ function newPuzzle() {
   gameActive   = true;
   timeLeft     = GAME_SECS;
   allPossibleWords = [];
+  earnedBadges = [];
+  newBadgeQueue = [];
+  flashChallengesWon = 0;
   updateScoreDisplay();
   updateFoundList();
   renderFlower();
   renderInput();
+  renderBadges();
   updateTimerDisplay();
   updateArc();
   startTimer();
+  // Schedule first flash challenge at 90s mark
+  setTimeout(() => { if(gameActive) triggerFlashChallenge(); }, 90000);
+  setTimeout(() => { if(gameActive) triggerFlashChallenge(); }, 45000);
 }
 
+/* ═══════════════════════════════════════════════
+   TIMER
+═══════════════════════════════════════════════ */
 function startTimer() {
-  timerInterval = setInterval(()=>{
+  timerInterval = setInterval(() => {
     if (!gameActive) return;
     timeLeft--;
     updateTimerDisplay();
     updateArc();
-    if (timeLeft<=0) endGame();
-  },1000);
+    if (timeLeft <= 0) endGame();
+  }, 1000);
 }
 
 function updateTimerDisplay() {
-  const m=Math.floor(timeLeft/60), s=timeLeft%60;
-  document.getElementById('timerText').textContent=m+':'+(s<10?'0':'')+s;
-  const el=document.getElementById('timerText');
+  const m = Math.floor(timeLeft/60), s = timeLeft%60;
+  document.getElementById('timerText').textContent = m+':'+(s<10?'0':'')+s;
+  const el = document.getElementById('timerText');
   el.classList.remove('amber','danger');
-  if (timeLeft<=30) el.classList.add('danger');
-  else if (timeLeft<=60) el.classList.add('amber');
+  if (timeLeft <= 30) el.classList.add('danger');
+  else if (timeLeft <= 60) el.classList.add('amber');
 }
 
 function updateArc() {
-  const frac=Math.max(0,timeLeft/GAME_SECS);
-  document.getElementById('arcPath').style.strokeDashoffset=ARC_CIRC*(1-frac);
-  document.getElementById('arcPath').style.stroke=timeLeft<=30?'var(--center)':timeLeft<=60?'var(--gold)':'var(--stem)';
+  const frac = Math.max(0, timeLeft/GAME_SECS);
+  document.getElementById('arcPath').style.strokeDashoffset = ARC_CIRC*(1-frac);
+  document.getElementById('arcPath').style.stroke =
+    timeLeft<=30 ? 'var(--center)' : timeLeft<=60 ? 'var(--gold)' : 'var(--stem-light)';
 }
 
+/* ═══════════════════════════════════════════════
+   FLASH CHALLENGES
+═══════════════════════════════════════════════ */
+const CHALLENGES = [
+  { desc: 'Find a 6-letter word → +25 seconds!', reward: 25, test: w => w.length >= 6 },
+  { desc: 'Find a 7-letter word → +35 seconds!', reward: 35, test: w => w.length >= 7 },
+  { desc: 'Find ANY valid word → +15 seconds!',  reward: 15, test: w => w.length >= 5 },
+  { desc: 'Find an 8-letter word → +45 seconds!',reward: 45, test: w => w.length >= 8 },
+];
+
+function triggerFlashChallenge() {
+  if (!gameActive || challengeActive) return;
+  const ch = CHALLENGES[Math.floor(Math.random()*CHALLENGES.length)];
+  challengeTarget  = ch;
+  challengeActive  = true;
+  challengeTimeLeft = 20;
+
+  document.getElementById('challengeTitle').textContent = '⚡ FLASH CHALLENGE';
+  document.getElementById('challengeDesc').textContent  = ch.desc;
+  document.getElementById('challengeTimerFill').style.width = '100%';
+  document.getElementById('challengeBanner').classList.add('show');
+
+  challengeInterval = setInterval(() => {
+    challengeTimeLeft--;
+    const pct = (challengeTimeLeft/20)*100;
+    document.getElementById('challengeTimerFill').style.width = pct+'%';
+    if (challengeTimeLeft <= 0) clearChallenge();
+  }, 1000);
+}
+
+function clearChallenge() {
+  challengeActive = false;
+  challengeTarget = null;
+  clearInterval(challengeInterval);
+  document.getElementById('challengeBanner').classList.remove('show');
+}
+
+function checkChallenge(word) {
+  if (!challengeActive || !challengeTarget) return;
+  if (challengeTarget.test(word.toLowerCase())) {
+    timeLeft = Math.min(timeLeft + challengeTarget.reward, GAME_SECS);
+    updateTimerDisplay(); updateArc();
+    showToast(`⚡ Challenge won! +${challengeTarget.reward} seconds`, 'good');
+    flashChallengesWon++;
+    clearChallenge();
+  }
+}
+
+/* ═══════════════════════════════════════════════
+   FLOWER
+═══════════════════════════════════════════════ */
 function renderFlower() {
   const svg = document.getElementById('flower');
   svg.innerHTML = '';
-  const centerX=150, centerY=150, radius=85, outerRadius=42, centerRadius=48;
+  const cx=150, cy=150, r=85, or=42, cr=48;
 
   for (let i=0; i<6; i++) {
-    const angle=(Math.PI/3)*i-Math.PI/2;
-    const x=centerX+radius*Math.cos(angle);
-    const y=centerY+radius*Math.sin(angle);
-    const circle=document.createElementNS("http://www.w3.org/2000/svg","circle");
+    const angle = (Math.PI/3)*i - Math.PI/2;
+    const x = cx + r*Math.cos(angle), y = cy + r*Math.sin(angle);
+    const circle = document.createElementNS("http://www.w3.org/2000/svg","circle");
     circle.setAttribute("cx",x); circle.setAttribute("cy",y);
-    circle.setAttribute("r",outerRadius); circle.setAttribute("class","outer-petal");
-    const text=document.createElementNS("http://www.w3.org/2000/svg","text");
+    circle.setAttribute("r",or); circle.setAttribute("class","outer-petal");
+    const text = document.createElementNS("http://www.w3.org/2000/svg","text");
     text.setAttribute("x",x); text.setAttribute("y",y+2);
-    text.setAttribute("class","flower-letter"); text.setAttribute("font-size","28");
-    text.textContent=outerLetters[i];
-    circle.addEventListener('click',()=>addLetter(outerLetters[i]));
-    text.addEventListener('click',()=>addLetter(outerLetters[i]));
+    text.setAttribute("class","flower-letter"); text.setAttribute("font-size","27");
+    text.setAttribute("fill","#160e0a"); text.textContent = outerLetters[i];
+    circle.addEventListener('click', () => addLetter(outerLetters[i]));
+    text.addEventListener('click',   () => addLetter(outerLetters[i]));
     svg.appendChild(circle); svg.appendChild(text);
   }
 
-  const centerCircle=document.createElementNS("http://www.w3.org/2000/svg","circle");
-  centerCircle.setAttribute("cx",centerX); centerCircle.setAttribute("cy",centerY);
-  centerCircle.setAttribute("r",centerRadius); centerCircle.setAttribute("class","center-petal");
-  const centerText=document.createElementNS("http://www.w3.org/2000/svg","text");
-  centerText.setAttribute("x",centerX); centerText.setAttribute("y",centerY+3);
-  centerText.setAttribute("class","flower-letter"); centerText.setAttribute("font-size","32");
-  centerText.setAttribute("fill","#fff"); centerText.textContent=letters[0];
-  centerCircle.addEventListener('click',()=>addLetter(letters[0]));
-  centerText.addEventListener('click',()=>addLetter(letters[0]));
-  svg.appendChild(centerCircle); svg.appendChild(centerText);
+  const cc = document.createElementNS("http://www.w3.org/2000/svg","circle");
+  cc.setAttribute("cx",cx); cc.setAttribute("cy",cy);
+  cc.setAttribute("r",cr); cc.setAttribute("class","center-petal");
+  const ct = document.createElementNS("http://www.w3.org/2000/svg","text");
+  ct.setAttribute("x",cx); ct.setAttribute("y",cy+3);
+  ct.setAttribute("class","flower-letter"); ct.setAttribute("font-size","31");
+  ct.setAttribute("fill","#fff"); ct.textContent = letters[0];
+  cc.addEventListener('click', () => addLetter(letters[0]));
+  ct.addEventListener('click', () => addLetter(letters[0]));
+  svg.appendChild(cc); svg.appendChild(ct);
 }
 
+/* ═══════════════════════════════════════════════
+   INPUT
+═══════════════════════════════════════════════ */
 function addLetter(l) { if(!gameActive||currentWord.length>=20)return; currentWord+=l.toUpperCase(); renderInput(); }
 function deleteLetter() { if(!currentWord.length)return; currentWord=currentWord.slice(0,-1); renderInput(); }
 function renderInput() { document.getElementById('typed-letters').textContent=currentWord; document.getElementById('word-display').classList.remove('error','success'); }
 function shakeDisplay() { const d=document.getElementById('word-display'); d.classList.add('error'); setTimeout(()=>d.classList.remove('error'),500); }
 
+/* ═══════════════════════════════════════════════
+   SCORING
+═══════════════════════════════════════════════ */
 function isPangram(word) { const u=new Set(word.split('')); return letters.every(l=>u.has(l.toUpperCase())); }
-function wordScore(word) { return word.length===4?1:word.length+(isPangram(word)?7:0); }
+function wordScore(word) { return word.length + (isPangram(word) ? 9 : 0); } // slightly higher base for 5+
 
+/* ═══════════════════════════════════════════════
+   VALIDATION
+═══════════════════════════════════════════════ */
 async function submitWord() {
   if (validating||!gameActive) return;
-  const word=currentWord.toUpperCase();
-  if (word.length<4)                                              { showToast('Too short! (4+ letters)','bad'); shakeDisplay(); return; }
-  if (!word.includes(letters[0].toUpperCase()))                   { showToast(`Must use "${letters[0].toUpperCase()}"`, 'bad'); shakeDisplay(); return; }
+  const word = currentWord.toUpperCase();
+  if (word.length < MIN_LEN)                                             { showToast(`Hard Mode: ${MIN_LEN}+ letters required!`,'bad'); shakeDisplay(); return; }
+  if (!word.includes(letters[0].toUpperCase()))                          { showToast(`Must use "${letters[0].toUpperCase()}"`, 'bad'); shakeDisplay(); return; }
   if (![...word].every(c=>letters.map(l=>l.toUpperCase()).includes(c))) { showToast('Use only the flower letters!','bad'); shakeDisplay(); return; }
-  if (foundWords.has(word))                                       { showToast('Already found!','bad'); shakeDisplay(); return; }
+  if (foundWords.has(word))                                              { showToast('Already found!','bad'); shakeDisplay(); return; }
 
-  validating=true;
-  document.getElementById('btn-enter').innerHTML='<span class="spinner"></span>';
-  document.getElementById('btn-enter').disabled=true;
-
-  const valid=await checkDictionary(word.toLowerCase());
-
-  validating=false;
-  document.getElementById('btn-enter').textContent='Enter Word';
-  document.getElementById('btn-enter').disabled=false;
+  validating = true;
+  document.getElementById('btn-enter').innerHTML = '<span class="spinner"></span>';
+  document.getElementById('btn-enter').disabled  = true;
+  const valid = await checkDictionary(word.toLowerCase());
+  validating = false;
+  document.getElementById('btn-enter').textContent = 'Enter Word';
+  document.getElementById('btn-enter').disabled    = false;
 
   if (!valid) { showToast('Not a valid word','bad'); shakeDisplay(); return; }
 
-  const pts=wordScore(word);
-  score+=pts; foundWords.add(word);
+  const pts = wordScore(word);
+  score += pts; foundWords.add(word);
   if (isPangram(word)) pangrams.push(word);
-  currentWord=''; renderInput();
+  checkChallenge(word);
+  currentWord = ''; renderInput();
   updateScoreDisplay(); updateFoundList();
-  let msg=pts===1?'+1 point':`+${pts} points`;
-  if (isPangram(word)) msg='★ Pangram! '+msg;
-  showToast(msg,'good');
+  checkBadges();
+
+  let msg = `+${pts} pts`;
+  if (isPangram(word)) msg = '★ Pangram! ' + msg;
+  showToast(msg, 'good');
   document.getElementById('word-display').classList.add('success');
   setTimeout(()=>document.getElementById('word-display').classList.remove('success'),700);
 }
@@ -674,73 +963,140 @@ async function checkDictionary(word) {
   catch { return true; }
 }
 
+/* ═══════════════════════════════════════════════
+   BADGES
+═══════════════════════════════════════════════ */
+function checkBadges() {
+  BADGE_DEFS.forEach(def => {
+    if (allEarnedBadgeIds.has(def.id)) return; // already earned globally
+    if (def.check(score, foundWords, pangrams, timeLeft)) {
+      allEarnedBadgeIds.add(def.id);
+      earnedBadges.push(def);
+      newBadgeQueue.push(def);
+      localStorage.setItem(BADGES_KEY, JSON.stringify([...allEarnedBadgeIds]));
+    }
+  });
+  renderBadges();
+  if (newBadgeQueue.length > 0) drainBadgeQueue();
+}
+
+function drainBadgeQueue() {
+  if (newBadgeQueue.length === 0) return;
+  const def = newBadgeQueue.shift();
+  showBadgePopup(def);
+}
+
+function showBadgePopup(def) {
+  document.getElementById('badgePopupIcon').textContent = def.icon;
+  document.getElementById('badgePopupName').textContent = def.name;
+  document.getElementById('badgePopupDesc').textContent = def.desc;
+  document.getElementById('badgeOverlay').classList.add('show');
+}
+
+function dismissBadge() {
+  document.getElementById('badgeOverlay').classList.remove('show');
+  setTimeout(() => { if(newBadgeQueue.length > 0) drainBadgeQueue(); }, 300);
+}
+
+function renderBadges() {
+  const row = document.getElementById('badgesRow');
+  row.innerHTML = '';
+  BADGE_DEFS.forEach(def => {
+    const el = document.createElement('div');
+    el.className = 'badge-item' + (allEarnedBadgeIds.has(def.id) ? ' unlocked' : '');
+    el.title = def.desc;
+    el.innerHTML = `<span class="b-icon">${def.icon}</span><span class="b-name">${def.name}</span>`;
+    row.appendChild(el);
+  });
+}
+
+/* ═══════════════════════════════════════════════
+   POSSIBLE WORDS
+═══════════════════════════════════════════════ */
 function getCandidateWords() {
-  const center=letters[0].toUpperCase();
-  const allowed=new Set(letters.map(l=>l.toUpperCase()));
-  return ALL_WORDS.filter(w=>{
-    const up=w.toUpperCase();
-    return up.includes(center) && [...up].every(c=>allowed.has(c));
+  const center  = letters[0].toUpperCase();
+  const allowed = new Set(letters.map(l=>l.toUpperCase()));
+  return ALL_WORDS.filter(w => {
+    const up = w.toUpperCase();
+    return up.length >= MIN_LEN && up.includes(center) && [...up].every(c=>allowed.has(c));
   });
 }
 
 async function findAllPossibleWords(onProgress) {
-  const candidates=getCandidateWords();
-  const validated=[];
-  const BATCH=6;
-  let done=0;
+  const candidates = getCandidateWords();
+  const validated  = [];
+  const BATCH = 6;
+  let done = 0;
   for (let i=0; i<candidates.length; i+=BATCH) {
-    const batch=candidates.slice(i,i+BATCH);
-    const results=await Promise.all(batch.map(async w=>{
+    const batch   = candidates.slice(i, i+BATCH);
+    const results = await Promise.all(batch.map(async w => {
       try { const r=await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${w}`); return r.ok?w:null; }
       catch { return w; }
     }));
     results.forEach(w=>{ if(w) validated.push(w); });
-    done+=batch.length;
-    onProgress(Math.min(100,Math.round((done/candidates.length)*100)));
+    done += batch.length;
+    onProgress(Math.min(100, Math.round((done/candidates.length)*100)));
     await new Promise(r=>setTimeout(r,50));
   }
   return validated.sort((a,b)=>{
     const pa=isPangram(a.toUpperCase()),pb=isPangram(b.toUpperCase());
-    if(pa&&!pb)return -1; if(!pa&&pb)return 1;
+    if(pa&&!pb) return -1; if(!pa&&pb) return 1;
     return b.length-a.length||a.localeCompare(b);
   });
 }
 
+/* ═══════════════════════════════════════════════
+   SCORE / RANK DISPLAY
+═══════════════════════════════════════════════ */
 function updateScoreDisplay() {
-  document.getElementById('score').textContent=score;
-  document.getElementById('word-count').textContent=foundWords.size;
-  if(score>bestScore){bestScore=score;localStorage.setItem(BEST_KEY,bestScore);}
-  document.getElementById('best-score').textContent=bestScore;
-  let ri=0;
-  for(let i=RANKS.length-1;i>=0;i--){if(score>=RANKS[i].min){ri=i;break;}}
-  const rank=RANKS[ri],next=RANKS[ri+1];
-  document.getElementById('rank-name').textContent=rank.name;
-  if(next){document.getElementById('rank-fill').style.width=Math.min(100,((score-rank.min)/(next.min-rank.min))*100)+'%';document.getElementById('rank-pts').textContent=`Next rank at ${next.min} pts`;}
-  else{document.getElementById('rank-fill').style.width='100%';document.getElementById('rank-pts').textContent='Max rank reached!';}
+  document.getElementById('score').textContent      = score;
+  document.getElementById('word-count').textContent = foundWords.size;
+  if (score > bestScore) { bestScore = score; localStorage.setItem(BEST_KEY, bestScore); }
+  document.getElementById('best-score').textContent = bestScore;
+  let ri = 0;
+  for (let i=RANKS.length-1; i>=0; i--) { if(score>=RANKS[i].min){ri=i;break;} }
+  const rank=RANKS[ri], next=RANKS[ri+1];
+  document.getElementById('rank-name').textContent = rank.name;
+  if (next) {
+    document.getElementById('rank-fill').style.width = Math.min(100,((score-rank.min)/(next.min-rank.min))*100)+'%';
+    document.getElementById('rank-pts').textContent  = `Next rank at ${next.min} pts`;
+  } else {
+    document.getElementById('rank-fill').style.width = '100%';
+    document.getElementById('rank-pts').textContent  = 'Max rank reached!';
+  }
 }
 
 function updateFoundList() {
-  document.getElementById('found-count').textContent=foundWords.size;
-  const list=document.getElementById('found-list');
-  if(!foundWords.size){list.innerHTML='<span style="font-size:0.8rem;color:var(--ink-muted)">Words you find will appear here…</span>';return;}
-  list.innerHTML='';
+  document.getElementById('found-count').textContent = foundWords.size;
+  const list = document.getElementById('found-list');
+  if (!foundWords.size) {
+    list.innerHTML = '<span style="font-size:0.78rem;color:#4a2a1a">5+ letter words will appear here…</span>';
+    return;
+  }
+  list.innerHTML = '';
   [...foundWords].sort((a,b)=>b.length-a.length||a.localeCompare(b)).forEach(w=>{
-    const span=document.createElement('span');
-    span.className='found-word'+(isPangram(w)?' pangram':'');
-    span.textContent=w; list.appendChild(span);
+    const span = document.createElement('span');
+    span.className = 'found-word'+(isPangram(w)?' pangram':'');
+    span.textContent = w; list.appendChild(span);
   });
 }
 
 function getRankName(pts) {
-  let ri=0;for(let i=RANKS.length-1;i>=0;i--){if(pts>=RANKS[i].min){ri=i;break;}}return RANKS[ri].name;
+  let ri=0; for(let i=RANKS.length-1;i>=0;i--){if(pts>=RANKS[i].min){ri=i;break;}} return RANKS[ri].name;
 }
 
+/* ═══════════════════════════════════════════════
+   TOAST
+═══════════════════════════════════════════════ */
 let toastTimer;
-function showToast(msg,type='') {
-  const t=document.getElementById('toast');t.textContent=msg;t.className='toast show '+type;
-  clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),2200);
+function showToast(msg, type='') {
+  const t=document.getElementById('toast'); t.textContent=msg; t.className='toast show '+type;
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),2400);
 }
 
+/* ═══════════════════════════════════════════════
+   SHUFFLE
+═══════════════════════════════════════════════ */
 function shuffle() {
   for(let i=outerLetters.length-1;i>0;i--){
     const j=Math.floor(Math.random()*(i+1));
@@ -749,284 +1105,207 @@ function shuffle() {
   renderFlower();
 }
 
-document.addEventListener('keydown',e=>{
-  if(e.metaKey||e.ctrlKey||e.altKey)return;
-  if(!document.getElementById('gameScreen').classList.contains('active'))return;
-  const key=e.key.toUpperCase();
-  if(key.length===1&&/[A-Z]/.test(key)){
-    if(letters.map(l=>l.toUpperCase()).includes(key))addLetter(key);
-    else{shakeDisplay();showToast('Not in the flower!','bad');}
-  }else if(e.key==='Backspace')deleteLetter();
-  else if(e.key==='Enter')submitWord();
+/* ═══════════════════════════════════════════════
+   KEYBOARD
+═══════════════════════════════════════════════ */
+document.addEventListener('keydown', e => {
+  if (e.metaKey||e.ctrlKey||e.altKey) return;
+  if (!document.getElementById('gameScreen').classList.contains('active')) return;
+  const key = e.key.toUpperCase();
+  if (key.length===1&&/[A-Z]/.test(key)) {
+    if (letters.map(l=>l.toUpperCase()).includes(key)) addLetter(key);
+    else { shakeDisplay(); showToast('Not in the flower!','bad'); }
+  } else if (e.key==='Backspace') deleteLetter();
+  else if (e.key==='Enter') submitWord();
 });
 
-document.getElementById('btn-delete').addEventListener('click',deleteLetter);
-document.getElementById('btn-enter').addEventListener('click',submitWord);
-document.getElementById('btn-shuffle').addEventListener('click',shuffle);
-document.getElementById('btn-inline-shuffle').addEventListener('click', shuffle);
-document.getElementById('btn-new').addEventListener('click',()=>{
-  if(confirm('Start a new puzzle? Your current progress will be lost.'))newPuzzle();
+/* ═══════════════════════════════════════════════
+   CONTROLS
+═══════════════════════════════════════════════ */
+document.getElementById('btn-delete').addEventListener('click', deleteLetter);
+document.getElementById('btn-enter').addEventListener('click',  submitWord);
+document.getElementById('btn-shuffle').addEventListener('click', shuffle);
+document.getElementById('btn-new').addEventListener('click', () => {
+  if (confirm('Start a new Hard Mode puzzle? Current progress will be lost.')) newPuzzle();
 });
-document.getElementById('btn-end-game').addEventListener('click',()=>{
-  if(confirm('End the game and see your results?'))endGame();
+document.getElementById('btn-end-game').addEventListener('click', () => {
+  if (confirm('End game and see results?')) endGame();
 });
 
+/* ═══════════════════════════════════════════════
+   END GAME
+═══════════════════════════════════════════════ */
 function endGame() {
-  gameActive=false;clearInterval(timerInterval);
-  setTimeout(showEndScreen,300);
+  gameActive = false;
+  clearInterval(timerInterval);
+  clearChallenge();
+  checkBadges(); // final check
+  setTimeout(showEndScreen, 300);
 }
 
+/* ═══════════════════════════════════════════════
+   END SCREEN
+═══════════════════════════════════════════════ */
 function showEndScreen() {
   document.getElementById('gameScreen').classList.remove('active');
   document.getElementById('endScreen').classList.add('active');
 
-  const tm=[[120,'🏆 Garden Genius!'],[80,'🌻 Flourishing!'],[50,'🌺 Blooming!'],[25,'🌸 Budding!'],[0,'🌱 Good effort!']];
-  document.getElementById('endTitle').textContent=(tm.find(([m])=>score>=m)||tm[4])[1];
-  document.getElementById('endSubtitle').textContent=`Blossom · ${foundWords.size} word${foundWords.size!==1?'s':''} · Rank: ${getRankName(score)}`;
-  document.getElementById('endScore').textContent=score;
-  document.getElementById('endWords').textContent=foundWords.size;
-  document.getElementById('endPangrams').textContent=pangrams.length;
+  const tm = [[150,'💀 Dark Mastery!'],[100,'⚔️ Scarlet Blade!'],[65,'🌹 Crimson Peak!'],[35,'💥 Inferno!'],[0,'🔥 Keep Grinding!']];
+  document.getElementById('endTitle').textContent    = (tm.find(([m])=>score>=m)||tm[4])[1];
+  document.getElementById('endSubtitle').textContent = `Hard Mode · ${foundWords.size} word${foundWords.size!==1?'s':''} · ${getRankName(score)}`;
+  document.getElementById('endScore').textContent    = score;
+  document.getElementById('endWords').textContent    = foundWords.size;
+  document.getElementById('endPangrams').textContent = pangrams.length;
 
-  const foundGrid=document.getElementById('endWordsFound');
-  foundGrid.innerHTML='';
-  if(!foundWords.size){foundGrid.innerHTML='<span style="font-size:0.82rem;color:var(--ink-muted)">None found this round.</span>';}
-  else{
+  // Badges earned THIS round
+  const badgesGrid = document.getElementById('endBadgesGrid');
+  badgesGrid.innerHTML = '';
+  if (earnedBadges.length === 0) {
+    badgesGrid.innerHTML = '<span class="no-badges-msg">No new badges this round — keep pushing!</span>';
+  } else {
+    earnedBadges.forEach((def,i) => {
+      const chip = document.createElement('div');
+      chip.className = 'end-badge-chip'; chip.style.animationDelay = (i*0.1)+'s';
+      chip.innerHTML = `<span class="icon">${def.icon}</span><div class="info"><div class="name">${def.name}</div><div class="desc">${def.desc}</div></div>`;
+      badgesGrid.appendChild(chip);
+    });
+  }
+
+  // Words found
+  const foundGrid = document.getElementById('endWordsFound');
+  foundGrid.innerHTML = '';
+  if (!foundWords.size) {
+    foundGrid.innerHTML = '<span style="font-size:0.8rem;color:#4a2a1a">None found this round.</span>';
+  } else {
     [...foundWords].sort((a,b)=>b.length-a.length||a.localeCompare(b)).forEach((w,i)=>{
-      const chip=document.createElement('span');
-      chip.className='end-word-chip'+(isPangram(w)?' pangram':'');
-      chip.textContent=w;chip.style.animationDelay=(i*0.05)+'s';
+      const chip = document.createElement('span');
+      chip.className = 'end-word-chip'+(isPangram(w)?' pangram':'');
+      chip.textContent = w; chip.style.animationDelay = (i*0.04)+'s';
       foundGrid.appendChild(chip);
     });
   }
 
-  const storedName=localStorage.getItem(NAME_KEY);
-  const storedDept=localStorage.getItem(DEPT_KEY);
-  document.getElementById('submitStatus').textContent='';
-  document.getElementById('submitStatus').className='submit-status';
+  // Identity
+  const storedName = localStorage.getItem(NAME_KEY);
+  const storedDept = localStorage.getItem(DEPT_KEY);
+  document.getElementById('submitStatus').textContent = '';
+  document.getElementById('submitStatus').className   = 'submit-status';
 
-  if(storedName&&storedDept){
-    showKnownIdentity(storedName,storedDept);
-    submitScore(storedName,storedDept);
-  }else{
-    document.getElementById('identityKnown').style.display='none';
-    document.getElementById('identityFields').style.display='flex';
-    document.getElementById('playerName').value='';
-    document.getElementById('playerDept').value='';
-    const trySubmit=()=>{
-      const n=document.getElementById('playerName').value.trim();
-      const d=document.getElementById('playerDept').value;
-      if(!n||!d)return;
-      localStorage.setItem(NAME_KEY,n);localStorage.setItem(DEPT_KEY,d);
-      showKnownIdentity(n,d);submitScore(n,d);
-      document.getElementById('btnShare').onclick=()=>shareResult(n,d);
+  if (storedName && storedDept) {
+    showKnownIdentity(storedName, storedDept);
+    submitScore(storedName, storedDept);
+  } else {
+    document.getElementById('identityKnown').style.display = 'none';
+    document.getElementById('identityFields').style.display = 'flex';
+    document.getElementById('playerName').value = '';
+    document.getElementById('playerDept').value = '';
+    const trySubmit = () => {
+      const n = document.getElementById('playerName').value.trim();
+      const d = document.getElementById('playerDept').value;
+      if (!n||!d) return;
+      localStorage.setItem(NAME_KEY,n); localStorage.setItem(DEPT_KEY,d);
+      showKnownIdentity(n,d); submitScore(n,d);
     };
-    document.getElementById('playerName').onblur=trySubmit;
-    document.getElementById('playerDept').onchange=trySubmit;
+    document.getElementById('playerName').onblur   = trySubmit;
+    document.getElementById('playerDept').onchange = trySubmit;
   }
 
-  document.getElementById('btnPlayAgain').onclick=()=>{
+  document.getElementById('btnPlayAgain').onclick  = () => {
     document.getElementById('endScreen').classList.remove('active');
     document.getElementById('gameScreen').classList.add('active');
     newPuzzle();
   };
-  document.getElementById('btnShare').onclick=()=>shareResult(storedName,storedDept);
-  document.getElementById('btnLeaderboard').onclick=()=>window.open('https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/blossom_leaderboard','_blank');
+  document.getElementById('btnShare').onclick      = () => shareResult(storedName, storedDept);
+  document.getElementById('btnLeaderboard').onclick= () => window.open('https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/blossom_leaderboard','_blank');
 
   loadPossibleWords();
 }
 
+/* ═══════════════════════════════════════════════
+   POSSIBLE WORDS LOADER
+═══════════════════════════════════════════════ */
 async function loadPossibleWords() {
-  const progressFill=document.getElementById('progressFill');
-  const subtitle=document.getElementById('possibleSubtitle');
-  const allGrid=document.getElementById('endWordsAll');
-  const countEl=document.getElementById('possibleCount');
-  subtitle.textContent='Checking dictionary…';
-  allGrid.innerHTML='';
+  const progressFill = document.getElementById('progressFill');
+  const subtitle     = document.getElementById('possibleSubtitle');
+  const allGrid      = document.getElementById('endWordsAll');
+  const countEl      = document.getElementById('possibleCount');
+  subtitle.textContent = 'Checking dictionary…';
+  allGrid.innerHTML    = '';
 
-  allPossibleWords=await findAllPossibleWords(pct=>{
-    progressFill.style.width=pct+'%';
-    subtitle.textContent=`Checking dictionary… ${pct}%`;
+  allPossibleWords = await findAllPossibleWords(pct => {
+    progressFill.style.width  = pct+'%';
+    subtitle.textContent = `Checking dictionary… ${pct}%`;
   });
+  progressFill.style.width = '100%';
+  subtitle.textContent     = '';
 
-  progressFill.style.width='100%';
-  subtitle.textContent='';
+  const missed = allPossibleWords.filter(w=>!foundWords.has(w.toUpperCase()));
+  const found  = allPossibleWords.filter(w=> foundWords.has(w.toUpperCase()));
+  countEl.textContent = `${allPossibleWords.length} words · ${found.length} found · ${missed.length} missed`;
 
-  const missed=allPossibleWords.filter(w=>!foundWords.has(w.toUpperCase()));
-  const found=allPossibleWords.filter(w=>foundWords.has(w.toUpperCase()));
-  countEl.textContent=`${allPossibleWords.length} words · ${found.length} found · ${missed.length} missed`;
-
-  const sorted=[
+  const sorted = [
     ...found.map(w=>({w,found:true})),
     ...missed.map(w=>({w,found:false}))
   ].sort((a,b)=>{
-    const pa=isPangram(a.w.toUpperCase()),pb=isPangram(b.w.toUpperCase());
-    if(a.found!==b.found)return a.found?-1:1;
-    if(pa&&!pb)return -1;if(!pa&&pb)return 1;
+    const pa=isPangram(a.w.toUpperCase()), pb=isPangram(b.w.toUpperCase());
+    if(a.found!==b.found) return a.found?-1:1;
+    if(pa&&!pb) return -1; if(!pa&&pb) return 1;
     return b.w.length-a.w.length||a.w.localeCompare(b.w);
   });
 
   sorted.forEach((item,i)=>{
-    const chip=document.createElement('span');
-    const pg=isPangram(item.w.toUpperCase());
-    chip.className='end-word-chip'+(item.found?'':' missed')+(pg?' pangram':'');
-    chip.textContent=item.w.toUpperCase();
-    chip.style.animationDelay=(i*0.02)+'s';
+    const chip = document.createElement('span');
+    const pg   = isPangram(item.w.toUpperCase());
+    chip.className = 'end-word-chip'+(item.found?'':' missed')+(pg?' pangram':'');
+    chip.textContent = item.w.toUpperCase();
+    chip.style.animationDelay = (i*0.02)+'s';
     allGrid.appendChild(chip);
   });
-
-  generateStatsImage();
 }
 
-let statsImageDataUrl=null;
-
-function generateStatsImage() {
-  const canvas=document.getElementById('statsCanvas');
-  const ctx=canvas.getContext('2d');
-  const W=1080,H=1920;
-  canvas.width=W;canvas.height=H;
-  const name=localStorage.getItem(NAME_KEY)||'';
-  const dept=localStorage.getItem(DEPT_KEY)||'';
-  const bg=ctx.createLinearGradient(0,0,0,H);
-  bg.addColorStop(0,'#fdf0e2');bg.addColorStop(1,'#fce8d4');
-  ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
-  const drawBlob=(x,y,r,col)=>{ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fillStyle=col;ctx.fill();};
-  drawBlob(100,200,260,'rgba(249,198,208,0.35)');
-  drawBlob(980,1700,300,'rgba(249,198,208,0.3)');
-  drawBlob(900,400,200,'rgba(122,187,143,0.18)');
-  const fc=440,fy=200,fr=68;
-  for(let i=0;i<6;i++){
-    const a=(Math.PI/3)*i-Math.PI/2;
-    ctx.beginPath();ctx.arc(fc+fr*Math.cos(a),fy+fr*Math.sin(a),38,0,Math.PI*2);
-    ctx.fillStyle='rgba(249,198,208,0.9)';ctx.fill();
-  }
-  ctx.beginPath();ctx.arc(fc,fy,44,0,Math.PI*2);
-  ctx.fillStyle='#f6654a';ctx.fill();
-  ctx.font='bold 38px serif';ctx.fillStyle='#fff';ctx.textAlign='center';
-  ctx.fillText(letters[0]||'✿',fc,fy+13);
-  ctx.font='bold 90px Georgia,serif';ctx.fillStyle='#2a1f1a';ctx.textAlign='center';
-  ctx.fillText('Blossom',W/2,420);
-  ctx.font='28px sans-serif';ctx.fillStyle='#8a7060';
-  ctx.fillText('WORD GAME  ·  3 MINUTE CHALLENGE',W/2,470);
-  if(name){ctx.font='bold 40px sans-serif';ctx.fillStyle='#4a8c5c';ctx.fillText(`👤 ${name}${dept?' · '+dept:''}`,W/2,540);}
-  rrect(ctx,80,590,W-160,260,28,'#fffdf9',true,'rgba(246,101,74,0.25)',4);
-  ctx.font='bold 130px Georgia,serif';ctx.fillStyle='#4a8c5c';ctx.textAlign='center';
-  ctx.fillText(score,W/2,760);
-  ctx.font='28px sans-serif';ctx.fillStyle='#8a7060';
-  ctx.fillText('TOTAL SCORE',W/2,800);
-  const subY=900;
-  const stats=[{v:foundWords.size,l:'Words Found'},{v:pangrams.length,l:'Pangrams ★'},{v:getRankName(score).split(' ')[0],l:'Rank'}];
-  stats.forEach((s,i)=>{
-    const x=160+i*280;
-    rrect(ctx,x-90,subY-10,180,140,16,'#fdf0e2',true,'#f0d8c0',2);
-    ctx.font='bold 58px Georgia,serif';ctx.fillStyle='#4a8c5c';ctx.textAlign='center';
-    ctx.fillText(String(s.v),x,subY+65);
-    ctx.font='22px sans-serif';ctx.fillStyle='#8a7060';
-    ctx.fillText(s.l.toUpperCase(),x,subY+100);
-  });
-  const wY=1090;
-  ctx.font='bold 34px sans-serif';ctx.fillStyle='#2a1f1a';ctx.textAlign='left';
-  ctx.fillText('✅  WORDS YOU FOUND',80,wY);
-  const found=[...foundWords].sort((a,b)=>b.length-a.length||a.localeCompare(b));
-  let wx=80,wy=wY+50;
-  ctx.font='bold 28px monospace';
-  found.slice(0,30).forEach(w=>{
-    const isPg=isPangram(w);
-    const label=(isPg?'★ ':'')+w;
-    const tw=ctx.measureText(label).width+24;
-    if(wx+tw>W-80){wx=80;wy+=52;}
-    if(wy>1400)return;
-    rrect(ctx,wx,wy-28,tw,42,8,isPg?'#fff8e6':'#f0f8f2',true,isPg?'#e8a020':'#c8e8d4',2);
-    ctx.fillStyle=isPg?'#b07010':'#4a8c5c';
-    ctx.fillText(label,wx+12,wy+6);
-    wx+=tw+10;
-  });
-  if(found.length>30){ctx.font='24px sans-serif';ctx.fillStyle='#8a7060';ctx.textAlign='left';ctx.fillText(`+ ${found.length-30} more…`,80,wy+60);wy+=60;}
-  const missed=allPossibleWords.filter(w=>!foundWords.has(w.toUpperCase())).slice(0,8);
-  if(missed.length){
-    const mY=Math.max(wy+80,1500);
-    ctx.font='bold 34px sans-serif';ctx.fillStyle='#2a1f1a';ctx.textAlign='left';
-    ctx.fillText('💡  YOU MISSED',80,mY);
-    let mwx=80,mwy=mY+50;
-    ctx.font='bold 28px monospace';
-    missed.forEach(w=>{
-      const isPg=isPangram(w.toUpperCase());
-      const label=(isPg?'★ ':'')+w.toUpperCase();
-      const tw=ctx.measureText(label).width+24;
-      if(mwx+tw>W-80){mwx=80;mwy+=52;}
-      rrect(ctx,mwx,mwy-28,tw,42,8,isPg?'#fff3e0':'#fff0ee',true,isPg?'#e8a020':'#f4a3b5',2);
-      ctx.fillStyle=isPg?'#9a6010':'#c0604a';
-      ctx.fillText(label,mwx+12,mwy+6);
-      mwx+=tw+10;
-    });
-  }
-  const pY=H-200;
-  ctx.font='bold 30px sans-serif';ctx.fillStyle='#8a7060';ctx.textAlign='center';
-  ctx.fillText('PUZZLE LETTERS',W/2,pY);
-  letters.forEach((l,i)=>{
-    const lx=W/2+(i-3)*100+(i>=3?50:0);
-    const ly=pY+60;
-    ctx.beginPath();ctx.arc(lx,ly,36,0,Math.PI*2);
-    ctx.fillStyle=i===0?'#f6654a':'#f9c6d0';ctx.fill();
-    ctx.font=`bold ${i===0?34:30}px Georgia,serif`;
-    ctx.fillStyle=i===0?'#fff':'#2a1f1a';ctx.textAlign='center';
-    ctx.fillText(l.toUpperCase(),lx,ly+12);
-  });
-  ctx.font='24px sans-serif';ctx.fillStyle='#8a7060';ctx.textAlign='center';
-  ctx.fillText('🌸  play at andrewveda.github.io ',W/2,H-60);
-  statsImageDataUrl=canvas.toDataURL('image/png');
+/* ═══════════════════════════════════════════════
+   IDENTITY
+═══════════════════════════════════════════════ */
+function showKnownIdentity(name, dept) {
+  document.getElementById('identityFields').style.display = 'none';
+  document.getElementById('identityKnown').style.display  = 'flex';
+  document.getElementById('knownName').textContent = '👤 '+name;
+  document.getElementById('knownDept').textContent = dept;
 }
 
-function rrect(ctx,x,y,w,h,r,fill,stroke,strokeColor,lw){
-  ctx.beginPath();
-  ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);
-  ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
-  ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);
-  ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();
-  if(fill){ctx.fillStyle=fill;ctx.fill();}
-  if(stroke){ctx.strokeStyle=strokeColor;ctx.lineWidth=lw;ctx.stroke();}
-}
-
-function showKnownIdentity(name,dept){
-  document.getElementById('identityFields').style.display='none';
-  document.getElementById('identityKnown').style.display='flex';
-  document.getElementById('knownName').textContent='👤 '+name;
-  document.getElementById('knownDept').textContent=dept;
-}
-
-function submitScore(name,dept){
-  const status=document.getElementById('submitStatus');
-  status.className='submit-status';status.textContent='⏳ Submitting score…';
-  const payload={
-    student_name:name,department:dept,
-    score:Number(bestScore),correct:Number(foundWords.size),wrong:0,
-    time_spent:String(GAME_SECS-timeLeft),total_attempts:Number(foundWords.size),
-    perfect_solves:Number(pangrams.length),fastest_solve_sec:0,
-    total_time_bonus:0,longest_streak:0,quest_id:'Blossom'
+/* ═══════════════════════════════════════════════
+   SCORE SUBMISSION
+═══════════════════════════════════════════════ */
+function submitScore(name, dept) {
+  const status = document.getElementById('submitStatus');
+  status.className = 'submit-status'; status.textContent = '⏳ Submitting…';
+  const payload = {
+    student_name: name, department: dept,
+    score: Number(bestScore), correct: Number(foundWords.size), wrong: 0,
+    time_spent: String(GAME_SECS-timeLeft), total_attempts: Number(foundWords.size),
+    perfect_solves: Number(pangrams.length), fastest_solve_sec: 0,
+    total_time_bonus: 0, longest_streak: 0, quest_id: 'Blossom_Hard'
   };
-  fetch(EDGE_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
+  fetch(EDGE_URL, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)})
     .then(r=>r.json())
-    .then(d=>{status.textContent=`✅ Score recorded for ${name}`;})
-    .catch(err=>{status.className='submit-status err';status.textContent='⚠️ Could not submit — check your connection.';});
+    .then(d=>{ status.textContent = `✅ Score recorded — Hard Mode`; })
+    .catch(err=>{ status.className='submit-status err'; status.textContent='⚠️ Could not submit.'; });
 }
 
-async function shareResult(name,dept){
-  const wordSample=[...foundWords].sort((a,b)=>b.length-a.length).slice(0,5).join(', ');
-  const pgLine=pangrams.length?`\n★ Pangram${pangrams.length>1?'s':''}: ${pangrams.join(', ')}`:'';
-  const id=(name&&dept)?`\n👤 ${name} · ${dept}`:'';
-  const msg=`🌸 Blossom Word Game${id}\nScore: ${score} pts · ${foundWords.size} word${foundWords.size!==1?'s':''} · ${getRankName(score)}\n${wordSample?`Words: ${wordSample}${pgLine}\n`:''}\n🌺 Play: [https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/bullseye]`;
-  if(statsImageDataUrl&&navigator.share&&navigator.canShare){
-    try{
-      const blob=await(await fetch(statsImageDataUrl)).blob();
-      const file=new File([blob],'blossom-stats.png',{type:'image/png'});
-      if(navigator.canShare({files:[file]})){await navigator.share({title:'Blossom Word Game',text:msg,files:[file]});return;}
-    }catch(e){}
+/* ═══════════════════════════════════════════════
+   SHARE
+═══════════════════════════════════════════════ */
+async function shareResult(name, dept) {
+  const wordSample = [...foundWords].sort((a,b)=>b.length-a.length).slice(0,4).join(', ');
+  const pgLine     = pangrams.length ? `\n★ Pangrams: ${pangrams.join(', ')}` : '';
+  const id         = (name&&dept) ? `\n👤 ${name} · ${dept}` : '';
+  const badgeList  = earnedBadges.map(b=>b.icon+' '+b.name).join(', ');
+  const badgeLine  = earnedBadges.length ? `\n🏅 Badges: ${badgeList}` : '';
+  const msg = `🔥 Blossom HARD MODE${id}\nScore: ${score} pts · ${foundWords.size} words · ${getRankName(score)}\n${wordSample?`Words: ${wordSample}${pgLine}`:''}\n${badgeLine}\n\n🌺 Play: https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/blossom_hard`;
+  if (navigator.share) {
+    try { await navigator.share({title:'Blossom Hard Mode',text:msg}); return; } catch(e){}
   }
-  if(navigator.share){try{await navigator.share({title:'Blossom Word Game',text:msg});return;}catch(e){}}
-  if(statsImageDataUrl){
-    const a=document.createElement('a');a.href=statsImageDataUrl;
-    a.download='blossom-stats.png';a.click();
-    setTimeout(()=>window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank'),600);
-  }else{window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');}
+  window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
 }
 </script>
 </body>

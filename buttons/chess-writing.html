@@ -633,13 +633,24 @@ makeSlide(`
     <div class="eyebrow">Prompt Engineering Assignment</div>
     <h1 class="hero-title">The Grandmaster's<br>Prompting<br><em style="-webkit-text-fill-color:var(--gold);color:var(--gold)">Assignment</em></h1>
     <p class="hero-sub">Use each thinking lens to write prompts for your chosen essay topic. Record every prompt, your intent, and your analysis. Minimum 20 prompts total.</p>
+
+    <div class="hero-rules" style="margin-bottom:14px;">
+      <div class="hero-rules-title">✎ &nbsp;Essay Title</div>
+      <input id="essayTitleInput" type="text"
+        placeholder="Enter the title of your essay…"
+        style="width:100%;background:var(--input-bg);border:1px solid var(--input-border);border-top:none;color:var(--paper);font-family:'Cormorant Garamond',serif;font-style:italic;font-size:1.05rem;padding:10px 14px;outline:none;transition:border-color 0.2s;"
+        onfocus="this.style.borderColor='var(--input-focus)'"
+        onblur="this.style.borderColor='var(--input-border)'"
+      />
+    </div>
+
     <div class="hero-rules">
       <div class="hero-rules-title">♟ &nbsp;How to complete this</div>
       <div class="hero-rule-item"><div class="rule-num">1</div><div>For each lens, study the chess principle and the thinking prompts provided</div></div>
       <div class="hero-rule-item"><div class="rule-num">2</div><div>Write at least 1–2 ChatGPT prompts per lens — enter them in the work area</div></div>
       <div class="hero-rule-item"><div class="rule-num">3</div><div>Rate each prompt and explain your intent behind it</div></div>
       <div class="hero-rule-item"><div class="rule-num">4</div><div>Write your analysis of how well each lens worked</div></div>
-      <div class="hero-rule-item"><div class="rule-num">5</div><div>On the final slide, copy your work into the portfolio template</div></div>
+      <div class="hero-rule-item"><div class="rule-num">5</div><div>On the final slide, download your work as PDF or HTML</div></div>
     </div>
     <div class="chips">
       <span class="chip">♟ 15 Thinking Lenses</span>
@@ -648,6 +659,16 @@ makeSlide(`
     </div>
   </div>
 `);
+
+/* Restore & persist essay title */
+(function() {
+  var saved = localStorage.getItem('gm-assign-essay-title') || '';
+  var inp = document.getElementById('essayTitleInput');
+  if (inp && saved) inp.value = saved;
+  if (inp) inp.addEventListener('input', function() {
+    localStorage.setItem('gm-assign-essay-title', this.value);
+  });
+})();
 
 /* ── ENTRY MANAGEMENT (declared before slide build loop) ── */
 function saveKey(lensName, field, idx) {
@@ -950,6 +971,11 @@ function generatePDF() {
     return '— not rated';
   }
 
+  var essayTitle = localStorage.getItem('gm-assign-essay-title') || '';
+  var titleLine  = essayTitle ? '<div class="cover-essay">' + esc(essayTitle) + '</div>' : '';
+  var pageHeading = essayTitle ? esc(essayTitle) + ' &nbsp;·&nbsp; ' : '';
+  var totalPrompts = rows.reduce(function(n, r) { return n + r.entries.length; }, 0);
+
   /* Build lens sections HTML */
   var sections = rows.map(function(row) {
     if (!row.entries.length && !row.analysis) return '';
@@ -986,8 +1012,6 @@ function generatePDF() {
   }).join('');
 
   /* Count total prompts */
-  var totalPrompts = rows.reduce(function(n, r) { return n + r.entries.length; }, 0);
-
   var html = '<!DOCTYPE html><html><head>' +
     '<meta charset="UTF-8">' +
     '<title>Prompt Engineering Assignment</title>' +
@@ -1004,6 +1028,7 @@ function generatePDF() {
       '.cover-sub { font-family: "Cormorant Garamond", serif; font-style: italic; font-size: 1.1rem; color: rgba(242,234,216,0.6); margin-bottom: 32px; max-width: 420px; }' +
       '.cover-meta { font-size: 0.7rem; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(201,168,76,0.55); }' +
       '.cover-stat { margin-top: 28px; display: inline-block; border: 1px solid rgba(201,168,76,0.3); padding: 10px 24px; font-size: 0.72rem; letter-spacing: 0.15em; text-transform: uppercase; color: #c9a84c; }' +
+      '.cover-essay { font-family: "Cormorant Garamond", serif; font-style: italic; font-size: 1.3rem; color: #e8d08a; margin: 10px 0 6px; letter-spacing: 0.02em; }' +
 
       /* Page layout */
       '.page-body { max-width: 720px; margin: 0 auto; padding: 40px 32px; }' +
@@ -1050,12 +1075,16 @@ function generatePDF() {
   '<div class="cover">' +
     '<div class="cover-piece">♛</div>' +
     '<div class="cover-title">The Grandmaster\'s<br>Prompting Assignment</div>' +
+    titleLine +
     '<p class="cover-sub">Prompt engineering portfolio — all lenses, prompts, and analysis</p>' +
     '<div class="cover-meta">Generated ' + new Date().toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' }) + '</div>' +
     '<div class="cover-stat">' + totalPrompts + ' prompts across ' + rows.filter(function(r){return r.entries.length>0;}).length + ' lenses</div>' +
   '</div>' +
 
-  '<div class="page-body">' + sections + '</div>' +
+  '<div class="page-body">' +
+    (pageHeading ? '<div style="font-family:\'Cormorant Garamond\',serif;font-style:italic;font-size:1.1rem;color:#8a6e22;margin-bottom:24px;">' + pageHeading.replace(' &nbsp;·&nbsp; ','') + '</div>' : '') +
+    sections +
+  '</div>' +
   '</body></html>';
 
   /* Open in new tab and trigger print dialog */
@@ -1091,6 +1120,8 @@ function downloadHTML() {
 
   var totalPrompts = rows.reduce(function(n, r) { return n + r.entries.length; }, 0);
   var date = new Date().toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' });
+  var essayTitle = localStorage.getItem('gm-assign-essay-title') || '';
+  var titleLine  = essayTitle ? '<div class="cover-essay">' + esc(essayTitle) + '</div>' : '';
 
   var sections = rows.map(function(row) {
     if (!row.entries.length && !row.analysis) return '';
@@ -1139,6 +1170,7 @@ function downloadHTML() {
     '.cover-sub { font-family: "Cormorant Garamond", serif; font-style: italic; font-size: 1.1rem; color: rgba(242,234,216,0.6); margin-bottom: 32px; max-width: 420px; }\n' +
     '.cover-meta { font-size: 0.7rem; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(201,168,76,0.55); }\n' +
     '.cover-stat { margin-top: 28px; display: inline-block; border: 1px solid rgba(201,168,76,0.3); padding: 10px 24px; font-size: 0.72rem; letter-spacing: 0.15em; text-transform: uppercase; color: #c9a84c; }\n' +
+    '.cover-essay { font-family: "Cormorant Garamond", serif; font-style: italic; font-size: 1.3rem; color: #e8d08a; margin: 10px 0 6px; letter-spacing: 0.02em; }\n' +
     '.page-body { max-width: 860px; margin: 0 auto; padding: 48px 32px; }\n' +
     '.page-title { font-family: "Cormorant Garamond", serif; font-size: 1.6rem; font-weight: 700; color: #2c2418; margin-bottom: 8px; border-bottom: 2px solid #c9a84c; padding-bottom: 12px; margin-bottom: 32px; }\n' +
     'section { margin-bottom: 28px; border: 1px solid #e8dcc4; border-radius: 4px; overflow: hidden; background: #fff; }\n' +
@@ -1168,13 +1200,14 @@ function downloadHTML() {
     '<div class="cover">' +
       '<div class="cover-piece">♛</div>' +
       '<div class="cover-title">The Grandmaster\'s<br>Prompting Assignment</div>' +
+      titleLine +
       '<p class="cover-sub">Prompt engineering portfolio — all lenses, prompts, and analysis</p>' +
       '<div class="cover-meta">Generated ' + date + '</div>' +
       '<div class="cover-stat">' + totalPrompts + ' prompts &nbsp;·&nbsp; ' + rows.filter(function(r){return r.entries.length>0;}).length + ' lenses completed</div>' +
     '</div>\n' +
 
     '<div class="page-body">' +
-      '<div class="page-title">♟ &nbsp;Assignment Portfolio &nbsp;—&nbsp; ' + date + '</div>' +
+      '<div class="page-title">♟ &nbsp;Assignment Portfolio &nbsp;—&nbsp; ' + (essayTitle ? esc(essayTitle) + ' &nbsp;·&nbsp; ' : '') + date + '</div>' +
       sections +
     '</div>\n' +
 

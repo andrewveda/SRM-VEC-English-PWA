@@ -605,53 +605,38 @@
       }
       const { jsPDF } = window.jspdf;
 
-      // ── PALETTE ──────────────────────────────────────────────────────
-      // Rich antique gold family
-      const G_BRIGHT  = [245, 210, 90];   // brightest highlight
-      const G_MAIN    = [201, 168, 76];   // main gold
-      const G_DEEP    = [140, 100, 20];   // dark gold for text
-      const G_MUTED   = [170, 135, 55];   // mid gold
-      const G_DIM     = [100,  78, 18];   // very dark gold
-      // Dark backgrounds
-      const BG_DARK   = [14,  10,   4];   // near-black parchment
-      const BG_MID    = [28,  20,   6];   // dark panel
-      const BG_CARD   = [38,  28,  10];   // stat card bg
-      const BG_ROW    = [50,  38,  14];   // alternating row
-      // Cream text
-      const CREAM     = [248, 240, 220];
-      const CREAM_DIM = [190, 178, 148];
-      const CREAM_MID = [220, 208, 178];
+      // ── PALETTE: light cream + antique gold ──────────────────────────
+      const CREAM_BG   = [250, 246, 238];   // page background
+      const CREAM_CARD = [243, 237, 224];   // card fill
+      const CREAM_DARK = [232, 224, 208];   // darker card / divider
+      const GOLD       = [180, 140, 40];    // antique gold — dark enough to read on cream
+      const GOLD_RICH  = [150, 112, 18];    // deeper gold for labels
+      const GOLD_LINE  = [201, 168, 76];    // rule / border
+      const INK        = [22,  16,   6];    // near-black — name & big numbers
+      const INK_MID    = [72,  56,  28];    // secondary text
+      const INK_DIM    = [130, 112,  72];   // captions
 
-      // ── DOCUMENT: A4 portrait ─────────────────────────────────────────
+      // ── DOCUMENT ─────────────────────────────────────────────────────
       const doc = new jsPDF({ unit: "pt", format: "a4", orientation: "portrait" });
-      const PW = doc.internal.pageSize.getWidth();   // 595
-      const PH = doc.internal.pageSize.getHeight();  // 842
-      const M  = 40;
-      const CW = PW - M * 2;
+      const PW  = doc.internal.pageSize.getWidth();   // 595
+      const PH  = doc.internal.pageSize.getHeight();  // 842
+      const M   = 44;
+      const CW  = PW - M * 2;
 
-      // ── HELPERS ───────────────────────────────────────────────────────
-      const setFont = (size, style, color) => {
-        doc.setFont("helvetica", style || "normal");
-        doc.setFontSize(size);
-        doc.setTextColor(...(color || CREAM));
-      };
-      const textW = (str, size, style) => {
-        doc.setFont("helvetica", style || "normal");
-        doc.setFontSize(size);
-        return doc.getTextWidth(str);
-      };
-      const cText  = (str, y, size, style, color) => { setFont(size, style, color); doc.text(str, PW / 2, y, { align: "center" }); };
-      const lText  = (str, x, y, size, style, color) => { setFont(size, style, color); doc.text(str, x, y); };
-      const rText  = (str, x, y, size, style, color) => { setFont(size, style, color); doc.text(str, x, y, { align: "right" }); };
-      const hLine  = (y, x1, x2, col, lw) => { doc.setDrawColor(...(col || G_MAIN)); doc.setLineWidth(lw || 0.5); doc.line(x1 ?? M, y, x2 ?? PW - M, y); };
-      const fRect  = (x, y, w, h, col) => { doc.setFillColor(...col); doc.rect(x, y, w, h, "F"); };
-      const rRect  = (x, y, w, h, r, fill, stroke, lw) => {
+      // ── HELPERS ──────────────────────────────────────────────────────
+      const sf = (sz, st, col) => { doc.setFont("helvetica", st || "normal"); doc.setFontSize(sz); doc.setTextColor(...(col || INK)); };
+      const cT = (str, y, sz, st, col) => { sf(sz, st, col); doc.text(str, PW / 2, y, { align: "center" }); };
+      const lT = (str, x, y, sz, st, col) => { sf(sz, st, col); doc.text(str, x, y); };
+      const rT = (str, x, y, sz, st, col) => { sf(sz, st, col); doc.text(str, x, y, { align: "right" }); };
+      const hl = (y, x1, x2, col, lw) => { doc.setDrawColor(...(col || GOLD_LINE)); doc.setLineWidth(lw ?? 0.6); doc.line(x1 ?? M, y, x2 ?? PW - M, y); };
+      const fr = (x, y, w, h, col) => { doc.setFillColor(...col); doc.rect(x, y, w, h, "F"); };
+      const rr = (x, y, w, h, r, fill, stroke, lw) => {
         doc.setFillColor(...fill);
-        if (stroke) { doc.setDrawColor(...stroke); doc.setLineWidth(lw ?? 0.6); doc.roundedRect(x, y, w, h, r, r, "FD"); }
+        if (stroke) { doc.setDrawColor(...stroke); doc.setLineWidth(lw ?? 0.5); doc.roundedRect(x, y, w, h, r, r, "FD"); }
         else doc.roundedRect(x, y, w, h, r, r, "F");
       };
 
-      // ── DATA PREP ─────────────────────────────────────────────────────
+      // ── DATA ─────────────────────────────────────────────────────────
       const quests   = parseItems(studentObj.quest_list);
       const videos   = parseItems(studentObj.video_list);
       const stories  = parseItems(studentObj.story_list);
@@ -668,285 +653,139 @@
       const dept       = (studentObj.department || "").toUpperCase();
       const name       = studentObj.name || "—";
       const activeDays = Object.keys(grouped).length;
-      const hitRate    = studentObj.total_attempts > 0
-        ? Math.round((studentObj.total_correct / studentObj.total_attempts) * 100) : 0;
 
-      // ══════════════════════════════════════════════════════════════════
-      //  FULL PAGE DARK BACKGROUND
-      // ══════════════════════════════════════════════════════════════════
-      fRect(0, 0, PW, PH, BG_DARK);
+      // ── PAGE BACKGROUND ───────────────────────────────────────────────
+      fr(0, 0, PW, PH, CREAM_BG);
 
-      // ── Subtle diagonal texture lines (give parchment feel) ───────────
-      doc.setDrawColor(201, 168, 76);
-      doc.setLineWidth(0.08);
-      doc.setGState(new doc.GState({ opacity: 0.04 }));
-      for (let i = -PH; i < PW + PH; i += 18) {
-        doc.line(i, 0, i + PH, PH);
-      }
-      doc.setGState(new doc.GState({ opacity: 1.0 }));
+      // Gold top border
+      fr(0, 0, PW, 7, GOLD);
+      // Gold bottom border
+      fr(0, PH - 7, PW, 7, GOLD);
 
-      // ── Top gold bar (thick) ──────────────────────────────────────────
-      fRect(0, 0, PW, 10, G_MAIN);
-      fRect(0, 10, PW, 2, G_BRIGHT);
-      fRect(0, 14, PW, 0.8, G_MUTED);
-
-      // ── Bottom gold bar ───────────────────────────────────────────────
-      fRect(0, PH - 10, PW, 10, G_MAIN);
-      fRect(0, PH - 12, PW, 2, G_BRIGHT);
-
-      // ── Side accent bars ─────────────────────────────────────────────
-      fRect(0,   18, 3, PH - 30, G_DIM);
-      fRect(PW - 3, 18, 3, PH - 30, G_DIM);
-
-      // ── Corner diamond ornaments ──────────────────────────────────────
-      function diamond(cx2, cy2, sz) {
-        doc.setFillColor(...G_MAIN);
-        doc.setGState(new doc.GState({ opacity: 0.9 }));
-        doc.lines([[sz, sz],[sz,-sz],[-sz,-sz],[-sz,sz]], cx2 - sz, cy2, [1,1], "F");
-        doc.setGState(new doc.GState({ opacity: 1.0 }));
-      }
-      const DS = 6;
-      diamond(M - 8, 20, DS);  diamond(PW - M + 8, 20, DS);
-      diamond(M - 8, PH - 20, DS); diamond(PW - M + 8, PH - 20, DS);
-
-      // ══════════════════════════════════════════════════════════════════
-      //  HEADER BLOCK
-      // ══════════════════════════════════════════════════════════════════
-      let y = 42;
-
-      // Institution
-      cText("SRM VALLIAMMAI ENGINEERING COLLEGE", y, 8.5, "bold", G_MUTED);
-      y += 12;
-      cText("DEPARTMENT OF ENGLISH", y, 7, "normal", CREAM_DIM);
+      // ── HEADER ───────────────────────────────────────────────────────
+      let y = 28;
+      cT("SRM VALLIAMMAI ENGINEERING COLLEGE", y, 9.5, "bold", GOLD_RICH);
       y += 14;
+      cT("Department of English  ·  Mission: Veni, Vidi, Vici!", y, 8.5, "normal", INK_MID);
+      y += 18;
+      hl(y, M, PW - M, GOLD_LINE, 1.2);
+      y += 18;
 
-      // Ornamental rule with central diamond
-      hLine(y, M + 30, PW / 2 - 12, G_DIM, 0.5);
-      hLine(y, PW / 2 + 12, PW - M - 30, G_DIM, 0.5);
-      diamond(PW / 2, y, 4);
-      y += 14;
+      // Pilot tag line
+      cT("— PILOT PROFILE —", y, 8, "bold", INK_DIM);
+      y += 16;
 
-      // Mission title
-      cText("MISSION: VENI, VIDI, VICI!", y, 8, "normal", G_MUTED);
-      y += 6;
-
-      // ── Thick gold rule ───────────────────────────────────────────────
+      // NAME — biggest element on the page
+      cT(name.toUpperCase(), y, 34, "bold", INK);
       y += 8;
-      fRect(M, y, CW, 1.5, G_MAIN);
-      y += 4;
-      fRect(M, y, CW, 0.5, G_BRIGHT);
-      y += 14;
 
-      // ── PILOT PROFILE tag ─────────────────────────────────────────────
-      const tagLabel = "PILOT PROFILE";
-      const tagW = textW(tagLabel, 7.5, "bold") + 22;
-      const tagX = (PW - tagW) / 2;
-      rRect(tagX, y - 10, tagW, 15, 3, BG_CARD, G_MUTED, 0.5);
-      cText(tagLabel, y, 7.5, "bold", G_MUTED);
+      if (dept) {
+        cT(dept, y + 11, 11, "bold", GOLD_RICH);
+        y += 22;
+      }
       y += 12;
 
-      // ── NAME — large, commanding ──────────────────────────────────────
-      y += 6;
-      cText(name.toUpperCase(), y, 36, "bold", CREAM);
-      y += 6;
+      hl(y, M, PW - M, GOLD_LINE, 0.8);
+      y += 22;
 
-      // ── Department ────────────────────────────────────────────────────
-      if (dept) {
-        cText(dept, y + 10, 9, "bold", G_MUTED);
-        y += 18;
-      }
-      y += 10;
-
-      // Double thin rules
-      hLine(y, M + 60, PW - M - 60, G_DIM, 0.4);
-      y += 4;
-      hLine(y, M + 80, PW - M - 80, G_MUTED, 0.2);
-      y += 20;
-
-      // ══════════════════════════════════════════════════════════════════
-      //  HERO STAT STRIP — Score | Accuracy | Active Days
-      // ══════════════════════════════════════════════════════════════════
+      // ── HERO STRIP: Score | Accuracy | Active Days ────────────────────
       const heroH = 88;
-      rRect(M, y, CW, heroH, 8, BG_CARD, G_MUTED, 0.5);
+      rr(M, y, CW, heroH, 7, CREAM_CARD, GOLD_LINE, 0.7);
 
-      // Subtle inner glow top edge
-      doc.setDrawColor(...G_BRIGHT);
-      doc.setLineWidth(0.6);
-      doc.setGState(new doc.GState({ opacity: 0.35 }));
-      doc.line(M + 8, y + 1, M + CW - 8, y + 1);
-      doc.setGState(new doc.GState({ opacity: 1.0 }));
-
-      const heroStats = [
-        { val: String(score),       label: "MISSION SCORE",  sub: "points" },
-        { val: `${accuracy}%`,      label: "ACCURACY",       sub: "hit rate" },
-        { val: String(activeDays),  label: "ACTIVE DAYS",    sub: "sessions" },
-      ];
-      const hW = CW / 3;
-      heroStats.forEach((hs, i) => {
-        const bx  = M + i * hW;
-        const mid = bx + hW / 2;
-        // dividers
+      [{val: String(score), label: "MISSION SCORE", sub: "points earned"},
+       {val: accuracy + "%", label: "ACCURACY", sub: "questions correct"},
+       {val: String(activeDays), label: "ACTIVE DAYS", sub: "days with activity"}
+      ].forEach((hs, i) => {
+        const mid = M + i * (CW / 3) + CW / 6;
         if (i > 0) {
-          doc.setDrawColor(...G_DIM);
-          doc.setLineWidth(0.5);
-          doc.line(bx, y + 14, bx, y + heroH - 14);
+          doc.setDrawColor(...CREAM_DARK); doc.setLineWidth(1);
+          doc.line(M + i * (CW / 3), y + 18, M + i * (CW / 3), y + heroH - 18);
         }
-        // big value
-        setFont(34, "bold", G_BRIGHT);
-        doc.text(hs.val, mid, y + 44, { align: "center" });
-        // label
-        setFont(7, "bold", G_MUTED);
-        doc.text(hs.label, mid, y + 58, { align: "center" });
-        // sub
-        setFont(6.5, "normal", CREAM_DIM);
-        doc.text(hs.sub, mid, y + 69, { align: "center" });
+        sf(36, "bold", INK);          doc.text(hs.val,   mid, y + 50, { align: "center" });
+        sf(8,  "bold", GOLD_RICH);    doc.text(hs.label, mid, y + 65, { align: "center" });
+        sf(7.5,"normal", INK_DIM);    doc.text(hs.sub,   mid, y + 77, { align: "center" });
       });
-      y += heroH + 16;
+      y += heroH + 14;
 
-      // ══════════════════════════════════════════════════════════════════
-      //  TIME ON MISSION — full-width elegant banner
-      // ══════════════════════════════════════════════════════════════════
-      const timeH = 56;
-      rRect(M, y, CW, timeH, 8, BG_MID, G_MAIN, 0.7);
+      // ── TIME ON MISSION ───────────────────────────────────────────────
+      const timeH = 54;
+      rr(M, y, CW, timeH, 7, CREAM_CARD, GOLD_LINE, 0.7);
 
-      // Inner gold shimmer line
-      doc.setDrawColor(...G_BRIGHT);
-      doc.setLineWidth(0.5);
-      doc.setGState(new doc.GState({ opacity: 0.25 }));
-      doc.line(M + 8, y + 1, M + CW - 8, y + 1);
-      doc.setGState(new doc.GState({ opacity: 1.0 }));
+      lT("TIME ON MISSION",      M + 18, y + 22, 9,   "bold",   GOLD_RICH);
+      lT("cumulative study time", M + 18, y + 37, 8.5, "normal", INK_DIM);
+      rT(`${tH}h  ${tM}m  ${tS}s`, PW - M - 18, y + 35, 26, "bold", INK);
 
-      // Label left
-      lText("TIME ON MISSION", M + 18, y + 22, 8, "bold", G_MUTED);
-      lText("cumulative study time", M + 18, y + 36, 7, "normal", CREAM_DIM);
+      y += timeH + 14;
 
-      // Time right — three blocks: h  m  s
-      const timeBlocks = [
-        { num: String(tH).padStart(2,"0"), unit: "h" },
-        { num: String(tM).padStart(2,"0"), unit: "m" },
-        { num: String(tS).padStart(2,"0"), unit: "s" },
-      ];
-      let tx = PW - M - 18;
-      // render right-to-left
-      timeBlocks.slice().reverse().forEach((tb, ri) => {
-        const i = 2 - ri;
-        const unitW = textW(tb.unit, 10, "bold");
-        const numW  = textW(tb.num,  26, "bold");
-        const gap   = 3;
-        const blockW = numW + gap + unitW;
-        // unit
-        setFont(10, "bold", G_MUTED);
-        doc.text(tb.unit, tx, y + 34);
-        tx -= unitW + gap;
-        // num
-        setFont(26, "bold", G_BRIGHT);
-        doc.text(tb.num, tx, y + 36, { align: "right" });
-        tx -= numW + 10;
+      // ── STAT GRID: 3 × 2 ─────────────────────────────────────────────
+      const GAP  = 10;
+      const cW2  = (CW - GAP * 2) / 3;
+      const cH   = 84;
+
+      [
+        { label: "QUESTS TAKEN", val: String(studentObj.total_attempts    ?? 0), sub: "total attempts" },
+        { label: "CORRECT",      val: String(studentObj.total_correct     ?? 0), sub: "direct hits"    },
+        { label: "WRONG",        val: String(studentObj.total_wrong       ?? 0), sub: "near misses"    },
+        { label: "QUESTS DONE",  val: String(studentObj.quests_completed  ?? 0), sub: "completed"      },
+        { label: "VIDEOS",       val: String(studentObj.videos_completed  ?? 0), sub: "completed"      },
+        { label: "STORIES",      val: String(studentObj.stories_completed ?? 0), sub: "completed"      },
+      ].forEach((sc, idx) => {
+        const col  = idx % 3;
+        const row  = Math.floor(idx / 3);
+        const cx2  = M + col * (cW2 + GAP);
+        const cy2  = y + row * (cH + GAP);
+        const mid  = cx2 + cW2 / 2;
+
+        rr(cx2, cy2, cW2, cH, 7, CREAM_CARD, GOLD_LINE, 0.5);
+        // gold top accent bar
+        fr(cx2 + 1, cy2 + 1, cW2 - 2, 4, GOLD);
+
+        sf(32, "bold",   INK);       doc.text(sc.val,   mid, cy2 + 46, { align: "center" });
+        sf(8,  "bold",   GOLD_RICH); doc.text(sc.label, mid, cy2 + 60, { align: "center" });
+        sf(7.5,"normal", INK_DIM);   doc.text(sc.sub,   mid, cy2 + 72, { align: "center" });
       });
-      y += timeH + 16;
+      y += 2 * (cH + GAP) + 4;
 
-      // ══════════════════════════════════════════════════════════════════
-      //  STAT GRID — 2 × 3 cards
-      // ══════════════════════════════════════════════════════════════════
-      const statCards = [
-        { label: "QUESTS TAKEN",    val: String(studentObj.total_attempts ?? 0),    sub: "total attempts"    },
-        { label: "CORRECT",         val: String(studentObj.total_correct  ?? 0),    sub: "direct hits"       },
-        { label: "WRONG",           val: String(studentObj.total_wrong    ?? 0),    sub: "near misses"       },
-        { label: "QUESTS DONE",     val: String(studentObj.quests_completed ?? 0),  sub: "completed"         },
-        { label: "VIDEOS",          val: String(studentObj.videos_completed ?? 0),  sub: "completed"         },
-        { label: "STORIES",         val: String(studentObj.stories_completed ?? 0), sub: "completed"         },
-      ];
+      // ── ACTIVITY ROW: Cryptic | Wordle | Vocab ────────────────────────
+      const aH = 78;
+      [
+        { label: "CRYPTIC", val: String(studentObj.cryptic_completed ?? 0), sub: "puzzles solved" },
+        { label: "WORDLE",  val: String(studentObj.wordle_completed  ?? 0), sub: "puzzles solved" },
+        { label: "VOCAB",   val: String(studentObj.vocab_completed   ?? 0), sub: "sessions done"  },
+      ].forEach((ac, i) => {
+        const cx2 = M + i * (cW2 + GAP);
+        const mid = cx2 + cW2 / 2;
 
-      const cols    = 3;
-      const cardGap = 10;
-      const cardW   = (CW - cardGap * (cols - 1)) / cols;
-      const cardH   = 80;
-      const rows    = Math.ceil(statCards.length / cols);
+        rr(cx2, y, cW2, aH, 7, CREAM_DARK, GOLD_LINE, 0.6);
+        fr(cx2 + 1, y + 1, cW2 - 2, 4, GOLD);
 
-      statCards.forEach((sc, idx) => {
-        const col = idx % cols;
-        const row = Math.floor(idx / cols);
-        const cx2 = M + col * (cardW + cardGap);
-        const cy2 = y + row * (cardH + cardGap);
-
-        rRect(cx2, cy2, cardW, cardH, 7, BG_CARD, G_DIM, 0.5);
-
-        // top accent line
-        doc.setDrawColor(...G_MUTED);
-        doc.setLineWidth(1.2);
-        doc.line(cx2 + 12, cy2 + 1, cx2 + cardW - 12, cy2 + 1);
-
-        const mid = cx2 + cardW / 2;
-        setFont(30, "bold", G_BRIGHT);
-        doc.text(sc.val, mid, cy2 + 42, { align: "center" });
-        setFont(6.5, "bold", G_MUTED);
-        doc.text(sc.label, mid, cy2 + 56, { align: "center" });
-        setFont(6, "normal", CREAM_DIM);
-        doc.text(sc.sub, mid, cy2 + 66, { align: "center" });
+        sf(30, "bold",   INK);       doc.text(ac.val,   mid, y + 42, { align: "center" });
+        sf(8,  "bold",   GOLD_RICH); doc.text(ac.label, mid, y + 56, { align: "center" });
+        sf(7.5,"normal", INK_DIM);   doc.text(ac.sub,   mid, y + 68, { align: "center" });
       });
+      y += aH + 14;
 
-      y += rows * (cardH + cardGap) + 6;
+      // ── LAST MISSION + TOTAL SCORE ────────────────────────────────────
+      const banH = 52;
+      rr(M, y, CW, banH, 7, CREAM_CARD, GOLD_LINE, 0.7);
 
-      // ══════════════════════════════════════════════════════════════════
-      //  ACTIVITY ROW — Cryptic | Wordle | Vocab  (wide cards)
-      // ══════════════════════════════════════════════════════════════════
-      y += 6;
-      const actCards = [
-        { label: "CRYPTIC",  val: String(studentObj.cryptic_completed ?? 0), sub: "puzzles solved" },
-        { label: "WORDLE",   val: String(studentObj.wordle_completed  ?? 0), sub: "puzzles solved" },
-        { label: "VOCAB",    val: String(studentObj.vocab_completed   ?? 0), sub: "sessions done"  },
-      ];
-      const aCardW = (CW - cardGap * 2) / 3;
-      const aCardH = 76;
-      actCards.forEach((ac, i) => {
-        const cx2 = M + i * (aCardW + cardGap);
-        rRect(cx2, y, aCardW, aCardH, 7, BG_ROW, G_MAIN, 0.6);
+      lT("LAST MISSION",                             M + 18, y + 20, 8.5, "bold",   GOLD_RICH);
+      lT(formatDate(studentObj.last_test_taken),     M + 18, y + 37, 10,  "bold",   INK);
+      rT("TOTAL SCORE",                              PW - M - 18, y + 20, 8.5, "bold",   GOLD_RICH);
+      rT(`${score} pts`,                             PW - M - 18, y + 38, 17,  "bold",   INK);
 
-        // accent line — brighter for this row
-        doc.setDrawColor(...G_BRIGHT);
-        doc.setLineWidth(1.0);
-        doc.line(cx2 + 10, y + 1, cx2 + aCardW - 10, y + 1);
+      y += banH + 20;
 
-        const mid = cx2 + aCardW / 2;
-        setFont(28, "bold", G_BRIGHT);
-        doc.text(ac.val, mid, y + 38, { align: "center" });
-        setFont(7, "bold", G_MUTED);
-        doc.text(ac.label, mid, y + 52, { align: "center" });
-        setFont(6, "normal", CREAM_DIM);
-        doc.text(ac.sub, mid, y + 62, { align: "center" });
+      // ── FOOTER ───────────────────────────────────────────────────────
+      hl(y, M, PW - M, GOLD_LINE, 0.6);
+      y += 13;
+      const stamp = new Date().toLocaleString('en-IN', {
+        timeZone: 'Asia/Kolkata', day: '2-digit', month: 'short',
+        year: 'numeric', hour: '2-digit', minute: '2-digit'
       });
-      y += aCardH + 16;
+      cT(`Generated ${stamp}  ·  Mission: Veni, Vidi, Vici!  ·  SRM Valliammai`, y, 8, "normal", INK_DIM);
 
-      // ══════════════════════════════════════════════════════════════════
-      //  FULL-WIDTH SCORE + LAST MISSION BANNER
-      // ══════════════════════════════════════════════════════════════════
-      const bannerH = 52;
-      rRect(M, y, CW, bannerH, 8, BG_MID, G_MAIN, 0.7);
-
-      lText("LAST MISSION", M + 18, y + 20, 7.5, "bold", G_MUTED);
-      lText(formatDate(studentObj.last_test_taken), M + 18, y + 36, 9.5, "bold", CREAM);
-      rText(`TOTAL SCORE  ${score}  pts`, PW - M - 18, y + 30, 12, "bold", G_BRIGHT);
-      y += bannerH + 18;
-
-      // ══════════════════════════════════════════════════════════════════
-      //  LARGE WATERMARK
-      // ══════════════════════════════════════════════════════════════════
-      doc.setGState(new doc.GState({ opacity: 0.04 }));
-      setFont(110, "bold", G_MAIN);
-      doc.text("VVV", PW / 2, PH / 2 + 30, { align: "center" });
-      doc.setGState(new doc.GState({ opacity: 1.0 }));
-
-      // ══════════════════════════════════════════════════════════════════
-      //  FOOTER
-      // ══════════════════════════════════════════════════════════════════
-      const footY = PH - 28;
-      hLine(footY - 4, M + 20, PW - M - 20, G_DIM, 0.4);
-      const stamp = `Generated ${new Date().toLocaleString('en-IN',{timeZone:'Asia/Kolkata',day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})}`;
-      cText(stamp, footY + 4, 7, "normal", CREAM_DIM);
-      cText("Mission: Veni, Vidi, Vici!  ·  SRM Valliammai Engineering College", footY + 14, 6.5, "normal", G_DIM);
-
-      // ── SAVE ─────────────────────────────────────────────────────────
-      doc.save(`${name.replace(/\s+/g,"_")}_MissionReport.pdf`);
+      doc.save(`${name.replace(/\s+/g, "_")}_MissionReport.pdf`);
     }
   </script>
 

@@ -5,11 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>The Grandmaster's Thinking Toolkit</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
 <style>
-/* ── THEME VARIABLES ── */
 :root {
   --gold:        #c9a84c;
   --gold-light:  #e8d08a;
@@ -26,6 +24,8 @@
   --nav-bottom:  rgba(11,9,6,1);
   --card-bg:     #130f0a;
   --pattern-op:  0.032;
+  --chess-bg:    rgba(201,168,76,0.06);
+  --chess-border:rgba(201,168,76,0.28);
 }
 html.light {
   --gold:        #8a6200;
@@ -43,6 +43,8 @@ html.light {
   --nav-bottom:  rgba(245,238,220,1);
   --card-bg:     #ede4d0;
   --pattern-op:  0.06;
+  --chess-bg:    rgba(138,98,0,0.07);
+  --chess-border:rgba(138,98,0,0.28);
 }
 
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
@@ -58,7 +60,6 @@ html, body {
   transition: background 0.3s, color 0.3s;
 }
 
-/* ── BOARD PATTERN BG ── */
 .bg-board {
   position: fixed; inset: 0; z-index: 0; pointer-events: none;
   display: grid;
@@ -67,20 +68,17 @@ html, body {
   opacity: var(--pattern-op);
   transition: opacity 0.3s;
 }
-.bg-board span { display: block; }
-.bg-board .sq { background: var(--paper); }
+.bg-board .sq { display: block; background: var(--paper); }
 
-/* ── PROGRESS BAR ── */
 .progress-bar {
   position: fixed; top: 0; left: 0; right: 0; height: 3px;
   background: var(--gold-ghost); z-index: 100;
 }
 .progress-fill {
-  height: 100%; background: var(--gold);
+  height: 100%; background: linear-gradient(90deg, var(--gold), var(--gold-light));
   transition: width 0.4s cubic-bezier(0.4,0,0.2,1);
 }
 
-/* ── TOP NAV ── */
 .top-nav {
   position: fixed; top: 0; left: 0; right: 0; z-index: 99;
   display: flex; align-items: center; justify-content: space-between;
@@ -95,22 +93,15 @@ html, body {
 }
 .nav-counter {
   font-size: 11px; color: var(--gold-dim); letter-spacing: 2px;
-  font-family: 'Courier Prime', monospace;
 }
 .theme-btn {
-  background: transparent;
-  border: 1px solid var(--gold-dim);
-  color: var(--gold);
-  font-size: 14px;
-  padding: 5px 10px; cursor: pointer;
-  line-height: 1;
+  background: transparent; border: 1px solid var(--gold-dim);
+  color: var(--gold); font-size: 14px; padding: 5px 10px; cursor: pointer;
   transition: background 0.2s, transform 0.15s;
-  -webkit-tap-highlight-color: transparent;
-  user-select: none;
+  -webkit-tap-highlight-color: transparent; user-select: none;
 }
 .theme-btn:active { transform: scale(0.92); background: var(--gold-dim); }
 
-/* ── SLIDE VIEWPORT ── */
 .slides-wrap { position: fixed; inset: 0; z-index: 1; overflow: hidden; }
 .slides-track {
   display: flex; height: 100%;
@@ -118,7 +109,6 @@ html, body {
   will-change: transform;
 }
 
-/* ── SLIDE ── */
 .slide {
   min-width: 100vw; width: 100vw; height: 100%;
   overflow-y: auto; overflow-x: hidden;
@@ -128,7 +118,6 @@ html, body {
 }
 .slide-inner { width: 100%; max-width: 560px; flex: 1; }
 
-/* ── BOTTOM NAV ── */
 .bottom-nav {
   position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
   padding: 12px 20px 28px;
@@ -158,7 +147,6 @@ html.light .dot.nearby { background: rgba(138,98,0,0.42); }
 .nav-btn.primary { background: var(--gold); color: var(--ink); border-color: var(--gold); }
 .nav-btn.primary:active { opacity: 0.85; }
 
-/* ── SWIPE HINT ── */
 .swipe-hint {
   position: fixed; bottom: 84px; left: 50%; transform: translateX(-50%);
   font-size: 9px; letter-spacing: 3px; color: var(--gold-dim);
@@ -172,11 +160,7 @@ html.light .dot.nearby { background: rgba(138,98,0,0.42); }
   100% { opacity:0; }
 }
 
-/* ══════════════════════════════════
-   SLIDE CONTENT COMPONENTS
-══════════════════════════════════ */
-
-/* HERO SLIDE */
+/* ── HERO ── */
 .hero {
   display: flex; flex-direction: column;
   justify-content: center; align-items: center;
@@ -201,73 +185,117 @@ html.light .dot.nearby { background: rgba(138,98,0,0.42); }
   color: var(--text-muted); line-height: 1.68; margin-bottom: 28px;
   max-width: 380px;
 }
-.chips { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-bottom: 20px; }
 .chip {
   padding: 4px 10px; border: 1px solid var(--gold-dim); color: var(--gold-dim);
   font-size: 8px; letter-spacing: 2px; text-transform: uppercase;
 }
 
-/* SECTION LABEL */
+/* ── CHESS PRINCIPLE BLOCK ── */
+.chess-principle {
+  background: var(--chess-bg);
+  border: 1px solid var(--chess-border);
+  border-top: 3px solid var(--gold);
+  padding: 14px 16px 13px;
+  margin-bottom: 14px;
+  position: relative; overflow: hidden;
+}
+.chess-principle::before {
+  content: attr(data-bg-piece);
+  position: absolute; right: -8px; top: -12px;
+  font-size: 5.5rem; opacity: 0.06; line-height: 1;
+  pointer-events: none; user-select: none;
+}
+.chess-p-label {
+  font-size: 0.58rem; letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--gold); margin-bottom: 8px;
+  display: flex; align-items: center; gap: 7px;
+}
+.chess-p-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+.chess-p-name {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.02rem; font-weight: 700;
+  color: var(--paper); margin-bottom: 8px; line-height: 1.2;
+}
+.chess-p-questions {
+  display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px;
+}
+.chess-p-q {
+  font-size: 0.78rem; color: var(--text-muted); line-height: 1.45;
+  display: flex; gap: 8px; align-items: flex-start;
+}
+.chess-p-q::before { content: '▸'; color: var(--gold); flex-shrink: 0; font-size: 0.65rem; margin-top: 2px; }
+.chess-p-heuristic {
+  font-size: 0.62rem; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--gold-dim); margin-top: 9px;
+  padding-top: 9px; border-top: 1px solid var(--border-soft);
+  display: flex; align-items: center; gap: 7px;
+}
+.chess-p-heuristic span { font-weight: 700; color: var(--gold); letter-spacing: 0.1em; }
+
+/* Hero chess block variant */
+.hero-chess {
+  width: 100%; max-width: 340px;
+  background: var(--chess-bg);
+  border: 1px solid var(--chess-border);
+  border-top: 3px solid var(--gold);
+  padding: 16px 18px 14px;
+  text-align: left;
+}
+.hero-chess-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 0.9rem; font-weight: 700;
+  color: var(--gold); margin-bottom: 10px; letter-spacing: 0.04em;
+}
+.hero-chess-step {
+  display: flex; gap: 10px; align-items: flex-start;
+  margin-bottom: 7px; font-size: 0.78rem; color: var(--text-dim); line-height: 1.4;
+}
+.hero-chess-num {
+  width: 18px; height: 18px; border: 1px solid var(--gold-dim);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.6rem; color: var(--gold); flex-shrink: 0; margin-top: 1px;
+}
+.hero-chess-heuristic {
+  margin-top: 11px; padding-top: 10px; border-top: 1px solid var(--border-soft);
+  font-size: 0.6rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--gold-dim);
+}
+.hero-chess-heuristic b { color: var(--gold); }
+
+/* ── SECTION / LENS ── */
 .sec-label {
   font-size: 9px; letter-spacing: 4px; text-transform: uppercase;
   color: var(--gold-dim); margin-bottom: 6px;
 }
 .sec-heading {
   font-family: 'Cormorant Garamond', serif;
-  font-size: clamp(1.3rem, 5.5vw, 1.85rem);
-  font-weight: 700; letter-spacing: 0.01em;
+  font-size: clamp(1.3rem, 5.5vw, 1.85rem); font-weight: 700;
   background: linear-gradient(135deg, var(--gold), var(--gold-light));
   -webkit-background-clip: text; background-clip: text;
-  -webkit-text-fill-color: transparent;
-  margin-bottom: 16px;
+  -webkit-text-fill-color: transparent; margin-bottom: 16px;
 }
 .body-text {
   font-size: 14px; color: var(--text-dim); line-height: 1.8; margin-bottom: 16px;
 }
 .body-text em { color: var(--gold); font-style: normal; }
-html.light .body-text em { color: var(--gold); }
 
-/* LENS CARD (used on the overview slide) */
-.lens-grid {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-bottom: 16px;
-}
-.lens-chip {
-  background: var(--card-bg);
-  border: 1px solid var(--border);
-  border-left: 3px solid var(--lc, var(--gold));
-  padding: 11px 12px;
-}
-.lens-chip-piece { font-size: 1.1rem; display: block; margin-bottom: 4px; }
-.lens-chip-name {
-  font-family: 'Cormorant Garamond', serif;
-  font-size: 0.85rem; font-weight: 700; color: var(--paper);
-  display: block; margin-bottom: 2px;
-}
-.lens-chip-tag { font-size: 0.6rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); }
-
-/* INDIVIDUAL LENS SLIDE */
 .lens-slide-header {
-  display: flex; align-items: center; gap: 16px; margin-bottom: 20px;
+  display: flex; align-items: center; gap: 16px; margin-bottom: 18px;
 }
-.lens-piece-big {
-  font-size: 3rem; line-height: 1; flex-shrink: 0; opacity: 0.85;
-}
+.lens-piece-big { font-size: 3rem; line-height: 1; flex-shrink: 0; opacity: 0.85; }
 .lens-name-big {
   font-family: 'Cormorant Garamond', serif;
-  font-size: clamp(1.6rem, 7vw, 2.4rem);
-  font-weight: 700; line-height: 1.05;
+  font-size: clamp(1.6rem, 7vw, 2.4rem); font-weight: 700; line-height: 1.05;
 }
 .lens-tagline-big {
-  font-size: 0.68rem; letter-spacing: 0.12em; text-transform: uppercase;
-  margin-top: 5px;
+  font-size: 0.68rem; letter-spacing: 0.12em; text-transform: uppercase; margin-top: 5px;
 }
 
 .lens-body-card {
   background: var(--card-bg);
   border: 1px solid var(--border);
   border-left: 3px solid var(--lc, var(--gold));
-  padding: 18px 18px 16px;
-  margin-bottom: 16px;
+  padding: 18px 18px 16px; margin-bottom: 14px;
   position: relative; overflow: hidden;
 }
 .lens-body-card::before {
@@ -278,54 +306,35 @@ html.light .body-text em { color: var(--gold); }
 }
 .lens-body-text {
   font-family: 'Cormorant Garamond', serif;
-  font-size: 1.04rem; line-height: 1.78;
-  color: var(--text-dim);
+  font-size: 1.04rem; line-height: 1.78; color: var(--text-dim);
 }
 
-/* PROMPTS */
 .prompts-label {
   font-size: 0.6rem; letter-spacing: 0.2em; text-transform: uppercase;
   color: var(--gold); margin-bottom: 10px;
   display: flex; align-items: center; gap: 8px;
 }
 .prompts-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
-
-.prompt-list { display: flex; flex-direction: column; gap: 7px; margin-bottom: 18px; }
+.prompt-list { display: flex; flex-direction: column; gap: 7px; margin-bottom: 16px; }
 .prompt-item {
-  background: var(--gold-ghost);
-  border: 1px solid var(--border-soft);
-  padding: 10px 14px;
-  font-size: 0.84rem; line-height: 1.55;
-  color: var(--text-dim);
-  display: flex; gap: 10px; align-items: flex-start;
+  background: var(--gold-ghost); border: 1px solid var(--border-soft);
+  padding: 10px 14px; font-size: 0.84rem; line-height: 1.55;
+  color: var(--text-dim); display: flex; gap: 10px; align-items: flex-start;
 }
 .prompt-arrow { color: var(--gold); flex-shrink: 0; font-weight: 700; }
 
-/* QUOTE */
 .lens-quote {
-  border-top: 1px solid var(--border);
-  padding-top: 14px;
-  font-family: 'Cormorant Garamond', serif;
-  font-style: italic;
-  font-size: 0.96rem; line-height: 1.65;
-  color: var(--text-muted);
+  border-top: 1px solid var(--border); padding-top: 14px;
+  font-family: 'Cormorant Garamond', serif; font-style: italic;
+  font-size: 0.96rem; line-height: 1.65; color: var(--text-muted);
 }
 .lens-quote cite {
   display: block; font-style: normal;
   font-size: 0.62rem; letter-spacing: 0.1em; text-transform: uppercase;
-  color: var(--text-faint); margin-top: 5px;
-  font-family: 'Courier Prime', monospace;
+  color: var(--text-faint); margin-top: 5px; font-family: 'Courier Prime', monospace;
 }
 
-/* NOTE BOX */
-.note {
-  padding: 12px 15px; border-left: 3px solid var(--gold);
-  background: var(--gold-ghost); margin-top: 14px;
-  font-size: 12px; color: var(--text-dim); line-height: 1.65;
-  font-family: 'Cormorant Garamond', serif; font-style: italic;
-}
-
-/* FINAL SLIDE */
+/* ── FINALE ── */
 .finale {
   display: flex; flex-direction: column;
   justify-content: center; align-items: center;
@@ -342,8 +351,52 @@ html.light .body-text em { color: var(--gold); }
 }
 .finale-sub {
   font-size: 14px; color: var(--text-muted);
-  margin-bottom: 32px; line-height: 1.7; max-width: 320px;
+  margin-bottom: 24px; line-height: 1.7; max-width: 320px;
 }
+
+/* Finale thinking loop */
+.finale-loop {
+  width: 100%; max-width: 320px;
+  background: var(--chess-bg); border: 1px solid var(--chess-border);
+  border-top: 3px solid var(--gold);
+  padding: 16px 18px 14px; margin-bottom: 24px; text-align: left;
+}
+.finale-loop-title {
+  font-size: 0.6rem; letter-spacing: 0.2em; text-transform: uppercase;
+  color: var(--gold); margin-bottom: 12px;
+  display: flex; align-items: center; gap: 7px;
+}
+.finale-loop-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+.finale-steps {
+  display: flex; flex-direction: column; gap: 0;
+}
+.finale-step {
+  display: flex; align-items: stretch; gap: 12px;
+}
+.finale-step-line {
+  display: flex; flex-direction: column; align-items: center; flex-shrink: 0;
+}
+.finale-step-dot {
+  width: 20px; height: 20px; border: 1.5px solid var(--gold);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.6rem; color: var(--gold); flex-shrink: 0;
+}
+.finale-step-connector {
+  width: 1px; background: var(--border); flex: 1; min-height: 10px; margin: 2px 0;
+}
+.finale-step:last-child .finale-step-connector { display: none; }
+.finale-step-text {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 0.9rem; color: var(--text-dim); line-height: 1.3;
+  padding: 2px 0 12px;
+}
+.finale-heuristic {
+  margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border-soft);
+  font-size: 0.6rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--gold-dim);
+  text-align: center;
+}
+.finale-heuristic b { color: var(--gold); }
+
 .finale-restart {
   background: none; border: 1px solid var(--gold-dim); color: var(--gold-dim);
   font-size: 11px; font-family: 'Courier Prime', monospace;
@@ -352,7 +405,6 @@ html.light .body-text em { color: var(--gold); }
 }
 .finale-restart:hover { color: var(--gold); border-color: var(--gold); }
 
-/* ENTRANCE ANIM */
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(18px); }
   to   { opacity: 1; transform: translateY(0); }
@@ -372,9 +424,7 @@ html.light .body-text em { color: var(--gold); }
 </nav>
 
 <div class="slides-wrap">
-  <div class="slides-track" id="track">
-    <!-- slides injected by JS -->
-  </div>
+  <div class="slides-track" id="track"></div>
 </div>
 
 <div class="bottom-nav">
@@ -388,90 +438,191 @@ html.light .body-text em { color: var(--gold); }
 const bgBoard = document.getElementById('bgBoard');
 for (let i = 0; i < 64; i++) {
   const s = document.createElement('span');
-  const r = Math.floor(i / 8), c = i % 8;
-  if ((r + c) % 2 === 0) s.className = 'sq';
+  if ((Math.floor(i/8) + i%8) % 2 === 0) s.className = 'sq';
   bgBoard.appendChild(s);
 }
 
 /* ── THEME ── */
-const THEME_KEY = 'gm-theme';
 function applyTheme(t) {
   document.documentElement.classList.toggle('light', t === 'light');
-  document.getElementById('themeBtn').textContent = t === 'light' ? '\u263E' : '\u2600';
+  document.getElementById('themeBtn').textContent = t === 'light' ? '☾' : '☀';
 }
 document.getElementById('themeBtn').addEventListener('click', function() {
   const next = document.documentElement.classList.contains('light') ? 'dark' : 'light';
-  localStorage.setItem(THEME_KEY, next);
-  applyTheme(next);
+  localStorage.setItem('gm-theme', next); applyTheme(next);
 });
-applyTheme(localStorage.getItem(THEME_KEY) || 'dark');
+applyTheme(localStorage.getItem('gm-theme') || 'dark');
 
-/* ── LENS DATA ── */
+/* ── DATA ── */
 const LENSES = [
-  { id:'who',     piece:'♟', name:'WHO',      tagline:'People & Stakeholders',       color:'#5b8fa8',
+  {
+    piece:'♟', name:'WHO', tagline:'People & Stakeholders', color:'#5b8fa8',
     body:'The WHO lens forces you to map every human in the picture — not just the obvious decision-maker, but the quiet stakeholders, the people downstream, the ones whose voices are missing. Great thinking always asks: whose perspective has not yet been heard?',
     prompts:['Who benefits most from this idea?','Who is harmed or left out?','Whose voice is missing from this discussion?','Who would strongly disagree — and why might they be right?','Who is the unexpected person this affects?','If you had to defend this to a critic, who would that critic be?'],
-    quote:'"The quality of any decision is limited by the diversity of perspectives used to make it."', cite:'— Edward de Bono' },
-  { id:'what',    piece:'♙', name:'WHAT',     tagline:'Definitions & Assumptions',   color:'#a87c2e',
+    quote:'"The quality of any decision is limited by the diversity of perspectives used to make it."', cite:'— Edward de Bono',
+    chess: {
+      name:'Identify the Most Important Piece',
+      questions:['Which piece is strongest and which is weakest?','Which piece is currently under attack?','Which piece needs to improve its position?'],
+      heuristic:'Piece Activity Evaluation'
+    }
+  },
+  {
+    piece:'♙', name:'WHAT', tagline:'Definitions & Assumptions', color:'#a87c2e',
     body:'The WHAT lens attacks hidden assumptions. Every idea rests on beliefs we never question. De Bono called these "rock logic" — foundations so deep we forget they are there. The WHAT lens makes them visible, and visible assumptions can be challenged.',
     prompts:['What are we assuming is true that might not be?','What would change if we defined this problem differently?','What is NOT being said in this conversation?','What is the opposite of this idea — is there value in it?','What would this look like if we removed the most important constraint?','What would a 10-year-old say about this?'],
-    quote:'"Most of the mistakes in thinking are inadequacies of perception rather than mistakes of logic."', cite:'— Edward de Bono' },
-  { id:'when',    piece:'♗', name:'WHEN',     tagline:'Timing & Sequence',           color:'#7a5ea8',
+    quote:'"Most of the mistakes in thinking are inadequacies of perception rather than mistakes of logic."', cite:'— Edward de Bono',
+    chess: {
+      name:'Question the Position',
+      questions:['Is the position really as good as it looks?','Am I assuming something without calculating it?','What if my opponent has a hidden tactic here?'],
+      heuristic:'Position Re-evaluation'
+    }
+  },
+  {
+    piece:'♗', name:'WHEN', tagline:'Timing & Sequence', color:'#7a5ea8',
     body:'Timing is a strategy. The same idea can succeed or fail depending entirely on when it is deployed. The WHEN lens trains you to think about sequence, momentum, readiness, and the hidden rhythms that make an action land or fall flat.',
     prompts:['When is the best moment to introduce this idea?','When would this be a terrible idea — what conditions would make it fail?','When in the past has something similar succeeded or failed?','What needs to happen first before this can work?','When do people care most about this problem?','What would need to be different about the timing to change the outcome?'],
-    quote:'"An idea that is not dangerous is unworthy of being called an idea at all."', cite:'— Oscar Wilde (via de Bono on provocation)' },
-  { id:'where',   piece:'♘', name:'WHERE',    tagline:'Context & Environment',       color:'#3d8a6e',
+    quote:'"An idea that is not dangerous is unworthy of being called an idea at all."', cite:'— Oscar Wilde (via de Bono on provocation)',
+    chess: {
+      name:'Timing the Break',
+      questions:['When should the pawn break happen — now or later?','Is it the right moment for e4, d5, or f5?','What must be in place before I can launch the attack?'],
+      heuristic:'Correct Moment for Action'
+    }
+  },
+  {
+    piece:'♘', name:'WHERE', tagline:'Context & Environment', color:'#3d8a6e',
     body:'Context transforms meaning. An idea that works brilliantly in one environment can collapse in another. The WHERE lens asks you to stress-test your thinking across different contexts — and to spot where else a solution might unexpectedly work.',
     prompts:['Where does this idea work best? Where does it fail?','Where else could this same solution apply, in a completely different field?','Where in the world is this already being done differently?','Where do the exceptions happen — and what do they tell us?','Where would you need to be standing to see this problem differently?','Where is the environment making this harder than it needs to be?'],
-    quote:'"Water does not resist. Water flows."', cite:'— Margaret Atwood (on context-sensitivity)' },
-  { id:'why',     piece:'♛', name:'WHY',      tagline:'Purpose & Root Cause',        color:'#a85858',
-    body:'The WHY lens goes below the surface. Rory Sutherland warns that most organisations solve symptoms while the root cause goes untouched. De Bono\'s "Why Why Why" technique keeps drilling until you find the real driver. Most first-level whys are wrong.',
+    quote:'"Water does not resist. Water flows."', cite:'— Margaret Atwood (on context-sensitivity)',
+    chess: {
+      name:'Play Where the Board Demands',
+      questions:['Which side of the board matters most right now?','Where is the key weakness in the position?','Where should the attack be directed — king or queenside?'],
+      heuristic:'Board Sector Focus'
+    }
+  },
+  {
+    piece:'♛', name:'WHY', tagline:'Purpose & Root Cause', color:'#a85858',
+    body:"The WHY lens goes below the surface. Rory Sutherland warns that most organisations solve symptoms while the root cause goes untouched. De Bono's 'Why Why Why' technique keeps drilling until you find the real driver. Most first-level whys are wrong.",
     prompts:['Why does this problem exist in the first place?','Why has it not been solved yet — what forces keep it in place?','Why does anyone care about this? What deeper need is driving it?','Why might the obvious solution make things worse?','Ask "why" five times in a row — what do you find at the bottom?','Why would someone rational choose NOT to adopt this idea?'],
-    quote:'"The problem with most solutions is that they solve the wrong problem, brilliantly."', cite:'— Rory Sutherland, Alchemy' },
-  { id:'how',     piece:'♖', name:'HOW',      tagline:'Methods & Mechanisms',        color:'#5a7aa8',
+    quote:'"The problem with most solutions is that they solve the wrong problem, brilliantly."', cite:'— Rory Sutherland, Alchemy',
+    chess: {
+      name:'Understand the Strategic Idea',
+      questions:['Why does this plan actually work — not just that it does?','What specific weakness or imbalance am I targeting?','What if I cannot justify this move strategically?'],
+      heuristic:'Strategic Justification'
+    }
+  },
+  {
+    piece:'♖', name:'HOW', tagline:'Methods & Mechanisms', color:'#5a7aa8',
     body:'The HOW lens is not about execution — it is about generating radically different paths to the same destination. Lateral thinking demands that you produce at least five HOW alternatives before committing to the first one that came to mind.',
     prompts:['How else could you achieve the same goal with completely different means?','How would you do this if you had half the budget? Ten times the budget?','How would a different industry solve this exact problem?','How could you make this idea worse on purpose — then reverse it?','How would you explain this method to someone from 200 years ago?','How do you know your method is working — what is the signal?'],
-    quote:'"You cannot look in a new direction by looking harder in the same direction."', cite:'— Edward de Bono' },
-  { id:'past',    piece:'♟', name:'PAST',     tagline:'History & Precedent',         color:'#6b5a3e',
-    body:'The PAST lens mines history not to repeat it — but to steal from it intelligently. Every "new" problem has been encountered in some form before. The question is: what did people learn, what did they discard too soon, and what old solution could work in a new context?',
+    quote:'"You cannot look in a new direction by looking harder in the same direction."', cite:'— Edward de Bono',
+    chess: {
+      name:'Find the Correct Plan',
+      questions:['How do I improve my worst piece right now?','How do I crack the pawn structure?','How do I activate my rooks — are the files open?'],
+      heuristic:'Plan Construction'
+    }
+  },
+  {
+    piece:'♟', name:'PAST', tagline:'History & Precedent', color:'#6b5a3e',
+    body:"The PAST lens mines history not to repeat it — but to steal from it intelligently. Every 'new' problem has been encountered in some form before. The question is: what did people learn, what did they discard too soon, and what old solution could work in a new context?",
     prompts:['When was this tried before — and what happened?','What solution was abandoned in the past that might deserve a second look?','What did people do before this problem existed — what can we learn from that?','What historical parallel is being ignored right now?','What assumption from the past is still running the present without questioning?','If this is a new problem, what made it new — what changed?'],
-    quote:'"Those who cannot remember the past are condemned to repeat it."', cite:'— George Santayana' },
-  { id:'present', piece:'♙', name:'PRESENT',  tagline:'Current Reality',             color:'#4a7a5a',
-    body:'De Bono\'s White Hat asks for pure facts — no interpretation, no opinion, just the current state of things. The PRESENT lens is about seeing clearly what is actually in front of you, not the story you are telling yourself about it.',
+    quote:'"Those who cannot remember the past are condemned to repeat it."', cite:'— George Santayana',
+    chess: {
+      name:'Pattern Recognition',
+      questions:['Have I seen a similar structure before — what worked?','Which famous game or motif applies here?','What known tactical pattern is lurking in this position?'],
+      heuristic:'Pattern Memory'
+    }
+  },
+  {
+    piece:'♙', name:'PRESENT', tagline:'Current Reality', color:'#4a7a5a',
+    body:"De Bono's White Hat asks for pure facts — no interpretation, no opinion, just the current state of things. The PRESENT lens is about seeing clearly what is actually in front of you, not the story you are telling yourself about it.",
     prompts:['What is actually happening right now — not what we hope or fear?','What data exists, and what are we inferring that isn\'t in the data?','What is everyone in the room avoiding saying out loud?','What is hiding in plain sight that nobody has named?','What small signal is being missed because everyone is focused on the obvious one?','What would a neutral outsider see that insiders cannot?'],
-    quote:'"The White Hat is about facts, data, and information. What do we know? What do we need to find out?"', cite:'— Edward de Bono, Six Thinking Hats' },
-  { id:'future',  piece:'♗', name:'FUTURE',   tagline:'Scenarios & Consequences',    color:'#3a5a8a',
-    body:'Sutherland argues that most decisions are made for today\'s world using yesterday\'s logic. The FUTURE lens projects forward — not to predict, but to stress-test. If your idea only works in the world as it is now, it is already out of date.',
+    quote:'"The White Hat is about facts, data, and information. What do we know? What do we need to find out?"', cite:'— Edward de Bono, Six Thinking Hats',
+    chess: {
+      name:'Evaluate the Current Position',
+      questions:['What is the material count right now?','Is either king in danger?','Which side has better piece activity and pawn structure?'],
+      heuristic:'Static Evaluation'
+    }
+  },
+  {
+    piece:'♗', name:'FUTURE', tagline:'Scenarios & Consequences', color:'#3a5a8a',
+    body:"Sutherland argues that most decisions are made for today's world using yesterday's logic. The FUTURE lens projects forward — not to predict, but to stress-test. If your idea only works in the world as it is now, it is already out of date.",
     prompts:['What does the world look like in 10 years if this idea succeeds?','What does the world look like in 10 years if nothing changes?','What trend will make this idea more valuable in the future?','What trend will make this idea irrelevant?','What second-order consequence will nobody predict?','If this becomes mainstream, what problems does it create next?'],
-    quote:'"The future is already here — it\'s just not evenly distributed."', cite:'— William Gibson' },
-  { id:'positive',piece:'♛', name:'POSITIVE', tagline:'Green Hat — Value & Opportunity', color:'#3a7a3a',
-    body:'De Bono\'s Yellow Hat (value) and Green Hat (creativity) both demand that you look for what works before you look for what doesn\'t. Optimism is not naivety — it is a deliberate cognitive tool. The POSITIVE lens stops premature criticism from killing ideas before they can develop.',
+    quote:'"The future is already here — it\'s just not evenly distributed."', cite:'— William Gibson',
+    chess: {
+      name:'Calculate Variations',
+      questions:['If I play this move, what does my opponent reply?','And then what — can I follow up?','Does this line work three moves deep, not just one?'],
+      heuristic:'Forward Calculation'
+    }
+  },
+  {
+    piece:'♛', name:'POSITIVE', tagline:'Green Hat — Value & Opportunity', color:'#3a7a3a',
+    body:"De Bono's Yellow Hat (value) and Green Hat (creativity) both demand that you look for what works before you look for what doesn't. Optimism is not naivety — it is a deliberate cognitive tool. The POSITIVE lens stops premature criticism from killing ideas before they can develop.",
     prompts:['What is the best-case scenario if this works?','What unexpected benefit might emerge that we haven\'t anticipated?','Who gains the most — and could that gain be larger than we think?','What becomes possible if this idea succeeds?','What is genuinely exciting or novel about this approach?','What existing strength could this idea amplify?'],
-    quote:'"The Yellow Hat demands a deliberate search for value. It is not just optimism — it is a discipline."', cite:'— Edward de Bono, Six Thinking Hats' },
-  { id:'negative',piece:'♚', name:'NEGATIVE', tagline:'Black Hat — Risk & Caution',  color:'#8a3a3a',
-    body:'De Bono\'s Black Hat is the most overused hat in most meetings — but used deliberately and in the right place, it is invaluable. The NEGATIVE lens asks you to be a rigorous critic before committing. Think like the opponent who sees every weakness in your position.',
+    quote:'"The Yellow Hat demands a deliberate search for value. It is not just optimism — it is a discipline."', cite:'— Edward de Bono, Six Thinking Hats',
+    chess: {
+      name:'Look for Tactical Possibilities',
+      questions:['Is there a fork, pin, or skewer available?','Does a sacrifice open a decisive line?','Is there a discovered attack hiding in the position?'],
+      heuristic:'Tactical Alertness'
+    }
+  },
+  {
+    piece:'♚', name:'NEGATIVE', tagline:'Black Hat — Risk & Caution', color:'#8a3a3a',
+    body:"De Bono's Black Hat is the most overused hat in most meetings — but used deliberately and in the right place, it is invaluable. The NEGATIVE lens asks you to be a rigorous critic before committing. Think like the opponent who sees every weakness in your position.",
     prompts:['What is most likely to go wrong — and how badly?','Who would be hurt by this that we haven\'t considered?','What hidden cost will only reveal itself later?','What assumption, if wrong, makes the whole idea collapse?','What would a hostile journalist write about this plan?','What does this idea make harder that is currently easy?'],
-    quote:'"The Black Hat is for critical judgement. It is not negative thinking — it is protective thinking."', cite:'— Edward de Bono, Six Thinking Hats' },
-  { id:'reframe', piece:'♘', name:'REFRAME',  tagline:'Change the Question',         color:'#7a4a8a',
-    body:'Sutherland\'s greatest lesson: most problems are unsolvable in their original framing. Reframing doesn\'t change the facts — it changes which facts matter. The most creative solutions in history came from someone who refused to accept the problem as given.',
+    quote:'"The Black Hat is for critical judgement. It is not negative thinking — it is protective thinking."', cite:'— Edward de Bono, Six Thinking Hats',
+    chess: {
+      name:'The Blunder Check',
+      questions:['What is my opponent threatening right now?','Does this move drop a piece or expose my king?','Am I leaving any tactic undefended after this?'],
+      heuristic:'Blunder Prevention'
+    }
+  },
+  {
+    piece:'♘', name:'REFRAME', tagline:'Change the Question', color:'#7a4a8a',
+    body:"Sutherland's greatest lesson: most problems are unsolvable in their original framing. Reframing doesn't change the facts — it changes which facts matter. The most creative solutions in history came from someone who refused to accept the problem as given.",
     prompts:['What if this is the wrong problem entirely?','How would you describe this to someone who had never heard of it — does their version reveal something?','What is the problem underneath the problem?','What would change if you renamed this idea something completely different?','Can you invert the problem — make the "victim" the solver?','If the solution feels impossible, what would need to change about the problem for a solution to exist?'],
-    quote:'"Most problems are not engineering problems. They are perception problems dressed up as engineering problems."', cite:'— Rory Sutherland, Alchemy' },
-  { id:'lateral', piece:'♖', name:'LATERAL',  tagline:'The Sideways Move',           color:'#a8622e',
-    body:'De Bono defined lateral thinking as the deliberate disruption of established patterns. The LATERAL lens introduces randomness, analogy, and provocation — not because random is good, but because sometimes only a sideways move reveals a path that vertical thinking could never find.',
+    quote:'"Most problems are not engineering problems. They are perception problems dressed up as engineering problems."', cite:'— Rory Sutherland, Alchemy',
+    chess: {
+      name:'Switch the Plan',
+      questions:['Should I abandon this attack and defend instead?','Is the action now on the kingside, not the queenside?','Does this position call for tactics when I was thinking strategically?'],
+      heuristic:'Strategic Flexibility'
+    }
+  },
+  {
+    piece:'♖', name:'LATERAL', tagline:'The Sideways Move', color:'#a8622e',
+    body:"De Bono defined lateral thinking as the deliberate disruption of established patterns. The LATERAL lens introduces randomness, analogy, and provocation — not because random is good, but because sometimes only a sideways move reveals a path that vertical thinking could never find.",
     prompts:['What is the most indirect route to the same goal?','What would happen if you did the exact opposite of the obvious thing?','Pick a random word — a chess piece, an animal, a colour — and find a connection to your problem.','What does this problem have in common with something completely unrelated?','What would a child, an alien, or a medieval peasant think the solution is?','If you could only solve this using ideas from a different industry, which industry would you choose?'],
-    quote:'"Lateral thinking is concerned with breaking out of the concept prisons of old ideas."', cite:'— Edward de Bono' },
-  { id:'reverse', piece:'♟', name:'REVERSE',  tagline:'Turn It Upside Down',         color:'#2e7a8a',
-    body:'Reversal is one of de Bono\'s most powerful provocation techniques. By deliberately stating the reverse of an assumption and taking it seriously, you force your thinking into new territory. Many breakthrough innovations came from someone who did the reverse of common sense.',
+    quote:'"Lateral thinking is concerned with breaking out of the concept prisons of old ideas."', cite:'— Edward de Bono',
+    chess: {
+      name:'Prophylaxis',
+      questions:['What is my opponent planning — can I stop it before it starts?','Does a quiet move like h3 or a3 prevent a future threat?','Am I thinking about my own plans when my opponent\'s idea is the real danger?'],
+      heuristic:'Opponent-Centred Thinking (Karpov / Petrosian style)'
+    }
+  },
+  {
+    piece:'♟', name:'REVERSE', tagline:'Turn It Upside Down', color:'#2e7a8a',
+    body:"Reversal is one of de Bono's most powerful provocation techniques. By deliberately stating the reverse of an assumption and taking it seriously, you force your thinking into new territory. Many breakthrough innovations came from someone who did the reverse of common sense.",
     prompts:['What if you tried to make this problem worse on purpose — what does that reveal?','What if the people affected by the problem were the ones solving it?','What if the flaw is actually the feature?','What if less of the obvious solution is actually better?','Reverse the roles — who becomes who?','What if the goal and the method swapped places?'],
-    quote:'"Po is a provocative operation. It takes a statement and uses it as a stepping stone, not a destination."', cite:'— Edward de Bono' },
-  { id:'oblique', piece:'♛', name:'OBLIQUE',  tagline:'Indirect Value',              color:'#8a6a2e',
-    body:'Rory Sutherland\'s central insight: the most valuable things often don\'t look valuable. The best solution is frequently not a solution to the stated problem at all — it is something that changes the feeling, the framing, or the context so that the problem dissolves.',
+    quote:'"Po is a provocative operation. It takes a statement and uses it as a stepping stone, not a destination."', cite:'— Edward de Bono',
+    chess: {
+      name:'Counterattack',
+      questions:['Instead of defending, can I create an even bigger threat?','Can I attack the attacker rather than protect the piece?','Does dynamic counterplay make defence unnecessary?'],
+      heuristic:'Dynamic Defence (Tal / Kasparov mindset)'
+    }
+  },
+  {
+    piece:'♛', name:'OBLIQUE', tagline:'Indirect Value', color:'#8a6a2e',
+    body:"Rory Sutherland's central insight: the most valuable things often don't look valuable. The best solution is frequently not a solution to the stated problem at all — it is something that changes the feeling, the framing, or the context so that the problem dissolves.",
     prompts:['What would make this problem feel solved, even if it isn\'t technically fixed?','What invisible psychological variable is doing most of the real work here?','What would feel irrational but might actually be more effective than the sensible option?','What change in meaning or signal could replace a change in substance?','What would happen if you spent the whole budget on changing perception instead of changing reality?','What does this situation have that is genuinely valuable but nobody has thought to name yet?'],
-    quote:'"The fact that a logical answer exists does not mean it is the best answer."', cite:'— Rory Sutherland, Alchemy' }
+    quote:'"The fact that a logical answer exists does not mean it is the best answer."', cite:'— Rory Sutherland, Alchemy',
+    chess: {
+      name:'The Positional Sacrifice',
+      questions:['Can I give up the exchange for long-term pressure?','Is a pawn sacrifice worth the initiative I gain?','Does surrendering material create compensation that is hard to quantify?'],
+      heuristic:'Compensation Thinking'
+    }
+  }
 ];
 
-/* ── BUILD SLIDES ── */
-const TOTAL = LENSES.length + 2; // hero + lenses + finale
+const TOTAL = LENSES.length + 2;
 const track = document.getElementById('track');
 
 function makeSlide(html) {
@@ -481,27 +632,42 @@ function makeSlide(html) {
   track.appendChild(s);
 }
 
+function chessBlock(chess, color, bgPiece) {
+  const qs = chess.questions.map(q => `<div class="chess-p-q">${q}</div>`).join('');
+  return `
+    <div class="chess-principle" data-bg-piece="${bgPiece || '♟'}">
+      <div class="chess-p-label" style="color:${color}">♟ &nbsp;Chess principle</div>
+      <div class="chess-p-name">${chess.name}</div>
+      <div class="chess-p-questions">${qs}</div>
+      <div class="chess-p-heuristic">Heuristic: <span>${chess.heuristic}</span></div>
+    </div>`;
+}
+
 // SLIDE 0: HERO
 makeSlide(`
   <div class="hero">
-    <div class="eyebrow">The Grandmaster\'s Thinking Toolkit</div>
-    <h1 class="hero-title">Every Idea<br>Has <em style="-webkit-text-fill-color:var(--gold);color:var(--gold)">Many<br>Moves</em></h1>
-    <p class="hero-sub">Brainstorming lenses drawn from lateral thinking, de Bono\'s frameworks, and Rory Sutherland\'s oblique logic.</p>
+    <div class="eyebrow">The Grandmaster's Thinking Toolkit</div>
+    <h1 class="hero-title">Every Position<br>Has <em style="-webkit-text-fill-color:var(--gold);color:var(--gold)">Many<br>Moves</em></h1>
+    <p class="hero-sub">Brainstorming lenses drawn from lateral thinking, de Bono's frameworks, and Rory Sutherland's oblique logic — each one paired with its chess equivalent.</p>
     <div class="chips">
       <span class="chip">♟ Edward de Bono</span>
       <span class="chip">♛ Rory Sutherland</span>
       <span class="chip">♞ Lateral Thinking</span>
       <span class="chip">♖ Six Thinking Hats</span>
     </div>
+    <div class="hero-chess">
+      <div class="hero-chess-title">♟ &nbsp;Chess Principle: Candidate Move Generation</div>
+      <div class="hero-chess-step"><div class="hero-chess-num">1</div><div>Do not play the first move you see</div></div>
+      <div class="hero-chess-step"><div class="hero-chess-num">2</div><div>Generate multiple alternative moves</div></div>
+      <div class="hero-chess-step"><div class="hero-chess-num">3</div><div>Compare possibilities before committing</div></div>
+      <div class="hero-chess-heuristic">Heuristic: <b>Candidate Move Generation</b></div>
+    </div>
   </div>
 `);
 
-// SLIDES 1–15: One per lens
+// SLIDES 1–15
 LENSES.forEach(function(lens) {
-  const promptsHTML = lens.prompts.map(function(p) {
-    return `<div class="prompt-item"><span class="prompt-arrow">→</span><span>${p}</span></div>`;
-  }).join('');
-
+  const promptsHTML = lens.prompts.map(p => `<div class="prompt-item"><span class="prompt-arrow">→</span><span>${p}</span></div>`).join('');
   makeSlide(`
     <div class="lens-slide-header">
       <div class="lens-piece-big">${lens.piece}</div>
@@ -515,13 +681,12 @@ LENSES.forEach(function(lens) {
       <p class="lens-body-text">${lens.body}</p>
     </div>
 
+    ${chessBlock(lens.chess, lens.color, lens.piece)}
+
     <div class="prompts-label" style="color:${lens.color}">♟ &nbsp;Thinking prompts</div>
     <div class="prompt-list">${promptsHTML}</div>
 
-    <div class="lens-quote">
-      ${lens.quote}
-      <cite>${lens.cite}</cite>
-    </div>
+    <div class="lens-quote">${lens.quote}<cite>${lens.cite}</cite></div>
   `);
 });
 
@@ -529,8 +694,34 @@ LENSES.forEach(function(lens) {
 makeSlide(`
   <div class="finale">
     <span class="finale-crown">♛</span>
-    <div class="finale-title">Now apply<br>the lenses</div>
+    <div class="finale-title">The Best Move<br>is Often the Second Idea</div>
     <p class="finale-sub">Take any idea, decision, or problem. Run it through as many lenses as you can. The move you almost missed is usually the best one.</p>
+    <div class="finale-loop">
+      <div class="finale-loop-title">♟ &nbsp;The Grandmaster's Thinking Loop</div>
+      <div class="finale-steps">
+        <div class="finale-step">
+          <div class="finale-step-line"><div class="finale-step-dot">1</div><div class="finale-step-connector"></div></div>
+          <div class="finale-step-text">Generate candidate moves</div>
+        </div>
+        <div class="finale-step">
+          <div class="finale-step-line"><div class="finale-step-dot">2</div><div class="finale-step-connector"></div></div>
+          <div class="finale-step-text">Evaluate each option</div>
+        </div>
+        <div class="finale-step">
+          <div class="finale-step-line"><div class="finale-step-dot">3</div><div class="finale-step-connector"></div></div>
+          <div class="finale-step-text">Calculate consequences</div>
+        </div>
+        <div class="finale-step">
+          <div class="finale-step-line"><div class="finale-step-dot">4</div><div class="finale-step-connector"></div></div>
+          <div class="finale-step-text">Re-evaluate the position</div>
+        </div>
+        <div class="finale-step">
+          <div class="finale-step-line"><div class="finale-step-dot">5</div><div class="finale-step-connector"></div></div>
+          <div class="finale-step-text">Commit to the best move</div>
+        </div>
+      </div>
+      <div class="finale-heuristic">Heuristic: <b>Think → Compare → Commit</b></div>
+    </div>
     <button class="finale-restart" id="restartBtn">← Restart from the beginning</button>
   </div>
 `);
@@ -540,7 +731,7 @@ const dotRow = document.getElementById('dotRow');
 for (let i = 0; i < TOTAL; i++) {
   const d = document.createElement('div');
   d.className = 'dot';
-  d.addEventListener('click', function() { goTo(i); });
+  d.addEventListener('click', () => goTo(i));
   dotRow.appendChild(d);
 }
 
@@ -548,68 +739,57 @@ for (let i = 0; i < TOTAL; i++) {
 let cur = 0;
 
 function ui() {
-  document.getElementById('track').style.transform = 'translateX(-' + (cur * 100) + 'vw)';
-  document.getElementById('pFill').style.width = ((cur + 1) / TOTAL * 100) + '%';
-  document.getElementById('counter').textContent = (cur + 1) + ' / ' + TOTAL;
+  document.getElementById('track').style.transform = `translateX(-${cur * 100}vw)`;
+  document.getElementById('pFill').style.width = `${(cur + 1) / TOTAL * 100}%`;
+  document.getElementById('counter').textContent = `${cur + 1} / ${TOTAL}`;
   document.getElementById('prevBtn').disabled = cur === 0;
 
   const nb = document.getElementById('nextBtn');
   nb.textContent = cur === TOTAL - 1 ? '✓' : '›';
   nb.dataset.last = cur === TOTAL - 1 ? '1' : '0';
 
-  dotRow.querySelectorAll('.dot').forEach(function(d, i) {
+  dotRow.querySelectorAll('.dot').forEach((d, i) => {
     d.classList.toggle('active', i === cur);
     d.classList.toggle('nearby', Math.abs(i - cur) === 1);
   });
 
-  // Staggered entrance animation
-  const slide = document.querySelectorAll('.slide')[cur];
-  const inner = slide.querySelector('.slide-inner');
-  Array.from(inner.children).forEach(function(child, i) {
+  const inner = document.querySelectorAll('.slide')[cur].querySelector('.slide-inner');
+  Array.from(inner.children).forEach((child, i) => {
     child.style.opacity = '0';
     child.style.animation = 'none';
     void child.offsetWidth;
-    child.style.animation = 'fadeUp 0.42s ease-out ' + (i * 0.06) + 's forwards';
+    child.style.animation = `fadeUp 0.42s ease-out ${i * 0.06}s forwards`;
   });
 }
 
 function next() { if (cur < TOTAL - 1) { cur++; ui(); } }
-function prev() { if (cur > 0)         { cur--; ui(); } }
+function prev() { if (cur > 0) { cur--; ui(); } }
 function goTo(i) { cur = i; ui(); }
 
-/* ── RESTART BUTTON (in finale slide — delegate since injected) ── */
-document.addEventListener('click', function(e) {
-  if (e.target && e.target.id === 'restartBtn') goTo(0);
-});
-
+document.addEventListener('click', e => { if (e.target?.id === 'restartBtn') goTo(0); });
 document.getElementById('prevBtn').addEventListener('click', prev);
 document.getElementById('nextBtn').addEventListener('click', function() {
-  if (this.dataset.last === '1') goTo(0);
-  else next();
+  this.dataset.last === '1' ? goTo(0) : next();
 });
 
 /* ── SWIPE ── */
 let sx = 0, sy = 0, dragging = false;
 const wrap = document.querySelector('.slides-wrap');
-wrap.addEventListener('touchstart', function(e) {
-  sx = e.touches[0].clientX; sy = e.touches[0].clientY; dragging = false;
-}, { passive: true });
-wrap.addEventListener('touchmove', function(e) {
-  const dx = e.touches[0].clientX - sx;
-  const dy = e.touches[0].clientY - sy;
+wrap.addEventListener('touchstart', e => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; dragging = false; }, { passive: true });
+wrap.addEventListener('touchmove', e => {
+  const dx = e.touches[0].clientX - sx, dy = e.touches[0].clientY - sy;
   if (!dragging && Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 8) dragging = true;
 }, { passive: true });
-wrap.addEventListener('touchend', function(e) {
+wrap.addEventListener('touchend', e => {
   if (!dragging) return;
   const dx = e.changedTouches[0].clientX - sx;
-  if (Math.abs(dx) > 48) { dx < 0 ? next() : prev(); }
+  if (Math.abs(dx) > 48) dx < 0 ? next() : prev();
   dragging = false;
 });
 
-/* ── KEYBOARD ── */
-document.addEventListener('keydown', function(e) {
+document.addEventListener('keydown', e => {
   if (e.key === 'ArrowRight' || e.key === 'ArrowDown') next();
-  if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   prev();
+  if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') prev();
 });
 
 ui();

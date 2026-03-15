@@ -829,6 +829,7 @@ makeSlide(`
     </div>
     <a href="template/index.html" class="portfolio-link" target="_blank">♟ &nbsp;Open Portfolio Template</a>
     <button class="portfolio-link" id="pdfBtn" style="border:none;cursor:pointer;margin-bottom:0;">⬇ &nbsp;Download as PDF</button>
+    <button class="portfolio-link" id="htmlBtn" style="border:none;cursor:pointer;margin-bottom:0;">⬇ &nbsp;Download as HTML</button>
     <button class="finale-restart" id="restartBtn">← Back to the beginning</button>
   </div>
 `);
@@ -922,7 +923,8 @@ ui();
 
 /* ── PDF EXPORT ── */
 document.addEventListener('click', function(e) {
-  if (e.target && e.target.id === 'pdfBtn') generatePDF();
+  if (e.target && e.target.id === 'pdfBtn')  generatePDF();
+  if (e.target && e.target.id === 'htmlBtn') downloadHTML();
 });
 
 function generatePDF() {
@@ -1063,6 +1065,132 @@ function generatePDF() {
   win.addEventListener('load', function() {
     setTimeout(function() { win.print(); }, 400);
   });
+}
+
+/* ── HTML DOWNLOAD ── */
+function downloadHTML() {
+  var rows = LENSES.map(function(lens) {
+    var entries = [];
+    for (var i = 0; i < 20; i++) {
+      var p = localStorage.getItem('gm-assign-' + lens.name + '-prompt-' + i);
+      if (p === null) break;
+      var intent  = localStorage.getItem('gm-assign-' + lens.name + '-intent-'  + i) || '';
+      var quality = localStorage.getItem('gm-assign-' + lens.name + '-quality-' + i) || '';
+      entries.push({ prompt: p, intent: intent, quality: quality });
+    }
+    var analysis = localStorage.getItem('gm-assign-' + lens.name + '-analysis') || '';
+    return { lens: lens, entries: entries, analysis: analysis };
+  });
+
+  function qLabel(v) {
+    if (v === 'strong') return '★★★ Strong';
+    if (v === 'good')   return '★★ Good';
+    if (v === 'weak')   return '★ Weak';
+    return '— not rated';
+  }
+
+  var totalPrompts = rows.reduce(function(n, r) { return n + r.entries.length; }, 0);
+  var date = new Date().toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' });
+
+  var sections = rows.map(function(row) {
+    if (!row.entries.length && !row.analysis) return '';
+
+    var promptRows = row.entries.map(function(e, i) {
+      return '<tr>' +
+        '<td class="pn">' + (i + 1) + '</td>' +
+        '<td class="pt">' + esc(e.prompt) + '</td>' +
+        '<td class="pi"><em>' + esc(e.intent) + '</em></td>' +
+        '<td class="pq">' + qLabel(e.quality) + '</td>' +
+      '</tr>';
+    }).join('');
+
+    var table = row.entries.length
+      ? '<table><thead><tr><th>#</th><th>Prompt</th><th>Intent</th><th>Rating</th></tr></thead><tbody>' + promptRows + '</tbody></table>'
+      : '<p class="empty">No prompts recorded.</p>';
+
+    var analysisBlock = row.analysis
+      ? '<div class="analysis-block"><div class="analysis-label">Analysis</div><p>' + esc(row.analysis) + '</p></div>'
+      : '';
+
+    return '<section>' +
+      '<div class="lens-head" style="border-left-color:' + row.lens.color + '">' +
+        '<span class="lens-piece">' + row.lens.piece + '</span>' +
+        '<div>' +
+          '<div class="lens-name" style="color:' + row.lens.color + '">' + row.lens.name + '</div>' +
+          '<div class="lens-tag">' + row.lens.tagline + '</div>' +
+        '</div>' +
+        '<div class="chess-tag">♟ ' + row.lens.chess.heuristic + '</div>' +
+      '</div>' +
+      table + analysisBlock +
+    '</section>';
+  }).join('');
+
+  var html = '<!DOCTYPE html>\n<html lang="en">\n<head>\n' +
+    '<meta charset="UTF-8">\n' +
+    '<meta name="viewport" content="width=device-width, initial-scale=1.0">\n' +
+    '<title>Prompt Engineering Assignment</title>\n' +
+    '<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">\n' +
+    '<style>\n' +
+    '*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }\n' +
+    'body { font-family: "Courier Prime", monospace; font-size: 11pt; color: #1a1208; background: #faf6ee; }\n' +
+    '.cover { display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 100vh; text-align: center; background: #0b0906; color: #f2ead8; padding: 60px 40px; }\n' +
+    '.cover-piece { font-size: 4rem; margin-bottom: 24px; color: #c9a84c; }\n' +
+    '.cover-title { font-family: "Cormorant Garamond", serif; font-size: 2.8rem; font-weight: 700; color: #c9a84c; line-height: 1.1; margin-bottom: 16px; }\n' +
+    '.cover-sub { font-family: "Cormorant Garamond", serif; font-style: italic; font-size: 1.1rem; color: rgba(242,234,216,0.6); margin-bottom: 32px; max-width: 420px; }\n' +
+    '.cover-meta { font-size: 0.7rem; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(201,168,76,0.55); }\n' +
+    '.cover-stat { margin-top: 28px; display: inline-block; border: 1px solid rgba(201,168,76,0.3); padding: 10px 24px; font-size: 0.72rem; letter-spacing: 0.15em; text-transform: uppercase; color: #c9a84c; }\n' +
+    '.page-body { max-width: 860px; margin: 0 auto; padding: 48px 32px; }\n' +
+    '.page-title { font-family: "Cormorant Garamond", serif; font-size: 1.6rem; font-weight: 700; color: #2c2418; margin-bottom: 8px; border-bottom: 2px solid #c9a84c; padding-bottom: 12px; margin-bottom: 32px; }\n' +
+    'section { margin-bottom: 28px; border: 1px solid #e8dcc4; border-radius: 4px; overflow: hidden; background: #fff; }\n' +
+    '.lens-head { display: flex; align-items: center; gap: 14px; padding: 14px 18px; background: #f2ead8; border-left: 4px solid #c9a84c; border-bottom: 1px solid #e8dcc4; }\n' +
+    '.lens-piece { font-size: 1.8rem; flex-shrink: 0; }\n' +
+    '.lens-name { font-family: "Cormorant Garamond", serif; font-size: 1.3rem; font-weight: 700; line-height: 1; }\n' +
+    '.lens-tag { font-size: 0.62rem; letter-spacing: 0.12em; text-transform: uppercase; color: #7a6a52; margin-top: 3px; }\n' +
+    '.chess-tag { margin-left: auto; font-size: 0.6rem; letter-spacing: 0.1em; text-transform: uppercase; color: #b8973a; text-align: right; flex-shrink: 0; max-width: 160px; line-height: 1.4; }\n' +
+    'table { width: 100%; border-collapse: collapse; font-size: 9.5pt; }\n' +
+    'thead tr { background: #2c2418; }\n' +
+    'thead th { padding: 8px 12px; text-align: left; font-size: 0.58rem; letter-spacing: 0.15em; text-transform: uppercase; color: #d4af5a; font-weight: 700; }\n' +
+    'tbody tr { border-bottom: 1px solid #e8dcc4; }\n' +
+    'tbody tr:last-child { border-bottom: none; }\n' +
+    'tbody tr:nth-child(even) { background: #faf6ee; }\n' +
+    'td { padding: 9px 12px; vertical-align: top; line-height: 1.5; color: #4a3c28; }\n' +
+    'td.pn { width: 28px; text-align: center; font-family: "Cormorant Garamond", serif; font-size: 1.1rem; color: #8a6e22; font-weight: 700; }\n' +
+    'td.pt { width: 35%; }\n' +
+    'td.pi { font-family: "Cormorant Garamond", serif; font-style: italic; color: #7a6a52; }\n' +
+    'td.pq { white-space: nowrap; font-size: 0.75rem; color: #8a6e22; width: 90px; }\n' +
+    '.analysis-block { padding: 14px 18px; background: #faf6ee; border-top: 1px solid #e8dcc4; }\n' +
+    '.analysis-label { font-size: 0.6rem; letter-spacing: 0.2em; text-transform: uppercase; color: #b8973a; margin-bottom: 8px; }\n' +
+    '.analysis-block p { font-family: "Cormorant Garamond", serif; font-size: 1rem; line-height: 1.75; color: #4a3c28; }\n' +
+    '.empty { padding: 12px 18px; font-style: italic; color: #b8a888; font-size: 0.85rem; }\n' +
+    'footer { text-align: center; padding: 40px; font-size: 0.65rem; letter-spacing: 0.15em; text-transform: uppercase; color: #b8a888; border-top: 1px solid #e8dcc4; margin-top: 40px; }\n' +
+    '</style>\n</head>\n<body>\n' +
+
+    '<div class="cover">' +
+      '<div class="cover-piece">♛</div>' +
+      '<div class="cover-title">The Grandmaster\'s<br>Prompting Assignment</div>' +
+      '<p class="cover-sub">Prompt engineering portfolio — all lenses, prompts, and analysis</p>' +
+      '<div class="cover-meta">Generated ' + date + '</div>' +
+      '<div class="cover-stat">' + totalPrompts + ' prompts &nbsp;·&nbsp; ' + rows.filter(function(r){return r.entries.length>0;}).length + ' lenses completed</div>' +
+    '</div>\n' +
+
+    '<div class="page-body">' +
+      '<div class="page-title">♟ &nbsp;Assignment Portfolio &nbsp;—&nbsp; ' + date + '</div>' +
+      sections +
+    '</div>\n' +
+
+    '<footer>The Grandmaster\'s Prompting Assignment &nbsp;·&nbsp; Generated ' + date + '</footer>\n' +
+    '</body>\n</html>';
+
+  /* Trigger download */
+  var blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  var url  = URL.createObjectURL(blob);
+  var a    = document.createElement('a');
+  a.href     = url;
+  a.download = 'prompt-assignment-' + new Date().toISOString().slice(0,10) + '.html';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(function() { URL.revokeObjectURL(url); }, 2000);
 }
 
 /* Escape HTML */

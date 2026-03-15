@@ -1,0 +1,1078 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>The Prompt Engineering Assignment</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --gold:        #c9a84c;
+  --gold-light:  #e8d08a;
+  --gold-dim:    rgba(201,168,76,0.38);
+  --gold-ghost:  rgba(201,168,76,0.07);
+  --ink:         #0b0906;
+  --paper:       #f2ead8;
+  --text-dim:    rgba(242,234,216,0.82);
+  --text-muted:  rgba(242,234,216,0.55);
+  --text-faint:  rgba(242,234,216,0.42);
+  --border:      rgba(201,168,76,0.22);
+  --border-soft: rgba(201,168,76,0.14);
+  --nav-bg:      rgba(11,9,6,0.97);
+  --nav-bottom:  rgba(11,9,6,1);
+  --card-bg:     #130f0a;
+  --pattern-op:  0.032;
+  --chess-bg:    rgba(201,168,76,0.06);
+  --chess-border:rgba(201,168,76,0.28);
+  --input-bg:    rgba(201,168,76,0.04);
+  --input-border:rgba(201,168,76,0.2);
+  --input-focus: rgba(201,168,76,0.35);
+  --saved-bg:    rgba(201,168,76,0.08);
+}
+html.light {
+  --gold:        #8a6200;
+  --gold-light:  #b07a00;
+  --gold-dim:    rgba(138,98,0,0.45);
+  --gold-ghost:  rgba(138,98,0,0.08);
+  --ink:         #f5eedc;
+  --paper:       #1a1208;
+  --text-dim:    rgba(26,18,8,0.88);
+  --text-muted:  rgba(26,18,8,0.58);
+  --text-faint:  rgba(26,18,8,0.42);
+  --border:      rgba(138,98,0,0.22);
+  --border-soft: rgba(138,98,0,0.14);
+  --nav-bg:      rgba(245,238,220,0.97);
+  --nav-bottom:  rgba(245,238,220,1);
+  --card-bg:     #ede4d0;
+  --pattern-op:  0.06;
+  --chess-bg:    rgba(138,98,0,0.07);
+  --chess-border:rgba(138,98,0,0.28);
+  --input-bg:    rgba(138,98,0,0.05);
+  --input-border:rgba(138,98,0,0.22);
+  --input-focus: rgba(138,98,0,0.4);
+  --saved-bg:    rgba(138,98,0,0.09);
+}
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  width: 100%; height: 100%;
+  overflow: hidden;
+  background: var(--ink);
+  color: var(--paper);
+  font-family: 'Courier Prime', monospace;
+  -webkit-font-smoothing: antialiased;
+  touch-action: none;
+  transition: background 0.3s, color 0.3s;
+}
+
+.bg-board {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  display: grid;
+  grid-template-columns: repeat(8, 12.5%);
+  grid-template-rows: repeat(8, 12.5%);
+  opacity: var(--pattern-op);
+  transition: opacity 0.3s;
+}
+.bg-board .sq { display: block; background: var(--paper); }
+
+.progress-bar {
+  position: fixed; top: 0; left: 0; right: 0; height: 3px;
+  background: var(--gold-ghost); z-index: 100;
+}
+.progress-fill {
+  height: 100%; background: linear-gradient(90deg, var(--gold), var(--gold-light));
+  transition: width 0.4s cubic-bezier(0.4,0,0.2,1);
+}
+
+.top-nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 99;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 20px 10px;
+  background: linear-gradient(to bottom, var(--nav-bg) 60%, transparent);
+  transition: background 0.3s;
+}
+.nav-logo {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 11px; font-weight: 700;
+  color: var(--gold); letter-spacing: 4px; text-transform: uppercase;
+}
+.nav-counter { font-size: 11px; color: var(--gold-dim); letter-spacing: 2px; }
+.theme-btn {
+  background: transparent; border: 1px solid var(--gold-dim);
+  color: var(--gold); font-size: 14px; padding: 5px 10px; cursor: pointer;
+  transition: background 0.2s, transform 0.15s;
+  -webkit-tap-highlight-color: transparent; user-select: none;
+}
+.theme-btn:active { transform: scale(0.92); background: var(--gold-dim); }
+
+.slides-wrap { position: fixed; inset: 0; z-index: 1; overflow: hidden; }
+.slides-track {
+  display: flex; height: 100%;
+  transition: transform 0.45s cubic-bezier(0.4,0,0.2,1);
+  will-change: transform;
+}
+
+.slide {
+  min-width: 100vw; width: 100vw; height: 100%;
+  overflow-y: auto; overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  padding: 68px 22px 110px;
+  display: flex; flex-direction: column; align-items: center;
+}
+.slide-inner { width: 100%; max-width: 560px; flex: 1; }
+
+.bottom-nav {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
+  padding: 12px 20px 28px;
+  background: linear-gradient(to top, var(--nav-bottom) 65%, transparent);
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  transition: background 0.3s;
+}
+.dot-row { display: flex; gap: 5px; align-items: center; flex: 1; justify-content: center; overflow: hidden; flex-wrap: wrap; }
+.dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--gold-dim); flex-shrink: 0;
+  transition: all 0.3s; cursor: pointer;
+}
+.dot.active { background: var(--gold); transform: scale(1.55); }
+.dot.nearby { background: rgba(201,168,76,0.42); }
+html.light .dot.nearby { background: rgba(138,98,0,0.42); }
+.dot.has-work { box-shadow: 0 0 0 2px var(--gold-dim); }
+
+.nav-btn {
+  width: 46px; height: 46px; flex-shrink: 0;
+  border: 2px solid var(--gold-dim); background: transparent;
+  color: var(--gold); font-size: 20px; cursor: pointer;
+  transition: all 0.2s; display: flex; align-items: center; justify-content: center;
+  -webkit-tap-highlight-color: transparent; font-family: sans-serif;
+}
+.nav-btn:active { background: var(--gold-ghost); border-color: var(--gold); }
+.nav-btn:disabled { opacity: 0.2; pointer-events: none; }
+.nav-btn.primary { background: var(--gold); color: var(--ink); border-color: var(--gold); }
+.nav-btn.primary:active { opacity: 0.85; }
+
+.swipe-hint {
+  position: fixed; bottom: 84px; left: 50%; transform: translateX(-50%);
+  font-size: 9px; letter-spacing: 3px; color: var(--gold-dim);
+  pointer-events: none; z-index: 98; white-space: nowrap;
+  animation: hintFade 3.5s ease-out 1.8s forwards; opacity: 0;
+}
+@keyframes hintFade {
+  0%   { opacity:0; transform:translateX(-50%) translateY(5px); }
+  20%  { opacity:1; transform:translateX(-50%) translateY(0); }
+  80%  { opacity:1; }
+  100% { opacity:0; }
+}
+
+/* ── HERO ── */
+.hero {
+  display: flex; flex-direction: column;
+  justify-content: center; align-items: center;
+  text-align: center; min-height: 70vh;
+}
+.eyebrow {
+  font-size: 9px; letter-spacing: 5px; text-transform: uppercase;
+  color: var(--gold-dim); margin-bottom: 18px;
+}
+.hero-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: clamp(2.4rem, 10vw, 3.8rem);
+  font-weight: 700; line-height: 1.04; letter-spacing: -0.01em;
+  background: linear-gradient(135deg, var(--gold), var(--gold-light), #a07a20);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 16px;
+}
+.hero-sub {
+  font-family: 'Cormorant Garamond', serif; font-style: italic;
+  font-size: clamp(0.92rem, 3.5vw, 1.08rem);
+  color: var(--text-muted); line-height: 1.68; margin-bottom: 24px;
+  max-width: 380px;
+}
+.hero-rules {
+  width: 100%; max-width: 340px;
+  background: var(--chess-bg);
+  border: 1px solid var(--chess-border);
+  border-top: 3px solid var(--gold);
+  padding: 16px 18px 14px;
+  text-align: left; margin-bottom: 20px;
+}
+.hero-rules-title {
+  font-size: 0.6rem; letter-spacing: 0.2em; text-transform: uppercase;
+  color: var(--gold); margin-bottom: 12px;
+  display: flex; align-items: center; gap: 7px;
+}
+.hero-rules-title::after { content:''; flex:1; height:1px; background:var(--border); }
+.hero-rule-item {
+  display: flex; gap: 10px; align-items: flex-start;
+  margin-bottom: 8px; font-size: 0.78rem; color: var(--text-dim); line-height: 1.4;
+}
+.rule-num {
+  width: 18px; height: 18px; border: 1px solid var(--gold-dim);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.6rem; color: var(--gold); flex-shrink: 0; margin-top: 1px;
+}
+.chips { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-bottom: 4px; }
+.chip {
+  padding: 4px 10px; border: 1px solid var(--gold-dim); color: var(--gold-dim);
+  font-size: 8px; letter-spacing: 2px; text-transform: uppercase;
+}
+
+/* ── LENS SLIDE ── */
+.lens-slide-header {
+  display: flex; align-items: center; gap: 16px; margin-bottom: 16px;
+}
+.lens-piece-big { font-size: 3rem; line-height: 1; flex-shrink: 0; opacity: 0.85; }
+.lens-name-big {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: clamp(1.6rem, 7vw, 2.4rem); font-weight: 700; line-height: 1.05;
+}
+.lens-tagline-big {
+  font-size: 0.68rem; letter-spacing: 0.12em; text-transform: uppercase; margin-top: 5px;
+}
+
+/* Chess principle block */
+.chess-principle {
+  background: var(--chess-bg);
+  border: 1px solid var(--chess-border);
+  border-top: 3px solid var(--gold);
+  padding: 14px 16px 13px;
+  margin-bottom: 16px;
+  position: relative; overflow: hidden;
+}
+.chess-principle::before {
+  content: attr(data-bg-piece);
+  position: absolute; right: -8px; top: -12px;
+  font-size: 5.5rem; opacity: 0.06; line-height: 1;
+  pointer-events: none; user-select: none;
+}
+.chess-p-label {
+  font-size: 0.58rem; letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--gold); margin-bottom: 8px;
+  display: flex; align-items: center; gap: 7px;
+}
+.chess-p-label::after { content:''; flex:1; height:1px; background:var(--border); }
+.chess-p-name {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.02rem; font-weight: 700;
+  color: var(--paper); margin-bottom: 8px; line-height: 1.2;
+}
+.chess-p-questions { display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px; }
+.chess-p-q {
+  font-size: 0.78rem; color: var(--text-muted); line-height: 1.45;
+  display: flex; gap: 8px; align-items: flex-start;
+}
+.chess-p-q::before { content:'▸'; color: var(--gold); flex-shrink: 0; font-size: 0.65rem; margin-top: 2px; }
+.chess-p-heuristic {
+  font-size: 0.62rem; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--gold-dim); margin-top: 9px;
+  padding-top: 9px; border-top: 1px solid var(--border-soft);
+  display: flex; align-items: center; gap: 7px;
+}
+.chess-p-heuristic span { font-weight: 700; color: var(--gold); letter-spacing: 0.1em; }
+
+/* Thinking prompts — the provided questions students must use */
+.prompts-section { margin-bottom: 16px; }
+.prompts-label {
+  font-size: 0.6rem; letter-spacing: 0.2em; text-transform: uppercase;
+  color: var(--gold); margin-bottom: 10px;
+  display: flex; align-items: center; gap: 8px;
+}
+.prompts-label::after { content:''; flex:1; height:1px; background:var(--border); }
+.prompt-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 0; }
+.prompt-item {
+  background: var(--gold-ghost); border: 1px solid var(--border-soft);
+  padding: 9px 13px; font-size: 0.82rem; line-height: 1.5;
+  color: var(--text-muted); display: flex; gap: 9px; align-items: flex-start;
+}
+.prompt-arrow { color: var(--gold); flex-shrink: 0; font-weight: 700; }
+
+/* ── STUDENT WORK AREA ── */
+.work-area { margin-bottom: 0; }
+.work-label {
+  font-size: 0.6rem; letter-spacing: 0.2em; text-transform: uppercase;
+  color: var(--gold); margin-bottom: 10px;
+  display: flex; align-items: center; gap: 8px;
+}
+.work-label::after { content:''; flex:1; height:1px; background:var(--border); }
+
+/* Prompt entry row */
+.prompt-entry {
+  background: var(--card-bg);
+  border: 1px solid var(--input-border);
+  border-left: 3px solid var(--lc, var(--gold));
+  padding: 12px 14px;
+  margin-bottom: 8px;
+}
+.prompt-entry-top {
+  display: flex; gap: 8px; align-items: center; margin-bottom: 8px;
+}
+.prompt-num {
+  width: 22px; height: 22px; border: 1px solid var(--gold-dim);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.62rem; color: var(--gold); flex-shrink: 0;
+  font-family: 'Courier Prime', monospace;
+}
+.prompt-entry-label {
+  font-size: 0.58rem; letter-spacing: 0.15em; text-transform: uppercase;
+  color: var(--gold-dim); flex: 1;
+}
+.quality-select {
+  background: transparent; border: 1px solid var(--input-border);
+  color: var(--gold-dim); font-family: 'Courier Prime', monospace;
+  font-size: 0.62rem; padding: 3px 6px; cursor: pointer;
+  transition: border-color 0.2s;
+}
+.quality-select:focus { outline: none; border-color: var(--gold); color: var(--gold); }
+html.light .quality-select { background: transparent; }
+
+.prompt-textarea {
+  width: 100%; background: var(--input-bg);
+  border: 1px solid var(--input-border); border-bottom: none;
+  color: var(--paper); font-family: 'Courier Prime', monospace;
+  font-size: 0.82rem; line-height: 1.55; padding: 10px 12px;
+  resize: none; min-height: 62px;
+  transition: border-color 0.2s, background 0.2s;
+}
+.prompt-textarea:focus { outline: none; border-color: var(--input-focus); background: rgba(201,168,76,0.07); }
+.prompt-textarea::placeholder { color: var(--text-faint); font-style: italic; }
+html.light .prompt-textarea { color: var(--paper); }
+html.light .prompt-textarea::placeholder { color: var(--text-faint); }
+
+.intent-textarea {
+  width: 100%; background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  color: var(--text-muted); font-family: 'Cormorant Garamond', serif;
+  font-style: italic; font-size: 0.85rem; line-height: 1.55;
+  padding: 8px 12px; resize: none; min-height: 52px;
+  transition: border-color 0.2s;
+}
+.intent-textarea:focus { outline: none; border-color: var(--input-focus); }
+.intent-textarea::placeholder { color: var(--text-faint); }
+
+/* Analysis textarea */
+.analysis-textarea {
+  width: 100%; background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  color: var(--paper); font-family: 'Cormorant Garamond', serif;
+  font-size: 0.9rem; line-height: 1.7;
+  padding: 12px 14px; resize: none; min-height: 100px;
+  transition: border-color 0.2s;
+}
+.analysis-textarea:focus { outline: none; border-color: var(--input-focus); }
+.analysis-textarea::placeholder { color: var(--text-faint); font-style: italic; }
+
+/* Add prompt button */
+.add-prompt-btn {
+  width: 100%; background: transparent;
+  border: 1px dashed var(--gold-dim); color: var(--gold-dim);
+  font-family: 'Courier Prime', monospace; font-size: 0.72rem;
+  letter-spacing: 0.15em; text-transform: uppercase;
+  padding: 10px; cursor: pointer; margin-bottom: 16px;
+  transition: color 0.2s, border-color 0.2s;
+}
+.add-prompt-btn:hover { color: var(--gold); border-color: var(--gold); }
+
+/* Save bar */
+.save-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; margin-bottom: 6px;
+}
+.save-btn {
+  background: var(--gold); color: var(--ink);
+  border: none; font-family: 'Courier Prime', monospace;
+  font-size: 0.72rem; font-weight: 700;
+  letter-spacing: 0.15em; text-transform: uppercase;
+  padding: 9px 18px; cursor: pointer;
+  transition: opacity 0.2s, transform 0.15s;
+  flex-shrink: 0;
+}
+.save-btn:active { opacity: 0.8; transform: scale(0.97); }
+.save-status {
+  font-size: 0.62rem; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--text-faint); transition: color 0.3s;
+}
+.save-status.saved { color: var(--gold); }
+
+/* ── FINALE ── */
+.finale {
+  display: flex; flex-direction: column;
+  justify-content: center; align-items: center;
+  text-align: center; min-height: 68vh;
+}
+.finale-crown { font-size: 3.4rem; margin-bottom: 18px; display: block; }
+.finale-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: clamp(1.6rem, 7vw, 2.6rem); font-weight: 700;
+  background: linear-gradient(135deg, var(--gold), var(--gold-light));
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 12px; letter-spacing: 0.02em;
+}
+.finale-sub {
+  font-size: 14px; color: var(--text-muted);
+  margin-bottom: 24px; line-height: 1.7; max-width: 320px;
+}
+.finale-loop {
+  width: 100%; max-width: 320px;
+  background: var(--chess-bg); border: 1px solid var(--chess-border);
+  border-top: 3px solid var(--gold);
+  padding: 16px 18px 14px; margin-bottom: 20px; text-align: left;
+}
+.finale-loop-title {
+  font-size: 0.6rem; letter-spacing: 0.2em; text-transform: uppercase;
+  color: var(--gold); margin-bottom: 12px;
+  display: flex; align-items: center; gap: 7px;
+}
+.finale-loop-title::after { content:''; flex:1; height:1px; background:var(--border); }
+.finale-steps { display: flex; flex-direction: column; gap: 0; }
+.finale-step { display: flex; align-items: stretch; gap: 12px; }
+.finale-step-line { display: flex; flex-direction: column; align-items: center; flex-shrink: 0; }
+.finale-step-dot {
+  width: 20px; height: 20px; border: 1.5px solid var(--gold);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.6rem; color: var(--gold); flex-shrink: 0;
+}
+.finale-step-connector { width: 1px; background: var(--border); flex: 1; min-height: 10px; margin: 2px 0; }
+.finale-step:last-child .finale-step-connector { display: none; }
+.finale-step-text {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 0.9rem; color: var(--text-dim); line-height: 1.3; padding: 2px 0 12px;
+}
+.finale-heuristic {
+  margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border-soft);
+  font-size: 0.6rem; letter-spacing: 0.15em; text-transform: uppercase;
+  color: var(--gold-dim); text-align: center;
+}
+.finale-heuristic b { color: var(--gold); }
+
+/* Portfolio export link */
+.portfolio-link {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--gold); color: var(--ink);
+  text-decoration: none;
+  font-family: 'Courier Prime', monospace; font-size: 0.72rem; font-weight: 700;
+  letter-spacing: 0.15em; text-transform: uppercase;
+  padding: 11px 22px; margin-bottom: 12px;
+  transition: opacity 0.2s;
+}
+.portfolio-link:hover { opacity: 0.85; }
+.finale-restart {
+  background: none; border: 1px solid var(--gold-dim); color: var(--gold-dim);
+  font-size: 11px; font-family: 'Courier Prime', monospace;
+  letter-spacing: 2px; padding: 10px 22px; cursor: pointer;
+  transition: color 0.2s, border-color 0.2s;
+}
+.finale-restart:hover { color: var(--gold); border-color: var(--gold); }
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+</style>
+</head>
+<body>
+
+<div class="bg-board" id="bgBoard"></div>
+<div class="progress-bar"><div class="progress-fill" id="pFill"></div></div>
+<div class="swipe-hint">← SWIPE TO NAVIGATE →</div>
+
+<nav class="top-nav">
+  <span class="nav-logo">♟ Prompt Assignment</span>
+  <span class="nav-counter" id="counter">1 / 17</span>
+  <button class="theme-btn" id="themeBtn" aria-label="Toggle theme">☀</button>
+</nav>
+
+<div class="slides-wrap">
+  <div class="slides-track" id="track"></div>
+</div>
+
+<div class="bottom-nav">
+  <button class="nav-btn" id="prevBtn" disabled>‹</button>
+  <div class="dot-row" id="dotRow"></div>
+  <button class="nav-btn primary" id="nextBtn">›</button>
+</div>
+
+<script>
+/* ── BOARD BG ── */
+const bgBoard = document.getElementById('bgBoard');
+for (let i = 0; i < 64; i++) {
+  const s = document.createElement('span');
+  if ((Math.floor(i/8) + i%8) % 2 === 0) s.className = 'sq';
+  bgBoard.appendChild(s);
+}
+
+/* ── THEME ── */
+function applyTheme(t) {
+  document.documentElement.classList.toggle('light', t === 'light');
+  document.getElementById('themeBtn').textContent = t === 'light' ? '☾' : '☀';
+}
+document.getElementById('themeBtn').addEventListener('click', function() {
+  const next = document.documentElement.classList.contains('light') ? 'dark' : 'light';
+  localStorage.setItem('gm-theme', next); applyTheme(next);
+});
+applyTheme(localStorage.getItem('gm-theme') || 'dark');
+
+/* ── LENS DATA ── */
+const LENSES = [
+  {
+    piece:'♟', name:'WHO', tagline:'People & Stakeholders', color:'#5b8fa8',
+    chess:{ name:'Identify the Most Important Piece', questions:['Which piece is strongest and which is weakest?','Which piece is currently under attack?','Which piece needs to improve its position?'], heuristic:'Piece Activity Evaluation' },
+    prompts:['Who benefits most from this idea?','Who is harmed or left out?','Whose voice is missing from this discussion?','Who would strongly disagree — and why might they be right?','Who is the unexpected person this affects?','If you had to defend this to a critic, who would that critic be?']
+  },
+  {
+    piece:'♙', name:'WHAT', tagline:'Definitions & Assumptions', color:'#a87c2e',
+    chess:{ name:'Question the Position', questions:['Is the position really as good as it looks?','Am I assuming something without calculating it?','What if my opponent has a hidden tactic here?'], heuristic:'Position Re-evaluation' },
+    prompts:['What are we assuming is true that might not be?','What would change if we defined this problem differently?','What is NOT being said in this conversation?','What is the opposite of this idea — is there value in it?','What would this look like if we removed the most important constraint?','What would a 10-year-old say about this?']
+  },
+  {
+    piece:'♗', name:'WHEN', tagline:'Timing & Sequence', color:'#7a5ea8',
+    chess:{ name:'Timing the Break', questions:['When should the pawn break happen — now or later?','Is it the right moment for e4, d5, or f5?','What must be in place before I can launch the attack?'], heuristic:'Correct Moment for Action' },
+    prompts:['When is the best moment to introduce this idea?','When would this be a terrible idea — what conditions would make it fail?','When in the past has something similar succeeded or failed?','What needs to happen first before this can work?','When do people care most about this problem?','What would need to be different about the timing to change the outcome?']
+  },
+  {
+    piece:'♘', name:'WHERE', tagline:'Context & Environment', color:'#3d8a6e',
+    chess:{ name:'Play Where the Board Demands', questions:['Which side of the board matters most right now?','Where is the key weakness in the position?','Where should the attack be directed — king or queenside?'], heuristic:'Board Sector Focus' },
+    prompts:['Where does this idea work best? Where does it fail?','Where else could this same solution apply, in a completely different field?','Where in the world is this already being done differently?','Where do the exceptions happen — and what do they tell us?','Where would you need to be standing to see this problem differently?','Where is the environment making this harder than it needs to be?']
+  },
+  {
+    piece:'♛', name:'WHY', tagline:'Purpose & Root Cause', color:'#a85858',
+    chess:{ name:'Understand the Strategic Idea', questions:['Why does this plan actually work — not just that it does?','What specific weakness or imbalance am I targeting?','What if I cannot justify this move strategically?'], heuristic:'Strategic Justification' },
+    prompts:['Why does this problem exist in the first place?','Why has it not been solved yet — what forces keep it in place?','Why does anyone care about this? What deeper need is driving it?','Why might the obvious solution make things worse?','Ask "why" five times in a row — what do you find at the bottom?','Why would someone rational choose NOT to adopt this idea?']
+  },
+  {
+    piece:'♖', name:'HOW', tagline:'Methods & Mechanisms', color:'#5a7aa8',
+    chess:{ name:'Find the Correct Plan', questions:['How do I improve my worst piece right now?','How do I crack the pawn structure?','How do I activate my rooks — are the files open?'], heuristic:'Plan Construction' },
+    prompts:['How else could you achieve the same goal with completely different means?','How would you do this if you had half the budget? Ten times the budget?','How would a different industry solve this exact problem?','How could you make this idea worse on purpose — then reverse it?','How would you explain this method to someone from 200 years ago?','How do you know your method is working — what is the signal?']
+  },
+  {
+    piece:'♟', name:'PAST', tagline:'History & Precedent', color:'#6b5a3e',
+    chess:{ name:'Pattern Recognition', questions:['Have I seen a similar structure before — what worked?','Which famous game or motif applies here?','What known tactical pattern is lurking in this position?'], heuristic:'Pattern Memory' },
+    prompts:['When was this tried before — and what happened?','What solution was abandoned in the past that might deserve a second look?','What did people do before this problem existed — what can we learn from that?','What historical parallel is being ignored right now?','What assumption from the past is still running the present without questioning?','If this is a new problem, what made it new — what changed?']
+  },
+  {
+    piece:'♙', name:'PRESENT', tagline:'Current Reality', color:'#4a7a5a',
+    chess:{ name:'Evaluate the Current Position', questions:['What is the material count right now?','Is either king in danger?','Which side has better piece activity and pawn structure?'], heuristic:'Static Evaluation' },
+    prompts:['What is actually happening right now — not what we hope or fear?','What data exists, and what are we inferring that isn\'t in the data?','What is everyone in the room avoiding saying out loud?','What is hiding in plain sight that nobody has named?','What small signal is being missed because everyone is focused on the obvious one?','What would a neutral outsider see that insiders cannot?']
+  },
+  {
+    piece:'♗', name:'FUTURE', tagline:'Scenarios & Consequences', color:'#3a5a8a',
+    chess:{ name:'Calculate Variations', questions:['If I play this move, what does my opponent reply?','And then what — can I follow up?','Does this line work three moves deep, not just one?'], heuristic:'Forward Calculation' },
+    prompts:['What does the world look like in 10 years if this idea succeeds?','What does the world look like in 10 years if nothing changes?','What trend will make this idea more valuable in the future?','What trend will make this idea irrelevant?','What second-order consequence will nobody predict?','If this becomes mainstream, what problems does it create next?']
+  },
+  {
+    piece:'♛', name:'POSITIVE', tagline:'Green Hat — Value & Opportunity', color:'#3a7a3a',
+    chess:{ name:'Look for Tactical Possibilities', questions:['Is there a fork, pin, or skewer available?','Does a sacrifice open a decisive line?','Is there a discovered attack hiding in the position?'], heuristic:'Tactical Alertness' },
+    prompts:['What is the best-case scenario if this works?','What unexpected benefit might emerge that we haven\'t anticipated?','Who gains the most — and could that gain be larger than we think?','What becomes possible if this idea succeeds?','What is genuinely exciting or novel about this approach?','What existing strength could this idea amplify?']
+  },
+  {
+    piece:'♚', name:'NEGATIVE', tagline:'Black Hat — Risk & Caution', color:'#8a3a3a',
+    chess:{ name:'The Blunder Check', questions:['What is my opponent threatening right now?','Does this move drop a piece or expose my king?','Am I leaving any tactic undefended after this?'], heuristic:'Blunder Prevention' },
+    prompts:['What is most likely to go wrong — and how badly?','Who would be hurt by this that we haven\'t considered?','What hidden cost will only reveal itself later?','What assumption, if wrong, makes the whole idea collapse?','What would a hostile journalist write about this plan?','What does this idea make harder that is currently easy?']
+  },
+  {
+    piece:'♘', name:'REFRAME', tagline:'Change the Question', color:'#7a4a8a',
+    chess:{ name:'Switch the Plan', questions:['Should I abandon this attack and defend instead?','Is the action now on the kingside, not the queenside?','Does this position call for tactics when I was thinking strategically?'], heuristic:'Strategic Flexibility' },
+    prompts:['What if this is the wrong problem entirely?','How would you describe this to someone who had never heard of it — does their version reveal something?','What is the problem underneath the problem?','What would change if you renamed this idea something completely different?','Can you invert the problem — make the "victim" the solver?','If the solution feels impossible, what would need to change about the problem for a solution to exist?']
+  },
+  {
+    piece:'♖', name:'LATERAL', tagline:'The Sideways Move', color:'#a8622e',
+    chess:{ name:'Prophylaxis', questions:['What is my opponent planning — can I stop it before it starts?','Does a quiet move like h3 or a3 prevent a future threat?','Am I thinking about my own plans when my opponent\'s idea is the real danger?'], heuristic:'Opponent-Centred Thinking (Karpov / Petrosian style)' },
+    prompts:['What is the most indirect route to the same goal?','What would happen if you did the exact opposite of the obvious thing?','Pick a random word — a chess piece, an animal, a colour — and find a connection to your problem.','What does this problem have in common with something completely unrelated?','What would a child, an alien, or a medieval peasant think the solution is?','If you could only solve this using ideas from a different industry, which industry would you choose?']
+  },
+  {
+    piece:'♟', name:'REVERSE', tagline:'Turn It Upside Down', color:'#2e7a8a',
+    chess:{ name:'Counterattack', questions:['Instead of defending, can I create an even bigger threat?','Can I attack the attacker rather than protect the piece?','Does dynamic counterplay make defence unnecessary?'], heuristic:'Dynamic Defence (Tal / Kasparov mindset)' },
+    prompts:['What if you tried to make this problem worse on purpose — what does that reveal?','What if the people affected by the problem were the ones solving it?','What if the flaw is actually the feature?','What if less of the obvious solution is actually better?','Reverse the roles — who becomes who?','What if the goal and the method swapped places?']
+  },
+  {
+    piece:'♛', name:'OBLIQUE', tagline:'Indirect Value', color:'#8a6a2e',
+    chess:{ name:'The Positional Sacrifice', questions:['Can I give up the exchange for long-term pressure?','Is a pawn sacrifice worth the initiative I gain?','Does surrendering material create compensation that is hard to quantify?'], heuristic:'Compensation Thinking' },
+    prompts:['What would make this problem feel solved, even if it isn\'t technically fixed?','What invisible psychological variable is doing most of the real work here?','What would feel irrational but might actually be more effective than the sensible option?','What change in meaning or signal could replace a change in substance?','What would happen if you spent the whole budget on changing perception instead of changing reality?','What does this situation have that is genuinely valuable but nobody has thought to name yet?']
+  }
+];
+
+const TOTAL = LENSES.length + 2; // hero + 15 lenses + finale
+const track = document.getElementById('track');
+
+/* ── STORAGE HELPERS ── */
+function saveKey(lensName, field, idx) {
+  return `gm-assign-${lensName}-${field}-${idx}`;
+}
+function load(key) { return localStorage.getItem(key) || ''; }
+function save(key, val) { localStorage.setItem(key, val); }
+function hasWork(lensName) {
+  return !!(load(`gm-assign-${lensName}-prompt-0`) || load(`gm-assign-${lensName}-analysis`));
+}
+
+/* ── BUILD SLIDES ── */
+function makeSlide(html) {
+  const s = document.createElement('div');
+  s.className = 'slide';
+  s.innerHTML = `<div class="slide-inner">${html}</div>`;
+  track.appendChild(s);
+}
+
+function chessBlock(chess, color, piece) {
+  const qs = chess.questions.map(q => `<div class="chess-p-q">${q}</div>`).join('');
+  return `
+    <div class="chess-principle" data-bg-piece="${piece}">
+      <div class="chess-p-label" style="color:${color}">♟ &nbsp;Chess principle</div>
+      <div class="chess-p-name">${chess.name}</div>
+      <div class="chess-p-questions">${qs}</div>
+      <div class="chess-p-heuristic">Heuristic: <span>${chess.heuristic}</span></div>
+    </div>`;
+}
+
+/* SLIDE 0: HERO */
+makeSlide(`
+  <div class="hero">
+    <div class="eyebrow">Prompt Engineering Assignment</div>
+    <h1 class="hero-title">The Grandmaster's<br>Prompting<br><em style="-webkit-text-fill-color:var(--gold);color:var(--gold)">Assignment</em></h1>
+    <p class="hero-sub">Use each thinking lens to write prompts for your chosen essay topic. Record every prompt, your intent, and your analysis. Minimum 20 prompts total.</p>
+    <div class="hero-rules">
+      <div class="hero-rules-title">♟ &nbsp;How to complete this</div>
+      <div class="hero-rule-item"><div class="rule-num">1</div><div>For each lens, study the chess principle and the thinking prompts provided</div></div>
+      <div class="hero-rule-item"><div class="rule-num">2</div><div>Write at least 1–2 ChatGPT prompts per lens — enter them in the work area</div></div>
+      <div class="hero-rule-item"><div class="rule-num">3</div><div>Rate each prompt and explain your intent behind it</div></div>
+      <div class="hero-rule-item"><div class="rule-num">4</div><div>Write your analysis of how well each lens worked</div></div>
+      <div class="hero-rule-item"><div class="rule-num">5</div><div>On the final slide, copy your work into the portfolio template</div></div>
+    </div>
+    <div class="chips">
+      <span class="chip">♟ 15 Thinking Lenses</span>
+      <span class="chip">♛ Min. 20 Prompts</span>
+      <span class="chip">♞ Self-Analysis Required</span>
+    </div>
+  </div>
+`);
+
+/* ── ENTRY MANAGEMENT (declared before slide build loop) ── */
+function saveKey(lensName, field, idx) {
+  return `gm-assign-${lensName}-${field}-${idx}`;
+}
+function load(key) { return localStorage.getItem(key) || ''; }
+function save(key, val) { localStorage.setItem(key, val); }
+function hasWork(lensName) {
+  return !!(load(`gm-assign-${lensName}-prompt-0`) || load(`gm-assign-${lensName}-analysis`));
+}
+
+var entryCounts = {};
+LENSES.forEach(function(l) { entryCounts[l.name] = 0; });
+
+function entryCount(lensName) {
+  var i = 0;
+  while (localStorage.getItem(saveKey(lensName, 'prompt', i)) !== null) i++;
+  return Math.max(i, 1);
+}
+
+function addEntry(lensName, color, forceIdx, focus) {
+  const container = document.getElementById('entries-' + lensName);
+  if (!container) return;
+  const idx = (forceIdx !== undefined) ? forceIdx : entryCounts[lensName];
+  entryCounts[lensName] = Math.max(entryCounts[lensName], idx + 1);
+
+  const div = document.createElement('div');
+  div.className = 'prompt-entry';
+  div.style.setProperty('--lc', color);
+  div.setAttribute('data-idx', idx);
+
+  div.innerHTML =
+    '<div class="prompt-entry-top">' +
+      '<div class="prompt-num">' + (idx + 1) + '</div>' +
+      '<div class="prompt-entry-label">Prompt to ChatGPT</div>' +
+      '<select class="quality-select" data-lens="' + lensName + '" data-field="quality" data-idx="' + idx + '">' +
+        '<option value="">Rate</option>' +
+        '<option value="strong">\u2605\u2605\u2605 Strong</option>' +
+        '<option value="good">\u2605\u2605 Good</option>' +
+        '<option value="weak">\u2605 Weak</option>' +
+      '</select>' +
+    '</div>' +
+    '<textarea class="prompt-textarea" rows="3" data-lens="' + lensName + '" data-field="prompt" data-idx="' + idx + '" placeholder="Paste or type the exact prompt you sent to ChatGPT\u2026"></textarea>' +
+    '<textarea class="intent-textarea" rows="2" data-lens="' + lensName + '" data-field="intent" data-idx="' + idx + '" placeholder="Your intent: what were you trying to achieve with this prompt?"></textarea>';
+
+  container.appendChild(div);
+
+  const pVal = load(saveKey(lensName, 'prompt', idx));
+  const iVal = load(saveKey(lensName, 'intent', idx));
+  const qVal = load(saveKey(lensName, 'quality', idx));
+  if (pVal) div.querySelector('[data-field="prompt"]').value = pVal;
+  if (iVal) div.querySelector('[data-field="intent"]').value = iVal;
+  if (qVal) div.querySelector('[data-field="quality"]').value = qVal;
+
+  div.querySelectorAll('textarea, select').forEach(function(el) {
+    el.addEventListener('input',  function() { setStatus(lensName, 'unsaved'); });
+    el.addEventListener('change', function() { setStatus(lensName, 'unsaved'); });
+  });
+
+  if (focus !== false && forceIdx === undefined) {
+    setTimeout(function() { div.querySelector('textarea').focus(); }, 50);
+  }
+}
+
+function buildEntries(lensName, color) {
+  const count = entryCount(lensName);
+  for (var i = 0; i < count; i++) addEntry(lensName, color, i, false);
+}
+
+function saveLens(lensName) {
+  const container = document.getElementById('entries-' + lensName);
+  if (container) {
+    container.querySelectorAll('.prompt-entry').forEach(function(entry) {
+      const idx = entry.getAttribute('data-idx');
+      const p = entry.querySelector('[data-field="prompt"]');
+      const iv = entry.querySelector('[data-field="intent"]');
+      const q = entry.querySelector('[data-field="quality"]');
+      if (p)  save(saveKey(lensName, 'prompt',  idx), p.value);
+      if (iv) save(saveKey(lensName, 'intent',  idx), iv.value);
+      if (q)  save(saveKey(lensName, 'quality', idx), q.value);
+    });
+  }
+  const aEl = document.querySelector('.analysis-textarea[data-lens="' + lensName + '"]');
+  if (aEl) save('gm-assign-' + lensName + '-analysis', aEl.value);
+  setStatus(lensName, 'saved');
+  updateDotWork();
+}
+
+function setStatus(lensName, state) {
+  const el = document.getElementById('status-' + lensName);
+  if (!el) return;
+  el.textContent = state === 'saved' ? '\u2713 saved' : 'unsaved';
+  el.classList.toggle('saved', state === 'saved');
+}
+
+/* SLIDES 1–15: LENSES */
+LENSES.forEach(function(lens, li) {
+  const promptsHTML = lens.prompts.map(p => `<div class="prompt-item"><span class="prompt-arrow">→</span><span>${p}</span></div>`).join('');
+  const slideEl = document.createElement('div');
+  slideEl.className = 'slide';
+  const inner = document.createElement('div');
+  inner.className = 'slide-inner';
+
+  inner.innerHTML = `
+    <div class="lens-slide-header">
+      <div class="lens-piece-big">${lens.piece}</div>
+      <div>
+        <div class="lens-name-big" style="color:${lens.color}">${lens.name}</div>
+        <div class="lens-tagline-big" style="color:${lens.color}">${lens.tagline}</div>
+      </div>
+    </div>
+
+    ${chessBlock(lens.chess, lens.color, lens.piece)}
+
+    <div class="prompts-section">
+      <div class="prompts-label" style="color:${lens.color}">♟ &nbsp;Thinking prompts — use these to inspire your ChatGPT prompts</div>
+      <div class="prompt-list">${promptsHTML}</div>
+    </div>
+
+    <div class="work-area" data-lens="${lens.name}">
+      <div class="work-label" style="color:${lens.color}">✎ &nbsp;Your prompts for this lens</div>
+      <div class="prompt-entries" id="entries-${lens.name}"></div>
+      <button class="add-prompt-btn" data-lens="${lens.name}" style="border-color:${lens.color}33; color:${lens.color}88">+ Add another prompt</button>
+
+      <div class="work-label" style="color:${lens.color}">✎ &nbsp;Your analysis of this lens</div>
+      <textarea class="analysis-textarea" data-lens="${lens.name}" data-field="analysis"
+        placeholder="How well did the ${lens.name} lens work? Which prompt was your strongest — and why? Which was your weakest? What did this lens reveal about your essay topic that you hadn't considered?"
+        rows="5"></textarea>
+
+      <div class="save-bar" style="margin-top:8px;">
+        <span class="save-status" id="status-${lens.name}">unsaved</span>
+        <button class="save-btn" data-lens="${lens.name}">Save ↓</button>
+      </div>
+    </div>
+  `;
+
+  slideEl.appendChild(inner);
+  track.appendChild(slideEl);
+
+  /* Build initial prompt entries */
+  buildEntries(lens.name, lens.color);
+
+  /* Wire add-prompt button */
+  inner.querySelector('.add-prompt-btn').addEventListener('click', function() {
+    addEntry(lens.name, lens.color);
+  });
+
+  /* Wire save button */
+  inner.querySelector('.save-btn').addEventListener('click', function() {
+    saveLens(lens.name);
+  });
+
+  /* Wire analysis autosave hint */
+  inner.querySelector('.analysis-textarea').addEventListener('input', function() {
+    setStatus(lens.name, 'unsaved');
+  });
+
+  /* Restore analysis */
+  const aVal = load(`gm-assign-${lens.name}-analysis`);
+  if (aVal) inner.querySelector('.analysis-textarea').value = aVal;
+});
+
+/* SLIDE 16: FINALE */
+makeSlide(`
+  <div class="finale">
+    <span class="finale-crown">♛</span>
+    <div class="finale-title">Your Prompts<br>Are Your Moves</div>
+    <p class="finale-sub">You have worked through all 15 lenses. Now copy your saved prompts and analyses into the portfolio template and publish your work.</p>
+    <div class="finale-loop">
+      <div class="finale-loop-title">♟ &nbsp;The Thinking Loop</div>
+      <div class="finale-steps">
+        <div class="finale-step"><div class="finale-step-line"><div class="finale-step-dot">1</div><div class="finale-step-connector"></div></div><div class="finale-step-text">Generate candidate prompts</div></div>
+        <div class="finale-step"><div class="finale-step-line"><div class="finale-step-dot">2</div><div class="finale-step-connector"></div></div><div class="finale-step-text">Evaluate the output honestly</div></div>
+        <div class="finale-step"><div class="finale-step-line"><div class="finale-step-dot">3</div><div class="finale-step-connector"></div></div><div class="finale-step-text">Refine and iterate</div></div>
+        <div class="finale-step"><div class="finale-step-line"><div class="finale-step-dot">4</div><div class="finale-step-connector"></div></div><div class="finale-step-text">Analyse your own thinking</div></div>
+        <div class="finale-step"><div class="finale-step-line"><div class="finale-step-dot">5</div><div class="finale-step-connector"></div></div><div class="finale-step-text">Publish your portfolio</div></div>
+      </div>
+      <div class="finale-heuristic">Heuristic: <b>Think → Compare → Commit</b></div>
+    </div>
+    <a href="template/index.html" class="portfolio-link" target="_blank">♟ &nbsp;Open Portfolio Template</a>
+    <button class="portfolio-link" id="pdfBtn" style="border:none;cursor:pointer;margin-bottom:0;">⬇ &nbsp;Download as PDF</button>
+    <button class="finale-restart" id="restartBtn">← Back to the beginning</button>
+  </div>
+`);
+
+/* ── DOTS ── */
+const dotRow = document.getElementById('dotRow');
+for (let i = 0; i < TOTAL; i++) {
+  const d = document.createElement('div');
+  d.className = 'dot';
+  d.addEventListener('click', () => goTo(i));
+  dotRow.appendChild(d);
+}
+
+function updateDotWork() {
+  const dots = dotRow.querySelectorAll('.dot');
+  LENSES.forEach((l, i) => {
+    if (hasWork(l.name)) dots[i + 1].classList.add('has-work');
+    else dots[i + 1].classList.remove('has-work');
+  });
+}
+updateDotWork();
+
+/* ── NAVIGATION ── */
+let cur = 0;
+
+function ui() {
+  document.getElementById('track').style.transform = `translateX(-${cur * 100}vw)`;
+  document.getElementById('pFill').style.width = `${(cur + 1) / TOTAL * 100}%`;
+  document.getElementById('counter').textContent = `${cur + 1} / ${TOTAL}`;
+  document.getElementById('prevBtn').disabled = cur === 0;
+
+  const nb = document.getElementById('nextBtn');
+  nb.textContent = cur === TOTAL - 1 ? '✓' : '›';
+  nb.dataset.last = cur === TOTAL - 1 ? '1' : '0';
+
+  dotRow.querySelectorAll('.dot').forEach((d, i) => {
+    d.classList.toggle('active', i === cur);
+    d.classList.toggle('nearby', Math.abs(i - cur) === 1);
+  });
+
+  const inner = document.querySelectorAll('.slide')[cur].querySelector('.slide-inner');
+  Array.from(inner.children).forEach((child, i) => {
+    child.style.opacity = '0';
+    child.style.animation = 'none';
+    void child.offsetWidth;
+    child.style.animation = `fadeUp 0.42s ease-out ${i * 0.06}s forwards`;
+  });
+}
+
+function next() { if (cur < TOTAL - 1) { cur++; ui(); } }
+function prev() { if (cur > 0) { cur--; ui(); } }
+function goTo(i) { cur = i; ui(); }
+
+document.addEventListener('click', e => {
+  if (e.target?.id === 'restartBtn') goTo(0);
+});
+document.getElementById('prevBtn').addEventListener('click', prev);
+document.getElementById('nextBtn').addEventListener('click', function() {
+  this.dataset.last === '1' ? goTo(0) : next();
+});
+
+/* ── SWIPE ── */
+let sx = 0, sy = 0, dragging = false;
+const wrap = document.querySelector('.slides-wrap');
+wrap.addEventListener('touchstart', e => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; dragging = false; }, { passive: true });
+wrap.addEventListener('touchmove', e => {
+  const dx = e.touches[0].clientX - sx, dy = e.touches[0].clientY - sy;
+  if (!dragging && Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 8) dragging = true;
+}, { passive: true });
+wrap.addEventListener('touchend', e => {
+  if (!dragging) return;
+  const dx = e.changedTouches[0].clientX - sx;
+  if (Math.abs(dx) > 48) dx < 0 ? next() : prev();
+  dragging = false;
+});
+
+/* Prevent swipe inside textareas from triggering slide change */
+document.querySelectorAll('textarea, select').forEach(el => {
+  el.addEventListener('touchstart', e => e.stopPropagation(), { passive: true });
+  el.addEventListener('touchmove',  e => e.stopPropagation(), { passive: true });
+  el.addEventListener('touchend',   e => e.stopPropagation());
+});
+
+document.addEventListener('keydown', e => {
+  if (document.activeElement.tagName === 'TEXTAREA' || document.activeElement.tagName === 'SELECT') return;
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') next();
+  if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   prev();
+});
+
+ui();
+
+/* ── PDF EXPORT ── */
+document.addEventListener('click', function(e) {
+  if (e.target && e.target.id === 'pdfBtn') generatePDF();
+});
+
+function generatePDF() {
+  /* Collect all data from localStorage */
+  const rows = LENSES.map(function(lens) {
+    const entries = [];
+    for (var i = 0; i < 20; i++) {
+      const p = localStorage.getItem('gm-assign-' + lens.name + '-prompt-' + i);
+      if (p === null) break;
+      const intent   = localStorage.getItem('gm-assign-' + lens.name + '-intent-'  + i) || '';
+      const quality  = localStorage.getItem('gm-assign-' + lens.name + '-quality-' + i) || '';
+      entries.push({ prompt: p, intent: intent, quality: quality });
+    }
+    const analysis = localStorage.getItem('gm-assign-' + lens.name + '-analysis') || '';
+    return { lens: lens, entries: entries, analysis: analysis };
+  });
+
+  /* Quality label helper */
+  function qLabel(v) {
+    if (v === 'strong') return '★★★ Strong';
+    if (v === 'good')   return '★★ Good';
+    if (v === 'weak')   return '★ Weak';
+    return '— not rated';
+  }
+
+  /* Build lens sections HTML */
+  var sections = rows.map(function(row) {
+    if (!row.entries.length && !row.analysis) return '';
+
+    var promptRows = row.entries.map(function(e, i) {
+      return '<tr>' +
+        '<td class="pn">' + (i + 1) + '</td>' +
+        '<td class="pt">' + esc(e.prompt) + '</td>' +
+        '<td class="pi"><em>' + esc(e.intent) + '</em></td>' +
+        '<td class="pq">' + qLabel(e.quality) + '</td>' +
+      '</tr>';
+    }).join('');
+
+    var table = row.entries.length
+      ? '<table><thead><tr><th>#</th><th>Prompt</th><th>Intent</th><th>Rating</th></tr></thead><tbody>' + promptRows + '</tbody></table>'
+      : '<p class="empty">No prompts recorded.</p>';
+
+    var analysisBlock = row.analysis
+      ? '<div class="analysis-block"><div class="analysis-label">Analysis</div><p>' + esc(row.analysis) + '</p></div>'
+      : '';
+
+    return '<section>' +
+      '<div class="lens-head" style="border-left-color:' + row.lens.color + '">' +
+        '<span class="lens-piece">' + row.lens.piece + '</span>' +
+        '<div>' +
+          '<div class="lens-name" style="color:' + row.lens.color + '">' + row.lens.name + '</div>' +
+          '<div class="lens-tag">' + row.lens.tagline + '</div>' +
+        '</div>' +
+        '<div class="chess-tag">♟ ' + row.lens.chess.heuristic + '</div>' +
+      '</div>' +
+      table +
+      analysisBlock +
+    '</section>';
+  }).join('');
+
+  /* Count total prompts */
+  var totalPrompts = rows.reduce(function(n, r) { return n + r.entries.length; }, 0);
+
+  var html = '<!DOCTYPE html><html><head>' +
+    '<meta charset="UTF-8">' +
+    '<title>Prompt Engineering Assignment</title>' +
+    '<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">' +
+    '<style>' +
+      '*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }' +
+      'body { font-family: "Courier Prime", monospace; font-size: 11pt; color: #1a1208; background: #fff; padding: 0; }' +
+      'a { color: inherit; }' +
+
+      /* Cover */
+      '.cover { page-break-after: always; display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 100vh; text-align: center; background: #0b0906; color: #f2ead8; padding: 60px 40px; }' +
+      '.cover-piece { font-size: 4rem; margin-bottom: 24px; color: #c9a84c; }' +
+      '.cover-title { font-family: "Cormorant Garamond", serif; font-size: 2.8rem; font-weight: 700; color: #c9a84c; line-height: 1.1; margin-bottom: 16px; }' +
+      '.cover-sub { font-family: "Cormorant Garamond", serif; font-style: italic; font-size: 1.1rem; color: rgba(242,234,216,0.6); margin-bottom: 32px; max-width: 420px; }' +
+      '.cover-meta { font-size: 0.7rem; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(201,168,76,0.55); }' +
+      '.cover-stat { margin-top: 28px; display: inline-block; border: 1px solid rgba(201,168,76,0.3); padding: 10px 24px; font-size: 0.72rem; letter-spacing: 0.15em; text-transform: uppercase; color: #c9a84c; }' +
+
+      /* Page layout */
+      '.page-body { max-width: 720px; margin: 0 auto; padding: 40px 32px; }' +
+
+      /* Section */
+      'section { margin-bottom: 32px; page-break-inside: avoid; border: 1px solid #e8dcc4; border-radius: 4px; overflow: hidden; }' +
+      '.lens-head { display: flex; align-items: center; gap: 14px; padding: 14px 18px; background: #f2ead8; border-left: 4px solid #c9a84c; border-bottom: 1px solid #e8dcc4; }' +
+      '.lens-piece { font-size: 1.8rem; flex-shrink: 0; }' +
+      '.lens-name { font-family: "Cormorant Garamond", serif; font-size: 1.3rem; font-weight: 700; line-height: 1; }' +
+      '.lens-tag { font-size: 0.62rem; letter-spacing: 0.12em; text-transform: uppercase; color: #7a6a52; margin-top: 3px; }' +
+      '.chess-tag { margin-left: auto; font-size: 0.6rem; letter-spacing: 0.1em; text-transform: uppercase; color: #b8973a; text-align: right; flex-shrink: 0; max-width: 140px; line-height: 1.4; }' +
+
+      /* Table */
+      'table { width: 100%; border-collapse: collapse; font-size: 9.5pt; }' +
+      'thead tr { background: #2c2418; }' +
+      'thead th { padding: 8px 12px; text-align: left; font-size: 0.58rem; letter-spacing: 0.15em; text-transform: uppercase; color: #d4af5a; font-weight: 700; }' +
+      'tbody tr { border-bottom: 1px solid #e8dcc4; }' +
+      'tbody tr:last-child { border-bottom: none; }' +
+      'tbody tr:nth-child(even) { background: #faf6ee; }' +
+      'td { padding: 9px 12px; vertical-align: top; line-height: 1.5; color: #4a3c28; }' +
+      'td.pn { width: 28px; text-align: center; font-family: "Cormorant Garamond", serif; font-size: 1.1rem; color: #8a6e22; font-weight: 700; }' +
+      'td.pt { width: 35%; }' +
+      'td.pi { font-family: "Cormorant Garamond", serif; font-style: italic; color: #7a6a52; }' +
+      'td.pq { white-space: nowrap; font-size: 0.75rem; color: #8a6e22; width: 80px; }' +
+
+      /* Analysis */
+      '.analysis-block { padding: 14px 18px; background: #faf6ee; border-top: 1px solid #e8dcc4; }' +
+      '.analysis-label { font-size: 0.6rem; letter-spacing: 0.2em; text-transform: uppercase; color: #b8973a; margin-bottom: 8px; }' +
+      '.analysis-block p { font-family: "Cormorant Garamond", serif; font-size: 1rem; line-height: 1.75; color: #4a3c28; }' +
+
+      '.empty { padding: 12px 18px; font-style: italic; color: #b8a888; font-size: 0.85rem; }' +
+
+      /* Print */
+      '@media print {' +
+        'body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }' +
+        '.cover { min-height: 100vh; }' +
+        'section { page-break-inside: avoid; }' +
+        '@page { margin: 14mm 12mm; }' +
+      '}' +
+    '</style>' +
+  '</head><body>' +
+
+  /* Cover page */
+  '<div class="cover">' +
+    '<div class="cover-piece">♛</div>' +
+    '<div class="cover-title">The Grandmaster\'s<br>Prompting Assignment</div>' +
+    '<p class="cover-sub">Prompt engineering portfolio — all lenses, prompts, and analysis</p>' +
+    '<div class="cover-meta">Generated ' + new Date().toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' }) + '</div>' +
+    '<div class="cover-stat">' + totalPrompts + ' prompts across ' + rows.filter(function(r){return r.entries.length>0;}).length + ' lenses</div>' +
+  '</div>' +
+
+  '<div class="page-body">' + sections + '</div>' +
+  '</body></html>';
+
+  /* Open in new tab and trigger print dialog */
+  var win = window.open('', '_blank');
+  win.document.write(html);
+  win.document.close();
+  win.addEventListener('load', function() {
+    setTimeout(function() { win.print(); }, 400);
+  });
+}
+
+/* Escape HTML */
+function esc(str) {
+  return String(str || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\n/g, '<br>');
+}
+</script>
+</body>
+</html>

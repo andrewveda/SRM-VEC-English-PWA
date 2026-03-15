@@ -605,37 +605,53 @@
       }
       const { jsPDF } = window.jspdf;
 
-      const GOLD        = [201, 168, 76];
-      const GOLD_LIGHT  = [232, 201, 122];
-      const GOLD_DEEP   = [140, 100, 20];
-      const CREAM       = [250, 246, 238];
-      const CREAM_DARK  = [240, 233, 218];
-      const INK         = [26,  21,  16];
-      const INK_MID     = [90,  74,  52];
-      const INK_DIM     = [160, 144, 120];
-      const WHITE       = [255, 255, 255];
+      // ── PALETTE ──────────────────────────────────────────────────────
+      // Rich antique gold family
+      const G_BRIGHT  = [245, 210, 90];   // brightest highlight
+      const G_MAIN    = [201, 168, 76];   // main gold
+      const G_DEEP    = [140, 100, 20];   // dark gold for text
+      const G_MUTED   = [170, 135, 55];   // mid gold
+      const G_DIM     = [100,  78, 18];   // very dark gold
+      // Dark backgrounds
+      const BG_DARK   = [14,  10,   4];   // near-black parchment
+      const BG_MID    = [28,  20,   6];   // dark panel
+      const BG_CARD   = [38,  28,  10];   // stat card bg
+      const BG_ROW    = [50,  38,  14];   // alternating row
+      // Cream text
+      const CREAM     = [248, 240, 220];
+      const CREAM_DIM = [190, 178, 148];
+      const CREAM_MID = [220, 208, 178];
 
+      // ── DOCUMENT: A4 portrait ─────────────────────────────────────────
       const doc = new jsPDF({ unit: "pt", format: "a4", orientation: "portrait" });
-      const PW = doc.internal.pageSize.getWidth();
-      const PH = doc.internal.pageSize.getHeight();
-      const M = 36;
+      const PW = doc.internal.pageSize.getWidth();   // 595
+      const PH = doc.internal.pageSize.getHeight();  // 842
+      const M  = 40;
       const CW = PW - M * 2;
 
-      function cx(str, size, style, color) {
+      // ── HELPERS ───────────────────────────────────────────────────────
+      const setFont = (size, style, color) => {
         doc.setFont("helvetica", style || "normal");
         doc.setFontSize(size);
-        doc.setTextColor(...(color || INK));
+        doc.setTextColor(...(color || CREAM));
+      };
+      const textW = (str, size, style) => {
+        doc.setFont("helvetica", style || "normal");
+        doc.setFontSize(size);
         return doc.getTextWidth(str);
-      }
-      function ct(str, y2, size, style, color) { cx(str, size, style, color); doc.text(str, PW / 2, y2, { align: "center" }); }
-      function hline(y2, x1, x2, color, lw) { doc.setDrawColor(...(color || GOLD)); doc.setLineWidth(lw || 0.5); doc.line(x1 !== undefined ? x1 : M, y2, x2 !== undefined ? x2 : PW - M, y2); }
-      function fillRect(x2, y2, w2, h2, color) { doc.setFillColor(...color); doc.rect(x2, y2, w2, h2, "F"); }
-      function roundFill(x2, y2, w2, h2, r, fill, stroke, lw) {
+      };
+      const cText  = (str, y, size, style, color) => { setFont(size, style, color); doc.text(str, PW / 2, y, { align: "center" }); };
+      const lText  = (str, x, y, size, style, color) => { setFont(size, style, color); doc.text(str, x, y); };
+      const rText  = (str, x, y, size, style, color) => { setFont(size, style, color); doc.text(str, x, y, { align: "right" }); };
+      const hLine  = (y, x1, x2, col, lw) => { doc.setDrawColor(...(col || G_MAIN)); doc.setLineWidth(lw || 0.5); doc.line(x1 ?? M, y, x2 ?? PW - M, y); };
+      const fRect  = (x, y, w, h, col) => { doc.setFillColor(...col); doc.rect(x, y, w, h, "F"); };
+      const rRect  = (x, y, w, h, r, fill, stroke, lw) => {
         doc.setFillColor(...fill);
-        if (stroke) { doc.setDrawColor(...stroke); doc.setLineWidth(lw || 0.5); doc.roundedRect(x2, y2, w2, h2, r, r, "FD"); }
-        else { doc.roundedRect(x2, y2, w2, h2, r, r, "F"); }
-      }
+        if (stroke) { doc.setDrawColor(...stroke); doc.setLineWidth(lw ?? 0.6); doc.roundedRect(x, y, w, h, r, r, "FD"); }
+        else doc.roundedRect(x, y, w, h, r, r, "F");
+      };
 
+      // ── DATA PREP ─────────────────────────────────────────────────────
       const quests   = parseItems(studentObj.quest_list);
       const videos   = parseItems(studentObj.video_list);
       const stories  = parseItems(studentObj.story_list);
@@ -643,174 +659,294 @@
       const vocabs   = parseVocabDates(studentObj.vocab_list);
       const grouped  = groupByDate(quests, videos, stories, cryptics, vocabs);
 
-      const totalSec  = Math.round(studentObj.total_time || 0);
-      const tH = Math.floor(totalSec / 3600);
-      const tM = Math.floor((totalSec % 3600) / 60);
-      const tS = totalSec % 60;
-      const timeStr   = `${tH}h ${tM}m ${tS}s`;
-      const accuracy  = Math.round((studentObj.accuracy || 0) * 100);
-      const score     = studentObj.total_score ?? 0;
-      const dept      = (studentObj.department || "").toUpperCase();
-      const name      = studentObj.name || "—";
+      const totalSec   = Math.round(studentObj.total_time || 0);
+      const tH  = Math.floor(totalSec / 3600);
+      const tM  = Math.floor((totalSec % 3600) / 60);
+      const tS  = totalSec % 60;
+      const accuracy   = Math.round((studentObj.accuracy || 0) * 100);
+      const score      = studentObj.total_score ?? 0;
+      const dept       = (studentObj.department || "").toUpperCase();
+      const name       = studentObj.name || "—";
       const activeDays = Object.keys(grouped).length;
+      const hitRate    = studentObj.total_attempts > 0
+        ? Math.round((studentObj.total_correct / studentObj.total_attempts) * 100) : 0;
 
-      // ── PAGE 1 CARD ──
-      fillRect(0, 0, PW, 450, CREAM);
-      fillRect(0, 0, PW, 8, GOLD);
-      fillRect(0, 10, PW, 1.5, GOLD_LIGHT);
-      fillRect(0, 13, PW, 0.5, GOLD);
+      // ══════════════════════════════════════════════════════════════════
+      //  FULL PAGE DARK BACKGROUND
+      // ══════════════════════════════════════════════════════════════════
+      fRect(0, 0, PW, PH, BG_DARK);
 
-      function diamond(cx2, cy2, size2) {
-        doc.setFillColor(...GOLD);
-        const s2 = size2 * 0.8;
-        doc.lines([[s2, s2], [s2, -s2], [-s2, -s2], [-s2, s2]], cx2 - s2, cy2, [1, 1], "F");
+      // ── Subtle diagonal texture lines (give parchment feel) ───────────
+      doc.setDrawColor(201, 168, 76);
+      doc.setLineWidth(0.08);
+      doc.setGState(new doc.GState({ opacity: 0.04 }));
+      for (let i = -PH; i < PW + PH; i += 18) {
+        doc.line(i, 0, i + PH, PH);
       }
-      diamond(M - 4, 4, 5); diamond(PW - M + 4, 4, 5);
-      diamond(M - 4, 446, 5); diamond(PW - M + 4, 446, 5);
-
-      let y = 38;
-      ct("SRM VALLIAMMAI ENGINEERING COLLEGE", y, 10, "bold", GOLD_DEEP);
-      y += 13; ct("Department of English", y, 8, "normal", INK_MID);
-      y += 8; hline(y, M + 20, PW - M - 20, GOLD_LIGHT, 0.3);
-      y += 10; ct("MISSION: VENI, VIDI, VICI!", y, 7.5, "normal", INK_DIM);
-      y += 14; fillRect(M, y, CW, 1, GOLD); y += 8;
-      ct(name.toUpperCase(), y, 26, "bold", INK); y += 6;
-      if (dept) { ct(dept, y + 10, 8, "normal", INK_MID); y += 16; }
-      y += 6; hline(y, M + 40, PW - M - 40, GOLD, 0.4);
-      y += 3; hline(y, M + 40, PW - M - 40, GOLD_LIGHT, 0.2); y += 14;
-
-      // Hero stats — now 4 columns: Score | Accuracy | Active Days | Vocab
-      const heroStats = [
-        { label: "MISSION SCORE",  value: String(score),       sub: "points earned"      },
-        { label: "ACCURACY",       value: `${accuracy}%`,      sub: "questions correct"  },
-        { label: "ACTIVE DAYS",    value: String(activeDays),  sub: "days with activity" },
-        { label: "VOCAB",          value: String(studentObj.vocab_completed ?? 0), sub: "sessions done" },
-      ];
-      const heroW = CW / heroStats.length;
-      heroStats.forEach((hs, i) => {
-        const bx = M + i * heroW;
-        const midX = bx + heroW / 2;
-        if (i > 0) { doc.setDrawColor(...GOLD_LIGHT); doc.setLineWidth(0.5); doc.line(bx, y - 4, bx, y + 48); }
-        cx(hs.value, 24, "bold", GOLD_DEEP); doc.text(hs.value, midX, y + 20, { align: "center" });
-        cx(hs.label, 6, "bold", INK_DIM);    doc.text(hs.label, midX, y + 32, { align: "center" });
-        cx(hs.sub,   5.5, "normal", INK_DIM); doc.text(hs.sub,  midX, y + 41, { align: "center" });
-      });
-      y += 58;
-
-      // Time banner
-      roundFill(M, y, CW, 36, 4, CREAM_DARK, GOLD, 0.4);
-      cx("TIME ON MISSION", 7, "bold", INK_DIM); doc.text("TIME ON MISSION", M + 14, y + 13);
-      cx(timeStr, 17, "bold", GOLD_DEEP); doc.text(timeStr, PW - M - 14, y + 20, { align: "right" });
-      y += 48;
-
-      // Activity pills — now 6
-      const acts = [
-        { label: "Quests",  value: quests.length  },
-        { label: "Videos",  value: videos.length  },
-        { label: "Stories", value: stories.length },
-        { label: "Cryptic", value: studentObj.cryptic_completed ?? 0 },
-        { label: "Wordle",  value: studentObj.wordle_completed  ?? 0 },
-        { label: "Vocab",   value: studentObj.vocab_completed   ?? 0 },
-      ];
-      const actW = CW / acts.length;
-      acts.forEach((a, i) => {
-        const bx = M + i * actW;
-        const midX = bx + actW / 2;
-        const isActive = a.value > 0;
-        roundFill(bx + 3, y, actW - 6, 44, 6,
-          isActive ? [248, 238, 210] : CREAM_DARK,
-          isActive ? GOLD : [210, 200, 185], 0.4);
-        cx(String(a.value), 15, "bold", isActive ? GOLD_DEEP : INK_DIM);
-        doc.text(String(a.value), midX, y + 19, { align: "center" });
-        cx(a.label.toUpperCase(), 5.5, "bold", INK_DIM);
-        doc.text(a.label.toUpperCase(), midX, y + 31, { align: "center" });
-      });
-      y += 54;
-
-      // Last mission
-      hline(y, M + 20, PW - M - 20, GOLD_LIGHT, 0.3); y += 10;
-      ct(`Last Mission: ${formatDate(studentObj.last_test_taken)}`, y, 7.5, "normal", INK_DIM); y += 14;
-
-      fillRect(0, 443, PW, 0.5, GOLD_LIGHT);
-      fillRect(0, 445, PW, 5, GOLD);
-
-      // Watermark
-      doc.setTextColor(201, 168, 76);
-      doc.setGState(new doc.GState({ opacity: 0.06 }));
-      doc.setFont("helvetica", "bold"); doc.setFontSize(72);
-      doc.text("VVV", PW / 2, 360, { align: "center" });
       doc.setGState(new doc.GState({ opacity: 1.0 }));
 
-      // ── CALENDAR SECTION ──
-      fillRect(0, 450, PW, PH - 450, WHITE);
-      y = 468;
-      fillRect(M, y, 3, 16, GOLD);
-      cx("ACTIVITY CALENDAR", 10, "bold", INK); doc.text("ACTIVITY CALENDAR", M + 10, y + 12);
-      cx("Gold = Quests · Videos · Stories · Cryptic 🔐 · Vocab 📚", 7, "normal", INK_DIM);
-      doc.text("Gold = Quests · Videos · Stories · Cryptic · Vocab", PW - M, y + 12, { align: "right" });
-      y += 28;
+      // ── Top gold bar (thick) ──────────────────────────────────────────
+      fRect(0, 0, PW, 10, G_MAIN);
+      fRect(0, 10, PW, 2, G_BRIGHT);
+      fRect(0, 14, PW, 0.8, G_MUTED);
 
-      const calCols3 = 3;
-      const calW3 = CW / calCols3;
-      const daySize3 = Math.floor((calW3 - 10) / 7);
-      let calCol3 = 0, calRowY3 = y, calMaxH = 0;
-      const todayDate  = new Date();
-      const endMonth3  = new Date(todayDate.getFullYear(), todayDate.getMonth(), 1);
-      let cur3 = new Date(CALENDAR_VISIBLE_START.getFullYear(), CALENDAR_VISIBLE_START.getMonth(), 1);
+      // ── Bottom gold bar ───────────────────────────────────────────────
+      fRect(0, PH - 10, PW, 10, G_MAIN);
+      fRect(0, PH - 12, PW, 2, G_BRIGHT);
 
-      while (cur3 <= endMonth3) {
-        const yr3 = cur3.getFullYear(), mo3 = cur3.getMonth();
-        const fd3 = new Date(yr3, mo3, 1).getDay();
-        const nd3 = new Date(yr3, mo3 + 1, 0).getDate();
-        const bx3 = M + calCol3 * calW3;
-        let cy3 = calRowY3;
+      // ── Side accent bars ─────────────────────────────────────────────
+      fRect(0,   18, 3, PH - 30, G_DIM);
+      fRect(PW - 3, 18, 3, PH - 30, G_DIM);
 
-        fillRect(bx3 + 2, cy3, calW3 - 4, 14, CREAM_DARK);
-        cx(cur3.toLocaleString('en-IN', { month: 'short', year: 'numeric' }).toUpperCase(), 6.5, "bold", GOLD_DEEP);
-        doc.text(cur3.toLocaleString('en-IN', { month: 'short', year: 'numeric' }).toUpperCase(), bx3 + calW3 / 2, cy3 + 10, { align: "center" });
-        cy3 += 17;
-
-        const dn3 = ["Su","Mo","Tu","We","Th","Fr","Sa"];
-        dn3.forEach((d3, di3) => { cx(d3, 5, "bold", INK_DIM); doc.text(d3, bx3 + 4 + di3 * (daySize3 + 1) + (daySize3 - doc.getTextWidth(d3)) / 2, cy3 + 7); });
-        cy3 += 10;
-
-        let cx3 = fd3, cr3 = 0;
-        for (let d3 = 1; d3 <= nd3; d3++) {
-          const dk3 = new Date(yr3, mo3, d3).toDateString();
-          const act3 = !!grouped[dk3];
-          const dx3 = bx3 + 3 + cx3 * (daySize3 + 1);
-          const dy3 = cy3 + cr3 * (daySize3 + 1);
-          if (act3) { doc.setFillColor(248, 224, 140); doc.setDrawColor(...GOLD); }
-          else { doc.setFillColor(...CREAM); doc.setDrawColor(218, 208, 190); }
-          doc.setLineWidth(0.25);
-          doc.rect(dx3, dy3, daySize3, daySize3, "FD");
-          cx(String(d3), 5, act3 ? "bold" : "normal", act3 ? GOLD_DEEP : INK_DIM);
-          doc.text(String(d3), dx3 + daySize3 / 2, dy3 + daySize3 * 0.68, { align: "center" });
-          cx3++; if (cx3 === 7) { cx3 = 0; cr3++; }
-        }
-
-        const mH = cy3 + (cr3 + (cx3 > 0 ? 1 : 0)) * (daySize3 + 1) - calRowY3 + 6;
-        calMaxH = Math.max(calMaxH, mH);
-        calCol3++;
-        if (calCol3 >= calCols3) {
-          calCol3 = 0; calRowY3 += calMaxH + 8; calMaxH = 0;
-          if (calRowY3 > PH - 60) {
-            doc.addPage(); fillRect(0, 0, PW, PH, WHITE); fillRect(0, 0, PW, 5, GOLD);
-            calRowY3 = 30; y = calRowY3;
-          }
-        }
-        cur3.setMonth(cur3.getMonth() + 1);
+      // ── Corner diamond ornaments ──────────────────────────────────────
+      function diamond(cx2, cy2, sz) {
+        doc.setFillColor(...G_MAIN);
+        doc.setGState(new doc.GState({ opacity: 0.9 }));
+        doc.lines([[sz, sz],[sz,-sz],[-sz,-sz],[-sz,sz]], cx2 - sz, cy2, [1,1], "F");
+        doc.setGState(new doc.GState({ opacity: 1.0 }));
       }
+      const DS = 6;
+      diamond(M - 8, 20, DS);  diamond(PW - M + 8, 20, DS);
+      diamond(M - 8, PH - 20, DS); diamond(PW - M + 8, PH - 20, DS);
 
-      const footerY = PH - 28;
-      hline(footerY, M, PW - M, GOLD_LIGHT, 0.3);
-      cx(`Generated ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' })}  ·  Mission: Veni, Vidi, Vici!  ·  SRM Valliammai`, 6.5, "normal", INK_DIM);
-      doc.text(
-        `Generated ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' })}  ·  Mission: Veni, Vidi, Vici!  ·  SRM Valliammai`,
-        PW / 2, footerY + 14, { align: "center" }
-      );
-      fillRect(0, PH - 5, PW, 5, GOLD);
-      doc.save(`${name}_MissionReport.pdf`);
+      // ══════════════════════════════════════════════════════════════════
+      //  HEADER BLOCK
+      // ══════════════════════════════════════════════════════════════════
+      let y = 42;
+
+      // Institution
+      cText("SRM VALLIAMMAI ENGINEERING COLLEGE", y, 8.5, "bold", G_MUTED);
+      y += 12;
+      cText("DEPARTMENT OF ENGLISH", y, 7, "normal", CREAM_DIM);
+      y += 14;
+
+      // Ornamental rule with central diamond
+      hLine(y, M + 30, PW / 2 - 12, G_DIM, 0.5);
+      hLine(y, PW / 2 + 12, PW - M - 30, G_DIM, 0.5);
+      diamond(PW / 2, y, 4);
+      y += 14;
+
+      // Mission title
+      cText("MISSION: VENI, VIDI, VICI!", y, 8, "normal", G_MUTED);
+      y += 6;
+
+      // ── Thick gold rule ───────────────────────────────────────────────
+      y += 8;
+      fRect(M, y, CW, 1.5, G_MAIN);
+      y += 4;
+      fRect(M, y, CW, 0.5, G_BRIGHT);
+      y += 14;
+
+      // ── PILOT PROFILE tag ─────────────────────────────────────────────
+      const tagLabel = "PILOT PROFILE";
+      const tagW = textW(tagLabel, 7.5, "bold") + 22;
+      const tagX = (PW - tagW) / 2;
+      rRect(tagX, y - 10, tagW, 15, 3, BG_CARD, G_MUTED, 0.5);
+      cText(tagLabel, y, 7.5, "bold", G_MUTED);
+      y += 12;
+
+      // ── NAME — large, commanding ──────────────────────────────────────
+      y += 6;
+      cText(name.toUpperCase(), y, 36, "bold", CREAM);
+      y += 6;
+
+      // ── Department ────────────────────────────────────────────────────
+      if (dept) {
+        cText(dept, y + 10, 9, "bold", G_MUTED);
+        y += 18;
+      }
+      y += 10;
+
+      // Double thin rules
+      hLine(y, M + 60, PW - M - 60, G_DIM, 0.4);
+      y += 4;
+      hLine(y, M + 80, PW - M - 80, G_MUTED, 0.2);
+      y += 20;
+
+      // ══════════════════════════════════════════════════════════════════
+      //  HERO STAT STRIP — Score | Accuracy | Active Days
+      // ══════════════════════════════════════════════════════════════════
+      const heroH = 88;
+      rRect(M, y, CW, heroH, 8, BG_CARD, G_MUTED, 0.5);
+
+      // Subtle inner glow top edge
+      doc.setDrawColor(...G_BRIGHT);
+      doc.setLineWidth(0.6);
+      doc.setGState(new doc.GState({ opacity: 0.35 }));
+      doc.line(M + 8, y + 1, M + CW - 8, y + 1);
+      doc.setGState(new doc.GState({ opacity: 1.0 }));
+
+      const heroStats = [
+        { val: String(score),       label: "MISSION SCORE",  sub: "points" },
+        { val: `${accuracy}%`,      label: "ACCURACY",       sub: "hit rate" },
+        { val: String(activeDays),  label: "ACTIVE DAYS",    sub: "sessions" },
+      ];
+      const hW = CW / 3;
+      heroStats.forEach((hs, i) => {
+        const bx  = M + i * hW;
+        const mid = bx + hW / 2;
+        // dividers
+        if (i > 0) {
+          doc.setDrawColor(...G_DIM);
+          doc.setLineWidth(0.5);
+          doc.line(bx, y + 14, bx, y + heroH - 14);
+        }
+        // big value
+        setFont(34, "bold", G_BRIGHT);
+        doc.text(hs.val, mid, y + 44, { align: "center" });
+        // label
+        setFont(7, "bold", G_MUTED);
+        doc.text(hs.label, mid, y + 58, { align: "center" });
+        // sub
+        setFont(6.5, "normal", CREAM_DIM);
+        doc.text(hs.sub, mid, y + 69, { align: "center" });
+      });
+      y += heroH + 16;
+
+      // ══════════════════════════════════════════════════════════════════
+      //  TIME ON MISSION — full-width elegant banner
+      // ══════════════════════════════════════════════════════════════════
+      const timeH = 56;
+      rRect(M, y, CW, timeH, 8, BG_MID, G_MAIN, 0.7);
+
+      // Inner gold shimmer line
+      doc.setDrawColor(...G_BRIGHT);
+      doc.setLineWidth(0.5);
+      doc.setGState(new doc.GState({ opacity: 0.25 }));
+      doc.line(M + 8, y + 1, M + CW - 8, y + 1);
+      doc.setGState(new doc.GState({ opacity: 1.0 }));
+
+      // Label left
+      lText("TIME ON MISSION", M + 18, y + 22, 8, "bold", G_MUTED);
+      lText("cumulative study time", M + 18, y + 36, 7, "normal", CREAM_DIM);
+
+      // Time right — three blocks: h  m  s
+      const timeBlocks = [
+        { num: String(tH).padStart(2,"0"), unit: "h" },
+        { num: String(tM).padStart(2,"0"), unit: "m" },
+        { num: String(tS).padStart(2,"0"), unit: "s" },
+      ];
+      let tx = PW - M - 18;
+      // render right-to-left
+      timeBlocks.slice().reverse().forEach((tb, ri) => {
+        const i = 2 - ri;
+        const unitW = textW(tb.unit, 10, "bold");
+        const numW  = textW(tb.num,  26, "bold");
+        const gap   = 3;
+        const blockW = numW + gap + unitW;
+        // unit
+        setFont(10, "bold", G_MUTED);
+        doc.text(tb.unit, tx, y + 34);
+        tx -= unitW + gap;
+        // num
+        setFont(26, "bold", G_BRIGHT);
+        doc.text(tb.num, tx, y + 36, { align: "right" });
+        tx -= numW + 10;
+      });
+      y += timeH + 16;
+
+      // ══════════════════════════════════════════════════════════════════
+      //  STAT GRID — 2 × 3 cards
+      // ══════════════════════════════════════════════════════════════════
+      const statCards = [
+        { label: "QUESTS TAKEN",    val: String(studentObj.total_attempts ?? 0),    sub: "total attempts"    },
+        { label: "CORRECT",         val: String(studentObj.total_correct  ?? 0),    sub: "direct hits"       },
+        { label: "WRONG",           val: String(studentObj.total_wrong    ?? 0),    sub: "near misses"       },
+        { label: "QUESTS DONE",     val: String(studentObj.quests_completed ?? 0),  sub: "completed"         },
+        { label: "VIDEOS",          val: String(studentObj.videos_completed ?? 0),  sub: "completed"         },
+        { label: "STORIES",         val: String(studentObj.stories_completed ?? 0), sub: "completed"         },
+      ];
+
+      const cols    = 3;
+      const cardGap = 10;
+      const cardW   = (CW - cardGap * (cols - 1)) / cols;
+      const cardH   = 80;
+      const rows    = Math.ceil(statCards.length / cols);
+
+      statCards.forEach((sc, idx) => {
+        const col = idx % cols;
+        const row = Math.floor(idx / cols);
+        const cx2 = M + col * (cardW + cardGap);
+        const cy2 = y + row * (cardH + cardGap);
+
+        rRect(cx2, cy2, cardW, cardH, 7, BG_CARD, G_DIM, 0.5);
+
+        // top accent line
+        doc.setDrawColor(...G_MUTED);
+        doc.setLineWidth(1.2);
+        doc.line(cx2 + 12, cy2 + 1, cx2 + cardW - 12, cy2 + 1);
+
+        const mid = cx2 + cardW / 2;
+        setFont(30, "bold", G_BRIGHT);
+        doc.text(sc.val, mid, cy2 + 42, { align: "center" });
+        setFont(6.5, "bold", G_MUTED);
+        doc.text(sc.label, mid, cy2 + 56, { align: "center" });
+        setFont(6, "normal", CREAM_DIM);
+        doc.text(sc.sub, mid, cy2 + 66, { align: "center" });
+      });
+
+      y += rows * (cardH + cardGap) + 6;
+
+      // ══════════════════════════════════════════════════════════════════
+      //  ACTIVITY ROW — Cryptic | Wordle | Vocab  (wide cards)
+      // ══════════════════════════════════════════════════════════════════
+      y += 6;
+      const actCards = [
+        { label: "CRYPTIC",  val: String(studentObj.cryptic_completed ?? 0), sub: "puzzles solved" },
+        { label: "WORDLE",   val: String(studentObj.wordle_completed  ?? 0), sub: "puzzles solved" },
+        { label: "VOCAB",    val: String(studentObj.vocab_completed   ?? 0), sub: "sessions done"  },
+      ];
+      const aCardW = (CW - cardGap * 2) / 3;
+      const aCardH = 76;
+      actCards.forEach((ac, i) => {
+        const cx2 = M + i * (aCardW + cardGap);
+        rRect(cx2, y, aCardW, aCardH, 7, BG_ROW, G_MAIN, 0.6);
+
+        // accent line — brighter for this row
+        doc.setDrawColor(...G_BRIGHT);
+        doc.setLineWidth(1.0);
+        doc.line(cx2 + 10, y + 1, cx2 + aCardW - 10, y + 1);
+
+        const mid = cx2 + aCardW / 2;
+        setFont(28, "bold", G_BRIGHT);
+        doc.text(ac.val, mid, y + 38, { align: "center" });
+        setFont(7, "bold", G_MUTED);
+        doc.text(ac.label, mid, y + 52, { align: "center" });
+        setFont(6, "normal", CREAM_DIM);
+        doc.text(ac.sub, mid, y + 62, { align: "center" });
+      });
+      y += aCardH + 16;
+
+      // ══════════════════════════════════════════════════════════════════
+      //  FULL-WIDTH SCORE + LAST MISSION BANNER
+      // ══════════════════════════════════════════════════════════════════
+      const bannerH = 52;
+      rRect(M, y, CW, bannerH, 8, BG_MID, G_MAIN, 0.7);
+
+      lText("LAST MISSION", M + 18, y + 20, 7.5, "bold", G_MUTED);
+      lText(formatDate(studentObj.last_test_taken), M + 18, y + 36, 9.5, "bold", CREAM);
+      rText(`TOTAL SCORE  ${score}  pts`, PW - M - 18, y + 30, 12, "bold", G_BRIGHT);
+      y += bannerH + 18;
+
+      // ══════════════════════════════════════════════════════════════════
+      //  LARGE WATERMARK
+      // ══════════════════════════════════════════════════════════════════
+      doc.setGState(new doc.GState({ opacity: 0.04 }));
+      setFont(110, "bold", G_MAIN);
+      doc.text("VVV", PW / 2, PH / 2 + 30, { align: "center" });
+      doc.setGState(new doc.GState({ opacity: 1.0 }));
+
+      // ══════════════════════════════════════════════════════════════════
+      //  FOOTER
+      // ══════════════════════════════════════════════════════════════════
+      const footY = PH - 28;
+      hLine(footY - 4, M + 20, PW - M - 20, G_DIM, 0.4);
+      const stamp = `Generated ${new Date().toLocaleString('en-IN',{timeZone:'Asia/Kolkata',day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})}`;
+      cText(stamp, footY + 4, 7, "normal", CREAM_DIM);
+      cText("Mission: Veni, Vidi, Vici!  ·  SRM Valliammai Engineering College", footY + 14, 6.5, "normal", G_DIM);
+
+      // ── SAVE ─────────────────────────────────────────────────────────
+      doc.save(`${name.replace(/\s+/g,"_")}_MissionReport.pdf`);
     }
   </script>
 

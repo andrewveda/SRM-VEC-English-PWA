@@ -195,12 +195,14 @@
           }
         } else {
           const metricLabel =
-            currentSort === "accuracy" ? "TARGET LOCK" :
+            currentSort === "total_score" ? "SCORE" :
+            currentSort === "accuracy" ? "ACCURACY" :
             currentSort === "quests_completed" ? "QUESTS" :
             currentSort === "videos_completed" ? "VIDEOS" :
             currentSort === "stories_completed" ? "STORIES" :
             currentSort === "cryptic_completed" ? "CRYPTIC" :
-            currentSort === "wordle_completed" ? "WORDLE" : "";
+            currentSort === "wordle_completed" ? "WORDLE" :
+            currentSort === "vocab_completed" ? "VOCAB" : "";
 
           row.innerHTML = `
             <div class="rank">${idx < 3 ? getMedalEmoji(idx) : rank}</div>
@@ -237,19 +239,38 @@
       });
     }
 
+    // Parse vocab_list: entries like "VocabDate_2026-02-24"
+    function parseVocabDates(rawList) {
+      if (!rawList || rawList === "NULL") return [];
+      return rawList.split(",").map(item => item.trim()).filter(Boolean).map(item => {
+        const match = item.match(/VocabDate_(\d{4}-\d{2}-\d{2})/);
+        if (match) return new Date(match[1] + "T00:00:00");
+        return null;
+      }).filter(Boolean);
+    }
+
     function iconFor(label) {
-      if (label.startsWith("Quest")) return "♥️";
-      if (label.startsWith("Video")) return "😍";
-      if (label.startsWith("Story")) return "📜";
+      if (label.startsWith("Quest"))   return "♥️";
+      if (label.startsWith("Video"))   return "😍";
+      if (label.startsWith("Story"))   return "📜";
+      if (label.startsWith("Cryptic")) return "🔐";
+      if (label.startsWith("Vocab"))   return "📚";
       return "•";
     }
 
-    function groupByDate(quests, videos, stories) {
+    function groupByDate(quests, videos, stories, cryptics, vocabDates) {
       const map = {};
-      const add = (date, label) => { const key = date.toDateString(); if (!map[key]) map[key] = []; map[key].push(label); };
-      quests.forEach(q => add(mapToDate(q.number), q.label));
-      videos.forEach(v => add(mapToDate(v.number), v.label));
-      stories.forEach(s => add(mapToDate(s.number), s.label));
+      const add = (date, label) => {
+        if (!date || isNaN(date.getTime())) return;
+        const key = date.toDateString();
+        if (!map[key]) map[key] = [];
+        map[key].push(label);
+      };
+      quests.forEach(q   => add(mapToDate(q.number), q.label));
+      videos.forEach(v   => add(mapToDate(v.number), v.label));
+      stories.forEach(s  => add(mapToDate(s.number), s.label));
+      cryptics.forEach(c => add(mapToDate(c.number), c.label));
+      vocabDates.forEach(d => add(d, `Vocab`));
       return map;
     }
 
@@ -300,6 +321,7 @@
           <div class="stat-box"><div class="stat-label">Accuracy</div><div class="stat-value">${Math.round((s.accuracy ?? 0) * 100)}%</div><div class="stat-foot">Hit Rate</div></div>
           <div class="stat-box"><div class="stat-label">Cryptic</div><div class="stat-value">${s.cryptic_completed ?? 0}</div><div class="stat-foot">Puzzles solved</div></div>
           <div class="stat-box"><div class="stat-label">Wordle</div><div class="stat-value">${s.wordle_completed ?? 0}</div><div class="stat-foot">Puzzles solved</div></div>
+          <div class="stat-box"><div class="stat-label">Vocab</div><div class="stat-value">${s.vocab_completed ?? 0}</div><div class="stat-foot">Sessions done</div></div>
           <div class="stat-box"><div class="stat-label">Quests</div><div class="stat-value">${s.total_attempts ?? 0}</div><div class="stat-foot">Quests conquered</div></div>
           <div class="stat-box"><div class="stat-label">Correct</div><div class="stat-value">${s.total_correct ?? 0}</div><div class="stat-foot">Direct Hits</div></div>
           <div class="stat-box"><div class="stat-label">Wrong</div><div class="stat-value">${s.total_wrong ?? 0}</div><div class="stat-foot">Near Misses</div></div>
@@ -307,7 +329,7 @@
         </div>
         <div class="detail-box">
           <h3>📡 Mission Activity Grid</h3>
-          <p class="detail-caption">Gold days show completed Quests, Videos, or Stories.</p>
+          <p class="detail-caption">Gold days show completed Quests ♥️, Videos 😍, Stories 📜, Cryptic 🔐 or Vocab 📚.</p>
           <div id="mini-calendar" class="mission-calendar"></div>
         </div>
         <div class="detail-box">
@@ -315,10 +337,12 @@
           <p>${formatDate(s.last_test_taken)}</p>
         </div>`;
 
-      const quests = parseItems(s.quest_list);
-      const videos = parseItems(s.video_list);
-      const stories = parseItems(s.story_list);
-      const grouped = groupByDate(quests, videos, stories);
+      const quests   = parseItems(s.quest_list);
+      const videos   = parseItems(s.video_list);
+      const stories  = parseItems(s.story_list);
+      const cryptics = parseItems(s.cryptic_list);
+      const vocabs   = parseVocabDates(s.vocab_list);
+      const grouped  = groupByDate(quests, videos, stories, cryptics, vocabs);
       renderMiniCalendar("mini-calendar", grouped);
 
       // Button row
@@ -344,7 +368,6 @@
 
     // ── WHATSAPP SHARE CARD ───────────────────────────────────────────
     async function shareToWhatsApp(studentObj) {
-      // Ensure html2canvas loaded
       if (!window.html2canvas) {
         await new Promise((resolve, reject) => {
           const s = document.createElement("script");
@@ -354,18 +377,19 @@
         });
       }
 
-      const quests  = parseItems(studentObj.quest_list);
-      const videos  = parseItems(studentObj.video_list);
-      const stories = parseItems(studentObj.story_list);
+      const quests   = parseItems(studentObj.quest_list);
+      const videos   = parseItems(studentObj.video_list);
+      const stories  = parseItems(studentObj.story_list);
+      const cryptics = parseItems(studentObj.cryptic_list);
+      const vocabs   = parseVocabDates(studentObj.vocab_list);
       const totalSec = Math.round(studentObj.total_time || 0);
       const tH = Math.floor(totalSec / 3600);
       const tM = Math.floor((totalSec % 3600) / 60);
       const tS = totalSec % 60;
       const accuracy = Math.round((studentObj.accuracy || 0) * 100);
-      const grouped  = groupByDate(quests, videos, stories);
+      const grouped  = groupByDate(quests, videos, stories, cryptics, vocabs);
       const activeDays = Object.keys(grouped).length;
 
-      // Build the off-screen card DOM
       const card = document.createElement("div");
       card.id = "wa-share-card";
       card.style.cssText = `
@@ -379,12 +403,8 @@
         box-shadow: 0 24px 60px rgba(0,0,0,0.7);
       `;
 
-      // Active days count
-      const actDays = Object.keys(grouped).length;
-
-      // Build activity mini-grid (last 60 days only for compactness)
       const today2 = new Date();
-      const gridDays = 56; // 8 weeks
+      const gridDays = 56;
       let gridHtml = "";
       for (let i = gridDays - 1; i >= 0; i--) {
         const d = new Date(today2);
@@ -395,145 +415,101 @@
       }
 
       card.innerHTML = `
-        <!-- Gold shimmer top bar -->
         <div style="height:6px;background:linear-gradient(90deg,#8c6414,#e8c97a,#c9a84c,#f5e6a0,#c9a84c,#8c6414);"></div>
-
-        <!-- Main content -->
         <div style="padding:28px 28px 24px;">
-
-          <!-- Institution -->
           <div style="text-align:center;margin-bottom:20px;">
             <div style="font-size:10px;letter-spacing:0.22em;text-transform:uppercase;color:rgba(201,168,76,0.6);margin-bottom:4px;">SRM Valliammai Engineering College</div>
             <div style="font-size:9px;letter-spacing:0.18em;color:rgba(201,168,76,0.45);">Department of English · Mission: Veni, Vidi, Vici!</div>
           </div>
-
-          <!-- Decorative rule -->
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:22px;">
             <div style="flex:1;height:1px;background:linear-gradient(90deg,transparent,rgba(201,168,76,0.5));"></div>
             <div style="width:6px;height:6px;background:#c9a84c;transform:rotate(45deg);"></div>
             <div style="flex:1;height:1px;background:linear-gradient(90deg,rgba(201,168,76,0.5),transparent);"></div>
           </div>
-
-          <!-- Name block -->
           <div style="text-align:center;margin-bottom:6px;">
             <div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:rgba(201,168,76,0.55);margin-bottom:8px;">Pilot Profile</div>
             <div style="font-size:30px;font-weight:800;color:#f5e6a0;line-height:1;letter-spacing:0.02em;">${studentObj.name.toUpperCase()}</div>
             ${studentObj.department ? `<div style="margin-top:6px;font-size:10px;font-weight:600;letter-spacing:0.18em;color:rgba(201,168,76,0.6);">${studentObj.department.toUpperCase()}</div>` : ""}
           </div>
-
-          <!-- Decorative rule -->
           <div style="display:flex;align-items:center;gap:10px;margin:20px 0;">
             <div style="flex:1;height:1px;background:linear-gradient(90deg,transparent,rgba(201,168,76,0.4));"></div>
             <div style="width:4px;height:4px;background:rgba(201,168,76,0.6);transform:rotate(45deg);"></div>
             <div style="flex:1;height:1px;background:linear-gradient(90deg,rgba(201,168,76,0.4),transparent);"></div>
           </div>
-
-          <!-- Hero stats row -->
           <div style="display:flex;gap:10px;margin-bottom:16px;">
-            <!-- Score -->
             <div style="flex:1;background:linear-gradient(135deg,rgba(201,168,76,0.18),rgba(201,168,76,0.08));border:1px solid rgba(201,168,76,0.35);border-radius:14px;padding:16px 12px;text-align:center;">
               <div style="font-size:34px;font-weight:800;color:#e8c97a;line-height:1;">${studentObj.total_score ?? 0}</div>
               <div style="font-size:8px;letter-spacing:0.18em;text-transform:uppercase;color:rgba(201,168,76,0.55);margin-top:5px;">Mission Score</div>
             </div>
-            <!-- Accuracy -->
             <div style="flex:1;background:linear-gradient(135deg,rgba(201,168,76,0.18),rgba(201,168,76,0.08));border:1px solid rgba(201,168,76,0.35);border-radius:14px;padding:16px 12px;text-align:center;">
               <div style="font-size:34px;font-weight:800;color:#e8c97a;line-height:1;">${accuracy}%</div>
               <div style="font-size:8px;letter-spacing:0.18em;text-transform:uppercase;color:rgba(201,168,76,0.55);margin-top:5px;">Accuracy</div>
             </div>
-            <!-- Active Days -->
             <div style="flex:1;background:linear-gradient(135deg,rgba(201,168,76,0.18),rgba(201,168,76,0.08));border:1px solid rgba(201,168,76,0.35);border-radius:14px;padding:16px 12px;text-align:center;">
               <div style="font-size:34px;font-weight:800;color:#e8c97a;line-height:1;">${activeDays}</div>
               <div style="font-size:8px;letter-spacing:0.18em;text-transform:uppercase;color:rgba(201,168,76,0.55);margin-top:5px;">Active Days</div>
             </div>
           </div>
-
-          <!-- Time on mission banner -->
           <div style="background:linear-gradient(90deg,rgba(201,168,76,0.22),rgba(201,168,76,0.10));border:1px solid rgba(201,168,76,0.4);border-radius:10px;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
             <div style="font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:rgba(201,168,76,0.6);">Time on Mission</div>
             <div style="font-size:18px;font-weight:800;color:#e8c97a;">${tH}h ${tM}m ${tS}s</div>
           </div>
-
-          <!-- Activity pills -->
           <div style="display:flex;gap:7px;margin-bottom:20px;">
             ${[
-              {label:"Quests", val: quests.length},
-              {label:"Videos", val: videos.length},
-              {label:"Stories",val: stories.length},
-              {label:"Cryptic",val: studentObj.cryptic_completed ?? 0},
-              {label:"Wordle", val: studentObj.wordle_completed  ?? 0},
+              {label:"Quests",  val: quests.length},
+              {label:"Videos",  val: videos.length},
+              {label:"Stories", val: stories.length},
+              {label:"Cryptic", val: studentObj.cryptic_completed ?? 0},
+              {label:"Wordle",  val: studentObj.wordle_completed  ?? 0},
+              {label:"Vocab",   val: studentObj.vocab_completed   ?? 0},
             ].map(a => `
-              <div style="flex:1;background:${a.val > 0 ? "linear-gradient(135deg,rgba(201,168,76,0.25),rgba(201,168,76,0.12))" : "rgba(255,255,255,0.04)"};border:1px solid ${a.val > 0 ? "rgba(201,168,76,0.5)" : "rgba(255,255,255,0.08)"};border-radius:10px;padding:10px 6px;text-align:center;">
-                <div style="font-size:18px;font-weight:800;color:${a.val > 0 ? "#e8c97a" : "rgba(201,168,76,0.3)"};">${a.val}</div>
-                <div style="font-size:7.5px;letter-spacing:0.12em;text-transform:uppercase;color:rgba(201,168,76,0.45);margin-top:3px;">${a.label}</div>
+              <div style="flex:1;background:${a.val > 0 ? "linear-gradient(135deg,rgba(201,168,76,0.25),rgba(201,168,76,0.12))" : "rgba(255,255,255,0.04)"};border:1px solid ${a.val > 0 ? "rgba(201,168,76,0.5)" : "rgba(255,255,255,0.08)"};border-radius:10px;padding:10px 4px;text-align:center;">
+                <div style="font-size:16px;font-weight:800;color:${a.val > 0 ? "#e8c97a" : "rgba(201,168,76,0.3)"};">${a.val}</div>
+                <div style="font-size:7px;letter-spacing:0.10em;text-transform:uppercase;color:rgba(201,168,76,0.45);margin-top:3px;">${a.label}</div>
               </div>
             `).join("")}
           </div>
-
-          <!-- Activity heatmap grid -->
           <div style="margin-bottom:18px;">
             <div style="font-size:8px;letter-spacing:0.16em;text-transform:uppercase;color:rgba(201,168,76,0.45);margin-bottom:8px;">Activity · Last 8 Weeks</div>
-            <div style="display:flex;flex-wrap:wrap;gap:3px;">
-              ${gridHtml}
-            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:3px;">${gridHtml}</div>
           </div>
-
-          <!-- Footer rule + timestamp -->
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
             <div style="flex:1;height:1px;background:linear-gradient(90deg,transparent,rgba(201,168,76,0.35));"></div>
             <div style="width:4px;height:4px;background:rgba(201,168,76,0.5);transform:rotate(45deg);"></div>
             <div style="flex:1;height:1px;background:linear-gradient(90deg,rgba(201,168,76,0.35),transparent);"></div>
           </div>
           <div style="text-align:center;font-size:8px;color:rgba(201,168,76,0.35);letter-spacing:0.12em;">
-            ${new Date().toLocaleString('en-IN',{timeZone:'Asia/Kolkata',day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})} 
+            ${new Date().toLocaleString('en-IN',{timeZone:'Asia/Kolkata',day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})}
           </div>
         </div>
-
-        <!-- Gold shimmer bottom bar -->
         <div style="height:6px;background:linear-gradient(90deg,#8c6414,#e8c97a,#c9a84c,#f5e6a0,#c9a84c,#8c6414);"></div>
       `;
 
       document.body.appendChild(card);
 
-      // Show generating state on button
       const waBtn2 = document.querySelector(".wa-btn");
       if (waBtn2) { waBtn2.textContent = "Generating…"; waBtn2.disabled = true; }
 
       try {
-        const canvas = await html2canvas(card, {
-          scale: 2,
-          useCORS: true,
-          backgroundColor: null,
-          logging: false,
-          width: 540,
-        });
-
+        const canvas = await html2canvas(card, { scale: 2, useCORS: true, backgroundColor: null, logging: false, width: 540 });
         document.body.removeChild(card);
 
         canvas.toBlob(async (blob) => {
           const file = new File([blob], `${studentObj.name}_MissionCard.png`, { type: "image/png" });
-
-          // Try Web Share API first (mobile)
           if (navigator.canShare && navigator.canShare({ files: [file] })) {
             try {
-              await navigator.share({
-                files: [file],
-                title: `${studentObj.name} — Mission Report`,
-                text: `🎖️ Mission: Veni, Vidi, Vici! — Report for ${studentObj.name}`,
-              });
+              await navigator.share({ files: [file], title: `${studentObj.name} — Mission Report`, text: `🎖️ Mission: Veni, Vidi, Vici! — Report for ${studentObj.name}` });
             } catch (err) {
               if (err.name !== "AbortError") fallbackDownloadAndWhatsApp(blob, studentObj.name);
             }
           } else {
-            // Desktop fallback: download image + open WhatsApp Web
             fallbackDownloadAndWhatsApp(blob, studentObj.name);
           }
-
           if (waBtn2) {
             waBtn2.innerHTML = `<svg class="wa-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg> Send on WhatsApp`;
             waBtn2.disabled = false;
           }
         }, "image/png");
-
       } catch (err) {
         console.error("Share card error:", err);
         if (document.body.contains(card)) document.body.removeChild(card);
@@ -542,15 +518,10 @@
     }
 
     function fallbackDownloadAndWhatsApp(blob, name) {
-      // 1. Download the image
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
-      a.href = url;
-      a.download = `${name}_MissionCard.png`;
-      a.click();
+      a.href = url; a.download = `${name}_MissionCard.png`; a.click();
       URL.revokeObjectURL(url);
-
-      // 2. Open WhatsApp Web with a hint message after a brief delay
       setTimeout(() => {
         const msg = encodeURIComponent(`🎖️ *Mission: Veni, Vidi, Vici!*\nHere is the mission report card for *${name}*.\n_(Attach the downloaded image above)_`);
         window.open(`https://web.whatsapp.com/send?text=${msg}`, "_blank");
@@ -564,14 +535,16 @@
     function showClassStats() {
       if (reportData.length === 0) return;
       const totalStudents = reportData.length;
-      const avgScore = Math.round(reportData.reduce((sum, s) => sum + (s.total_score || 0), 0) / totalStudents);
-      const avgAccuracy = Math.round((reportData.reduce((sum, s) => sum + (s.accuracy || 0), 0) / totalStudents) * 100);
+      const avgScore      = Math.round(reportData.reduce((sum, s) => sum + (s.total_score || 0), 0) / totalStudents);
+      const avgAccuracy   = Math.round((reportData.reduce((sum, s) => sum + (s.accuracy || 0), 0) / totalStudents) * 100);
       const totalAttempts = reportData.reduce((sum, s) => sum + (s.total_attempts || 0), 0);
-      const totalTime = reportData.reduce((sum, s) => sum + (s.total_time || 0), 0);
-      const totalVideos = reportData.reduce((sum, s) => sum + (s.videos_completed || 0), 0);
-      const totalStories = reportData.reduce((sum, s) => sum + (s.stories_completed || 0), 0);
-      const totalQuests = reportData.reduce((sum, s) => sum + (s.quests_completed || 0), 0);
-      const totalCryptic = reportData.reduce((sum, s) => sum + (s.cryptic_completed || 0), 0);
+      const totalTime     = reportData.reduce((sum, s) => sum + (s.total_time || 0), 0);
+      const totalVideos   = reportData.reduce((sum, s) => sum + (s.videos_completed || 0), 0);
+      const totalStories  = reportData.reduce((sum, s) => sum + (s.stories_completed || 0), 0);
+      const totalQuests   = reportData.reduce((sum, s) => sum + (s.quests_completed || 0), 0);
+      const totalCryptic  = reportData.reduce((sum, s) => sum + (s.cryptic_completed || 0), 0);
+      const totalWordle   = reportData.reduce((sum, s) => sum + (s.wordle_completed || 0), 0);
+      const totalVocab    = reportData.reduce((sum, s) => sum + (s.vocab_completed || 0), 0);
 
       const modal = document.getElementById("modal");
       const content = document.getElementById("modal-content");
@@ -583,13 +556,15 @@
         </div>
         <div class="stats-grid">
           <div class="stat-box"><div class="stat-label">Avg Score</div><div class="stat-value">${avgScore}</div><div class="stat-foot">Per Pilot</div></div>
-          <div class="stat-box"><div class="stat-label">Cryptic</div><div class="stat-value">${totalCryptic}</div><div class="stat-foot">Solved</div></div>
           <div class="stat-box"><div class="stat-label">Avg Accuracy</div><div class="stat-value">${avgAccuracy}%</div><div class="stat-foot">Hit Rate</div></div>
           <div class="stat-box"><div class="stat-label">Total Attempts</div><div class="stat-value">${totalAttempts}</div><div class="stat-foot">Shots Fired</div></div>
           <div class="stat-box"><div class="stat-label">Total Time</div><div class="stat-value time-stat">${formatTime(totalTime)}</div><div class="stat-foot">Cumulative</div></div>
+          <div class="stat-box"><div class="stat-label">Quests</div><div class="stat-value">${totalQuests}</div><div class="stat-foot">Completed</div></div>
           <div class="stat-box"><div class="stat-label">Videos</div><div class="stat-value">${totalVideos}</div><div class="stat-foot">Completed</div></div>
           <div class="stat-box"><div class="stat-label">Stories</div><div class="stat-value">${totalStories}</div><div class="stat-foot">Completed</div></div>
-          <div class="stat-box"><div class="stat-label">Quests</div><div class="stat-value">${totalQuests}</div><div class="stat-foot">Completed</div></div>
+          <div class="stat-box"><div class="stat-label">Cryptic</div><div class="stat-value">${totalCryptic}</div><div class="stat-foot">Solved</div></div>
+          <div class="stat-box"><div class="stat-label">Wordle</div><div class="stat-value">${totalWordle}</div><div class="stat-foot">Solved</div></div>
+          <div class="stat-box"><div class="stat-label">Vocab</div><div class="stat-value">${totalVocab}</div><div class="stat-foot">Sessions</div></div>
         </div>`;
       modal.style.display = "flex";
     }
@@ -610,7 +585,6 @@
       if (event.target === document.getElementById("modal")) closeModal();
     };
 
-    // PDF library injection
     (function () {
       const s1 = document.createElement("script");
       const s2 = document.createElement("script");
@@ -621,7 +595,6 @@
     })();
 
     async function downloadProfilePDF(studentObj) {
-      // Ensure jsPDF loaded
       if (!window.jspdf) {
         await new Promise((resolve, reject) => {
           const s = document.createElement("script");
@@ -632,1136 +605,378 @@
       }
       const { jsPDF } = window.jspdf;
 
-      // ── COLOUR PALETTE ────────────────────────────────────────────────
-      const GOLD        = [201, 168, 76];
-      const GOLD_LIGHT  = [232, 201, 122];
-      const GOLD_DEEP   = [140, 100, 20];
-      const CREAM       = [250, 246, 238];
-      const CREAM_DARK  = [240, 233, 218];
-      const INK         = [26,  21,  16];
-      const INK_MID     = [90,  74,  52];
-      const INK_DIM     = [160, 144, 120];
-      const WHITE       = [255, 255, 255];
+      // ── PALETTE: light cream + antique gold ──────────────────────────
+      const CREAM_BG   = [250, 246, 238];   // page background
+      const CREAM_CARD = [243, 237, 224];   // card fill
+      const CREAM_DARK = [232, 224, 208];   // darker card / divider
+      const GOLD       = [180, 140, 40];    // antique gold — dark enough to read on cream
+      const GOLD_RICH  = [150, 112, 18];    // deeper gold for labels
+      const GOLD_LINE  = [201, 168, 76];    // rule / border
+      const INK        = [22,  16,   6];    // near-black — name & big numbers
+      const INK_MID    = [72,  56,  28];    // secondary text
+      const INK_DIM    = [130, 112,  72];   // captions
 
-      // ── DOCUMENT SETUP ────────────────────────────────────────────────
-      // Mobile-friendly: use square-ish format so it looks great as a
-      // WhatsApp image preview. We'll generate two "pages":
-      //   Page 1 – Hero summary card  (A5 landscape = 595 × 420 pt)
-      //   Page 2 – Full detail report (A4 portrait  = 595 × 842 pt)
-      // jsPDF doesn't support mixed page sizes, so we use A4 portrait
-      // for both and use the top half of page 1 as the "card".
-
+      // ── DOCUMENT ─────────────────────────────────────────────────────
       const doc = new jsPDF({ unit: "pt", format: "a4", orientation: "portrait" });
-      const PW = doc.internal.pageSize.getWidth();   // 595
-      const PH = doc.internal.pageSize.getHeight();  // 842
+      const PW  = doc.internal.pageSize.getWidth();   // 595
+      const PH  = doc.internal.pageSize.getHeight();  // 842
+      const M   = 44;
+      const CW  = PW - M * 2;
 
-      // ── SHARED HELPERS ────────────────────────────────────────────────
-      const M = 36; // margin
-      const CW = PW - M * 2;
-
-      function cx(str, size, style, color) {
-        doc.setFont("helvetica", style || "normal");
-        doc.setFontSize(size);
-        doc.setTextColor(...(color || INK));
-        return doc.getTextWidth(str);
-      }
-      function ct(str, y2, size, style, color) {
-        const w = cx(str, size, style, color);
-        doc.text(str, PW / 2, y2, { align: "center" });
-      }
-      function lt(str, x2, y2, size, style, color) {
-        cx(str, size, style, color);
-        doc.text(str, x2, y2);
-      }
-      function rt(str, x2, y2, size, style, color) {
-        cx(str, size, style, color);
-        doc.text(str, x2, y2, { align: "right" });
-      }
-      function hline(y2, x1, x2, color, lw) {
-        doc.setDrawColor(...(color || GOLD));
-        doc.setLineWidth(lw || 0.5);
-        doc.line(x1 !== undefined ? x1 : M, y2, x2 !== undefined ? x2 : PW - M, y2);
-      }
-      function fillRect(x2, y2, w2, h2, color) {
-        doc.setFillColor(...color);
-        doc.rect(x2, y2, w2, h2, "F");
-      }
-      function strokeRect(x2, y2, w2, h2, color, lw) {
-        doc.setDrawColor(...(color || GOLD));
-        doc.setLineWidth(lw || 0.5);
-        doc.rect(x2, y2, w2, h2, "S");
-      }
-      function roundFill(x2, y2, w2, h2, r, fill, stroke, lw) {
+      // ── HELPERS ──────────────────────────────────────────────────────
+      const sf = (sz, st, col) => { doc.setFont("helvetica", st || "normal"); doc.setFontSize(sz); doc.setTextColor(...(col || INK)); };
+      const cT = (str, y, sz, st, col) => { sf(sz, st, col); doc.text(str, PW / 2, y, { align: "center" }); };
+      const lT = (str, x, y, sz, st, col) => { sf(sz, st, col); doc.text(str, x, y); };
+      const rT = (str, x, y, sz, st, col) => { sf(sz, st, col); doc.text(str, x, y, { align: "right" }); };
+      const hl = (y, x1, x2, col, lw) => { doc.setDrawColor(...(col || GOLD_LINE)); doc.setLineWidth(lw ?? 0.6); doc.line(x1 ?? M, y, x2 ?? PW - M, y); };
+      const fr = (x, y, w, h, col) => { doc.setFillColor(...col); doc.rect(x, y, w, h, "F"); };
+      const rr = (x, y, w, h, r, fill, stroke, lw) => {
         doc.setFillColor(...fill);
-        if (stroke) { doc.setDrawColor(...stroke); doc.setLineWidth(lw || 0.5); doc.roundedRect(x2, y2, w2, h2, r, r, "FD"); }
-        else { doc.roundedRect(x2, y2, w2, h2, r, r, "F"); }
-      }
+        if (stroke) { doc.setDrawColor(...stroke); doc.setLineWidth(lw ?? 0.5); doc.roundedRect(x, y, w, h, r, r, "FD"); }
+        else doc.roundedRect(x, y, w, h, r, r, "F");
+      };
 
-      // ── DATA PREP ────────────────────────────────────────────────────
-      const quests  = parseItems(studentObj.quest_list);
-      const videos  = parseItems(studentObj.video_list);
-      const stories = parseItems(studentObj.story_list);
-      const grouped = groupByDate(quests, videos, stories);
+      // ── DATA ─────────────────────────────────────────────────────────
+      const quests   = parseItems(studentObj.quest_list);
+      const videos   = parseItems(studentObj.video_list);
+      const stories  = parseItems(studentObj.story_list);
+      const cryptics = parseItems(studentObj.cryptic_list);
+      const vocabs   = parseVocabDates(studentObj.vocab_list);
+      const grouped  = groupByDate(quests, videos, stories, cryptics, vocabs);
 
-      const totalSec  = Math.round(studentObj.total_time || 0);
-      const tH = Math.floor(totalSec / 3600);
-      const tM = Math.floor((totalSec % 3600) / 60);
-      const tS = totalSec % 60;
-      const timeStr   = `${tH}h ${tM}m ${tS}s`;
-      const accuracy  = Math.round((studentObj.accuracy || 0) * 100);
-      const score     = studentObj.total_score ?? 0;
-      const dept      = (studentObj.department || "").toUpperCase();
-      const name      = studentObj.name || "—";
-
-      // Count active days
+      const totalSec   = Math.round(studentObj.total_time || 0);
+      const tH  = Math.floor(totalSec / 3600);
+      const tM  = Math.floor((totalSec % 3600) / 60);
+      const tS  = totalSec % 60;
+      const accuracy   = Math.round((studentObj.accuracy || 0) * 100);
+      const score      = studentObj.total_score ?? 0;
+      const dept       = (studentObj.department || "").toUpperCase();
+      const name       = studentObj.name || "—";
       const activeDays = Object.keys(grouped).length;
 
-      // ══════════════════════════════════════════════════════════════════
-      //  PAGE 1 — HERO SUMMARY CARD (top 400pt of A4)
-      // ══════════════════════════════════════════════════════════════════
+      // ── PAGE BACKGROUND ───────────────────────────────────────────────
+      fr(0, 0, PW, PH, CREAM_BG);
 
-      // ── Deep cream card background ────────────────────────────────────
-      fillRect(0, 0, PW, 420, CREAM);
+      // Gold top border
+      fr(0, 0, PW, 7, GOLD);
+      // Gold bottom border
+      fr(0, PH - 7, PW, 7, GOLD);
 
-      // ── Ornate gold top border (triple line) ─────────────────────────
-      fillRect(0, 0, PW, 8, GOLD);
-      fillRect(0, 10, PW, 1.5, GOLD_LIGHT);
-      fillRect(0, 13, PW, 0.5, GOLD);
+      // ── HEADER ───────────────────────────────────────────────────────
+      // jsPDF text y = baseline. For a font size F, the cap-height is ~F*0.72
+      // and descenders ~F*0.28. We add padding above baseline = ~F*0.75 to
+      // ensure text sits visually clear of any rule drawn just before it.
 
-      // ── Corner ornaments (diamond shapes) ────────────────────────────
-      function diamond(cx2, cy2, size2) {
-        doc.setFillColor(...GOLD);
-        doc.setDrawColor(...GOLD_DEEP);
-        doc.setLineWidth(0.3);
-        const pts = `M ${cx2} ${cy2 - size2} L ${cx2 + size2} ${cy2} L ${cx2} ${cy2 + size2} L ${cx2 - size2} ${cy2} Z`;
-        // jsPDF doesn't support SVG paths directly, approximate with lines
-        doc.setFillColor(...GOLD);
-        // draw as a rotated square using lines
-        doc.setDrawColor(...GOLD);
-        doc.setLineWidth(0);
-        const s2 = size2 * 0.8;
-        doc.lines([[s2, s2], [s2, -s2], [-s2, -s2], [-s2, s2]], cx2 - s2, cy2, [1, 1], "F");
-      }
-      diamond(M - 4, 4, 5);
-      diamond(PW - M + 4, 4, 5);
-      diamond(M - 4, 416, 5);
-      diamond(PW - M + 4, 416, 5);
+      let y = 14;
 
-      // ── Institution header ────────────────────────────────────────────
-      let y = 38;
-      ct("SRM VALLIAMMAI ENGINEERING COLLEGE", y, 10, "bold", GOLD_DEEP);
-      y += 13;
-      ct("Department of English", y, 8, "normal", INK_MID);
-      y += 8;
-      hline(y, M + 20, PW - M - 20, GOLD_LIGHT, 0.3);
-      y += 10;
-      ct("MISSION: VENI, VIDI, VICI!", y, 7.5, "normal", INK_DIM);
-
-      // ── Wide gold rule ────────────────────────────────────────────────
+      // College name — large and prominent
+      y += 18;   // top border is 7pt; start well below it
+      cT("SRM VALLIAMMAI ENGINEERING COLLEGE", y, 15, "bold", GOLD_RICH);
+      y += 18;
+      cT("Department of English", y, 11, "normal", INK_MID);
       y += 14;
-      fillRect(M, y, CW, 1, GOLD);
-      y += 8;
+      cT("Mission: Veni, Vidi, Vici!", y, 10, "normal", INK_MID);
+      y += 16;
 
-      // ── PILOT NAME — large serif-style via bold helvetica ─────────────
-      ct(name.toUpperCase(), y, 26, "bold", INK);
-      y += 6;
+      // Rule 1
+      hl(y, M, PW - M, GOLD_LINE, 1.2);
+
+      // Name sits between rule 1 and rule 2
+      // 34pt font: baseline needs ~26pt clearance below the rule
+      y += 38;   // clearance above name baseline
+      cT(name.toUpperCase(), y, 34, "bold", INK);
+
       if (dept) {
-        ct(dept, y + 10, 8, "normal", INK_MID);
-        y += 16;
+        y += 20;   // gap between name baseline and dept baseline (11pt font)
+        cT(dept, y, 12, "bold", GOLD_RICH);
+        y += 16;   // clearance below dept baseline before rule 2
+      } else {
+        y += 20;
       }
 
-      // ── Thin double rule ──────────────────────────────────────────────
-      y += 6;
-      hline(y, M + 40, PW - M - 40, GOLD, 0.4);
-      y += 3;
-      hline(y, M + 40, PW - M - 40, GOLD_LIGHT, 0.2);
-      y += 14;
+      // Rule 2
+      hl(y, M, PW - M, GOLD_LINE, 0.8);
+      y += 22;
 
-      // ── HERO STATS — 3 big numbers centred ───────────────────────────
-      // Score | Accuracy | Active Days
-      const heroStats = [
-        { label: "MISSION SCORE",  value: String(score),       sub: "points earned"     },
-        { label: "ACCURACY",       value: `${accuracy}%`,      sub: "questions correct" },
-        { label: "ACTIVE DAYS",    value: String(activeDays),  sub: "days with activity"},
-      ];
-      const heroW = CW / 3;
-      heroStats.forEach((hs, i) => {
-        const bx = M + i * heroW;
-        const midX = bx + heroW / 2;
+      // ── HERO STRIP: Score | Accuracy | Active Days ────────────────────
+      const heroH = 88;
+      rr(M, y, CW, heroH, 7, CREAM_CARD, GOLD_LINE, 0.7);
 
-        // vertical dividers between stats
+      [{val: String(score), label: "MISSION SCORE", sub: "points earned"},
+       {val: accuracy + "%", label: "ACCURACY", sub: "questions correct"},
+       {val: String(activeDays), label: "ACTIVE DAYS", sub: "days with activity"}
+      ].forEach((hs, i) => {
+        const mid = M + i * (CW / 3) + CW / 6;
         if (i > 0) {
-          doc.setDrawColor(...GOLD_LIGHT);
-          doc.setLineWidth(0.5);
-          doc.line(bx, y - 4, bx, y + 48);
+          doc.setDrawColor(...CREAM_DARK); doc.setLineWidth(1);
+          doc.line(M + i * (CW / 3), y + 18, M + i * (CW / 3), y + heroH - 18);
         }
-
-        // Big value
-        cx(hs.value, 28, "bold", GOLD_DEEP);
-        doc.text(hs.value, midX, y + 22, { align: "center" });
-
-        // Label
-        cx(hs.label, 6.5, "bold", INK_DIM);
-        doc.text(hs.label, midX, y + 34, { align: "center" });
-
-        // Sub
-        cx(hs.sub, 6, "normal", INK_DIM);
-        doc.text(hs.sub, midX, y + 43, { align: "center" });
+        sf(36, "bold", INK);          doc.text(hs.val,   mid, y + 50, { align: "center" });
+        sf(8,  "bold", GOLD_RICH);    doc.text(hs.label, mid, y + 65, { align: "center" });
+        sf(7.5,"normal", INK_DIM);    doc.text(hs.sub,   mid, y + 77, { align: "center" });
       });
-      y += 60;
+      y += heroH + 14;
 
-      // ── TIME ON MISSION — wide banner ─────────────────────────────────
-      roundFill(M, y, CW, 36, 4, CREAM_DARK, GOLD, 0.4);
-      cx("TIME ON MISSION", 7, "bold", INK_DIM);
-      doc.text("TIME ON MISSION", M + 14, y + 13);
-      cx(timeStr, 17, "bold", GOLD_DEEP);
-      doc.text(timeStr, PW - M - 14, y + 20, { align: "right" });
-      y += 48;
+      // ── TIME ON MISSION ───────────────────────────────────────────────
+      const timeH = 54;
+      rr(M, y, CW, timeH, 7, CREAM_CARD, GOLD_LINE, 0.7);
 
-      // ── Activity counts row ───────────────────────────────────────────
-      const acts = [
-        { icon: "Q", label: "Quests",  value: quests.length  },
-        { icon: "V", label: "Videos",  value: videos.length  },
-        { icon: "S", label: "Stories", value: stories.length },
-        { icon: "C", label: "Cryptic", value: studentObj.cryptic_completed ?? 0 },
-        { icon: "W", label: "Wordle",  value: studentObj.wordle_completed  ?? 0 },
-      ];
-      const actW = CW / acts.length;
-      acts.forEach((a, i) => {
-        const bx = M + i * actW;
-        const midX = bx + actW / 2;
+      lT("TIME ON MISSION",      M + 18, y + 22, 9,   "bold",   GOLD_RICH);
+      lT("cumulative study time", M + 18, y + 37, 8.5, "normal", INK_DIM);
+      rT(`${tH}h  ${tM}m  ${tS}s`, PW - M - 18, y + 35, 26, "bold", INK);
 
-        // pill background
-        const isActive = a.value > 0;
-        roundFill(bx + 4, y, actW - 8, 44, 6,
-          isActive ? [248, 238, 210] : CREAM_DARK,
-          isActive ? GOLD : [210, 200, 185], 0.4);
+      y += timeH + 14;
 
-        // Count
-        cx(String(a.value), 16, "bold", isActive ? GOLD_DEEP : INK_DIM);
-        doc.text(String(a.value), midX, y + 20, { align: "center" });
+      // ── STAT GRID: 3 × 2 ─────────────────────────────────────────────
+      const GAP  = 10;
+      const cW2  = (CW - GAP * 2) / 3;
+      const cH   = 84;
 
-        // Label
-        cx(a.label.toUpperCase(), 6, "bold", INK_DIM);
-        doc.text(a.label.toUpperCase(), midX, y + 33, { align: "center" });
+      [
+        { label: "QUESTS TAKEN", val: String(studentObj.total_attempts    ?? 0), sub: "total attempts" },
+        { label: "CORRECT",      val: String(studentObj.total_correct     ?? 0), sub: "direct hits"    },
+        { label: "WRONG",        val: String(studentObj.total_wrong       ?? 0), sub: "near misses"    },
+        { label: "QUESTS DONE",  val: String(studentObj.quests_completed  ?? 0), sub: "completed"      },
+        { label: "VIDEOS",       val: String(studentObj.videos_completed  ?? 0), sub: "completed"      },
+        { label: "STORIES",      val: String(studentObj.stories_completed ?? 0), sub: "completed"      },
+      ].forEach((sc, idx) => {
+        const col  = idx % 3;
+        const row  = Math.floor(idx / 3);
+        const cx2  = M + col * (cW2 + GAP);
+        const cy2  = y + row * (cH + GAP);
+        const mid  = cx2 + cW2 / 2;
+
+        rr(cx2, cy2, cW2, cH, 7, CREAM_CARD, GOLD_LINE, 0.5);
+        // gold top accent bar
+        fr(cx2 + 1, cy2 + 1, cW2 - 2, 4, GOLD);
+
+        sf(32, "bold",   INK);       doc.text(sc.val,   mid, cy2 + 46, { align: "center" });
+        sf(8,  "bold",   GOLD_RICH); doc.text(sc.label, mid, cy2 + 60, { align: "center" });
+        sf(7.5,"normal", INK_DIM);   doc.text(sc.sub,   mid, cy2 + 72, { align: "center" });
       });
-      y += 56;
+      y += 2 * (cH + GAP) + 4;
 
-      // ── Last mission timestamp ─────────────────────────────────────────
-      hline(y, M + 20, PW - M - 20, GOLD_LIGHT, 0.3);
-      y += 10;
-      ct(`Last Mission: ${formatDate(studentObj.last_test_taken)}`, y, 7.5, "normal", INK_DIM);
-      y += 14;
+      // ── ACTIVITY ROW: Cryptic | Wordle | Vocab ────────────────────────
+      const aH = 78;
+      [
+        { label: "CRYPTIC", val: String(studentObj.cryptic_completed ?? 0), sub: "puzzles solved" },
+        { label: "WORDLE",  val: String(studentObj.wordle_completed  ?? 0), sub: "puzzles solved" },
+        { label: "VOCAB",   val: String(studentObj.vocab_completed   ?? 0), sub: "sessions done"  },
+      ].forEach((ac, i) => {
+        const cx2 = M + i * (cW2 + GAP);
+        const mid = cx2 + cW2 / 2;
 
-      // ── Gold bottom border (card) ──────────────────────────────────────
-      fillRect(0, 413, PW, 0.5, GOLD_LIGHT);
-      fillRect(0, 415, PW, 5, GOLD);
+        rr(cx2, y, cW2, aH, 7, CREAM_DARK, GOLD_LINE, 0.6);
+        fr(cx2 + 1, y + 1, cW2 - 2, 4, GOLD);
 
-      // ── Decorative watermark text ──────────────────────────────────────
-      doc.setTextColor(201, 168, 76);
-      doc.setGState(new doc.GState({ opacity: 0.06 }));
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(72);
-      doc.text("VVV", PW / 2, 340, { align: "center" });
-      doc.setGState(new doc.GState({ opacity: 1.0 }));
+        sf(30, "bold",   INK);       doc.text(ac.val,   mid, y + 42, { align: "center" });
+        sf(8,  "bold",   GOLD_RICH); doc.text(ac.label, mid, y + 56, { align: "center" });
+        sf(7.5,"normal", INK_DIM);   doc.text(ac.sub,   mid, y + 68, { align: "center" });
+      });
+      y += aH + 14;
 
-      // ══════════════════════════════════════════════════════════════════
-      //  PAGE 1 LOWER HALF — ACTIVITY CALENDAR
-      // ══════════════════════════════════════════════════════════════════
+      // ── LAST MISSION + TOTAL SCORE ────────────────────────────────────
+      const banH = 52;
+      rr(M, y, CW, banH, 7, CREAM_CARD, GOLD_LINE, 0.7);
 
-      // White area below card
-      fillRect(0, 420, PW, PH - 420, WHITE);
+      lT("LAST MISSION",                             M + 18, y + 20, 8.5, "bold",   GOLD_RICH);
+      lT(formatDate(studentObj.last_test_taken),     M + 18, y + 37, 10,  "bold",   INK);
+      rT("TOTAL SCORE",                              PW - M - 18, y + 20, 8.5, "bold",   GOLD_RICH);
+      rT(`${score} pts`,                             PW - M - 18, y + 38, 17,  "bold",   INK);
 
-      y = 440;
-      // Section header
-      fillRect(M, y, 3, 16, GOLD);
-      cx("ACTIVITY CALENDAR", 10, "bold", INK);
-      doc.text("ACTIVITY CALENDAR", M + 10, y + 12);
-      cx("Gold cells = days with completed Quests, Videos or Stories", 7.5, "normal", INK_DIM);
-      doc.text("Gold cells = days with completed Quests, Videos or Stories", PW - M, y + 12, { align: "right" });
+      y += banH + 20;
 
-      y += 28;
+      // ── FOOTER ───────────────────────────────────────────────────────
+      hl(y, M, PW - M, GOLD_LINE, 0.6);
+      y += 13;
+      const stamp = new Date().toLocaleString('en-IN', {
+        timeZone: 'Asia/Kolkata', day: '2-digit', month: 'short',
+        year: 'numeric', hour: '2-digit', minute: '2-digit'
+      });
+      cT(`Generated ${stamp}  ·  Mission: Veni, Vidi, Vici!  ·  SRM Valliammai`, y, 8, "normal", INK_DIM);
 
-      // Render months in 3-column grid to fit on page
-      const calCols3 = 3;
-      const calW3 = CW / calCols3;
-      const daySize3 = Math.floor((calW3 - 10) / 7);
-      let calCol3 = 0;
-      let calRowY3 = y;
-      let calMaxH = 0;
-
-      const todayDate  = new Date();
-      const endMonth3  = new Date(todayDate.getFullYear(), todayDate.getMonth(), 1);
-      let cur3 = new Date(CALENDAR_VISIBLE_START.getFullYear(), CALENDAR_VISIBLE_START.getMonth(), 1);
-
-      while (cur3 <= endMonth3) {
-        const yr3 = cur3.getFullYear(), mo3 = cur3.getMonth();
-        const fd3 = new Date(yr3, mo3, 1).getDay();
-        const nd3 = new Date(yr3, mo3 + 1, 0).getDate();
-        const bx3 = M + calCol3 * calW3;
-        let cy3 = calRowY3;
-
-        // Month label background
-        fillRect(bx3 + 2, cy3, calW3 - 4, 14, CREAM_DARK);
-        cx(cur3.toLocaleString('en-IN', { month: 'short', year: 'numeric' }).toUpperCase(), 6.5, "bold", GOLD_DEEP);
-        doc.text(cur3.toLocaleString('en-IN', { month: 'short', year: 'numeric' }).toUpperCase(),
-          bx3 + calW3 / 2, cy3 + 10, { align: "center" });
-        cy3 += 17;
-
-        // Day name headers
-        const dn3 = ["Su","Mo","Tu","We","Th","Fr","Sa"];
-        dn3.forEach((d3, di3) => {
-          cx(d3, 5, "bold", INK_DIM);
-          doc.text(d3, bx3 + 4 + di3 * (daySize3 + 1) + (daySize3 - doc.getTextWidth(d3)) / 2, cy3 + 7);
-        });
-        cy3 += 10;
-
-        // Day cells
-        let cx3 = fd3, cr3 = 0;
-        for (let d3 = 1; d3 <= nd3; d3++) {
-          const dk3 = new Date(yr3, mo3, d3).toDateString();
-          const act3 = !!grouped[dk3];
-          const dx3 = bx3 + 3 + cx3 * (daySize3 + 1);
-          const dy3 = cy3 + cr3 * (daySize3 + 1);
-
-          if (act3) {
-            doc.setFillColor(248, 224, 140);
-            doc.setDrawColor(...GOLD);
-          } else {
-            doc.setFillColor(...CREAM);
-            doc.setDrawColor(218, 208, 190);
-          }
-          doc.setLineWidth(0.25);
-          doc.rect(dx3, dy3, daySize3, daySize3, "FD");
-
-          cx(String(d3), 5, act3 ? "bold" : "normal", act3 ? GOLD_DEEP : INK_DIM);
-          doc.text(String(d3), dx3 + daySize3 / 2, dy3 + daySize3 * 0.68, { align: "center" });
-
-          cx3++; if (cx3 === 7) { cx3 = 0; cr3++; }
-        }
-
-        const mH = cy3 + (cr3 + (cx3 > 0 ? 1 : 0)) * (daySize3 + 1) - calRowY3 + 6;
-        calMaxH = Math.max(calMaxH, mH);
-
-        calCol3++;
-        if (calCol3 >= calCols3) {
-          calCol3 = 0;
-          calRowY3 += calMaxH + 8;
-          calMaxH = 0;
-
-          // Page break if needed
-          if (calRowY3 > PH - 60) {
-            doc.addPage();
-            fillRect(0, 0, PW, PH, WHITE);
-            // gold top strip on continuation page
-            fillRect(0, 0, PW, 5, GOLD);
-            calRowY3 = 30;
-            y = calRowY3;
-          }
-        }
-        cur3.setMonth(cur3.getMonth() + 1);
-      }
-
-      // ── PAGE FOOTER ───────────────────────────────────────────────────
-      // Always on last page
-      const footerY = PH - 28;
-      hline(footerY, M, PW - M, GOLD_LIGHT, 0.3);
-      cx(`Generated ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' })}  ·  Mission: Veni, Vidi, Vici!  ·  SRM Valliammai`, 6.5, "normal", INK_DIM);
-      doc.text(
-        `Generated ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' })}  ·  Mission: Veni, Vidi, Vici!  ·  SRM Valliammai`,
-        PW / 2, footerY + 14, { align: "center" }
-      );
-      fillRect(0, PH - 5, PW, 5, GOLD);
-
-      // ── SAVE ─────────────────────────────────────────────────────────
-      doc.save(`${name}_MissionReport.pdf`);
+      doc.save(`${name.replace(/\s+/g, "_")}_MissionReport.pdf`);
     }
   </script>
 
   <style>
-    /* =============================================
-       SINGLE CONSOLIDATED STYLESHEET
-       Light Cream + Gold Theme
-       ============================================= */
-
     :root {
       --cream:        #faf7f2;
       --cream-dark:   #f2ece0;
       --cream-mid:    #ede5d5;
       --surface:      #ffffff;
-
       --gold:         #c9a84c;
       --gold-light:   #e8c97a;
       --gold-deep:    #a07a28;
       --gold-dim:     rgba(201, 168, 76, 0.12);
       --gold-border:  rgba(201, 168, 76, 0.35);
-
       --rank-gold:    #c9a84c;
       --rank-silver:  #9ca3af;
       --rank-bronze:  #b87333;
-
       --text-primary:   #1a1714;
       --text-secondary: #7a6a52;
       --text-dim:       #b0a090;
-
       --border-soft:    rgba(0, 0, 0, 0.07);
       --border-mid:     rgba(0, 0, 0, 0.12);
-
       --success: #15803D;
       --danger:  #B91C1C;
-
       --radius-sm: 10px;
       --radius-md: 14px;
       --radius-lg: 20px;
     }
-
-    *, *::before, *::after {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: 'DM Sans', system-ui, sans-serif;
       background: var(--cream);
       color: var(--text-primary);
       min-height: 100vh;
       padding: 20px 12px 48px;
-      /* subtle linen texture via repeating gradient */
       background-image:
         radial-gradient(circle at 70% 5%, rgba(201,168,76,0.10) 0%, transparent 45%),
         radial-gradient(circle at 10% 95%, rgba(201,168,76,0.08) 0%, transparent 40%);
     }
-
-    /* ── FRAME ─────────────────────────────────── */
     .command-frame {
-      max-width: 960px;
-      margin: 0 auto;
+      max-width: 960px; margin: 0 auto;
       border-radius: var(--radius-lg);
       background: var(--surface);
       border: 1px solid var(--gold-border);
-      box-shadow:
-        0 1px 0 0 rgba(255,255,255,0.9) inset,
-        0 24px 60px rgba(0, 0, 0, 0.09),
-        0 4px 16px rgba(201,168,76,0.12);
+      box-shadow: 0 1px 0 0 rgba(255,255,255,0.9) inset, 0 24px 60px rgba(0,0,0,0.09), 0 4px 16px rgba(201,168,76,0.12);
       overflow: hidden;
     }
-
-    /* ── HEADER ─────────────────────────────────── */
     .header {
       padding: 22px 24px 16px;
       border-bottom: 1px solid var(--border-soft);
       background: linear-gradient(160deg, var(--surface) 60%, var(--cream-dark) 100%);
     }
-
-    .header-top {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 8px;
-    }
-
-    .title-block {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-
-    .mission-title {
-      font-size: 11px;
-      letter-spacing: 0.20em;
-      text-transform: uppercase;
-      color: var(--text-dim);
-      font-weight: 600;
-    }
-
-    .title {
-      font-family: 'Cormorant Garamond', Georgia, serif;
-      font-size: 30px;
-      font-weight: 700;
-      letter-spacing: 0.04em;
-      color: var(--gold-deep);
-      line-height: 1;
-    }
-
-    .subtitle {
-      font-size: 12px;
-      color: var(--text-secondary);
-      margin-top: 2px;
-    }
-
-    /* ── BADGE ─────────────────────────────────── */
+    .header-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 8px; }
+    .title-block { display: flex; flex-direction: column; gap: 2px; }
+    .mission-title { font-size: 11px; letter-spacing: 0.20em; text-transform: uppercase; color: var(--text-dim); font-weight: 600; }
+    .title { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 30px; font-weight: 700; letter-spacing: 0.04em; color: var(--gold-deep); line-height: 1; }
+    .subtitle { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
     .badge-live {
-      display: inline-flex;
-      align-items: center;
-      gap: 7px;
-      padding: 8px 16px;
-      border-radius: 999px;
-      background: var(--gold-dim);
-      border: 1px solid var(--gold-border);
-      font-size: 12px;
-      font-weight: 700;
-      color: var(--gold-deep);
-      cursor: pointer;
-      letter-spacing: 0.04em;
-      transition: background 0.2s ease, box-shadow 0.2s ease;
-      white-space: nowrap;
+      display: inline-flex; align-items: center; gap: 7px; padding: 8px 16px;
+      border-radius: 999px; background: var(--gold-dim); border: 1px solid var(--gold-border);
+      font-size: 12px; font-weight: 700; color: var(--gold-deep); cursor: pointer;
+      letter-spacing: 0.04em; transition: background 0.2s ease, box-shadow 0.2s ease; white-space: nowrap;
     }
-
-    .badge-live:hover {
-      background: rgba(201,168,76,0.22);
-      box-shadow: 0 2px 12px rgba(201,168,76,0.22);
-    }
-
-    .badge-dot {
-      width: 7px;
-      height: 7px;
-      border-radius: 999px;
-      background: var(--gold);
-      animation: pulse-dot 2s ease-in-out infinite;
-    }
-
-    @keyframes pulse-dot {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50%       { opacity: 0.5; transform: scale(0.7); }
-    }
-
-    /* ── TOP CONTROLS ───────────────────────────── */
+    .badge-live:hover { background: rgba(201,168,76,0.22); box-shadow: 0 2px 12px rgba(201,168,76,0.22); }
+    .badge-dot { width: 7px; height: 7px; border-radius: 999px; background: var(--gold); animation: pulse-dot 2s ease-in-out infinite; }
+    @keyframes pulse-dot { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(0.7); } }
     .top-controls {
-      display: flex;
-      gap: 12px;
-      padding: 14px 20px;
-      border-bottom: 1px solid var(--border-soft);
-      background: var(--cream);
-      align-items: flex-start;
-      flex-wrap: wrap;
+      display: flex; gap: 12px; padding: 14px 20px;
+      border-bottom: 1px solid var(--border-soft); background: var(--cream);
+      align-items: flex-start; flex-wrap: wrap;
     }
-
-    .department-filter {
-      flex-shrink: 0;
-    }
-
+    .department-filter { flex-shrink: 0; }
     .department-filter select {
-      padding: 9px 14px;
-      border-radius: var(--radius-md);
-      border: 1px solid var(--border-mid);
-      background: var(--surface);
-      color: var(--text-primary);
-      font-family: 'DM Sans', sans-serif;
-      font-size: 12px;
-      font-weight: 600;
-      letter-spacing: 0.06em;
-      cursor: pointer;
-      appearance: none;
-      -webkit-appearance: none;
+      padding: 9px 14px; border-radius: var(--radius-md); border: 1px solid var(--border-mid);
+      background: var(--surface); color: var(--text-primary); font-family: 'DM Sans', sans-serif;
+      font-size: 12px; font-weight: 600; letter-spacing: 0.06em; cursor: pointer;
+      appearance: none; -webkit-appearance: none;
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%237a6a52' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
-      background-repeat: no-repeat;
-      background-position: right 12px center;
-      padding-right: 32px;
-      min-width: 160px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+      background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px;
+      min-width: 160px; box-shadow: 0 1px 3px rgba(0,0,0,0.06);
     }
-
-    .department-filter select:focus {
-      outline: none;
-      border-color: var(--gold);
-      box-shadow: 0 0 0 3px rgba(201,168,76,0.15);
+    .department-filter select:focus { outline: none; border-color: var(--gold); box-shadow: 0 0 0 3px rgba(201,168,76,0.15); }
+    .sort-panel { flex: 1; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+    .sort-label-row { display: none; }
+    .sort-buttons { display: flex; flex-wrap: wrap; gap: 7px; }
+    .sort-btn, #time-toggle {
+      display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+      padding: 7px 14px; border-radius: 999px; border: 1px solid var(--border-mid);
+      background: var(--surface); color: var(--text-secondary); font-family: 'DM Sans', sans-serif;
+      font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+      cursor: pointer; white-space: nowrap; transition: all 0.18s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     }
-
-    /* ── SORT PANEL ─────────────────────────────── */
-    .sort-panel {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      min-width: 0;
-    }
-
-    .sort-label-row {
-      display: none; /* hidden as per original */
-    }
-
-    .sort-buttons {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 7px;
-    }
-
-    /* standalone buttons OUTSIDE .sort-buttons */
-    .sort-btn,
-    #time-toggle {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 4px;
-      padding: 7px 14px;
-      border-radius: 999px;
-      border: 1px solid var(--border-mid);
-      background: var(--surface);
-      color: var(--text-secondary);
-      font-family: 'DM Sans', sans-serif;
-      font-size: 11px;
-      font-weight: 700;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      cursor: pointer;
-      white-space: nowrap;
-      transition: all 0.18s ease;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-    }
-
-    .sort-btn:hover {
-      border-color: var(--gold);
-      color: var(--gold-deep);
-      background: var(--gold-dim);
-    }
-
-    .sort-btn.active {
-      background: var(--gold);
-      color: #fff;
-      border-color: var(--gold);
-      box-shadow: 0 2px 10px rgba(201,168,76,0.35);
-    }
-
-    .sort-btn .sort-indicator {
-      font-size: 10px;
-    }
-
-    #time-toggle {
-      font-size: 10px;
-    }
-
-    /* ── LEADERBOARD ────────────────────────────── */
-    #leaderboard {
-      margin: 16px;
-      border-radius: var(--radius-md);
-      border: 1px solid var(--border-soft);
-      background: var(--surface);
-      overflow: hidden;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.05);
-    }
-
-    .leaderboard-header-row {
-      display: grid;
-      grid-template-columns: 48px 1fr auto;
-      padding: 8px 16px;
-      font-size: 10px;
-      font-weight: 700;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      color: var(--text-dim);
-      border-bottom: 1px solid var(--border-soft);
-      background: var(--cream);
-    }
-
-    .leaderboard-row {
-      display: grid;
-      grid-template-columns: 48px 1fr auto;
-      padding: 12px 16px;
-      border-bottom: 1px solid var(--border-soft);
-      cursor: pointer;
-      align-items: center;
-      transition: background 0.14s ease;
-      position: relative;
-    }
-
-    .leaderboard-row:last-child {
-      border-bottom: none;
-    }
-
-    .leaderboard-row:hover {
-      background: var(--cream);
-    }
-
+    .sort-btn:hover { border-color: var(--gold); color: var(--gold-deep); background: var(--gold-dim); }
+    .sort-btn.active { background: var(--gold); color: #fff; border-color: var(--gold); box-shadow: 0 2px 10px rgba(201,168,76,0.35); }
+    .sort-btn .sort-indicator { font-size: 10px; }
+    #time-toggle { font-size: 10px; }
+    #leaderboard { margin: 16px; border-radius: var(--radius-md); border: 1px solid var(--border-soft); background: var(--surface); overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
+    .leaderboard-header-row { display: grid; grid-template-columns: 48px 1fr auto; padding: 8px 16px; font-size: 10px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-dim); border-bottom: 1px solid var(--border-soft); background: var(--cream); }
+    .leaderboard-row { display: grid; grid-template-columns: 48px 1fr auto; padding: 12px 16px; border-bottom: 1px solid var(--border-soft); cursor: pointer; align-items: center; transition: background 0.14s ease; position: relative; }
+    .leaderboard-row:last-child { border-bottom: none; }
+    .leaderboard-row:hover { background: var(--cream); }
     .leaderboard-row.gold   { border-left: 3px solid var(--rank-gold); }
     .leaderboard-row.silver { border-left: 3px solid var(--rank-silver); }
     .leaderboard-row.bronze { border-left: 3px solid var(--rank-bronze); }
-
-    /* ── ROW CONTENT ────────────────────────────── */
-    .rank {
-      font-size: 14px;
-      font-weight: 800;
-      text-align: center;
-      color: var(--text-dim);
-      line-height: 1;
-    }
-
-    .leaderboard-row.gold   .rank,
-    .leaderboard-row.silver .rank,
-    .leaderboard-row.bronze .rank {
-      font-size: 20px;
-    }
-
-    .name {
-      padding: 0 12px;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      gap: 3px;
-      min-width: 0;
-    }
-
-    .cadet-name,
-    .full-name {
-      font-size: 14px;
-      font-weight: 700;
-      color: var(--text-primary);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      line-height: 1.2;
-    }
-
-    .dept-inline {
-      font-size: 12px;
-      font-weight: 500;
-      color: var(--text-dim);
-    }
-
-    .metric-tag {
-      font-size: 9px;
-      font-weight: 700;
-      letter-spacing: 0.18em;
-      text-transform: uppercase;
-      color: var(--text-dim);
-    }
-
-    .last-test-small {
-      font-size: 11px;
-      color: var(--text-secondary);
-    }
-
-    .score {
-      font-size: 20px;
-      font-weight: 800;
-      color: var(--gold-deep);
-      text-align: right;
-      min-width: 80px;
-      display: flex;
-      align-items: center;
-      justify-content: flex-end;
-      font-variant-numeric: tabular-nums;
-      gap: 2px;
-    }
-
-    .score-time {
-      font-size: 14px;
-      gap: 4px;
-    }
-
-    /* ── TIME DISPLAY ───────────────────────────── */
-    .time-block {
-      display: inline-flex;
-      align-items: baseline;
-      gap: 2px;
-    }
-
-    .time-num {
-      font-size: 15px;
-      font-weight: 700;
-      color: var(--text-primary);
-      font-variant-numeric: tabular-nums;
-    }
-
-    .time-unit {
-      font-size: 11px;
-      font-weight: 600;
-      color: var(--text-dim);
-    }
-
-    .time-unit.h { color: var(--gold-deep); }
-    .time-unit.m { color: var(--gold); }
-    .time-unit.s { color: var(--text-secondary); }
-
-    .t-block {
-      display: inline-flex;
-      align-items: baseline;
-      gap: 2px;
-    }
-
-    .t-num {
-      font-size: 14px;
-      font-weight: 700;
-      color: var(--text-primary);
-      font-variant-numeric: tabular-nums;
-    }
-
-    .t-unit {
-      font-size: 10px;
-      font-weight: 600;
-    }
-
-    .t-unit.h { color: var(--gold-deep); }
-    .t-unit.m { color: var(--gold); }
-    .t-unit.s { color: var(--text-secondary); }
-
-    /* ── LOADER ─────────────────────────────────── */
-    #loader {
-      display: none;
-      justify-content: center;
-      align-items: center;
-      padding: 48px 0 24px;
-    }
-
-    .spinner {
-      width: 40px;
-      height: 40px;
-      border-radius: 999px;
-      border: 3px solid var(--cream-mid);
-      border-top-color: var(--gold);
-      animation: spin 0.85s linear infinite;
-    }
-
+    .rank { font-size: 14px; font-weight: 800; text-align: center; color: var(--text-dim); line-height: 1; }
+    .leaderboard-row.gold .rank, .leaderboard-row.silver .rank, .leaderboard-row.bronze .rank { font-size: 20px; }
+    .name { padding: 0 12px; display: flex; flex-direction: column; justify-content: center; gap: 3px; min-width: 0; }
+    .cadet-name, .full-name { font-size: 14px; font-weight: 700; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.2; }
+    .dept-inline { font-size: 12px; font-weight: 500; color: var(--text-dim); }
+    .metric-tag { font-size: 9px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-dim); }
+    .last-test-small { font-size: 11px; color: var(--text-secondary); }
+    .score { font-size: 20px; font-weight: 800; color: var(--gold-deep); text-align: right; min-width: 80px; display: flex; align-items: center; justify-content: flex-end; font-variant-numeric: tabular-nums; gap: 2px; }
+    .score-time { font-size: 14px; gap: 4px; }
+    .time-block { display: inline-flex; align-items: baseline; gap: 2px; }
+    .time-num { font-size: 15px; font-weight: 700; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+    .time-unit { font-size: 11px; font-weight: 600; color: var(--text-dim); }
+    .time-unit.h { color: var(--gold-deep); } .time-unit.m { color: var(--gold); } .time-unit.s { color: var(--text-secondary); }
+    .t-block { display: inline-flex; align-items: baseline; gap: 2px; }
+    .t-num { font-size: 14px; font-weight: 700; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+    .t-unit { font-size: 10px; font-weight: 600; }
+    .t-unit.h { color: var(--gold-deep); } .t-unit.m { color: var(--gold); } .t-unit.s { color: var(--text-secondary); }
+    #loader { display: none; justify-content: center; align-items: center; padding: 48px 0 24px; }
+    .spinner { width: 40px; height: 40px; border-radius: 999px; border: 3px solid var(--cream-mid); border-top-color: var(--gold); animation: spin 0.85s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
-
-    #error {
-      color: var(--danger);
-      text-align: center;
-      padding: 16px;
-      font-weight: 600;
-      font-size: 13px;
-    }
-
-    /* ── MODAL ──────────────────────────────────── */
-    #modal {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(26, 23, 20, 0.40);
-      backdrop-filter: blur(5px);
-      justify-content: center;
-      align-items: flex-start;
-      z-index: 1000;
-      overflow-y: auto;
-      padding: 30px 12px;
-    }
-
-    #modal-content {
-      background: var(--surface);
-      border-radius: var(--radius-lg);
-      padding: 22px 20px 24px;
-      width: 100%;
-      max-width: 520px;
-      margin: 0 auto;
-      border: 1px solid var(--gold-border);
-      box-shadow:
-        0 30px 70px rgba(0, 0, 0, 0.18),
-        0 4px 16px rgba(201,168,76,0.12);
-      position: relative;
-    }
-
-    .modal-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 4px;
-      padding-bottom: 14px;
-      border-bottom: 1px solid var(--border-soft);
-    }
-
-    .modal-header h2 {
-      font-family: 'Cormorant Garamond', Georgia, serif;
-      font-size: 22px;
-      font-weight: 700;
-      color: var(--text-primary);
-      flex: 1;
-    }
-
-    .modal-id-tag {
-      position: absolute;
-      top: -12px;
-      left: 20px;
-      font-size: 10px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.16em;
-      padding: 4px 10px;
-      border-radius: 999px;
-      background: var(--surface);
-      border: 1px solid var(--gold-border);
-      color: var(--gold-deep);
-    }
-
-    .modal-dept {
-      text-align: center;
-      font-size: 11px;
-      font-weight: 600;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      color: var(--text-dim);
-      margin-bottom: 16px;
-    }
-
-    .close-btn {
-      background: var(--cream);
-      border: 1px solid var(--border-mid);
-      color: var(--text-secondary);
-      font-size: 20px;
-      cursor: pointer;
-      width: 32px;
-      height: 32px;
-      border-radius: 999px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-      line-height: 1;
-      transition: all 0.15s ease;
-    }
-
-    .close-btn:hover {
-      background: var(--gold-dim);
-      border-color: var(--gold);
-      color: var(--gold-deep);
-    }
-
-    /* ── STATS GRID ─────────────────────────────── */
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
-      gap: 10px;
-      margin-bottom: 16px;
-    }
-
-    .stat-box {
-      background: var(--cream);
-      padding: 12px 12px 10px;
-      border-radius: var(--radius-sm);
-      border: 1px solid var(--border-soft);
-      text-align: left;
-    }
-
-    .stat-label {
-      font-size: 10px;
-      font-weight: 700;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      color: var(--text-dim);
-      margin-bottom: 4px;
-    }
-
-    .stat-value {
-      font-size: 22px;
-      font-weight: 800;
-      color: var(--gold-deep);
-      line-height: 1.1;
-      font-variant-numeric: tabular-nums;
-    }
-
-    .time-stat {
-      font-size: 0; /* children handle sizing */
-      display: flex;
-      flex-wrap: wrap;
-      gap: 4px;
-      align-items: baseline;
-    }
-
-    .time-stat .time-num { font-size: 16px; }
-    .time-stat .time-unit { font-size: 11px; }
-
-    .stat-foot {
-      font-size: 10px;
-      color: var(--text-dim);
-      margin-top: 4px;
-    }
-
-    /* ── DETAIL BOX ─────────────────────────────── */
-    .detail-box {
-      background: var(--cream);
-      padding: 14px 13px 13px;
-      border-radius: var(--radius-sm);
-      margin-bottom: 12px;
-      border: 1px solid var(--border-soft);
-    }
-
-    .detail-box h3 {
-      color: var(--text-primary);
-      margin-bottom: 6px;
-      font-size: 14px;
-      font-weight: 700;
-    }
-
-    .detail-box p {
-      color: var(--text-secondary);
-      line-height: 1.6;
-      font-size: 13px;
-    }
-
-    .detail-caption {
-      font-size: 11px;
-      color: var(--text-dim);
-      margin-bottom: 10px;
-    }
-
-    /* ── MINI CALENDAR ──────────────────────────── */
-    .mission-calendar {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-
-    .mini-cal-title {
-      text-align: center;
-      font-weight: 700;
-      font-size: 11px;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: var(--gold-deep);
-      margin-bottom: 6px;
-    }
-
-    .mini-cal-grid {
-      display: grid;
-      grid-template-columns: repeat(7, minmax(0, 1fr));
-      gap: 4px;
-      font-size: 9px;
-    }
-
-    .mini-cal-grid > div:nth-child(-n+7) {
-      font-weight: 700;
-      text-align: center;
-      color: var(--text-dim);
-      padding-bottom: 3px;
-    }
-
-    .mini-cal-day {
-      background: var(--surface);
-      border: 1px solid var(--border-soft);
-      border-radius: 5px;
-      min-height: 38px;
-      padding: 3px 3px;
-      font-size: 9px;
-      color: var(--text-secondary);
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-    }
-
-    .mini-cal-day.marked {
-      background: rgba(201,168,76,0.14);
-      border-color: rgba(201,168,76,0.50);
-    }
-
-    .mini-cal-date {
-      font-weight: 700;
-      margin-bottom: 2px;
-      color: var(--text-primary);
-    }
-
-    .mini-cal-items div {
-      font-size: 9px;
-      line-height: 1.1;
-    }
-
-    /* ── ACTION BUTTONS ─────────────────────────── */
-    .action-btn-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      margin-top: 14px;
-    }
-
-    .pdf-btn,
-    .wa-btn {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 7px;
-      padding: 12px 10px;
-      font-family: 'DM Sans', sans-serif;
-      font-weight: 700;
-      font-size: 12px;
-      letter-spacing: 0.05em;
-      border-radius: var(--radius-sm);
-      cursor: pointer;
-      transition: all 0.18s ease;
-      white-space: nowrap;
-    }
-
-    .pdf-btn {
-      border: 1px solid var(--gold-border);
-      background: var(--gold-dim);
-      color: var(--gold-deep);
-    }
-
-    .pdf-btn:hover {
-      background: var(--gold);
-      color: #fff;
-      border-color: var(--gold);
-    }
-
-    /* WhatsApp — deep green gradient */
-    .wa-btn {
-      border: 1px solid rgba(37, 167, 82, 0.5);
-      background: linear-gradient(135deg, #1fad4e 0%, #128C3E 100%);
-      color: #fff;
-      box-shadow: 0 2px 12px rgba(18, 140, 62, 0.30);
-    }
-
-    .wa-btn:hover {
-      background: linear-gradient(135deg, #25D366 0%, #1aaa48 100%);
-      box-shadow: 0 4px 20px rgba(37, 211, 102, 0.40);
-      transform: translateY(-1px);
-    }
-
-    .wa-btn:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-      transform: none;
-    }
-
-    .wa-icon {
-      width: 15px;
-      height: 15px;
-      flex-shrink: 0;
-    }
-
-    .btn-icon {
-      font-size: 14px;
-      line-height: 1;
-    }
-
-    /* ── RESPONSIVE ─────────────────────────────── */
+    #error { color: var(--danger); text-align: center; padding: 16px; font-weight: 600; font-size: 13px; }
+    #modal { display: none; position: fixed; inset: 0; background: rgba(26,23,20,0.40); backdrop-filter: blur(5px); justify-content: center; align-items: flex-start; z-index: 1000; overflow-y: auto; padding: 30px 12px; }
+    #modal-content { background: var(--surface); border-radius: var(--radius-lg); padding: 22px 20px 24px; width: 100%; max-width: 520px; margin: 0 auto; border: 1px solid var(--gold-border); box-shadow: 0 30px 70px rgba(0,0,0,0.18), 0 4px 16px rgba(201,168,76,0.12); position: relative; }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 4px; padding-bottom: 14px; border-bottom: 1px solid var(--border-soft); }
+    .modal-header h2 { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 22px; font-weight: 700; color: var(--text-primary); flex: 1; }
+    .modal-id-tag { position: absolute; top: -12px; left: 20px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.16em; padding: 4px 10px; border-radius: 999px; background: var(--surface); border: 1px solid var(--gold-border); color: var(--gold-deep); }
+    .modal-dept { text-align: center; font-size: 11px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 16px; }
+    .close-btn { background: var(--cream); border: 1px solid var(--border-mid); color: var(--text-secondary); font-size: 20px; cursor: pointer; width: 32px; height: 32px; border-radius: 999px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; line-height: 1; transition: all 0.15s ease; }
+    .close-btn:hover { background: var(--gold-dim); border-color: var(--gold); color: var(--gold-deep); }
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; margin-bottom: 16px; }
+    .stat-box { background: var(--cream); padding: 12px 12px 10px; border-radius: var(--radius-sm); border: 1px solid var(--border-soft); text-align: left; }
+    .stat-label { font-size: 10px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 4px; }
+    .stat-value { font-size: 22px; font-weight: 800; color: var(--gold-deep); line-height: 1.1; font-variant-numeric: tabular-nums; }
+    .time-stat { font-size: 0; display: flex; flex-wrap: wrap; gap: 4px; align-items: baseline; }
+    .time-stat .time-num { font-size: 16px; } .time-stat .time-unit { font-size: 11px; }
+    .stat-foot { font-size: 10px; color: var(--text-dim); margin-top: 4px; }
+    .detail-box { background: var(--cream); padding: 14px 13px 13px; border-radius: var(--radius-sm); margin-bottom: 12px; border: 1px solid var(--border-soft); }
+    .detail-box h3 { color: var(--text-primary); margin-bottom: 6px; font-size: 14px; font-weight: 700; }
+    .detail-box p { color: var(--text-secondary); line-height: 1.6; font-size: 13px; }
+    .detail-caption { font-size: 11px; color: var(--text-dim); margin-bottom: 10px; }
+    .mission-calendar { display: flex; flex-direction: column; gap: 16px; }
+    .mini-cal-title { text-align: center; font-weight: 700; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gold-deep); margin-bottom: 6px; }
+    .mini-cal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; font-size: 9px; }
+    .mini-cal-grid > div:nth-child(-n+7) { font-weight: 700; text-align: center; color: var(--text-dim); padding-bottom: 3px; }
+    .mini-cal-day { background: var(--surface); border: 1px solid var(--border-soft); border-radius: 5px; min-height: 38px; padding: 3px; font-size: 9px; color: var(--text-secondary); display: flex; flex-direction: column; align-items: flex-start; }
+    .mini-cal-day.marked { background: rgba(201,168,76,0.14); border-color: rgba(201,168,76,0.50); }
+    .mini-cal-date { font-weight: 700; margin-bottom: 2px; color: var(--text-primary); }
+    .mini-cal-items div { font-size: 9px; line-height: 1.1; }
+    .action-btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
+    .pdf-btn, .wa-btn { display: flex; align-items: center; justify-content: center; gap: 7px; padding: 12px 10px; font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 12px; letter-spacing: 0.05em; border-radius: var(--radius-sm); cursor: pointer; transition: all 0.18s ease; white-space: nowrap; }
+    .pdf-btn { border: 1px solid var(--gold-border); background: var(--gold-dim); color: var(--gold-deep); }
+    .pdf-btn:hover { background: var(--gold); color: #fff; border-color: var(--gold); }
+    .wa-btn { border: 1px solid rgba(37,167,82,0.5); background: linear-gradient(135deg,#1fad4e 0%,#128C3E 100%); color: #fff; box-shadow: 0 2px 12px rgba(18,140,62,0.30); }
+    .wa-btn:hover { background: linear-gradient(135deg,#25D366 0%,#1aaa48 100%); box-shadow: 0 4px 20px rgba(37,211,102,0.40); transform: translateY(-1px); }
+    .wa-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+    .wa-icon { width: 15px; height: 15px; flex-shrink: 0; }
+    .btn-icon { font-size: 14px; line-height: 1; }
     @media (max-width: 600px) {
       body { padding: 12px 8px 36px; }
-
       .command-frame { border-radius: 16px; }
-
       .header { padding: 16px 16px 12px; }
-
       .title { font-size: 24px; }
-
-      .top-controls {
-        flex-direction: column;
-        padding: 12px 14px;
-      }
-
+      .top-controls { flex-direction: column; padding: 12px 14px; }
       .department-filter select { min-width: 100%; }
-
       .sort-buttons { gap: 6px; }
-
       .sort-btn { font-size: 10px; padding: 6px 11px; }
-
       #leaderboard { margin: 10px; }
-
       .leaderboard-header-row { display: none; }
-
       .leaderboard-row { padding: 11px 12px; }
-
       .cadet-name, .full-name { font-size: 13px; }
-
       .score { font-size: 17px; min-width: 70px; }
-
       .stats-grid { grid-template-columns: repeat(2, 1fr); }
     }
   </style>
 </head>
-
 <body>
   <div class="command-frame">
-
     <div class="header">
       <div class="header-top">
         <div class="title-block">
@@ -1782,55 +997,1062 @@
           <option value="ALL">All Departments</option>
         </select>
       </div>
-
       <div class="sort-panel">
         <div class="sort-label-row"></div>
         <div class="sort-buttons">
-          <button class="sort-btn" data-sort="cryptic_completed" onclick="sortData('cryptic_completed')">
-            Cryptic <span class="sort-indicator"></span>
-          </button>
-          <button class="sort-btn" data-sort="wordle_completed" onclick="sortData('wordle_completed')">
-            Wordle <span class="sort-indicator"></span>
-          </button>
-          <button class="sort-btn" data-sort="total_time" onclick="sortData('total_time')">
-            Time <span class="sort-indicator"></span>
-          </button>
-          <button class="sort-btn" data-sort="quests_completed" onclick="sortData('quests_completed')">
-            Quests <span class="sort-indicator"></span>
-          </button>
-          <button class="sort-btn" data-sort="videos_completed" onclick="sortData('videos_completed')">
-            Videos <span class="sort-indicator"></span>
-          </button>
-          <button class="sort-btn" data-sort="stories_completed" onclick="sortData('stories_completed')">
-            Stories <span class="sort-indicator"></span>
-          </button>
-          <button class="sort-btn" data-sort="last_test_taken" onclick="sortData('last_test_taken')">
-            Last Test <span class="sort-indicator"></span>
-          </button>
-          <button id="time-toggle"
-            class="sort-btn"
-            style="display:none;"
-            onclick="toggleTimeFormat()">
-            Show Seconds
-          </button>
+          <button class="sort-btn" data-sort="total_score"       onclick="sortData('total_score')">Score <span class="sort-indicator"></span></button>
+          <button class="sort-btn" data-sort="accuracy"          onclick="sortData('accuracy')">Accuracy <span class="sort-indicator"></span></button>
+          <button class="sort-btn" data-sort="cryptic_completed" onclick="sortData('cryptic_completed')">Cryptic <span class="sort-indicator"></span></button>
+          <button class="sort-btn" data-sort="wordle_completed"  onclick="sortData('wordle_completed')">Wordle <span class="sort-indicator"></span></button>
+          <button class="sort-btn" data-sort="vocab_completed"   onclick="sortData('vocab_completed')">Vocab <span class="sort-indicator"></span></button>
+          <button class="sort-btn" data-sort="total_time"        onclick="sortData('total_time')">Time <span class="sort-indicator"></span></button>
+          <button class="sort-btn" data-sort="quests_completed"  onclick="sortData('quests_completed')">Quests <span class="sort-indicator"></span></button>
+          <button class="sort-btn" data-sort="videos_completed"  onclick="sortData('videos_completed')">Videos <span class="sort-indicator"></span></button>
+          <button class="sort-btn" data-sort="stories_completed" onclick="sortData('stories_completed')">Stories <span class="sort-indicator"></span></button>
+          <button class="sort-btn" data-sort="last_test_taken"   onclick="sortData('last_test_taken')">Last Test <span class="sort-indicator"></span></button>
+          <button id="time-toggle" class="sort-btn" style="display:none;" onclick="toggleTimeFormat()">Show Seconds</button>
         </div>
       </div>
     </div>
 
-    <div id="loader">
-      <div class="spinner"></div>
-    </div>
+    <div id="loader"><div class="spinner"></div></div>
     <div id="error"></div>
-
     <div id="leaderboard">
       <div class="leaderboard-header-row">
-        <div>Rank</div>
-        <div>Pilot</div>
-        <div>Metric</div>
+        <div>Rank</div><div>Pilot</div><div>Metric</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal">
+    <div id="modal-content"></div>
+  </div>
+</body>
+</html><!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mission: Veni, Vidi, Vici! — Command Deck Leaderboard</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <script type="module">
+    import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+    const supabase = createClient(
+      "https://yellow-lab-4999.andrewveda.workers.dev",
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoZXpzc29jenZwYmt0ZWZmY2d6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI4NTk1ODUsImV4cCI6MjA3ODQzNTU4NX0.2ZlqXnZxv0opkhynAT7OlK4S-xPygcc7ETUyTXRfGHE"
+    );
+
+    let filteredData = [];
+    let currentDepartment = "ALL";
+    let reportData = [];
+    let currentSort = "last_test_taken";
+    let sortAscending = false;
+    let lastTestInfo = { name: "", date: "" };
+    let showSecondsOnly = false;
+
+    async function loadData() {
+      const loader = document.getElementById("loader");
+      loader.style.display = "flex";
+
+      const { data, error } = await supabase.from("report_card_view").select("*");
+
+      loader.style.display = "none";
+
+      if (error) {
+        console.error(error);
+        document.getElementById("error").textContent = "⚠️ Unable to load data.";
+        return;
+      }
+
+      reportData = data || [];
+      filteredData = [...reportData];
+
+      filteredData.sort((a, b) => new Date(b.last_test_taken || 0) - new Date(a.last_test_taken || 0));
+
+      populateDepartmentDropdown(reportData);
+
+      if (reportData.length > 0) {
+        const sorted = [...reportData].sort((a, b) => new Date(b.last_test_taken) - new Date(a.last_test_taken));
+        lastTestInfo = { name: sorted[0].name, date: formatDate(sorted[0].last_test_taken) };
+        document.getElementById("last-test-info").textContent = `✨ ${lastTestInfo.name} · ${lastTestInfo.date}`;
+      } else {
+        document.getElementById("last-test-info").textContent = "Awaiting first mission log...";
+      }
+
+      const savedDept = localStorage.getItem("leaderboard_department");
+      if (savedDept) {
+        const sel = document.getElementById("departmentSelect");
+        if (sel) { sel.value = savedDept; applyDepartmentFilter(savedDept); return; }
+      }
+
+      sortData(currentSort);
+    }
+
+    function formatDate(dateStr) {
+      if (!dateStr) return "N/A";
+      return new Date(dateStr).toLocaleString('en-IN', {
+        timeZone: 'Asia/Kolkata',
+        day: '2-digit', month: 'short', year: 'numeric',
+        hour: '2-digit', minute: '2-digit', hour12: true
+      });
+    }
+
+    function formatSecondsOnly(seconds) {
+      if (!seconds) return "0s";
+      return `${Math.round(seconds)}s`;
+    }
+
+    function formatTime(seconds) {
+      if (!seconds && seconds !== 0) return `<span class="time-block"><span class="time-num">0</span><span class="time-unit h">h</span></span><span class="time-block"><span class="time-num">0</span><span class="time-unit m">m</span></span><span class="time-block"><span class="time-num">0</span><span class="time-unit s">s</span></span>`;
+      seconds = Math.round(seconds);
+      const h = Math.floor(seconds / 3600);
+      const m = Math.floor((seconds % 3600) / 60);
+      const s = seconds % 60;
+      return `<span class="time-block"><span class="time-num">${h}</span><span class="time-unit h">h</span></span><span class="time-block"><span class="time-num">${m}</span><span class="time-unit m">m</span></span><span class="time-block"><span class="time-num">${s}</span><span class="time-unit s">s</span></span>`;
+    }
+
+    function populateDepartmentDropdown(data) {
+      const select = document.getElementById("departmentSelect");
+      if (!select) return;
+      select.innerHTML = `<option value="ALL">All Departments</option>`;
+      const departments = [...new Set(data.map(s => (s.department || "").trim().toUpperCase()).filter(Boolean))].sort();
+      departments.forEach(dept => {
+        const opt = document.createElement("option");
+        opt.value = dept; opt.textContent = dept;
+        select.appendChild(opt);
+      });
+    }
+
+    function applyDepartmentFilter(dept) {
+      currentDepartment = dept;
+      localStorage.setItem("leaderboard_department", dept);
+      filteredData = dept === "ALL" ? [...reportData] : reportData.filter(s => (s.department || "").trim().toUpperCase() === dept.trim().toUpperCase());
+      sortAscending = false;
+      filteredData.sort((a, b) => new Date(b.last_test_taken || 0) - new Date(a.last_test_taken || 0));
+      renderLeaderboard();
+    }
+
+    function sortData(key) {
+      if (currentSort === key && reportData.length > 0 && document.getElementById("leaderboard").children.length > 1) {
+        sortAscending = !sortAscending;
+      } else {
+        currentSort = key;
+        sortAscending = false;
+      }
+
+      filteredData.sort((a, b) => {
+        let A = a[key], B = b[key];
+        if (A === null || A === undefined) A = sortAscending ? Infinity : -Infinity;
+        if (B === null || B === undefined) B = sortAscending ? Infinity : -Infinity;
+        if (key === 'last_test_taken') { A = new Date(a.last_test_taken).getTime(); B = new Date(b.last_test_taken).getTime(); }
+        return sortAscending ? A - B : B - A;
+      });
+
+      updateActiveButton();
+      renderLeaderboard();
+    }
+
+    function updateActiveButton() {
+      document.querySelectorAll(".sort-btn").forEach(btn => {
+        btn.classList.remove("active");
+        const ind = btn.querySelector('.sort-indicator');
+        if (ind) ind.textContent = "";
+      });
+      const toggle = document.getElementById("time-toggle");
+      if (toggle) toggle.style.display = (currentSort === "total_time") ? "inline-flex" : "none";
+      const active = document.querySelector(`[data-sort="${currentSort}"]`);
+      if (active) {
+        active.classList.add("active");
+        let ind = active.querySelector('.sort-indicator');
+        if (!ind) { ind = document.createElement('span'); ind.className = 'sort-indicator'; active.appendChild(ind); }
+        ind.textContent = sortAscending ? " ▲" : " ▼";
+      }
+    }
+
+    function renderLeaderboard() {
+      const container = document.getElementById("leaderboard");
+      container.innerHTML = "";
+
+      filteredData.forEach((s, idx) => {
+        const row = document.createElement("div");
+        row.className = "leaderboard-row";
+        if (idx === 0) row.classList.add("gold");
+        else if (idx === 1) row.classList.add("silver");
+        else if (idx === 2) row.classList.add("bronze");
+
+        const rank = idx + 1;
+        let value = s[currentSort];
+        if (value === null || value === undefined) value = (currentSort === "last_test_taken") ? null : 0;
+
+        const displayValue =
+          currentSort === "accuracy" ? `${Math.round((value || 0) * 100)}%` :
+          currentSort === "total_time" ? (showSecondsOnly ? formatSecondsOnly(value) : formatTime(value)) :
+          currentSort === "last_test_taken" ? formatDate(value) :
+          value;
+
+        if (currentSort === "last_test_taken") {
+          row.innerHTML = `
+            <div class="rank">${idx < 3 ? getMedalEmoji(idx) : rank}</div>
+            <div class="name name-two-line">
+              <div class="full-name">${s.name}</div>
+              <div class="last-test-small">${formatDate(s.last_test_taken)}</div>
+            </div>
+            <div class="score"></div>`;
+        } else if (currentSort === "total_time") {
+          if (showSecondsOnly) {
+            row.innerHTML = `
+              <div class="rank">${idx < 3 ? getMedalEmoji(idx) : rank}</div>
+              <div class="name"><div class="full-name">${s.name}</div></div>
+              <div class="score score-time">${formatSecondsOnly(s.total_time)}</div>`;
+          } else {
+            const totalSeconds = s.total_time ?? 0;
+            const h = Math.floor(totalSeconds / 3600).toString().padStart(2, "0");
+            const m = Math.floor((totalSeconds % 3600) / 60).toString().padStart(2, "0");
+            const s_val = (totalSeconds % 60).toString().padStart(2, "0");
+            row.innerHTML = `
+              <div class="rank">${idx < 3 ? getMedalEmoji(idx) : rank}</div>
+              <div class="name"><div class="full-name">${s.name}</div></div>
+              <div class="score score-time">
+                <span class="t-block"><span class="t-num">${h}</span><span class="t-unit h">h</span></span>
+                <span class="t-block"><span class="t-num">${m}</span><span class="t-unit m">m</span></span>
+                <span class="t-block"><span class="t-num">${s_val}</span><span class="t-unit s">s</span></span>
+              </div>`;
+          }
+        } else {
+          const metricLabel =
+            currentSort === "total_score" ? "SCORE" :
+            currentSort === "accuracy" ? "ACCURACY" :
+            currentSort === "quests_completed" ? "QUESTS" :
+            currentSort === "videos_completed" ? "VIDEOS" :
+            currentSort === "stories_completed" ? "STORIES" :
+            currentSort === "cryptic_completed" ? "CRYPTIC" :
+            currentSort === "wordle_completed" ? "WORDLE" :
+            currentSort === "vocab_completed" ? "VOCAB" : "";
+
+          row.innerHTML = `
+            <div class="rank">${idx < 3 ? getMedalEmoji(idx) : rank}</div>
+            <div class="name">
+              <div class="cadet-name">${s.name} <span class="dept-inline">${s.department ? `· ${s.department}` : ""}</span></div>
+              <div class="metric-tag">${metricLabel}</div>
+            </div>
+            <div class="score">${displayValue}</div>`;
+        }
+
+        row.onclick = () => showDetail(s);
+        container.appendChild(row);
+      });
+    }
+
+    function getMedalEmoji(idx) {
+      return idx === 0 ? "🥇" : idx === 1 ? "🥈" : "🥉";
+    }
+
+    const START_DATE = new Date("2025-08-25");
+    const CALENDAR_VISIBLE_START = new Date("2026-02-01");
+
+    function mapToDate(number) {
+      const d = new Date(START_DATE);
+      d.setDate(d.getDate() + (number - 1));
+      return d;
+    }
+
+    function parseItems(rawList) {
+      if (!rawList || rawList === "NULL") return [];
+      return rawList.split(",").map(item => item.trim()).filter(item => item.length > 0).map(item => {
+        const [type, num] = item.split(" ");
+        return { type, number: Number(num), label: item };
+      });
+    }
+
+    // Parse vocab_list: entries like "VocabDate_2026-02-24"
+    function parseVocabDates(rawList) {
+      if (!rawList || rawList === "NULL") return [];
+      return rawList.split(",").map(item => item.trim()).filter(Boolean).map(item => {
+        const match = item.match(/VocabDate_(\d{4}-\d{2}-\d{2})/);
+        if (match) return new Date(match[1] + "T00:00:00");
+        return null;
+      }).filter(Boolean);
+    }
+
+    function iconFor(label) {
+      if (label.startsWith("Quest"))   return "♥️";
+      if (label.startsWith("Video"))   return "😍";
+      if (label.startsWith("Story"))   return "📜";
+      if (label.startsWith("Cryptic")) return "🔐";
+      if (label.startsWith("Vocab"))   return "📚";
+      return "•";
+    }
+
+    function groupByDate(quests, videos, stories, cryptics, vocabDates) {
+      const map = {};
+      const add = (date, label) => {
+        if (!date || isNaN(date.getTime())) return;
+        const key = date.toDateString();
+        if (!map[key]) map[key] = [];
+        map[key].push(label);
+      };
+      quests.forEach(q   => add(mapToDate(q.number), q.label));
+      videos.forEach(v   => add(mapToDate(v.number), v.label));
+      stories.forEach(s  => add(mapToDate(s.number), s.label));
+      cryptics.forEach(c => add(mapToDate(c.number), c.label));
+      vocabDates.forEach(d => add(d, `Vocab`));
+      return map;
+    }
+
+    function renderOneMonth(baseDate, grouped) {
+      const year = baseDate.getFullYear(), month = baseDate.getMonth();
+      const firstDay = new Date(year, month, 1).getDay();
+      const numDays = new Date(year, month + 1, 0).getDate();
+      let html = `<div class="mini-cal-title">${baseDate.toLocaleString('en-IN', { month: 'long', year: 'numeric' })}</div><div class="mini-cal-grid"><div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>`;
+      for (let i = 0; i < firstDay; i++) html += `<div class="mini-cal-empty"></div>`;
+      for (let d = 1; d <= numDays; d++) {
+        const date = new Date(year, month, d);
+        const key = date.toDateString();
+        const items = grouped[key];
+        if (items) {
+          html += `<div class="mini-cal-day marked"><div class="mini-cal-date">${d}</div><div class="mini-cal-items">${items.map(i => `<div>${iconFor(i)}</div>`).join("")}</div></div>`;
+        } else {
+          html += `<div class="mini-cal-day">${d}</div>`;
+        }
+      }
+      html += "</div>";
+      return html;
+    }
+
+    function renderMiniCalendar(containerId, grouped) {
+      const container = document.getElementById(containerId);
+      container.innerHTML = "";
+      let cursor = new Date(CALENDAR_VISIBLE_START.getFullYear(), CALENDAR_VISIBLE_START.getMonth(), 1);
+      const today = new Date();
+      const end = new Date(today.getFullYear(), today.getMonth(), 1);
+      while (cursor <= end) {
+        container.innerHTML += renderOneMonth(cursor, grouped);
+        cursor.setMonth(cursor.getMonth() + 1);
+      }
+    }
+
+    function showDetail(s) {
+      const modal = document.getElementById("modal");
+      const content = document.getElementById("modal-content");
+      content.innerHTML = `
+        <div class="modal-header">
+          <div class="modal-id-tag">Pilot Profile</div>
+          <h2>${s.name}</h2>
+          <button class="close-btn" onclick="closeModal()">×</button>
+        </div>
+        <div class="modal-dept">${s.department || 'N/A'}</div>
+        <div class="stats-grid">
+          <div class="stat-box"><div class="stat-label">Total Score</div><div class="stat-value">${s.total_score ?? 0}</div><div class="stat-foot">Mission Points</div></div>
+          <div class="stat-box"><div class="stat-label">Accuracy</div><div class="stat-value">${Math.round((s.accuracy ?? 0) * 100)}%</div><div class="stat-foot">Hit Rate</div></div>
+          <div class="stat-box"><div class="stat-label">Cryptic</div><div class="stat-value">${s.cryptic_completed ?? 0}</div><div class="stat-foot">Puzzles solved</div></div>
+          <div class="stat-box"><div class="stat-label">Wordle</div><div class="stat-value">${s.wordle_completed ?? 0}</div><div class="stat-foot">Puzzles solved</div></div>
+          <div class="stat-box"><div class="stat-label">Vocab</div><div class="stat-value">${s.vocab_completed ?? 0}</div><div class="stat-foot">Sessions done</div></div>
+          <div class="stat-box"><div class="stat-label">Quests</div><div class="stat-value">${s.total_attempts ?? 0}</div><div class="stat-foot">Quests conquered</div></div>
+          <div class="stat-box"><div class="stat-label">Correct</div><div class="stat-value">${s.total_correct ?? 0}</div><div class="stat-foot">Direct Hits</div></div>
+          <div class="stat-box"><div class="stat-label">Wrong</div><div class="stat-value">${s.total_wrong ?? 0}</div><div class="stat-foot">Near Misses</div></div>
+          <div class="stat-box"><div class="stat-label">Time on Mission</div><div class="stat-value time-stat">${formatTime(s.total_time)}</div><div class="stat-foot">Cumulative</div></div>
+        </div>
+        <div class="detail-box">
+          <h3>📡 Mission Activity Grid</h3>
+          <p class="detail-caption">Gold days show completed Quests ♥️, Videos 😍, Stories 📜, Cryptic 🔐 or Vocab 📚.</p>
+          <div id="mini-calendar" class="mission-calendar"></div>
+        </div>
+        <div class="detail-box">
+          <h3>🕐 Last Mission</h3>
+          <p>${formatDate(s.last_test_taken)}</p>
+        </div>`;
+
+      const quests   = parseItems(s.quest_list);
+      const videos   = parseItems(s.video_list);
+      const stories  = parseItems(s.story_list);
+      const cryptics = parseItems(s.cryptic_list);
+      const vocabs   = parseVocabDates(s.vocab_list);
+      const grouped  = groupByDate(quests, videos, stories, cryptics, vocabs);
+      renderMiniCalendar("mini-calendar", grouped);
+
+      // Button row
+      const btnRow = document.createElement("div");
+      btnRow.className = "action-btn-row";
+
+      const pdfBtn = document.createElement("button");
+      pdfBtn.innerHTML = `<span class="btn-icon">📄</span> Download PDF`;
+      pdfBtn.className = "pdf-btn";
+      pdfBtn.onclick = () => downloadProfilePDF(s);
+
+      const waBtn = document.createElement("button");
+      waBtn.innerHTML = `<svg class="wa-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg> Send on WhatsApp`;
+      waBtn.className = "wa-btn";
+      waBtn.onclick = () => shareToWhatsApp(s);
+
+      btnRow.appendChild(pdfBtn);
+      btnRow.appendChild(waBtn);
+      content.appendChild(btnRow);
+
+      modal.style.display = "flex";
+    }
+
+    // ── WHATSAPP SHARE CARD ───────────────────────────────────────────
+    async function shareToWhatsApp(studentObj) {
+      if (!window.html2canvas) {
+        await new Promise((resolve, reject) => {
+          const s = document.createElement("script");
+          s.src = "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";
+          s.onload = resolve; s.onerror = reject;
+          document.head.appendChild(s);
+        });
+      }
+
+      const quests   = parseItems(studentObj.quest_list);
+      const videos   = parseItems(studentObj.video_list);
+      const stories  = parseItems(studentObj.story_list);
+      const cryptics = parseItems(studentObj.cryptic_list);
+      const vocabs   = parseVocabDates(studentObj.vocab_list);
+      const totalSec = Math.round(studentObj.total_time || 0);
+      const tH = Math.floor(totalSec / 3600);
+      const tM = Math.floor((totalSec % 3600) / 60);
+      const tS = totalSec % 60;
+      const accuracy = Math.round((studentObj.accuracy || 0) * 100);
+      const grouped  = groupByDate(quests, videos, stories, cryptics, vocabs);
+      const activeDays = Object.keys(grouped).length;
+
+      const card = document.createElement("div");
+      card.id = "wa-share-card";
+      card.style.cssText = `
+        position:fixed; left:-9999px; top:0;
+        width:540px; height:auto;
+        font-family:'DM Sans',sans-serif;
+        background: linear-gradient(145deg, #1a1200 0%, #2d1f00 40%, #1a0f00 100%);
+        border-radius:20px;
+        overflow:hidden;
+        padding:0;
+        box-shadow: 0 24px 60px rgba(0,0,0,0.7);
+      `;
+
+      const today2 = new Date();
+      const gridDays = 56;
+      let gridHtml = "";
+      for (let i = gridDays - 1; i >= 0; i--) {
+        const d = new Date(today2);
+        d.setDate(d.getDate() - i);
+        const key = d.toDateString();
+        const has = !!grouped[key];
+        gridHtml += `<div style="width:12px;height:12px;border-radius:2px;background:${has ? "linear-gradient(135deg,#f5d060,#c9a84c)" : "rgba(201,168,76,0.12)"};flex-shrink:0;"></div>`;
+      }
+
+      card.innerHTML = `
+        <div style="height:6px;background:linear-gradient(90deg,#8c6414,#e8c97a,#c9a84c,#f5e6a0,#c9a84c,#8c6414);"></div>
+        <div style="padding:28px 28px 24px;">
+          <div style="text-align:center;margin-bottom:20px;">
+            <div style="font-size:10px;letter-spacing:0.22em;text-transform:uppercase;color:rgba(201,168,76,0.6);margin-bottom:4px;">SRM Valliammai Engineering College</div>
+            <div style="font-size:9px;letter-spacing:0.18em;color:rgba(201,168,76,0.45);">Department of English · Mission: Veni, Vidi, Vici!</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:22px;">
+            <div style="flex:1;height:1px;background:linear-gradient(90deg,transparent,rgba(201,168,76,0.5));"></div>
+            <div style="width:6px;height:6px;background:#c9a84c;transform:rotate(45deg);"></div>
+            <div style="flex:1;height:1px;background:linear-gradient(90deg,rgba(201,168,76,0.5),transparent);"></div>
+          </div>
+          <div style="text-align:center;margin-bottom:6px;">
+            <div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:rgba(201,168,76,0.55);margin-bottom:8px;">Pilot Profile</div>
+            <div style="font-size:30px;font-weight:800;color:#f5e6a0;line-height:1;letter-spacing:0.02em;">${studentObj.name.toUpperCase()}</div>
+            ${studentObj.department ? `<div style="margin-top:6px;font-size:10px;font-weight:600;letter-spacing:0.18em;color:rgba(201,168,76,0.6);">${studentObj.department.toUpperCase()}</div>` : ""}
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;margin:20px 0;">
+            <div style="flex:1;height:1px;background:linear-gradient(90deg,transparent,rgba(201,168,76,0.4));"></div>
+            <div style="width:4px;height:4px;background:rgba(201,168,76,0.6);transform:rotate(45deg);"></div>
+            <div style="flex:1;height:1px;background:linear-gradient(90deg,rgba(201,168,76,0.4),transparent);"></div>
+          </div>
+          <div style="display:flex;gap:10px;margin-bottom:16px;">
+            <div style="flex:1;background:linear-gradient(135deg,rgba(201,168,76,0.18),rgba(201,168,76,0.08));border:1px solid rgba(201,168,76,0.35);border-radius:14px;padding:16px 12px;text-align:center;">
+              <div style="font-size:34px;font-weight:800;color:#e8c97a;line-height:1;">${studentObj.total_score ?? 0}</div>
+              <div style="font-size:8px;letter-spacing:0.18em;text-transform:uppercase;color:rgba(201,168,76,0.55);margin-top:5px;">Mission Score</div>
+            </div>
+            <div style="flex:1;background:linear-gradient(135deg,rgba(201,168,76,0.18),rgba(201,168,76,0.08));border:1px solid rgba(201,168,76,0.35);border-radius:14px;padding:16px 12px;text-align:center;">
+              <div style="font-size:34px;font-weight:800;color:#e8c97a;line-height:1;">${accuracy}%</div>
+              <div style="font-size:8px;letter-spacing:0.18em;text-transform:uppercase;color:rgba(201,168,76,0.55);margin-top:5px;">Accuracy</div>
+            </div>
+            <div style="flex:1;background:linear-gradient(135deg,rgba(201,168,76,0.18),rgba(201,168,76,0.08));border:1px solid rgba(201,168,76,0.35);border-radius:14px;padding:16px 12px;text-align:center;">
+              <div style="font-size:34px;font-weight:800;color:#e8c97a;line-height:1;">${activeDays}</div>
+              <div style="font-size:8px;letter-spacing:0.18em;text-transform:uppercase;color:rgba(201,168,76,0.55);margin-top:5px;">Active Days</div>
+            </div>
+          </div>
+          <div style="background:linear-gradient(90deg,rgba(201,168,76,0.22),rgba(201,168,76,0.10));border:1px solid rgba(201,168,76,0.4);border-radius:10px;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+            <div style="font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:rgba(201,168,76,0.6);">Time on Mission</div>
+            <div style="font-size:18px;font-weight:800;color:#e8c97a;">${tH}h ${tM}m ${tS}s</div>
+          </div>
+          <div style="display:flex;gap:7px;margin-bottom:20px;">
+            ${[
+              {label:"Quests",  val: quests.length},
+              {label:"Videos",  val: videos.length},
+              {label:"Stories", val: stories.length},
+              {label:"Cryptic", val: studentObj.cryptic_completed ?? 0},
+              {label:"Wordle",  val: studentObj.wordle_completed  ?? 0},
+              {label:"Vocab",   val: studentObj.vocab_completed   ?? 0},
+            ].map(a => `
+              <div style="flex:1;background:${a.val > 0 ? "linear-gradient(135deg,rgba(201,168,76,0.25),rgba(201,168,76,0.12))" : "rgba(255,255,255,0.04)"};border:1px solid ${a.val > 0 ? "rgba(201,168,76,0.5)" : "rgba(255,255,255,0.08)"};border-radius:10px;padding:10px 4px;text-align:center;">
+                <div style="font-size:16px;font-weight:800;color:${a.val > 0 ? "#e8c97a" : "rgba(201,168,76,0.3)"};">${a.val}</div>
+                <div style="font-size:7px;letter-spacing:0.10em;text-transform:uppercase;color:rgba(201,168,76,0.45);margin-top:3px;">${a.label}</div>
+              </div>
+            `).join("")}
+          </div>
+          <div style="margin-bottom:18px;">
+            <div style="font-size:8px;letter-spacing:0.16em;text-transform:uppercase;color:rgba(201,168,76,0.45);margin-bottom:8px;">Activity · Last 8 Weeks</div>
+            <div style="display:flex;flex-wrap:wrap;gap:3px;">${gridHtml}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+            <div style="flex:1;height:1px;background:linear-gradient(90deg,transparent,rgba(201,168,76,0.35));"></div>
+            <div style="width:4px;height:4px;background:rgba(201,168,76,0.5);transform:rotate(45deg);"></div>
+            <div style="flex:1;height:1px;background:linear-gradient(90deg,rgba(201,168,76,0.35),transparent);"></div>
+          </div>
+          <div style="text-align:center;font-size:8px;color:rgba(201,168,76,0.35);letter-spacing:0.12em;">
+            ${new Date().toLocaleString('en-IN',{timeZone:'Asia/Kolkata',day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})}
+          </div>
+        </div>
+        <div style="height:6px;background:linear-gradient(90deg,#8c6414,#e8c97a,#c9a84c,#f5e6a0,#c9a84c,#8c6414);"></div>
+      `;
+
+      document.body.appendChild(card);
+
+      const waBtn2 = document.querySelector(".wa-btn");
+      if (waBtn2) { waBtn2.textContent = "Generating…"; waBtn2.disabled = true; }
+
+      try {
+        const canvas = await html2canvas(card, { scale: 2, useCORS: true, backgroundColor: null, logging: false, width: 540 });
+        document.body.removeChild(card);
+
+        canvas.toBlob(async (blob) => {
+          const file = new File([blob], `${studentObj.name}_MissionCard.png`, { type: "image/png" });
+          if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            try {
+              await navigator.share({ files: [file], title: `${studentObj.name} — Mission Report`, text: `🎖️ Mission: Veni, Vidi, Vici! — Report for ${studentObj.name}` });
+            } catch (err) {
+              if (err.name !== "AbortError") fallbackDownloadAndWhatsApp(blob, studentObj.name);
+            }
+          } else {
+            fallbackDownloadAndWhatsApp(blob, studentObj.name);
+          }
+          if (waBtn2) {
+            waBtn2.innerHTML = `<svg class="wa-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg> Send on WhatsApp`;
+            waBtn2.disabled = false;
+          }
+        }, "image/png");
+      } catch (err) {
+        console.error("Share card error:", err);
+        if (document.body.contains(card)) document.body.removeChild(card);
+        if (waBtn2) { waBtn2.textContent = "❌ Error — try again"; waBtn2.disabled = false; }
+      }
+    }
+
+    function fallbackDownloadAndWhatsApp(blob, name) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = `${name}_MissionCard.png`; a.click();
+      URL.revokeObjectURL(url);
+      setTimeout(() => {
+        const msg = encodeURIComponent(`🎖️ *Mission: Veni, Vidi, Vici!*\nHere is the mission report card for *${name}*.\n_(Attach the downloaded image above)_`);
+        window.open(`https://web.whatsapp.com/send?text=${msg}`, "_blank");
+      }, 800);
+    }
+
+    function closeModal() {
+      document.getElementById("modal").style.display = "none";
+    }
+
+    function showClassStats() {
+      if (reportData.length === 0) return;
+      const totalStudents = reportData.length;
+      const avgScore      = Math.round(reportData.reduce((sum, s) => sum + (s.total_score || 0), 0) / totalStudents);
+      const avgAccuracy   = Math.round((reportData.reduce((sum, s) => sum + (s.accuracy || 0), 0) / totalStudents) * 100);
+      const totalAttempts = reportData.reduce((sum, s) => sum + (s.total_attempts || 0), 0);
+      const totalTime     = reportData.reduce((sum, s) => sum + (s.total_time || 0), 0);
+      const totalVideos   = reportData.reduce((sum, s) => sum + (s.videos_completed || 0), 0);
+      const totalStories  = reportData.reduce((sum, s) => sum + (s.stories_completed || 0), 0);
+      const totalQuests   = reportData.reduce((sum, s) => sum + (s.quests_completed || 0), 0);
+      const totalCryptic  = reportData.reduce((sum, s) => sum + (s.cryptic_completed || 0), 0);
+      const totalWordle   = reportData.reduce((sum, s) => sum + (s.wordle_completed || 0), 0);
+      const totalVocab    = reportData.reduce((sum, s) => sum + (s.vocab_completed || 0), 0);
+
+      const modal = document.getElementById("modal");
+      const content = document.getElementById("modal-content");
+      content.innerHTML = `
+        <div class="modal-header">
+          <div class="modal-id-tag">Class Stats</div>
+          <h2>Squad Overview</h2>
+          <button class="close-btn" onclick="closeModal()">×</button>
+        </div>
+        <div class="stats-grid">
+          <div class="stat-box"><div class="stat-label">Avg Score</div><div class="stat-value">${avgScore}</div><div class="stat-foot">Per Pilot</div></div>
+          <div class="stat-box"><div class="stat-label">Avg Accuracy</div><div class="stat-value">${avgAccuracy}%</div><div class="stat-foot">Hit Rate</div></div>
+          <div class="stat-box"><div class="stat-label">Total Attempts</div><div class="stat-value">${totalAttempts}</div><div class="stat-foot">Shots Fired</div></div>
+          <div class="stat-box"><div class="stat-label">Total Time</div><div class="stat-value time-stat">${formatTime(totalTime)}</div><div class="stat-foot">Cumulative</div></div>
+          <div class="stat-box"><div class="stat-label">Quests</div><div class="stat-value">${totalQuests}</div><div class="stat-foot">Completed</div></div>
+          <div class="stat-box"><div class="stat-label">Videos</div><div class="stat-value">${totalVideos}</div><div class="stat-foot">Completed</div></div>
+          <div class="stat-box"><div class="stat-label">Stories</div><div class="stat-value">${totalStories}</div><div class="stat-foot">Completed</div></div>
+          <div class="stat-box"><div class="stat-label">Cryptic</div><div class="stat-value">${totalCryptic}</div><div class="stat-foot">Solved</div></div>
+          <div class="stat-box"><div class="stat-label">Wordle</div><div class="stat-value">${totalWordle}</div><div class="stat-foot">Solved</div></div>
+          <div class="stat-box"><div class="stat-label">Vocab</div><div class="stat-value">${totalVocab}</div><div class="stat-foot">Sessions</div></div>
+        </div>`;
+      modal.style.display = "flex";
+    }
+
+    window.sortData = sortData;
+    window.closeModal = closeModal;
+    window.showClassStats = showClassStats;
+    window.applyDepartmentFilter = applyDepartmentFilter;
+    window.onload = loadData;
+
+    window.toggleTimeFormat = function () {
+      showSecondsOnly = !showSecondsOnly;
+      document.getElementById("time-toggle").textContent = showSecondsOnly ? "Show h:m:s" : "Show Seconds";
+      renderLeaderboard();
+    };
+
+    window.onclick = function (event) {
+      if (event.target === document.getElementById("modal")) closeModal();
+    };
+
+    (function () {
+      const s1 = document.createElement("script");
+      const s2 = document.createElement("script");
+      s1.src = "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";
+      s2.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
+      document.head.appendChild(s1);
+      document.head.appendChild(s2);
+    })();
+
+    async function downloadProfilePDF(studentObj) {
+      if (!window.jspdf) {
+        await new Promise((resolve, reject) => {
+          const s = document.createElement("script");
+          s.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
+          s.onload = resolve; s.onerror = reject;
+          document.head.appendChild(s);
+        });
+      }
+      const { jsPDF } = window.jspdf;
+
+      // ── PALETTE: light cream + antique gold ──────────────────────────
+      const CREAM_BG   = [250, 246, 238];   // page background
+      const CREAM_CARD = [243, 237, 224];   // card fill
+      const CREAM_DARK = [232, 224, 208];   // darker card / divider
+      const GOLD       = [180, 140, 40];    // antique gold — dark enough to read on cream
+      const GOLD_RICH  = [150, 112, 18];    // deeper gold for labels
+      const GOLD_LINE  = [201, 168, 76];    // rule / border
+      const INK        = [22,  16,   6];    // near-black — name & big numbers
+      const INK_MID    = [72,  56,  28];    // secondary text
+      const INK_DIM    = [130, 112,  72];   // captions
+
+      // ── DOCUMENT ─────────────────────────────────────────────────────
+      const doc = new jsPDF({ unit: "pt", format: "a4", orientation: "portrait" });
+      const PW  = doc.internal.pageSize.getWidth();   // 595
+      const PH  = doc.internal.pageSize.getHeight();  // 842
+      const M   = 44;
+      const CW  = PW - M * 2;
+
+      // ── HELPERS ──────────────────────────────────────────────────────
+      const sf = (sz, st, col) => { doc.setFont("helvetica", st || "normal"); doc.setFontSize(sz); doc.setTextColor(...(col || INK)); };
+      const cT = (str, y, sz, st, col) => { sf(sz, st, col); doc.text(str, PW / 2, y, { align: "center" }); };
+      const lT = (str, x, y, sz, st, col) => { sf(sz, st, col); doc.text(str, x, y); };
+      const rT = (str, x, y, sz, st, col) => { sf(sz, st, col); doc.text(str, x, y, { align: "right" }); };
+      const hl = (y, x1, x2, col, lw) => { doc.setDrawColor(...(col || GOLD_LINE)); doc.setLineWidth(lw ?? 0.6); doc.line(x1 ?? M, y, x2 ?? PW - M, y); };
+      const fr = (x, y, w, h, col) => { doc.setFillColor(...col); doc.rect(x, y, w, h, "F"); };
+      const rr = (x, y, w, h, r, fill, stroke, lw) => {
+        doc.setFillColor(...fill);
+        if (stroke) { doc.setDrawColor(...stroke); doc.setLineWidth(lw ?? 0.5); doc.roundedRect(x, y, w, h, r, r, "FD"); }
+        else doc.roundedRect(x, y, w, h, r, r, "F");
+      };
+
+      // ── DATA ─────────────────────────────────────────────────────────
+      const quests   = parseItems(studentObj.quest_list);
+      const videos   = parseItems(studentObj.video_list);
+      const stories  = parseItems(studentObj.story_list);
+      const cryptics = parseItems(studentObj.cryptic_list);
+      const vocabs   = parseVocabDates(studentObj.vocab_list);
+      const grouped  = groupByDate(quests, videos, stories, cryptics, vocabs);
+
+      const totalSec   = Math.round(studentObj.total_time || 0);
+      const tH  = Math.floor(totalSec / 3600);
+      const tM  = Math.floor((totalSec % 3600) / 60);
+      const tS  = totalSec % 60;
+      const accuracy   = Math.round((studentObj.accuracy || 0) * 100);
+      const score      = studentObj.total_score ?? 0;
+      const dept       = (studentObj.department || "").toUpperCase();
+      const name       = studentObj.name || "—";
+      const activeDays = Object.keys(grouped).length;
+
+      // ── PAGE BACKGROUND ───────────────────────────────────────────────
+      fr(0, 0, PW, PH, CREAM_BG);
+
+      // Gold top border
+      fr(0, 0, PW, 7, GOLD);
+      // Gold bottom border
+      fr(0, PH - 7, PW, 7, GOLD);
+
+      // ── HEADER ───────────────────────────────────────────────────────
+      // jsPDF text y = baseline. For a font size F, the cap-height is ~F*0.72
+      // and descenders ~F*0.28. We add padding above baseline = ~F*0.75 to
+      // ensure text sits visually clear of any rule drawn just before it.
+
+      let y = 14;
+
+      // College name — large and prominent
+      y += 18;   // top border is 7pt; start well below it
+      cT("SRM VALLIAMMAI ENGINEERING COLLEGE", y, 15, "bold", GOLD_RICH);
+      y += 18;
+      cT("Department of English", y, 11, "normal", INK_MID);
+      y += 14;
+      cT("Mission: Veni, Vidi, Vici!", y, 10, "normal", INK_MID);
+      y += 16;
+
+      // Rule 1
+      hl(y, M, PW - M, GOLD_LINE, 1.2);
+
+      // Name sits between rule 1 and rule 2
+      // 34pt font: baseline needs ~26pt clearance below the rule
+      y += 38;   // clearance above name baseline
+      cT(name.toUpperCase(), y, 34, "bold", INK);
+
+      if (dept) {
+        y += 20;   // gap between name baseline and dept baseline (11pt font)
+        cT(dept, y, 12, "bold", GOLD_RICH);
+        y += 16;   // clearance below dept baseline before rule 2
+      } else {
+        y += 20;
+      }
+
+      // Rule 2
+      hl(y, M, PW - M, GOLD_LINE, 0.8);
+      y += 22;
+
+      // ── HERO STRIP: Score | Accuracy | Active Days ────────────────────
+      const heroH = 88;
+      rr(M, y, CW, heroH, 7, CREAM_CARD, GOLD_LINE, 0.7);
+
+      [{val: String(score), label: "MISSION SCORE", sub: "points earned"},
+       {val: accuracy + "%", label: "ACCURACY", sub: "questions correct"},
+       {val: String(activeDays), label: "ACTIVE DAYS", sub: "days with activity"}
+      ].forEach((hs, i) => {
+        const mid = M + i * (CW / 3) + CW / 6;
+        if (i > 0) {
+          doc.setDrawColor(...CREAM_DARK); doc.setLineWidth(1);
+          doc.line(M + i * (CW / 3), y + 18, M + i * (CW / 3), y + heroH - 18);
+        }
+        sf(36, "bold", INK);          doc.text(hs.val,   mid, y + 50, { align: "center" });
+        sf(8,  "bold", GOLD_RICH);    doc.text(hs.label, mid, y + 65, { align: "center" });
+        sf(7.5,"normal", INK_DIM);    doc.text(hs.sub,   mid, y + 77, { align: "center" });
+      });
+      y += heroH + 14;
+
+      // ── TIME ON MISSION ───────────────────────────────────────────────
+      const timeH = 54;
+      rr(M, y, CW, timeH, 7, CREAM_CARD, GOLD_LINE, 0.7);
+
+      lT("TIME ON MISSION",      M + 18, y + 22, 9,   "bold",   GOLD_RICH);
+      lT("cumulative study time", M + 18, y + 37, 8.5, "normal", INK_DIM);
+      rT(`${tH}h  ${tM}m  ${tS}s`, PW - M - 18, y + 35, 26, "bold", INK);
+
+      y += timeH + 14;
+
+      // ── STAT GRID: 3 × 2 ─────────────────────────────────────────────
+      const GAP  = 10;
+      const cW2  = (CW - GAP * 2) / 3;
+      const cH   = 84;
+
+      [
+        { label: "QUESTS TAKEN", val: String(studentObj.total_attempts    ?? 0), sub: "total attempts" },
+        { label: "CORRECT",      val: String(studentObj.total_correct     ?? 0), sub: "direct hits"    },
+        { label: "WRONG",        val: String(studentObj.total_wrong       ?? 0), sub: "near misses"    },
+        { label: "QUESTS DONE",  val: String(studentObj.quests_completed  ?? 0), sub: "completed"      },
+        { label: "VIDEOS",       val: String(studentObj.videos_completed  ?? 0), sub: "completed"      },
+        { label: "STORIES",      val: String(studentObj.stories_completed ?? 0), sub: "completed"      },
+      ].forEach((sc, idx) => {
+        const col  = idx % 3;
+        const row  = Math.floor(idx / 3);
+        const cx2  = M + col * (cW2 + GAP);
+        const cy2  = y + row * (cH + GAP);
+        const mid  = cx2 + cW2 / 2;
+
+        rr(cx2, cy2, cW2, cH, 7, CREAM_CARD, GOLD_LINE, 0.5);
+        // gold top accent bar
+        fr(cx2 + 1, cy2 + 1, cW2 - 2, 4, GOLD);
+
+        sf(32, "bold",   INK);       doc.text(sc.val,   mid, cy2 + 46, { align: "center" });
+        sf(8,  "bold",   GOLD_RICH); doc.text(sc.label, mid, cy2 + 60, { align: "center" });
+        sf(7.5,"normal", INK_DIM);   doc.text(sc.sub,   mid, cy2 + 72, { align: "center" });
+      });
+      y += 2 * (cH + GAP) + 4;
+
+      // ── ACTIVITY ROW: Cryptic | Wordle | Vocab ────────────────────────
+      const aH = 78;
+      [
+        { label: "CRYPTIC", val: String(studentObj.cryptic_completed ?? 0), sub: "puzzles solved" },
+        { label: "WORDLE",  val: String(studentObj.wordle_completed  ?? 0), sub: "puzzles solved" },
+        { label: "VOCAB",   val: String(studentObj.vocab_completed   ?? 0), sub: "sessions done"  },
+      ].forEach((ac, i) => {
+        const cx2 = M + i * (cW2 + GAP);
+        const mid = cx2 + cW2 / 2;
+
+        rr(cx2, y, cW2, aH, 7, CREAM_DARK, GOLD_LINE, 0.6);
+        fr(cx2 + 1, y + 1, cW2 - 2, 4, GOLD);
+
+        sf(30, "bold",   INK);       doc.text(ac.val,   mid, y + 42, { align: "center" });
+        sf(8,  "bold",   GOLD_RICH); doc.text(ac.label, mid, y + 56, { align: "center" });
+        sf(7.5,"normal", INK_DIM);   doc.text(ac.sub,   mid, y + 68, { align: "center" });
+      });
+      y += aH + 14;
+
+      // ── LAST MISSION + TOTAL SCORE ────────────────────────────────────
+      const banH = 52;
+      rr(M, y, CW, banH, 7, CREAM_CARD, GOLD_LINE, 0.7);
+
+      lT("LAST MISSION",                             M + 18, y + 20, 8.5, "bold",   GOLD_RICH);
+      lT(formatDate(studentObj.last_test_taken),     M + 18, y + 37, 10,  "bold",   INK);
+      rT("TOTAL SCORE",                              PW - M - 18, y + 20, 8.5, "bold",   GOLD_RICH);
+      rT(`${score} pts`,                             PW - M - 18, y + 38, 17,  "bold",   INK);
+
+      y += banH + 20;
+
+      // ── FOOTER ───────────────────────────────────────────────────────
+      hl(y, M, PW - M, GOLD_LINE, 0.6);
+      y += 13;
+      const stamp = new Date().toLocaleString('en-IN', {
+        timeZone: 'Asia/Kolkata', day: '2-digit', month: 'short',
+        year: 'numeric', hour: '2-digit', minute: '2-digit'
+      });
+      cT(`Generated ${stamp}  ·  Mission: Veni, Vidi, Vici!  ·  SRM Valliammai`, y, 8, "normal", INK_DIM);
+
+      doc.save(`${name.replace(/\s+/g, "_")}_MissionReport.pdf`);
+    }
+  </script>
+
+  <style>
+    :root {
+      --cream:        #faf7f2;
+      --cream-dark:   #f2ece0;
+      --cream-mid:    #ede5d5;
+      --surface:      #ffffff;
+      --gold:         #c9a84c;
+      --gold-light:   #e8c97a;
+      --gold-deep:    #a07a28;
+      --gold-dim:     rgba(201, 168, 76, 0.12);
+      --gold-border:  rgba(201, 168, 76, 0.35);
+      --rank-gold:    #c9a84c;
+      --rank-silver:  #9ca3af;
+      --rank-bronze:  #b87333;
+      --text-primary:   #1a1714;
+      --text-secondary: #7a6a52;
+      --text-dim:       #b0a090;
+      --border-soft:    rgba(0, 0, 0, 0.07);
+      --border-mid:     rgba(0, 0, 0, 0.12);
+      --success: #15803D;
+      --danger:  #B91C1C;
+      --radius-sm: 10px;
+      --radius-md: 14px;
+      --radius-lg: 20px;
+    }
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'DM Sans', system-ui, sans-serif;
+      background: var(--cream);
+      color: var(--text-primary);
+      min-height: 100vh;
+      padding: 20px 12px 48px;
+      background-image:
+        radial-gradient(circle at 70% 5%, rgba(201,168,76,0.10) 0%, transparent 45%),
+        radial-gradient(circle at 10% 95%, rgba(201,168,76,0.08) 0%, transparent 40%);
+    }
+    .command-frame {
+      max-width: 960px; margin: 0 auto;
+      border-radius: var(--radius-lg);
+      background: var(--surface);
+      border: 1px solid var(--gold-border);
+      box-shadow: 0 1px 0 0 rgba(255,255,255,0.9) inset, 0 24px 60px rgba(0,0,0,0.09), 0 4px 16px rgba(201,168,76,0.12);
+      overflow: hidden;
+    }
+    .header {
+      padding: 22px 24px 16px;
+      border-bottom: 1px solid var(--border-soft);
+      background: linear-gradient(160deg, var(--surface) 60%, var(--cream-dark) 100%);
+    }
+    .header-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 8px; }
+    .title-block { display: flex; flex-direction: column; gap: 2px; }
+    .mission-title { font-size: 11px; letter-spacing: 0.20em; text-transform: uppercase; color: var(--text-dim); font-weight: 600; }
+    .title { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 30px; font-weight: 700; letter-spacing: 0.04em; color: var(--gold-deep); line-height: 1; }
+    .subtitle { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+    .badge-live {
+      display: inline-flex; align-items: center; gap: 7px; padding: 8px 16px;
+      border-radius: 999px; background: var(--gold-dim); border: 1px solid var(--gold-border);
+      font-size: 12px; font-weight: 700; color: var(--gold-deep); cursor: pointer;
+      letter-spacing: 0.04em; transition: background 0.2s ease, box-shadow 0.2s ease; white-space: nowrap;
+    }
+    .badge-live:hover { background: rgba(201,168,76,0.22); box-shadow: 0 2px 12px rgba(201,168,76,0.22); }
+    .badge-dot { width: 7px; height: 7px; border-radius: 999px; background: var(--gold); animation: pulse-dot 2s ease-in-out infinite; }
+    @keyframes pulse-dot { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(0.7); } }
+    .top-controls {
+      display: flex; gap: 12px; padding: 14px 20px;
+      border-bottom: 1px solid var(--border-soft); background: var(--cream);
+      align-items: flex-start; flex-wrap: wrap;
+    }
+    .department-filter { flex-shrink: 0; }
+    .department-filter select {
+      padding: 9px 14px; border-radius: var(--radius-md); border: 1px solid var(--border-mid);
+      background: var(--surface); color: var(--text-primary); font-family: 'DM Sans', sans-serif;
+      font-size: 12px; font-weight: 600; letter-spacing: 0.06em; cursor: pointer;
+      appearance: none; -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%237a6a52' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px;
+      min-width: 160px; box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+    .department-filter select:focus { outline: none; border-color: var(--gold); box-shadow: 0 0 0 3px rgba(201,168,76,0.15); }
+    .sort-panel { flex: 1; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+    .sort-label-row { display: none; }
+    .sort-buttons { display: flex; flex-wrap: wrap; gap: 7px; }
+    .sort-btn, #time-toggle {
+      display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+      padding: 7px 14px; border-radius: 999px; border: 1px solid var(--border-mid);
+      background: var(--surface); color: var(--text-secondary); font-family: 'DM Sans', sans-serif;
+      font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+      cursor: pointer; white-space: nowrap; transition: all 0.18s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .sort-btn:hover { border-color: var(--gold); color: var(--gold-deep); background: var(--gold-dim); }
+    .sort-btn.active { background: var(--gold); color: #fff; border-color: var(--gold); box-shadow: 0 2px 10px rgba(201,168,76,0.35); }
+    .sort-btn .sort-indicator { font-size: 10px; }
+    #time-toggle { font-size: 10px; }
+    #leaderboard { margin: 16px; border-radius: var(--radius-md); border: 1px solid var(--border-soft); background: var(--surface); overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
+    .leaderboard-header-row { display: grid; grid-template-columns: 48px 1fr auto; padding: 8px 16px; font-size: 10px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-dim); border-bottom: 1px solid var(--border-soft); background: var(--cream); }
+    .leaderboard-row { display: grid; grid-template-columns: 48px 1fr auto; padding: 12px 16px; border-bottom: 1px solid var(--border-soft); cursor: pointer; align-items: center; transition: background 0.14s ease; position: relative; }
+    .leaderboard-row:last-child { border-bottom: none; }
+    .leaderboard-row:hover { background: var(--cream); }
+    .leaderboard-row.gold   { border-left: 3px solid var(--rank-gold); }
+    .leaderboard-row.silver { border-left: 3px solid var(--rank-silver); }
+    .leaderboard-row.bronze { border-left: 3px solid var(--rank-bronze); }
+    .rank { font-size: 14px; font-weight: 800; text-align: center; color: var(--text-dim); line-height: 1; }
+    .leaderboard-row.gold .rank, .leaderboard-row.silver .rank, .leaderboard-row.bronze .rank { font-size: 20px; }
+    .name { padding: 0 12px; display: flex; flex-direction: column; justify-content: center; gap: 3px; min-width: 0; }
+    .cadet-name, .full-name { font-size: 14px; font-weight: 700; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.2; }
+    .dept-inline { font-size: 12px; font-weight: 500; color: var(--text-dim); }
+    .metric-tag { font-size: 9px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-dim); }
+    .last-test-small { font-size: 11px; color: var(--text-secondary); }
+    .score { font-size: 20px; font-weight: 800; color: var(--gold-deep); text-align: right; min-width: 80px; display: flex; align-items: center; justify-content: flex-end; font-variant-numeric: tabular-nums; gap: 2px; }
+    .score-time { font-size: 14px; gap: 4px; }
+    .time-block { display: inline-flex; align-items: baseline; gap: 2px; }
+    .time-num { font-size: 15px; font-weight: 700; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+    .time-unit { font-size: 11px; font-weight: 600; color: var(--text-dim); }
+    .time-unit.h { color: var(--gold-deep); } .time-unit.m { color: var(--gold); } .time-unit.s { color: var(--text-secondary); }
+    .t-block { display: inline-flex; align-items: baseline; gap: 2px; }
+    .t-num { font-size: 14px; font-weight: 700; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+    .t-unit { font-size: 10px; font-weight: 600; }
+    .t-unit.h { color: var(--gold-deep); } .t-unit.m { color: var(--gold); } .t-unit.s { color: var(--text-secondary); }
+    #loader { display: none; justify-content: center; align-items: center; padding: 48px 0 24px; }
+    .spinner { width: 40px; height: 40px; border-radius: 999px; border: 3px solid var(--cream-mid); border-top-color: var(--gold); animation: spin 0.85s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #error { color: var(--danger); text-align: center; padding: 16px; font-weight: 600; font-size: 13px; }
+    #modal { display: none; position: fixed; inset: 0; background: rgba(26,23,20,0.40); backdrop-filter: blur(5px); justify-content: center; align-items: flex-start; z-index: 1000; overflow-y: auto; padding: 30px 12px; }
+    #modal-content { background: var(--surface); border-radius: var(--radius-lg); padding: 22px 20px 24px; width: 100%; max-width: 520px; margin: 0 auto; border: 1px solid var(--gold-border); box-shadow: 0 30px 70px rgba(0,0,0,0.18), 0 4px 16px rgba(201,168,76,0.12); position: relative; }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 4px; padding-bottom: 14px; border-bottom: 1px solid var(--border-soft); }
+    .modal-header h2 { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 22px; font-weight: 700; color: var(--text-primary); flex: 1; }
+    .modal-id-tag { position: absolute; top: -12px; left: 20px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.16em; padding: 4px 10px; border-radius: 999px; background: var(--surface); border: 1px solid var(--gold-border); color: var(--gold-deep); }
+    .modal-dept { text-align: center; font-size: 11px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 16px; }
+    .close-btn { background: var(--cream); border: 1px solid var(--border-mid); color: var(--text-secondary); font-size: 20px; cursor: pointer; width: 32px; height: 32px; border-radius: 999px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; line-height: 1; transition: all 0.15s ease; }
+    .close-btn:hover { background: var(--gold-dim); border-color: var(--gold); color: var(--gold-deep); }
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; margin-bottom: 16px; }
+    .stat-box { background: var(--cream); padding: 12px 12px 10px; border-radius: var(--radius-sm); border: 1px solid var(--border-soft); text-align: left; }
+    .stat-label { font-size: 10px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 4px; }
+    .stat-value { font-size: 22px; font-weight: 800; color: var(--gold-deep); line-height: 1.1; font-variant-numeric: tabular-nums; }
+    .time-stat { font-size: 0; display: flex; flex-wrap: wrap; gap: 4px; align-items: baseline; }
+    .time-stat .time-num { font-size: 16px; } .time-stat .time-unit { font-size: 11px; }
+    .stat-foot { font-size: 10px; color: var(--text-dim); margin-top: 4px; }
+    .detail-box { background: var(--cream); padding: 14px 13px 13px; border-radius: var(--radius-sm); margin-bottom: 12px; border: 1px solid var(--border-soft); }
+    .detail-box h3 { color: var(--text-primary); margin-bottom: 6px; font-size: 14px; font-weight: 700; }
+    .detail-box p { color: var(--text-secondary); line-height: 1.6; font-size: 13px; }
+    .detail-caption { font-size: 11px; color: var(--text-dim); margin-bottom: 10px; }
+    .mission-calendar { display: flex; flex-direction: column; gap: 16px; }
+    .mini-cal-title { text-align: center; font-weight: 700; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gold-deep); margin-bottom: 6px; }
+    .mini-cal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; font-size: 9px; }
+    .mini-cal-grid > div:nth-child(-n+7) { font-weight: 700; text-align: center; color: var(--text-dim); padding-bottom: 3px; }
+    .mini-cal-day { background: var(--surface); border: 1px solid var(--border-soft); border-radius: 5px; min-height: 38px; padding: 3px; font-size: 9px; color: var(--text-secondary); display: flex; flex-direction: column; align-items: flex-start; }
+    .mini-cal-day.marked { background: rgba(201,168,76,0.14); border-color: rgba(201,168,76,0.50); }
+    .mini-cal-date { font-weight: 700; margin-bottom: 2px; color: var(--text-primary); }
+    .mini-cal-items div { font-size: 9px; line-height: 1.1; }
+    .action-btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
+    .pdf-btn, .wa-btn { display: flex; align-items: center; justify-content: center; gap: 7px; padding: 12px 10px; font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 12px; letter-spacing: 0.05em; border-radius: var(--radius-sm); cursor: pointer; transition: all 0.18s ease; white-space: nowrap; }
+    .pdf-btn { border: 1px solid var(--gold-border); background: var(--gold-dim); color: var(--gold-deep); }
+    .pdf-btn:hover { background: var(--gold); color: #fff; border-color: var(--gold); }
+    .wa-btn { border: 1px solid rgba(37,167,82,0.5); background: linear-gradient(135deg,#1fad4e 0%,#128C3E 100%); color: #fff; box-shadow: 0 2px 12px rgba(18,140,62,0.30); }
+    .wa-btn:hover { background: linear-gradient(135deg,#25D366 0%,#1aaa48 100%); box-shadow: 0 4px 20px rgba(37,211,102,0.40); transform: translateY(-1px); }
+    .wa-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+    .wa-icon { width: 15px; height: 15px; flex-shrink: 0; }
+    .btn-icon { font-size: 14px; line-height: 1; }
+    @media (max-width: 600px) {
+      body { padding: 12px 8px 36px; }
+      .command-frame { border-radius: 16px; }
+      .header { padding: 16px 16px 12px; }
+      .title { font-size: 24px; }
+      .top-controls { flex-direction: column; padding: 12px 14px; }
+      .department-filter select { min-width: 100%; }
+      .sort-buttons { gap: 6px; }
+      .sort-btn { font-size: 10px; padding: 6px 11px; }
+      #leaderboard { margin: 10px; }
+      .leaderboard-header-row { display: none; }
+      .leaderboard-row { padding: 11px 12px; }
+      .cadet-name, .full-name { font-size: 13px; }
+      .score { font-size: 17px; min-width: 70px; }
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+  <div class="command-frame">
+    <div class="header">
+      <div class="header-top">
+        <div class="title-block">
+          <div class="mission-title">Mission: Veni, Vidi, Vici!</div>
+          <div class="title">LEADERBOARD</div>
+        </div>
+        <button class="badge-live" onclick="showClassStats()">
+          <span class="badge-dot"></span>
+          Squad Overview
+        </button>
+      </div>
+      <div class="subtitle" id="last-test-info">Initializing mission feed...</div>
+    </div>
+
+    <div class="top-controls">
+      <div class="department-filter">
+        <select id="departmentSelect" onchange="applyDepartmentFilter(this.value)">
+          <option value="ALL">All Departments</option>
+        </select>
+      </div>
+      <div class="sort-panel">
+        <div class="sort-label-row"></div>
+        <div class="sort-buttons">
+          <button class="sort-btn" data-sort="total_score"       onclick="sortData('total_score')">Score <span class="sort-indicator"></span></button>
+          <button class="sort-btn" data-sort="accuracy"          onclick="sortData('accuracy')">Accuracy <span class="sort-indicator"></span></button>
+          <button class="sort-btn" data-sort="cryptic_completed" onclick="sortData('cryptic_completed')">Cryptic <span class="sort-indicator"></span></button>
+          <button class="sort-btn" data-sort="wordle_completed"  onclick="sortData('wordle_completed')">Wordle <span class="sort-indicator"></span></button>
+          <button class="sort-btn" data-sort="vocab_completed"   onclick="sortData('vocab_completed')">Vocab <span class="sort-indicator"></span></button>
+          <button class="sort-btn" data-sort="total_time"        onclick="sortData('total_time')">Time <span class="sort-indicator"></span></button>
+          <button class="sort-btn" data-sort="quests_completed"  onclick="sortData('quests_completed')">Quests <span class="sort-indicator"></span></button>
+          <button class="sort-btn" data-sort="videos_completed"  onclick="sortData('videos_completed')">Videos <span class="sort-indicator"></span></button>
+          <button class="sort-btn" data-sort="stories_completed" onclick="sortData('stories_completed')">Stories <span class="sort-indicator"></span></button>
+          <button class="sort-btn" data-sort="last_test_taken"   onclick="sortData('last_test_taken')">Last Test <span class="sort-indicator"></span></button>
+          <button id="time-toggle" class="sort-btn" style="display:none;" onclick="toggleTimeFormat()">Show Seconds</button>
+        </div>
       </div>
     </div>
 
-  </div><!-- end .command-frame -->
+    <div id="loader"><div class="spinner"></div></div>
+    <div id="error"></div>
+    <div id="leaderboard">
+      <div class="leaderboard-header-row">
+        <div>Rank</div><div>Pilot</div><div>Metric</div>
+      </div>
+    </div>
+  </div>
 
   <div id="modal">
     <div id="modal-content"></div>

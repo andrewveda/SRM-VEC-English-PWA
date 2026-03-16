@@ -1,267 +1,546 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Linguathon — Sentence Quest</title>
-  <link href="https://fonts.googleapis.com/css2?family=Russo+One&family=Exo+2:wght@400;600;700;800;900&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      --bg:#0b0f1a; --surface:#111827; --surface2:#1a2235;
-      --border:rgba(99,179,237,0.18); --accent:#63b3ed; --accent2:#f6ad55;
-      --accent3:#68d391; --danger:#fc8181; --gold:#ffd700; --radius:14px;
-    }
-    *{box-sizing:border-box;margin:0;padding:0;}
-    body{font-family:'Exo 2',sans-serif;background:var(--bg);min-height:100vh;display:flex;flex-direction:column;align-items:center;color:white;overflow-x:hidden;}
-    body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(99,179,237,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(99,179,237,0.04) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0;}
-    body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(99,179,237,0.08) 0%,transparent 70%);pointer-events:none;z-index:0;}
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<title>Linguathon — Sentence Quest</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#080c14;
+  --surface:#0f1521;
+  --surface2:#161f30;
+  --surface3:#1d2740;
+  --border:rgba(120,160,255,0.14);
+  --accent:#5b9cf6;
+  --accent-glow:rgba(91,156,246,0.35);
+  --accent2:#ffb347;
+  --accent3:#4ade80;
+  --danger:#f87171;
+  --gold:#ffd700;
+  --purple:#a78bfa;
+  --r:16px;
+  --shadow:0 4px 32px rgba(0,0,0,0.55);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;overscroll-behavior:none;}
+body{
+  font-family:'DM Sans',sans-serif;
+  background:var(--bg);
+  color:#e8edf8;
+  min-height:100%;
+  display:flex;flex-direction:column;align-items:center;
+  overflow-x:hidden;
+}
 
-    /* HEADER */
-    #header-bar{width:100%;max-width:520px;background:var(--surface);border-bottom:2px solid var(--border);padding:8px 14px;display:flex;align-items:center;gap:10px;z-index:100;position:sticky;top:0;}
-    #header-bar.hidden{display:none;}
-    #q-progress-bar{flex:1;height:6px;background:rgba(255,255,255,0.06);border-radius:6px;overflow:hidden;}
-    #q-progress-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:6px;transition:width 0.5s ease;}
-    #q-label{font-family:'Russo One',sans-serif;font-size:0.8rem;color:rgba(255,255,255,0.4);white-space:nowrap;}
+/* ── GRID BG ── */
+body::before{
+  content:'';position:fixed;inset:0;
+  background-image:
+    linear-gradient(rgba(91,156,246,0.03) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(91,156,246,0.03) 1px,transparent 1px);
+  background-size:50px 50px;pointer-events:none;z-index:0;
+}
+body::after{
+  content:'';position:fixed;inset:0;
+  background:radial-gradient(ellipse 70% 50% at 50% -10%,rgba(91,156,246,0.10) 0%,transparent 70%);
+  pointer-events:none;z-index:0;
+}
 
-    #game-wrapper{width:100%;max-width:520px;padding:14px 12px 40px;position:relative;z-index:1;display:flex;flex-direction:column;gap:12px;}
+/* ── HEADER ── */
+#hdr{
+  width:100%;max-width:540px;
+  background:rgba(15,21,33,0.9);
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  border-bottom:1px solid var(--border);
+  padding:10px 16px;
+  display:none;align-items:center;gap:12px;
+  position:sticky;top:0;z-index:200;
+}
+#hdr.vis{display:flex;}
+#gem-hud{
+  display:flex;align-items:center;gap:5px;
+  font-family:'Syne',sans-serif;font-size:0.92rem;font-weight:700;
+  color:var(--gold);white-space:nowrap;
+}
+.hdr-prog{flex:1;height:5px;background:rgba(255,255,255,0.07);border-radius:6px;overflow:hidden;}
+.hdr-prog-fill{height:100%;border-radius:6px;background:linear-gradient(90deg,var(--accent),var(--purple));transition:width 0.5s cubic-bezier(.4,0,.2,1);}
+#q-lbl{font-size:0.72rem;font-weight:700;color:rgba(255,255,255,0.35);white-space:nowrap;font-family:'Syne',sans-serif;}
 
-    /* LOADER */
-    #loading-screen{text-align:center;padding:60px 20px;display:block;}
-    .loader-ring{width:56px;height:56px;border:4px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 0.9s linear infinite;margin:0 auto 18px;}
-    @keyframes spin{to{transform:rotate(360deg);}}
-    .loader-text{font-family:'Russo One',sans-serif;font-size:0.95rem;color:var(--accent);letter-spacing:2px;}
+/* ── WRAPPER ── */
+#wrap{width:100%;max-width:540px;padding:14px 14px 100px;position:relative;z-index:1;display:flex;flex-direction:column;gap:14px;}
 
-    /* LOBBY */
-    #lobby-screen{display:none;flex-direction:column;gap:14px;}
-    .lobby-title{font-family:'Russo One',sans-serif;font-size:2rem;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:2px;text-align:center;padding-top:24px;}
-    .lobby-sub{color:rgba(255,255,255,0.45);font-size:0.85rem;text-align:center;margin-top:4px;}
-    .creator-credit{text-align:center;font-size:0.73rem;color:rgba(255,255,255,0.4);line-height:1.9;}
-    .creator-credit strong{color:var(--accent2);}
-    .name-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px;}
-    .name-card label{display:block;font-size:0.73rem;font-weight:700;letter-spacing:1.5px;color:var(--accent);text-transform:uppercase;margin-bottom:6px;}
-    .name-card select,.name-card input{width:100%;padding:11px 14px;font-size:0.95rem;font-family:'Exo 2',sans-serif;border-radius:10px;border:1px solid var(--border);background:var(--surface2);color:white;outline:none;transition:border 0.2s;margin-bottom:12px;}
-    .name-card select option{background:var(--surface);}
-    .name-card input::placeholder{color:rgba(255,255,255,0.3);}
-    .name-card select:focus,.name-card input:focus{border-color:var(--accent);}
-    #start-lobby-btn{padding:15px;font-family:'Russo One',sans-serif;font-size:1.1rem;letter-spacing:2px;border:none;border-radius:var(--radius);background:linear-gradient(135deg,var(--accent),#4299e1);color:var(--bg);cursor:pointer;transition:transform 0.2s,box-shadow 0.2s;box-shadow:0 4px 24px rgba(99,179,237,0.35);}
-    #start-lobby-btn:hover{transform:translateY(-2px);}
+/* ── LOADER ── */
+#loading{text-align:center;padding:80px 20px;}
+.ring{width:52px;height:52px;border:3px solid rgba(91,156,246,0.2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 16px;}
+@keyframes spin{to{transform:rotate(360deg);}}
 
-    /* GAME BOARD */
-    #game-board{display:none;flex-direction:column;gap:10px;}
+/* ── LOBBY ── */
+#lobby{display:none;flex-direction:column;gap:16px;}
+.logo-wrap{text-align:center;padding-top:28px;}
+.logo{font-family:'Syne',sans-serif;font-size:2.6rem;font-weight:800;letter-spacing:-1px;
+  background:linear-gradient(135deg,#5b9cf6,#a78bfa,#f87171);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.logo-sub{font-size:0.82rem;color:rgba(255,255,255,0.38);margin-top:4px;letter-spacing:1.5px;text-transform:uppercase;}
+.credits{text-align:center;font-size:0.72rem;color:rgba(255,255,255,0.35);line-height:2;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:12px;}
+.credits strong{color:var(--accent2);}
+.field-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px;display:flex;flex-direction:column;gap:14px;}
+.field-lbl{font-size:0.68rem;font-weight:700;letter-spacing:2px;color:var(--accent);text-transform:uppercase;margin-bottom:6px;}
+select,input[type=text]{
+  width:100%;padding:14px 16px;
+  font-size:1rem;font-family:'DM Sans',sans-serif;
+  border-radius:12px;border:1.5px solid var(--border);
+  background:var(--surface2);color:#e8edf8;outline:none;
+  transition:border-color .2s;
+  -webkit-appearance:none;
+}
+select option{background:var(--surface);}
+input::placeholder{color:rgba(255,255,255,0.25);}
+select:focus,input:focus{border-color:var(--accent);}
+#start-btn{
+  padding:17px;
+  font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:800;letter-spacing:1.5px;
+  border:none;border-radius:var(--r);
+  background:linear-gradient(135deg,var(--accent),#7c3aed);
+  color:white;cursor:pointer;
+  box-shadow:0 6px 30px rgba(91,156,246,0.4);
+  transition:transform .18s,box-shadow .18s;
+}
+#start-btn:active{transform:scale(0.97);}
+#start-btn:hover{transform:translateY(-2px);box-shadow:0 10px 36px rgba(91,156,246,0.5);}
 
-    #topic-pill{display:flex;align-items:center;gap:8px;padding:6px 12px;background:rgba(246,173,85,0.08);border:1px solid rgba(246,173,85,0.2);border-radius:20px;align-self:flex-start;font-size:0.78rem;font-weight:700;letter-spacing:1px;color:var(--accent2);text-transform:uppercase;}
+/* ── GAME BOARD ── */
+#board{display:none;flex-direction:column;gap:12px;}
 
-    /* SENTENCE LIST */
-    #sentence-list{display:flex;flex-direction:column;gap:8px;}
+/* Topic pill */
+.topic-row{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.topic-pill{
+  display:flex;align-items:center;gap:7px;
+  padding:7px 14px;
+  background:rgba(255,179,71,0.08);
+  border:1px solid rgba(255,179,71,0.22);
+  border-radius:20px;
+  font-size:0.76rem;font-weight:700;letter-spacing:1px;
+  color:var(--accent2);text-transform:uppercase;
+}
+.streak-badge{
+  display:flex;align-items:center;gap:5px;
+  padding:6px 12px;
+  background:rgba(248,113,113,0.09);
+  border:1px solid rgba(248,113,113,0.22);
+  border-radius:20px;
+  font-size:0.78rem;font-weight:700;color:var(--danger);
+  font-family:'Syne',sans-serif;
+  transition:opacity .3s;
+}
+.streak-badge.hidden{opacity:0;pointer-events:none;}
 
-    .sent-card{
-      display:flex;align-items:center;gap:10px;
-      border-radius:12px;
-      border:2px solid rgba(255,255,255,0.07);
-      background:var(--surface2);
-      padding:13px 14px;
-      cursor:pointer;
-      -webkit-user-select:none;user-select:none;
-      transition:border-color 0.2s, background 0.2s, transform 0.12s, box-shadow 0.15s, opacity 0.2s;
-    }
-    .sent-card.inactive{opacity:0.38;filter:grayscale(0.3);}
-    .sent-card.active{opacity:1;filter:none;}
+/* Timer ring */
+.timer-wrap{display:flex;align-items:center;justify-content:center;}
+.timer-ring-svg{transform:rotate(-90deg);}
+.timer-ring-bg{fill:none;stroke:rgba(255,255,255,0.07);}
+.timer-ring-fill{fill:none;stroke:var(--accent);stroke-linecap:round;transition:stroke-dashoffset .9s linear,stroke .5s;}
+.timer-txt{
+  font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:800;
+  fill:white;dominant-baseline:middle;text-anchor:middle;
+}
 
-    /* Tap-selected */
-    .sent-card.selected{
-      border-color:var(--accent);
-      box-shadow:0 0 0 3px rgba(99,179,237,0.22);
-      transform:scale(1.018);
-    }
+/* ══ EXPLANATION PANEL (now ABOVE cards) ══ */
+#exp-panel{
+  background:var(--surface);
+  border:1.5px solid var(--border);
+  border-radius:var(--r);
+  overflow:hidden;
+  transition:all .3s;
+}
+.exp-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 16px;
+  cursor:pointer;
+  background:linear-gradient(90deg,rgba(91,156,246,0.08),transparent);
+  border-bottom:1px solid var(--border);
+  user-select:none;
+}
+.exp-head-title{font-family:'Syne',sans-serif;font-size:0.78rem;font-weight:800;letter-spacing:1.5px;color:var(--accent);text-transform:uppercase;}
+.exp-toggle-icon{font-size:0.75rem;color:rgba(255,255,255,0.35);transition:transform .25s;}
+.exp-toggle-icon.open{transform:rotate(180deg);}
+.exp-body{padding:10px;display:flex;flex-direction:column;gap:6px;}
+.exp-body.collapsed{display:none;}
+.exp-item{
+  display:flex;gap:10px;align-items:flex-start;
+  padding:10px 12px;border-radius:10px;
+  background:var(--surface2);
+  border-left:3px solid rgba(255,255,255,0.08);
+  cursor:pointer;
+  transition:border-color .2s,background .2s;
+}
+.exp-item.c{border-left-color:var(--accent3);background:rgba(74,222,128,0.06);}
+.exp-item.w{border-left-color:var(--danger);background:rgba(248,113,113,0.06);}
+.exp-item.pending{border-left-color:rgba(255,179,71,0.3);}
+.exp-pos-num{
+  font-family:'Syne',sans-serif;font-size:0.68rem;font-weight:800;
+  color:rgba(255,255,255,0.25);min-width:22px;padding-top:2px;
+}
+.exp-content{flex:1;}
+.exp-sent-txt{font-size:0.78rem;font-weight:600;line-height:1.45;color:rgba(255,255,255,0.55);}
+.exp-sent-txt.c{color:var(--accent3);}
+.exp-sent-txt.w{color:var(--danger);}
+.exp-why-wrap{
+  max-height:0;overflow:hidden;
+  transition:max-height .35s cubic-bezier(.4,0,.2,1);
+}
+.exp-why-wrap.open{max-height:200px;}
+.exp-why{font-size:0.74rem;color:rgba(255,255,255,0.48);line-height:1.6;padding-top:7px;border-top:1px solid rgba(255,255,255,0.06);margin-top:6px;}
+.exp-caret{font-size:0.6rem;color:var(--accent);font-weight:700;letter-spacing:1px;display:block;margin-top:4px;opacity:0.7;}
 
-    /* Permanently correct — green border + lock */
-    .sent-card.pos-correct{
-      border-color:var(--accent3);
-      background:rgba(104,211,145,0.09);
-      cursor:default;
-      opacity:1;
-      filter:none;
-    }
+/* ══ CARDS ══ */
+#card-list{display:flex;flex-direction:column;gap:8px;}
 
-    /* Brief wrong flash — red border only, removed quickly via JS */
-    .sent-card.wrong-flash{
-      border-color:var(--danger);
-      background:rgba(252,129,129,0.07);
-    }
+.s-card{
+  display:flex;align-items:center;gap:10px;
+  border-radius:14px;
+  border:2px solid rgba(255,255,255,0.08);
+  background:var(--surface2);
+  padding:14px 14px;
+  cursor:pointer;
+  -webkit-user-select:none;user-select:none;
+  transition:
+    border-color .18s,
+    background .18s,
+    transform .12s cubic-bezier(.4,0,.2,1),
+    box-shadow .18s,
+    opacity .2s;
+  min-height:62px;
+  position:relative;
+  overflow:hidden;
+}
+.s-card::before{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,0.015),transparent);
+  transform:translateX(-100%);
+  transition:transform 0s;
+}
+.s-card.selected{
+  border-color:var(--accent);
+  background:rgba(91,156,246,0.1);
+  box-shadow:0 0 0 3px rgba(91,156,246,0.22), var(--shadow);
+  transform:scale(1.02);
+}
+.s-card.selected::before{transform:translateX(100%);transition:transform 0.6s;}
+.s-card.locked{
+  border-color:var(--accent3);
+  background:rgba(74,222,128,0.07);
+  cursor:default;
+  animation:lockIn .35s cubic-bezier(.4,0,.2,1);
+}
+@keyframes lockIn{
+  0%{transform:scale(1.04);box-shadow:0 0 0 6px rgba(74,222,128,0.3);}
+  100%{transform:scale(1);box-shadow:none;}
+}
+.s-card.wrong-flash{
+  border-color:var(--danger);
+  background:rgba(248,113,113,0.07);
+  animation:shake .35s cubic-bezier(.4,0,.2,1);
+}
+@keyframes shake{
+  0%,100%{transform:translateX(0);}
+  20%{transform:translateX(-5px);}
+  60%{transform:translateX(4px);}
+}
+.s-card.inactive{opacity:0.32;filter:grayscale(0.4);}
+.card-num{
+  min-width:30px;height:30px;border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Syne',sans-serif;font-size:0.72rem;font-weight:800;
+  background:rgba(255,255,255,0.05);
+  color:rgba(255,255,255,0.22);
+  flex-shrink:0;
+  transition:background .2s,color .2s;
+  border:1px solid rgba(255,255,255,0.07);
+}
+.card-num.locked{background:rgba(74,222,128,0.18);color:var(--accent3);border-color:rgba(74,222,128,0.3);}
+.card-num.selected{background:rgba(91,156,246,0.2);color:var(--accent);border-color:var(--accent);}
+.card-txt{flex:1;font-size:0.9rem;font-weight:500;line-height:1.5;color:#d8e2f5;}
+.card-icon{font-size:1.1rem;flex-shrink:0;min-width:22px;text-align:center;}
+.drag-handle{
+  font-size:0.8rem;color:rgba(255,255,255,0.15);
+  flex-shrink:0;padding:0 2px;
+  letter-spacing:-2px;
+}
 
-    /* Swap flash */
-    @keyframes swapPop{0%,100%{transform:scale(1);}50%{transform:scale(1.04);}}
-    .swap-pop{animation:swapPop 0.22s ease;}
+/* ── FEEDBACK ── */
+#feedback{
+  font-family:'Syne',sans-serif;font-size:0.9rem;font-weight:800;
+  min-height:28px;text-align:center;letter-spacing:.5px;
+  padding:4px;
+}
+.fb-ok{color:var(--accent3);}
+.fb-err{color:var(--danger);}
+.fb-info{color:var(--accent2);}
 
-    /* Position number dot */
-    .pos-dot{
-      min-width:26px;height:26px;border-radius:50%;
-      display:flex;align-items:center;justify-content:center;
-      font-family:'Russo One',sans-serif;font-size:0.72rem;flex-shrink:0;
-      background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.28);
-      transition:background 0.2s,color 0.2s;
-    }
-    .pos-dot.c{background:rgba(104,211,145,0.22);color:var(--accent3);}
+/* ── STICKY BOTTOM BAR ── */
+#bottom-bar{
+  position:fixed;bottom:0;left:0;right:0;
+  background:rgba(8,12,20,0.92);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  border-top:1px solid var(--border);
+  padding:12px 16px 16px;
+  display:none;flex-direction:column;gap:8px;
+  z-index:300;max-width:540px;
+  margin:0 auto;
+  left:50%;transform:translateX(-50%);
+}
+#bottom-bar.vis{display:flex;}
+#submit-btn{
+  padding:16px;
+  font-family:'Syne',sans-serif;font-size:1.05rem;font-weight:800;letter-spacing:1.5px;
+  border:none;border-radius:var(--r);
+  background:linear-gradient(135deg,var(--accent),#7c3aed);
+  color:white;cursor:pointer;
+  box-shadow:0 4px 24px rgba(91,156,246,0.4);
+  transition:transform .15s,box-shadow .15s;
+}
+#submit-btn:active{transform:scale(0.97);}
+#next-btn{
+  display:none;padding:16px;
+  font-family:'Syne',sans-serif;font-size:1.05rem;font-weight:800;letter-spacing:1.5px;
+  border:none;border-radius:var(--r);
+  background:linear-gradient(135deg,var(--accent3),#16a34a);
+  color:white;cursor:pointer;
+  box-shadow:0 4px 24px rgba(74,222,128,0.35);
+  animation:pulseGreen 1.6s ease-in-out infinite;
+}
+@keyframes pulseGreen{
+  0%,100%{box-shadow:0 4px 24px rgba(74,222,128,0.35);}
+  50%{box-shadow:0 4px 36px rgba(74,222,128,0.65);}
+}
+.bottom-actions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+.act-btn{
+  padding:11px 6px;border-radius:11px;border:1.5px solid;
+  font-family:'Syne',sans-serif;font-size:0.75rem;font-weight:700;
+  cursor:pointer;transition:transform .15s,background .15s;
+  letter-spacing:.5px;
+}
+.act-btn:active{transform:scale(0.95);}
+.btn-r{background:rgba(248,113,113,0.08);color:var(--danger);border-color:rgba(248,113,113,0.25);}
+.btn-h{background:rgba(255,179,71,0.08);color:var(--accent2);border-color:rgba(255,179,71,0.25);}
+.btn-m{background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.5);border-color:rgba(255,255,255,0.1);}
 
-    .sent-text{flex:1;font-size:0.9rem;font-weight:600;line-height:1.5;color:white;}
+/* ── SCORE ── */
+#score{display:none;flex-direction:column;gap:14px;}
+.score-hero{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r);padding:30px 20px;text-align:center;
+  position:relative;overflow:hidden;
+}
+.score-hero::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse 80% 50% at 50% 0%,rgba(91,156,246,0.1),transparent);
+}
+.trophy{font-size:3.5rem;margin-bottom:8px;display:block;}
+.score-title{
+  font-family:'Syne',sans-serif;font-size:1.6rem;font-weight:800;
+  background:linear-gradient(135deg,var(--gold),var(--accent2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.score-name{font-size:0.85rem;color:rgba(255,255,255,0.38);margin-top:6px;}
+.sg{display:grid;grid-template-columns:1fr 1fr;gap:9px;}
+.sc-block{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r);padding:16px;text-align:center;
+}
+.sc-val{font-family:'Syne',sans-serif;font-size:1.9rem;font-weight:800;}
+.sc-lbl{font-size:0.65rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,0.35);margin-top:4px;}
+.v-g{color:var(--gold);}.v-bl{color:var(--accent);}.v-gr{color:var(--accent3);}.v-or{color:var(--accent2);}
+.acc-bar{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px;}
+.acc-labels{display:flex;justify-content:space-between;font-size:0.72rem;font-weight:700;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;}
+.acc-track{height:10px;background:rgba(255,255,255,0.06);border-radius:10px;overflow:hidden;}
+.acc-fill{height:100%;border-radius:10px;background:linear-gradient(90deg,var(--accent3),#86efac);transition:width 1.2s cubic-bezier(.4,0,.2,1);}
+#play-again{
+  padding:16px;
+  font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;letter-spacing:1.5px;
+  border:1.5px solid var(--border);border-radius:var(--r);
+  background:transparent;color:rgba(255,255,255,0.45);cursor:pointer;
+  transition:border-color .2s,color .2s;
+}
+#play-again:hover{border-color:var(--accent);color:var(--accent);}
 
-    .pos-badge{font-size:1rem;flex-shrink:0;min-width:20px;text-align:center;}
+/* ── OVERLAYS ── */
+#correct-overlay{
+  position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+  z-index:800;pointer-events:none;opacity:0;transition:opacity .2s;
+}
+#correct-overlay.show{opacity:1;}
+.big-correct{
+  font-family:'Syne',sans-serif;font-size:2.8rem;font-weight:800;
+  color:var(--gold);text-shadow:0 0 40px rgba(255,215,0,0.9);
+  letter-spacing:3px;
+  animation:bigPop .5s cubic-bezier(.175,.885,.32,1.275);
+}
+@keyframes bigPop{0%{transform:scale(0.2);opacity:0;}70%{transform:scale(1.1);}100%{transform:scale(1);opacity:1;}}
+#speed-flash{
+  position:fixed;top:64px;left:50%;transform:translateX(-50%);
+  background:rgba(74,222,128,0.12);border:1px solid rgba(74,222,128,0.3);
+  border-radius:20px;padding:7px 22px;
+  font-family:'Syne',sans-serif;font-size:0.9rem;font-weight:800;color:var(--accent3);
+  pointer-events:none;z-index:800;opacity:0;transition:opacity .2s;white-space:nowrap;
+}
+#speed-flash.show{opacity:1;}
+.gem-fly{
+  position:fixed;font-family:'Syne',sans-serif;font-size:1rem;font-weight:800;
+  pointer-events:none;z-index:999;
+  animation:flyUp .9s ease-out forwards;
+}
+.gem-fly.p{color:var(--accent2);}
+.gem-fly.m{color:var(--danger);}
+@keyframes flyUp{0%{opacity:1;transform:translateY(0) scale(1);}100%{opacity:0;transform:translateY(-70px) scale(1.3);}}
+.spark{position:fixed;width:7px;height:7px;border-radius:50%;pointer-events:none;z-index:900;animation:sparkF .75s ease-out forwards;}
+@keyframes sparkF{0%{opacity:1;transform:translate(0,0)scale(1);}100%{opacity:0;transform:translate(var(--tx),var(--ty))scale(0);}}
+.cfeti{position:fixed;width:9px;height:9px;pointer-events:none;z-index:901;animation:cfall 1.5s ease-out forwards;}
+@keyframes cfall{0%{opacity:1;transform:translateY(0)rotate(0);}100%{opacity:0;transform:translateY(280px)rotate(600deg);}}
 
-    /* FEEDBACK */
-    #feedback-msg{font-family:'Russo One',sans-serif;font-size:0.9rem;min-height:24px;text-align:center;letter-spacing:0.5px;}
-    .correct-msg{color:var(--accent3);} .wrong-msg{color:var(--danger);} .info-msg{color:var(--accent2);}
+/* ── Combo indicator ── */
+#combo-indicator{
+  position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+  font-family:'Syne',sans-serif;font-size:1.5rem;font-weight:800;
+  pointer-events:none;z-index:850;opacity:0;transition:opacity .15s;
+  text-shadow:0 0 30px currentColor;
+}
+#combo-indicator.show{animation:comboAnim .8s ease-out forwards;}
+@keyframes comboAnim{
+  0%{opacity:0;transform:translate(-50%,-60%) scale(0.5);}
+  30%{opacity:1;transform:translate(-50%,-50%) scale(1.15);}
+  70%{opacity:1;transform:translate(-50%,-50%) scale(1);}
+  100%{opacity:0;transform:translate(-50%,-40%) scale(0.9);}
+}
 
-    /* BUTTONS */
-    #submit-btn{padding:14px;font-family:'Russo One',sans-serif;font-size:1.05rem;letter-spacing:1.5px;border:none;border-radius:var(--radius);background:linear-gradient(135deg,var(--accent),#4299e1);color:var(--bg);cursor:pointer;transition:transform 0.2s;box-shadow:0 4px 20px rgba(99,179,237,0.35);}
-    #submit-btn:hover{transform:translateY(-2px);}
-    #next-btn{display:none;padding:14px;font-family:'Russo One',sans-serif;font-size:1.05rem;letter-spacing:1.5px;border:none;border-radius:var(--radius);background:linear-gradient(135deg,var(--accent3),#38a169);color:var(--bg);cursor:pointer;box-shadow:0 4px 20px rgba(104,211,145,0.3);}
+/* ── Swipe hint ── */
+.swipe-hint{
+  text-align:center;font-size:0.71rem;color:rgba(255,255,255,0.22);
+  padding:4px;letter-spacing:.5px;
+}
 
-    .action-row{display:flex;gap:8px;}
-    .action-btn{flex:1;padding:11px 6px;border-radius:10px;border:none;font-family:'Russo One',sans-serif;font-size:0.79rem;cursor:pointer;transition:transform 0.15s;}
-    .action-btn:hover{transform:translateY(-2px);}
-    .btn-reset{background:rgba(252,129,129,0.12);color:var(--danger);border:1px solid rgba(252,129,129,0.3);}
-    .btn-hint{background:rgba(246,173,85,0.1);color:var(--accent2);border:1px solid rgba(246,173,85,0.25);}
-    .btn-mute{background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.6);border:1px solid rgba(255,255,255,0.1);}
-
-    /* EXPLANATION */
-    #explanation-panel{display:none;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:13px;}
-    .exp-header{font-family:'Russo One',sans-serif;font-size:0.78rem;letter-spacing:1px;color:var(--accent2);text-transform:uppercase;margin-bottom:10px;}
-    .exp-row{display:flex;gap:9px;margin-bottom:8px;padding:10px;border-radius:10px;background:var(--surface2);border-left:3px solid var(--border);cursor:pointer;}
-    .exp-row.c{border-left-color:var(--accent3);} .exp-row.w{border-left-color:var(--danger);}
-    .exp-pos{font-family:'Russo One',sans-serif;font-size:0.7rem;min-width:20px;padding-top:2px;color:rgba(255,255,255,0.32);}
-    .exp-sent{font-size:0.81rem;font-weight:600;line-height:1.45;margin-bottom:3px;}
-    .exp-sent.c{color:var(--accent3);} .exp-sent.w{color:var(--danger);}
-    .exp-why{font-size:0.75rem;color:rgba(255,255,255,0.5);line-height:1.5;display:none;padding-top:4px;border-top:1px solid rgba(255,255,255,0.06);margin-top:4px;}
-    .exp-why.open{display:block;}
-    .exp-toggle{font-size:0.67rem;color:var(--accent);letter-spacing:1px;font-weight:700;margin-top:3px;display:block;}
-
-    /* SCORE */
-    #score-screen{display:none;flex-direction:column;gap:13px;}
-    .score-hero{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:26px 18px;text-align:center;}
-    .score-trophy{font-size:3.2rem;margin-bottom:6px;}
-    .score-title{font-family:'Russo One',sans-serif;font-size:1.5rem;background:linear-gradient(135deg,var(--gold),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
-    .score-name{margin-top:4px;font-size:0.88rem;color:rgba(255,255,255,0.4);}
-    .score-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;}
-    .score-block{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;text-align:center;}
-    .score-block .val{font-family:'Russo One',sans-serif;font-size:1.8rem;}
-    .score-block .lbl{font-size:0.67rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,0.4);margin-top:3px;}
-    .score-block.gold .val{color:var(--gold);} .score-block.blue .val{color:var(--accent);} .score-block.green .val{color:var(--accent3);} .score-block.orange .val{color:var(--accent2);}
-    .score-bar-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;}
-    .score-bar-label{display:flex;justify-content:space-between;font-size:0.75rem;font-weight:700;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:1px;margin-bottom:7px;}
-    .score-bar-track{height:9px;background:rgba(255,255,255,0.06);border-radius:10px;overflow:hidden;}
-    .score-bar-fill{height:100%;border-radius:10px;transition:width 1s ease;background:linear-gradient(90deg,var(--accent3),#68d391);}
-    #back-lobby-btn{padding:14px;font-family:'Russo One',sans-serif;font-size:1rem;letter-spacing:2px;border:1px solid var(--border);border-radius:var(--radius);background:transparent;color:rgba(255,255,255,0.5);cursor:pointer;}
-
-    /* PARTICLES */
-    #word-correct-overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:800;pointer-events:none;opacity:0;transition:opacity 0.25s;}
-    #word-correct-overlay.show{opacity:1;}
-    .big-correct-text{font-family:'Russo One',sans-serif;font-size:3rem;color:var(--gold);text-shadow:0 0 30px rgba(255,215,0,0.8);animation:popIn 0.45s cubic-bezier(0.175,0.885,0.32,1.275);letter-spacing:4px;}
-    @keyframes popIn{0%{transform:scale(0.3);opacity:0;}70%{transform:scale(1.12);}100%{transform:scale(1);opacity:1;}}
-    .flying-gem{position:fixed;font-family:'Russo One',sans-serif;font-size:1.1rem;pointer-events:none;z-index:999;animation:flyGem 0.85s ease-out forwards;}
-    .flying-gem.plus{color:var(--accent);} .flying-gem.minus{color:var(--danger);}
-    @keyframes flyGem{0%{opacity:1;transform:translateY(0) scale(1);}100%{opacity:0;transform:translateY(-65px) scale(1.2);}}
-    .spark{position:fixed;width:6px;height:6px;border-radius:50%;pointer-events:none;z-index:900;animation:sparkFly 0.75s ease-out forwards;}
-    @keyframes sparkFly{0%{opacity:1;transform:translate(0,0) scale(1);}100%{opacity:0;transform:translate(var(--tx),var(--ty)) scale(0);}}
-    .confetti-piece{position:fixed;width:8px;height:8px;pointer-events:none;z-index:901;animation:confettiFall 1.3s ease-out forwards;}
-    @keyframes confettiFall{0%{opacity:1;transform:translateY(0) rotate(0deg);}100%{opacity:0;transform:translateY(260px) rotate(540deg);}}
-    .gem-pulse{animation:gemPulse 0.35s ease;}
-    @keyframes gemPulse{0%,100%{transform:scale(1);}50%{transform:scale(1.3);filter:brightness(1.6);}}
-    #time-bonus-flash{position:fixed;top:60px;left:50%;transform:translateX(-50%);background:rgba(104,211,145,0.15);border:1px solid var(--accent3);border-radius:20px;padding:6px 20px;font-family:'Russo One',sans-serif;font-size:0.95rem;color:var(--accent3);pointer-events:none;z-index:800;opacity:0;transition:opacity 0.2s;}
-    #time-bonus-flash.show{opacity:1;}
-  </style>
+/* ── Scrollable inner padding so bottom bar doesn't hide content ── */
+.board-spacer{height:140px;}
+</style>
 </head>
 <body>
 
-<div id="word-correct-overlay"><div class="big-correct-text">⚡ CORRECT!</div></div>
-<div id="time-bonus-flash">⚡ SPEED BONUS!</div>
+<div id="correct-overlay"><div class="big-correct">⚡ PERFECT!</div></div>
+<div id="speed-flash">⚡ SPEED BONUS!</div>
+<div id="combo-indicator"></div>
 
-<div id="header-bar" class="hidden">
-  <div id="q-progress-bar"><div id="q-progress-fill" style="width:0%"></div></div>
-  <div id="q-label"><span id="q-current">1</span>/<span id="q-total">?</span></div>
+<!-- HEADER HUD -->
+<div id="hdr">
+  <div id="gem-hud">💎 <span id="hud-gems">0</span></div>
+  <div class="hdr-prog"><div class="hdr-prog-fill" id="hdr-fill" style="width:0%"></div></div>
+  <div id="q-lbl"><span id="q-cur">1</span>/<span id="q-tot">?</span></div>
 </div>
 
-<div id="game-wrapper">
-  <div id="loading-screen"><div class="loader-ring"></div><div class="loader-text">LOADING...</div></div>
+<div id="wrap">
+  <!-- LOADER -->
+  <div id="loading"><div class="ring"></div><div style="font-family:'Syne',sans-serif;font-size:.85rem;letter-spacing:2px;color:var(--accent);">LOADING…</div></div>
 
   <!-- LOBBY -->
-  <div id="lobby-screen">
-    <div class="lobby-title">⚡ Linguathon</div>
-    <div class="lobby-sub">Sentence Rearrangement Quest · Mystic Summit</div>
-    <div class="creator-credit">
+  <div id="lobby">
+    <div class="logo-wrap">
+      <div class="logo">Linguathon</div>
+      <div class="logo-sub">Sentence Quest · Mystic Summit</div>
+    </div>
+    <div class="credits">
       Student Development Team:<br>
-      <strong>Monesh – Cyber Security</strong> &nbsp;|&nbsp; <strong>Sruthi – ECE 3</strong> &nbsp;|&nbsp; <strong>Subiksha – ECE 3</strong><br>
-      <strong>Pooja – CSE 2</strong> &nbsp;|&nbsp; <strong>Mohana Priya – CSE 2</strong> &nbsp;|&nbsp; <strong>Valan Ezhilan – EIE</strong>
+      <strong>Monesh – Cyber Security</strong> &nbsp;·&nbsp; <strong>Sruthi – ECE 3</strong> &nbsp;·&nbsp; <strong>Subiksha – ECE 3</strong><br>
+      <strong>Pooja – CSE 2</strong> &nbsp;·&nbsp; <strong>Mohana Priya – CSE 2</strong> &nbsp;·&nbsp; <strong>Valan Ezhilan – EIE</strong>
     </div>
-    <div class="name-card">
-      <label>Department</label>
-      <select id="dept-select">
-        <option value="">-- Select Department --</option>
-        <option>Cyber Security</option><option>CSE-1</option><option>CSE-2</option>
-        <option>CSE-3</option><option>Mechanical Engineering</option><option>ECE-1</option>
-        <option>ECE-2</option><option>ECE-3</option><option>AI DS-1</option>
-        <option>AI DS-2</option><option>Civil</option><option>Agri</option>
-        <option>EEE</option><option>EIE</option><option>Medical Electronics</option>
-        <option>IT-1</option><option>IT-2</option>
-      </select>
-      <label>Your Name</label>
-      <input type="text" id="name-input" placeholder="Enter your full name" style="margin-bottom:0"/>
+    <div class="field-card">
+      <div>
+        <div class="field-lbl">Department</div>
+        <select id="dept">
+          <option value="">— Select Department —</option>
+          <option>Cyber Security</option><option>CSE-1</option><option>CSE-2</option>
+          <option>CSE-3</option><option>Mechanical Engineering</option><option>ECE-1</option>
+          <option>ECE-2</option><option>ECE-3</option><option>AI DS-1</option>
+          <option>AI DS-2</option><option>Civil</option><option>Agri</option>
+          <option>EEE</option><option>EIE</option><option>Medical Electronics</option>
+          <option>IT-1</option><option>IT-2</option>
+        </select>
+      </div>
+      <div>
+        <div class="field-lbl">Your Name</div>
+        <input type="text" id="pname" placeholder="Enter your full name" autocomplete="name"/>
+      </div>
     </div>
-    <button id="start-lobby-btn">🚀 START QUEST</button>
+    <button id="start-btn">🚀 BEGIN QUEST</button>
+    <div class="swipe-hint">TAP TWO CARDS TO SWAP THEM · EXPLANATION GUIDES EACH ROUND</div>
   </div>
 
   <!-- GAME BOARD -->
-  <div id="game-board">
-    <div id="topic-pill">
-      <span id="topic-icon">📝</span>
-      <span id="topic-name">—</span>
+  <div id="board">
+    <div class="topic-row">
+      <div class="topic-pill"><span id="t-icon">📝</span><span id="t-name">—</span></div>
+      <div class="streak-badge hidden" id="streak-badge">🔥 <span id="streak-num">0</span></div>
     </div>
-    <div id="sentence-list"></div>
-    <div id="feedback-msg"></div>
-    <button id="submit-btn">✅ SUBMIT ORDER</button>
-    <button id="next-btn">NEXT →</button>
-    <div id="explanation-panel">
-      <div class="exp-header">📖 Explanation</div>
-      <div id="exp-body"></div>
+
+    <!-- ★ EXPLANATION PANEL FIRST ★ -->
+    <div id="exp-panel">
+      <div class="exp-head" id="exp-toggle-head">
+        <div class="exp-head-title">📖 Correct Order Guide</div>
+        <div class="exp-toggle-icon open" id="exp-arrow">▼</div>
+      </div>
+      <div class="exp-body" id="exp-body"></div>
     </div>
-    <div class="action-row">
-      <button class="action-btn btn-reset" id="reset-btn">🔄 RESET</button>
-      <button class="action-btn btn-hint"  id="hint-btn">💡 HINT <span style="font-size:0.67rem;opacity:0.7">(-1💎)</span></button>
-      <button class="action-btn btn-mute"  id="mute-btn">🔊 SFX</button>
-    </div>
+
+    <div class="swipe-hint" id="tap-hint">TAP A CARD, THEN TAP ANOTHER TO SWAP</div>
+
+    <!-- SENTENCE CARDS -->
+    <div id="card-list"></div>
+
+    <!-- FEEDBACK -->
+    <div id="feedback"></div>
+
+    <!-- SPACER so sticky bar doesn't overlap -->
+    <div class="board-spacer"></div>
   </div>
 
-  <!-- SCORE -->
-  <div id="score-screen">
+  <!-- SCORE SCREEN -->
+  <div id="score">
     <div class="score-hero">
-      <div class="score-trophy" id="score-trophy">🏆</div>
+      <span class="trophy" id="s-trophy">🏆</span>
       <div class="score-title">QUEST COMPLETE!</div>
-      <div class="score-name" id="score-name-lbl"></div>
+      <div class="score-name" id="s-name"></div>
     </div>
-    <div class="score-grid">
-      <div class="score-block gold"><div class="val" id="sc-gems">0</div><div class="lbl">Total Gems</div></div>
-      <div class="score-block green"><div class="val" id="sc-correct">0</div><div class="lbl">Correct</div></div>
-      <div class="score-block blue"><div class="val" id="sc-streak">0</div><div class="lbl">Best Streak</div></div>
-      <div class="score-block orange"><div class="val" id="sc-time">0s</div><div class="lbl">Total Time</div></div>
+    <div class="sg">
+      <div class="sc-block"><div class="sc-val v-g" id="s-gems">0</div><div class="sc-lbl">Total Gems</div></div>
+      <div class="sc-block"><div class="sc-val v-gr" id="s-correct">0</div><div class="sc-lbl">Correct</div></div>
+      <div class="sc-block"><div class="sc-val v-bl" id="s-streak">0</div><div class="sc-lbl">Best Streak</div></div>
+      <div class="sc-block"><div class="sc-val v-or" id="s-time">0s</div><div class="sc-lbl">Time</div></div>
     </div>
-    <div class="score-bar-wrap">
-      <div class="score-bar-label"><span>Accuracy</span><span id="sc-acc-pct">0%</span></div>
-      <div class="score-bar-track"><div class="score-bar-fill" id="sc-acc-bar" style="width:0%"></div></div>
+    <div class="acc-bar">
+      <div class="acc-labels"><span>Accuracy</span><span id="s-pct">0%</span></div>
+      <div class="acc-track"><div class="acc-fill" id="s-bar" style="width:0%"></div></div>
     </div>
-    <button id="back-lobby-btn">↩ PLAY AGAIN</button>
+    <button id="play-again">↩ PLAY AGAIN</button>
+  </div>
+</div>
+
+<!-- STICKY BOTTOM BAR -->
+<div id="bottom-bar">
+  <button id="submit-btn">✅ CHECK ORDER</button>
+  <button id="next-btn">NEXT QUESTION →</button>
+  <div class="bottom-actions">
+    <button class="act-btn btn-r" id="reset-btn">🔄 RESET</button>
+    <button class="act-btn btn-h" id="hint-btn">💡 HINT <span style="font-size:.65rem;opacity:.6">(-1💎)</span></button>
+    <button class="act-btn btn-m" id="mute-btn">🔊 SFX</button>
   </div>
 </div>
 
 <script>
-const SUPABASE_URL="https://yellow-lab-4999.andrewveda.workers.dev/functions/v1/logQuest";
-
-/* ══════════════════════════════════════════════
+/* ═══════════════════════════════════════════
    QUEST DATA
-   correctOrder[i] = index into sentences[] for position i
-══════════════════════════════════════════════ */
+═══════════════════════════════════════════ */
 const QUEST={
-  id:"sentence-rearrange-01", title:"Paragraph Order Quest",
+  id:"sentence-rearrange-01",title:"Paragraph Order Quest",
   questions:[
-    /* ── Q1 Solar Energy ── */
     {topic:"Solar Energy",icon:"☀️",
      sentences:[
        "Solar energy is increasingly being adopted as an alternative source of power.",
@@ -275,515 +554,491 @@ const QUEST={
      ],
      correctOrder:[0,1,2,3,4,5,6,7],
      explanations:[
-       {pos:"1️⃣",why:"Opening / Topic Sentence — introduces the main idea broadly. All other sentences explain why adoption is happening."},
-       {pos:"2️⃣",why:"Key Advantage — the primary reason for adoption is clean energy. Flow: Adoption → Reason."},
-       {pos:"3️⃣",why:"Practical Uses — moves from environmental benefit to utility. Flow: Benefit → Utility."},
-       {pos:"4️⃣",why:"Economic Justification — affordability follows after explaining utility. Flow: Benefits → Cost ↓."},
-       {pos:"5️⃣",why:"Observable Outcome — falling costs lead to real-world household adoption. Flow: Cost ↓ → Adoption ↑."},
-       {pos:"6️⃣",why:"Policy Support — 'In addition' layers government subsidies on top of household adoption."},
-       {pos:"7️⃣",why:"Broader Impact — 'This' refers to adoption + subsidies combined. Flow: Adoption + Support → Energy impact."},
-       {pos:"8️⃣",why:"Conclusion — 'As a result' synthesises every prior point into a final judgement about sustainability."}
+       {why:"Opening / Topic Sentence — introduces the main idea broadly. All other sentences explain why adoption is happening."},
+       {why:"Key Advantage — the primary reason for adoption is clean energy. Flow: Adoption → Reason."},
+       {why:"Practical Uses — moves from environmental benefit to utility. Flow: Benefit → Utility."},
+       {why:"Economic Justification — affordability follows after explaining utility. Flow: Benefits → Cost ↓."},
+       {why:"Observable Outcome — falling costs lead to real-world household adoption. Flow: Cost ↓ → Adoption ↑."},
+       {why:"Policy Support — 'In addition' layers government subsidies on top of household adoption."},
+       {why:"Broader Impact — 'This' refers to adoption + subsidies combined. Flow: Adoption + Support → Energy impact."},
+       {why:"Conclusion — 'As a result' synthesises every prior point into a final judgement about sustainability."}
      ]
     },
-    /* ── Q2 PLACEHOLDER ── */
     {topic:"Placeholder Topic 2",icon:"📝",
      sentences:["Sentence A — replace this.","Sentence B — replace this.","Sentence C — replace this.","Sentence D — replace this."],
      correctOrder:[0,1,2,3],
-     explanations:[
-       {pos:"1️⃣",why:"Why this sentence comes first."},
-       {pos:"2️⃣",why:"Why this sentence comes second."},
-       {pos:"3️⃣",why:"Why this sentence comes third."},
-       {pos:"4️⃣",why:"Why this sentence comes fourth."}
-     ]
+     explanations:[{why:"First."},{why:"Second."},{why:"Third."},{why:"Fourth."}]
     },
-    /* ── Q3 PLACEHOLDER ── */
     {topic:"Placeholder Topic 3",icon:"📝",
      sentences:["Sentence A — replace this.","Sentence B — replace this.","Sentence C — replace this.","Sentence D — replace this."],
      correctOrder:[0,1,2,3],
-     explanations:[
-       {pos:"1️⃣",why:"Why this sentence comes first."},
-       {pos:"2️⃣",why:"Why this sentence comes second."},
-       {pos:"3️⃣",why:"Why this sentence comes third."},
-       {pos:"4️⃣",why:"Why this sentence comes fourth."}
-     ]
+     explanations:[{why:"First."},{why:"Second."},{why:"Third."},{why:"Fourth."}]
     },
-    /* ── Q4 PLACEHOLDER ── */
     {topic:"Placeholder Topic 4",icon:"📝",
      sentences:["Sentence A — replace this.","Sentence B — replace this.","Sentence C — replace this.","Sentence D — replace this."],
      correctOrder:[0,1,2,3],
-     explanations:[
-       {pos:"1️⃣",why:"Why this sentence comes first."},
-       {pos:"2️⃣",why:"Why this sentence comes second."},
-       {pos:"3️⃣",why:"Why this sentence comes third."},
-       {pos:"4️⃣",why:"Why this sentence comes fourth."}
-     ]
+     explanations:[{why:"First."},{why:"Second."},{why:"Third."},{why:"Fourth."}]
     },
-    /* ── Q5 PLACEHOLDER ── */
     {topic:"Placeholder Topic 5",icon:"📝",
      sentences:["Sentence A — replace this.","Sentence B — replace this.","Sentence C — replace this.","Sentence D — replace this."],
      correctOrder:[0,1,2,3],
-     explanations:[
-       {pos:"1️⃣",why:"Why this sentence comes first."},
-       {pos:"2️⃣",why:"Why this sentence comes second."},
-       {pos:"3️⃣",why:"Why this sentence comes third."},
-       {pos:"4️⃣",why:"Why this sentence comes fourth."}
-     ]
+     explanations:[{why:"First."},{why:"Second."},{why:"Third."},{why:"Fourth."}]
     },
-    /* ── Q6 PLACEHOLDER ── */
     {topic:"Placeholder Topic 6",icon:"📝",
      sentences:["Sentence A — replace this.","Sentence B — replace this.","Sentence C — replace this.","Sentence D — replace this."],
      correctOrder:[0,1,2,3],
-     explanations:[
-       {pos:"1️⃣",why:"Why this sentence comes first."},
-       {pos:"2️⃣",why:"Why this sentence comes second."},
-       {pos:"3️⃣",why:"Why this sentence comes third."},
-       {pos:"4️⃣",why:"Why this sentence comes fourth."}
-     ]
+     explanations:[{why:"First."},{why:"Second."},{why:"Third."},{why:"Fourth."}]
     },
-    /* ── Q7 PLACEHOLDER ── */
     {topic:"Placeholder Topic 7",icon:"📝",
      sentences:["Sentence A — replace this.","Sentence B — replace this.","Sentence C — replace this.","Sentence D — replace this."],
      correctOrder:[0,1,2,3],
-     explanations:[
-       {pos:"1️⃣",why:"Why this sentence comes first."},
-       {pos:"2️⃣",why:"Why this sentence comes second."},
-       {pos:"3️⃣",why:"Why this sentence comes third."},
-       {pos:"4️⃣",why:"Why this sentence comes fourth."}
-     ]
+     explanations:[{why:"First."},{why:"Second."},{why:"Third."},{why:"Fourth."}]
     },
-    /* ── Q8 PLACEHOLDER ── */
     {topic:"Placeholder Topic 8",icon:"📝",
      sentences:["Sentence A — replace this.","Sentence B — replace this.","Sentence C — replace this.","Sentence D — replace this."],
      correctOrder:[0,1,2,3],
-     explanations:[
-       {pos:"1️⃣",why:"Why this sentence comes first."},
-       {pos:"2️⃣",why:"Why this sentence comes second."},
-       {pos:"3️⃣",why:"Why this sentence comes third."},
-       {pos:"4️⃣",why:"Why this sentence comes fourth."}
-     ]
+     explanations:[{why:"First."},{why:"Second."},{why:"Third."},{why:"Fourth."}]
     },
-    /* ── Q9 PLACEHOLDER ── */
     {topic:"Placeholder Topic 9",icon:"📝",
      sentences:["Sentence A — replace this.","Sentence B — replace this.","Sentence C — replace this.","Sentence D — replace this."],
      correctOrder:[0,1,2,3],
-     explanations:[
-       {pos:"1️⃣",why:"Why this sentence comes first."},
-       {pos:"2️⃣",why:"Why this sentence comes second."},
-       {pos:"3️⃣",why:"Why this sentence comes third."},
-       {pos:"4️⃣",why:"Why this sentence comes fourth."}
-     ]
+     explanations:[{why:"First."},{why:"Second."},{why:"Third."},{why:"Fourth."}]
     },
-    /* ── Q10 PLACEHOLDER ── */
     {topic:"Placeholder Topic 10",icon:"📝",
      sentences:["Sentence A — replace this.","Sentence B — replace this.","Sentence C — replace this.","Sentence D — replace this."],
      correctOrder:[0,1,2,3],
-     explanations:[
-       {pos:"1️⃣",why:"Why this sentence comes first."},
-       {pos:"2️⃣",why:"Why this sentence comes second."},
-       {pos:"3️⃣",why:"Why this sentence comes third."},
-       {pos:"4️⃣",why:"Why this sentence comes fourth."}
-     ]
+     explanations:[{why:"First."},{why:"Second."},{why:"Third."},{why:"Fourth."}]
     }
   ]
 };
 
-/* ══ STATE ══ */
-let playerName="",playerDept="";
-let current=0,currentGems=0,currentStreak=0,highestStreak=0;
-let totalCorrectFirst=0,totalWrong=0;
-let startTime,qStartTime;
-let isMuted=false,audioCtx;
-
-// displayOrder[pos] = sentence index at visual position pos
+/* ═══ STATE ═══ */
+let pName='',pDept='';
+let cur=0,gems=0,streak=0,highStreak=0;
+let correctFirst=0,wrong=0;
+let t0,qt0;
+let muted=false,aCtx;
 let displayOrder=[];
-// Set of positions that are permanently locked correct
-let lockedPositions=new Set();
-// Currently selected card position (first tap)
-let tapSelected=null;
-// Whether first attempt on this question
-let firstAttemptThisQ=true;
-// Whether submission has happened (for explanation)
-let submitted=false;
+let locked=new Set();
+let sel=null;          // selected card position
+let firstAttempt=true;
+let expOpen=true;
 
-/* ══ AUDIO ══ */
-function getAC(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();return audioCtx;}
-function tone(f,d,t='sine',v=0.09){if(isMuted)return;try{const c=getAC(),o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.type=t;o.frequency.setValueAtTime(f,c.currentTime);g.gain.setValueAtTime(v,c.currentTime);g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+d);o.start(c.currentTime);o.stop(c.currentTime+d);}catch(e){}}
-const sfxTap=()=>tone(500,0.06,'sine',0.05);
-const sfxSwap=()=>{tone(520,0.08,'sine',0.06);setTimeout(()=>tone(680,0.08),70);};
-const sfxLock=()=>{tone(660,0.15);setTimeout(()=>tone(880,0.2),120);};
-const sfxCorrect=()=>{tone(523,0.28);setTimeout(()=>tone(659,0.22),100);setTimeout(()=>tone(784,0.28),210);};
-const sfxWrong=()=>tone(220,0.25,'sine',0.07);
-const sfxVictory=()=>{[440,523,587,659,784,880].forEach((f,i)=>setTimeout(()=>tone(f,0.3,'sine',0.12),i*110));};
-document.getElementById('mute-btn').onclick=()=>{isMuted=!isMuted;document.getElementById('mute-btn').textContent=isMuted?'🔇 SFX':'🔊 SFX';};
+/* Timer */
+let timerInterval=null,timerMax=60,timerLeft=60;
 
-/* ══ BOOT ══ */
-window.onload=()=>{
-  try{const sn=localStorage.getItem('pName'),sd=localStorage.getItem('pDept');if(sn)document.getElementById('name-input').value=sn;if(sd)document.getElementById('dept-select').value=sd;}catch(e){}
-  document.getElementById('q-total').textContent=QUEST.questions.length;
-  showOnly('lobby-screen');
+/* ═══ AUDIO ═══ */
+const ac=()=>{if(!aCtx)aCtx=new(window.AudioContext||window.webkitAudioContext)();return aCtx;};
+const tone=(f,d,t='sine',v=0.08)=>{
+  if(muted)return;
+  try{const c=ac(),o=c.createOscillator(),g=c.createGain();
+  o.connect(g);g.connect(c.destination);o.type=t;
+  o.frequency.setValueAtTime(f,c.currentTime);
+  g.gain.setValueAtTime(v,c.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+d);
+  o.start();o.stop(c.currentTime+d);}catch(e){}
+};
+const sfx={
+  tap:()=>tone(460,0.055,'sine',0.045),
+  swap:()=>{tone(520,0.07);setTimeout(()=>tone(680,0.07),65);},
+  lock:()=>{tone(640,0.12);setTimeout(()=>tone(860,0.18),110);},
+  correct:()=>{[523,659,784,1046].forEach((f,i)=>setTimeout(()=>tone(f,0.22,'sine',0.1),i*85));},
+  wrong:()=>tone(200,0.22,'sine',0.06),
+  victory:()=>{[440,523,587,659,784,880,1047].forEach((f,i)=>setTimeout(()=>tone(f,0.28,'sine',0.11),i*100));}
 };
 
-document.getElementById('start-lobby-btn').onclick=()=>{
-  const n=document.getElementById('name-input').value.trim();
-  const d=document.getElementById('dept-select').value;
+/* ═══ UTILS ═══ */
+const $=id=>document.getElementById(id);
+function show(id){
+  ['loading','lobby','board','score'].forEach(s=>{
+    const el=$(s);
+    el.style.display=(s===id)?'flex':'none';
+    if(s===id)el.style.flexDirection='column';
+  });
+}
+function fb(msg,cls){const el=$('feedback');el.textContent=msg;el.className=cls;}
+
+/* Shuffle: no sentence in its correct slot */
+function shuffleNoFixed(n,co){
+  const idx=[...Array(n).keys()];
+  let tries=0;
+  do{
+    for(let i=idx.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[idx[i],idx[j]]=[idx[j],idx[i]];}
+    tries++;
+  }while(idx.some((v,p)=>v===co[p])&&tries<300);
+  return idx;
+}
+
+/* Haptic */
+const vib=(ms=30)=>{try{navigator.vibrate&&navigator.vibrate(ms);}catch(e){}};
+
+/* ═══ BOOT ═══ */
+window.onload=()=>{
+  try{const n=localStorage.getItem('pN'),d=localStorage.getItem('pD');if(n)$('pname').value=n;if(d)$('dept').value=d;}catch(e){}
+  $('q-tot').textContent=QUEST.questions.length;
+  show('lobby');
+  // Explanation toggle
+  $('exp-toggle-head').addEventListener('click',()=>{
+    expOpen=!expOpen;
+    $('exp-body').classList.toggle('collapsed',!expOpen);
+    $('exp-arrow').classList.toggle('open',expOpen);
+  });
+};
+
+$('start-btn').onclick=()=>{
+  const n=$('pname').value.trim(), d=$('dept').value;
   if(!d){alert('Please select your department!');return;}
   if(!n){alert('Please enter your name!');return;}
-  playerName=n;playerDept=d;
-  try{localStorage.setItem('pName',n);localStorage.setItem('pDept',d);}catch(e){}
-  document.getElementById('header-bar').classList.remove('hidden');
-  showOnly('game-board');
+  pName=n;pDept=d;
+  try{localStorage.setItem('pN',n);localStorage.setItem('pD',d);}catch(e){}
+  $('hdr').classList.add('vis');
+  $('bottom-bar').classList.add('vis');
+  show('board');
   initGame();
 };
 
-/* ══ GAME ══ */
+/* ═══ INIT ═══ */
 function initGame(){
-  current=0;currentGems=0;currentStreak=0;highestStreak=0;
-  totalCorrectFirst=0;totalWrong=0;
-  startTime=Date.now();
-  loadQuestion();
+  cur=0;gems=0;streak=0;highStreak=0;correctFirst=0;wrong=0;
+  t0=Date.now();
+  loadQ();
 }
 
-/* Shuffle that guarantees NO sentence starts in its correct position */
-function shuffleNoFixed(n, correctOrder){
-  // correctOrder[pos] = sentIdx that belongs at pos
-  // We want displayOrder such that displayOrder[pos] !== correctOrder[pos] for all pos
-  const indices=[...Array(n).keys()];
-  let attempts=0;
-  do {
-    for(let i=indices.length-1;i>0;i--){
-      const j=Math.floor(Math.random()*(i+1));
-      [indices[i],indices[j]]=[indices[j],indices[i]];
+/* ═══ LOAD QUESTION ═══ */
+function loadQ(){
+  if(cur>=QUEST.questions.length){showScore();return;}
+  const q=QUEST.questions[cur];
+  firstAttempt=true;sel=null;locked=new Set();
+  qt0=Date.now();
+
+  $('hdr-fill').style.width=(cur/QUEST.questions.length*100)+'%';
+  $('q-cur').textContent=cur+1;
+  $('t-icon').textContent=q.icon||'📝';
+  $('t-name').textContent=q.topic;
+  $('next-btn').style.display='none';
+  $('submit-btn').style.display='block';
+  $('feedback').textContent='';$('feedback').className='';
+
+  updateStreak();
+  displayOrder=shuffleNoFixed(q.sentences.length,q.correctOrder);
+
+  renderExp(q);
+  renderCards(q);
+  startTimer(q);
+}
+
+/* ═══ RENDER EXPLANATION (always visible above cards) ═══ */
+function renderExp(q){
+  const body=$('exp-body');
+  body.innerHTML='';
+  body.classList.remove('collapsed');
+  expOpen=true;
+  $('exp-arrow').classList.add('open');
+
+  q.correctOrder.forEach((sentIdx,pos)=>{
+    const isLocked=locked.has(pos);
+    const item=document.createElement('div');
+    item.className='exp-item pending';
+    item.id=`exp-${pos}`;
+    item.innerHTML=`
+      <div class="exp-pos-num">${pos+1}</div>
+      <div class="exp-content">
+        <div class="exp-sent-txt" id="exp-st-${pos}">"${q.sentences[sentIdx]}"</div>
+        <span class="exp-caret">▼ WHY THIS POSITION?</span>
+        <div class="exp-why-wrap" id="exp-ww-${pos}">
+          <div class="exp-why">${q.explanations[pos].why}</div>
+        </div>
+      </div>`;
+    item.addEventListener('click',()=>{
+      const ww=$(`exp-ww-${pos}`);
+      const open=ww.classList.toggle('open');
+      item.querySelector('.exp-caret').textContent=open?'▲ HIDE':'▼ WHY THIS POSITION?';
+    });
+    body.appendChild(item);
+  });
+}
+
+/* Update explanation items to show correct/wrong status */
+function updateExpStatus(q){
+  q.correctOrder.forEach((sentIdx,pos)=>{
+    const item=$(`exp-${pos}`);
+    const st=$(`exp-st-${pos}`);
+    if(!item)return;
+    if(locked.has(pos)){
+      item.className='exp-item c';
+      st.className='exp-sent-txt c';
+    } else {
+      item.className='exp-item w';
+      st.className='exp-sent-txt w';
     }
-    attempts++;
-  } while(indices.some((v,p)=>v===correctOrder[p]) && attempts<200);
-  return indices;
+  });
 }
 
-function loadQuestion(){
-  if(current>=QUEST.questions.length){showScore();return;}
-  const q=QUEST.questions[current];
-  firstAttemptThisQ=true;tapSelected=null;lockedPositions=new Set();submitted=false;
-  qStartTime=Date.now();
-
-  document.getElementById('q-progress-fill').style.width=(current/QUEST.questions.length*100)+'%';
-  document.getElementById('q-current').textContent=current+1;
-  document.getElementById('topic-icon').textContent=q.icon||'📝';
-  document.getElementById('topic-name').textContent=q.topic;
-  document.getElementById('next-btn').style.display='none';
-  document.getElementById('submit-btn').style.display='block';
-  document.getElementById('explanation-panel').style.display='none';
-  document.getElementById('feedback-msg').textContent='';
-  document.getElementById('feedback-msg').className='';
-
-  displayOrder=shuffleNoFixed(q.sentences.length, q.correctOrder);
-  renderList(q);
-}
-
-/* ══ RENDER ══ */
-function renderList(q){
-  const list=document.getElementById('sentence-list');
+/* ═══ RENDER CARDS ═══ */
+function renderCards(q){
+  const list=$('card-list');
   list.innerHTML='';
 
   displayOrder.forEach((sentIdx,pos)=>{
-    const locked=lockedPositions.has(pos);
-    const isSelected=tapSelected===pos;
+    const isLocked=locked.has(pos);
+    const isSel=sel===pos;
 
     const card=document.createElement('div');
-    // Base classes
-    card.className='sent-card';
-    if(locked){
-      card.classList.add('pos-correct');
-    } else {
-      card.classList.add('active');
-      if(isSelected) card.classList.add('selected');
-    }
+    card.className='s-card'+(isLocked?' locked':(isSel?' selected':' active'));
     card.dataset.pos=pos;
 
-    // Position number dot
-    const dot=document.createElement('div');
-    dot.className='pos-dot'+(locked?' c':'');
-    dot.textContent=pos+1;
+    const num=document.createElement('div');
+    num.className='card-num'+(isLocked?' locked':(isSel?' selected':''));
+    num.textContent=pos+1;
 
-    // Sentence text
-    const text=document.createElement('div');
-    text.className='sent-text';
-    text.textContent=q.sentences[sentIdx];
+    const txt=document.createElement('div');
+    txt.className='card-txt';
+    txt.textContent=q.sentences[sentIdx];
 
-    // Badge: only show ✅ for locked correct
-    const badge=document.createElement('div');
-    badge.className='pos-badge';
-    badge.textContent=locked?'✅':'';
+    const icon=document.createElement('div');
+    icon.className='card-icon';
+    icon.textContent=isLocked?'✅':'';
 
-    card.appendChild(dot);
-    card.appendChild(text);
-    card.appendChild(badge);
+    const handle=document.createElement('div');
+    handle.className='drag-handle';
+    handle.textContent='⋮⋮';
 
-    if(!locked){
+    card.appendChild(num);
+    card.appendChild(txt);
+    card.appendChild(icon);
+
+    if(!isLocked){
       card.addEventListener('click',()=>handleTap(pos,q));
     }
-
     list.appendChild(card);
   });
 }
 
-/* ══ TAP-TO-SWAP ══ */
+/* ═══ TAP SWAP ═══ */
 function handleTap(pos,q){
-  // Ignore locked positions
-  if(lockedPositions.has(pos)) return;
+  if(locked.has(pos))return;
+  sfx.tap();vib(18);
 
-  sfxTap();
+  if(sel===null){sel=pos;renderCards(q);return;}
+  if(sel===pos){sel=null;renderCards(q);return;}
 
-  if(tapSelected===null){
-    // First tap — select this card
-    tapSelected=pos;
-    renderList(q);
-    return;
-  }
-
-  if(tapSelected===pos){
-    // Tap same card — deselect
-    tapSelected=null;
-    renderList(q);
-    return;
-  }
-
-  // Second tap on a different card — swap
-  const a=tapSelected, b=pos;
-  tapSelected=null;
+  const a=sel,b=pos;sel=null;
   [displayOrder[a],displayOrder[b]]=[displayOrder[b],displayOrder[a]];
-  if(firstAttemptThisQ) firstAttemptThisQ=false;
+  if(firstAttempt)firstAttempt=false;
 
-  sfxSwap();
-  renderList(q);
-
-  // Brief swap pop animation
-  setTimeout(()=>{
-    const cards=document.querySelectorAll('.sent-card');
-    [cards[a],cards[b]].forEach(c=>{if(c){c.classList.add('swap-pop');setTimeout(()=>c.classList.remove('swap-pop'),230);}});
-  },10);
-
-  // After swap: check each position — lock any newly correct ones, briefly flash wrong ones
-  checkAndLock(q);
+  sfx.swap();vib(22);
+  renderCards(q);
+  autoLock(q);
 }
 
-/* ══ CHECK AND LOCK ══ */
-function checkAndLock(q){
-  const cards=document.querySelectorAll('.sent-card');
+/* ═══ AUTO LOCK CORRECT POSITIONS ═══ */
+function autoLock(q){
   let newLocks=0;
-
   displayOrder.forEach((sentIdx,pos)=>{
-    if(lockedPositions.has(pos)) return;
+    if(locked.has(pos))return;
     if(sentIdx===q.correctOrder[pos]){
-      // Lock it!
-      lockedPositions.add(pos);
-      newLocks++;
-      // Re-render this card as locked immediately
-      const card=cards[pos];
-      if(card){
-        card.classList.remove('active','selected','wrong-flash');
-        card.classList.add('pos-correct');
-        card.querySelector('.pos-dot').classList.add('c');
-        card.querySelector('.pos-badge').textContent='✅';
-        card.style.cursor='default';
-        card.replaceWith(card.cloneNode(true)); // remove event listeners
-      }
-      sfxLock();
+      locked.add(pos);newLocks++;
+      sfx.lock();vib(30);
     }
   });
 
-  // Re-render fully if we locked anything (to keep state clean)
-  if(newLocks>0) renderList(q);
-
-  // Check if all locked (question complete via tapping)
-  if(lockedPositions.size===q.sentences.length){
-    onAllCorrect(q);
-    return;
+  if(newLocks>0){
+    updateExpStatus(q);
+    renderCards(q);
+    $('hud-gems').textContent=gems;
   }
 
-  // Clear old feedback
-  document.getElementById('feedback-msg').textContent='';
+  if(locked.size===q.sentences.length){allCorrect(q);return;}
+  $('feedback').textContent='';
 }
 
-/* ══ ALL CORRECT (every card locked) ══ */
-function onAllCorrect(q){
-  sfxCorrect();createSparks();showWordOverlay();
-  const qTime=Math.floor((Date.now()-qStartTime)/1000);
-  let gems=2;
-  if(qTime<8) gems+=2; else if(qTime<15) gems+=1;
-  if(gems>2) flashSpeedBonus();
-  currentStreak++;
-  if(currentStreak>highestStreak) highestStreak=currentStreak;
-  if(currentStreak%3===0){createConfetti();gems++;showFeedback(`🔥 ${currentStreak} STREAK! +${gems}💎`,'correct-msg');}
-  else showFeedback('✅ PERFECT ORDER!','correct-msg');
-  totalCorrectFirst++;currentGems+=gems;showFlyingGem(true,gems);
-  document.getElementById('next-btn').style.display='block';
-  document.getElementById('submit-btn').style.display='none';
-  showExplanation(q, true);
-}
+/* ═══ ALL CORRECT ═══ */
+function allCorrect(q){
+  clearInterval(timerInterval);
+  sfx.correct();vib(60);
+  showOverlay();spawnSparks();
 
-/* ══ SUBMIT (for partial / wrong attempts) ══ */
-document.getElementById('submit-btn').onclick=()=>{
-  const q=QUEST.questions[current];
+  const qt=Math.floor((Date.now()-qt0)/1000);
+  let earned=2;
+  if(qt<8)earned+=2;else if(qt<15)earned+=1;
+  if(earned>2)showSpeedFlash();
 
-  // Lock any correct positions
-  displayOrder.forEach((sentIdx,pos)=>{
-    if(sentIdx===q.correctOrder[pos]) lockedPositions.add(pos);
-  });
+  streak++;if(streak>highStreak)highStreak=streak;
+  updateStreak();
 
-  const allCorrect=lockedPositions.size===q.sentences.length;
-
-  if(allCorrect){
-    onAllCorrect(q);
-    return;
+  if(streak>=2){
+    earned++;
+    showCombo(`🔥 ${streak}× COMBO!  +${earned}💎`,'#f6ad55');
+    if(streak%3===0)confetti();
   }
 
-  // Not all correct — brief red flash on wrong cards, then clear
-  sfxWrong();
-  if(firstAttemptThisQ){firstAttemptThisQ=false;totalWrong++;currentGems=Math.max(0,currentGems-1);showFlyingGem(false,1);}
-  currentStreak=0;
+  correctFirst++;gems+=earned;
+  $('hud-gems').textContent=gems;
+  flyGem(true,earned);
+  updateExpStatus(q);
+  // Expand explanation so they can read it
+  $('exp-body').classList.remove('collapsed');
+  expOpen=true;$('exp-arrow').classList.add('open');
+  fb('⚡ PERFECT ORDER!','fb-ok');
+  $('next-btn').style.display='block';
+  $('submit-btn').style.display='none';
+}
 
-  renderList(q); // re-render to show newly locked correct ones
+/* ═══ TIMER ═══ */
+function startTimer(q){
+  clearInterval(timerInterval);
+  timerLeft=timerMax;
+}
 
-  // Flash wrong cards briefly
-  const cards=document.querySelectorAll('.sent-card');
-  displayOrder.forEach((sentIdx,pos)=>{
-    if(!lockedPositions.has(pos)){
-      const card=cards[pos];
-      if(card){
-        card.classList.add('wrong-flash');
-        setTimeout(()=>card.classList.remove('wrong-flash'),600);
-      }
+/* ═══ SUBMIT ═══ */
+$('submit-btn').onclick=()=>{
+  const q=QUEST.questions[cur];
+  displayOrder.forEach((si,pos)=>{if(si===q.correctOrder[pos])locked.add(pos);});
+
+  if(locked.size===q.sentences.length){allCorrect(q);return;}
+
+  sfx.wrong();vib(50);
+  if(firstAttempt){firstAttempt=false;wrong++;gems=Math.max(0,gems-1);flyGem(false,1);$('hud-gems').textContent=gems;}
+  streak=0;updateStreak();
+
+  updateExpStatus(q);
+  renderCards(q);
+
+  // Flash wrong cards
+  const cards=[...$('card-list').querySelectorAll('.s-card')];
+  displayOrder.forEach((si,pos)=>{
+    if(!locked.has(pos)){
+      const c=cards[pos];if(!c)return;
+      c.classList.add('wrong-flash');
+      setTimeout(()=>c.classList.remove('wrong-flash'),500);
     }
   });
 
-  showFeedback('❌ Some are wrong — keep swapping!','wrong-msg');
-  setTimeout(()=>{
-    const fb=document.getElementById('feedback-msg');
-    if(fb.classList.contains('wrong-msg')) fb.textContent='';
-  },1800);
-
-  showExplanation(q, false);
+  fb('❌ Not quite — keep swapping!','fb-err');
+  setTimeout(()=>{if($('feedback').classList.contains('fb-err'))$('feedback').textContent='';},2000);
 };
 
-/* ══ EXPLANATION ══ */
-function showExplanation(q, isFullyCorrect){
-  const panel=document.getElementById('explanation-panel');
-  const body=document.getElementById('exp-body');
-  body.innerHTML='';panel.style.display='block';
+/* ═══ NEXT ═══ */
+$('next-btn').onclick=()=>{cur++;loadQ();};
 
-  q.correctOrder.forEach((correctSentIdx,pos)=>{
-    const ok=lockedPositions.has(pos); // correct if locked
-    const exp=q.explanations[pos];
-    const row=document.createElement('div');
-    row.className=`exp-row ${ok?'c':'w'}`;
-    row.innerHTML=`
-      <div class="exp-pos">${exp.pos}</div>
-      <div style="flex:1">
-        <div class="exp-sent ${ok?'c':'w'}">"${q.sentences[correctSentIdx]}"</div>
-        <span class="exp-toggle">▼ WHY?</span>
-        <div class="exp-why">${exp.why}</div>
-      </div>`;
-    const toggle=row.querySelector('.exp-toggle'),why=row.querySelector('.exp-why');
-    row.addEventListener('click',()=>{const o=why.classList.toggle('open');toggle.textContent=o?'▲ HIDE':'▼ WHY?';});
-    body.appendChild(row);
-  });
-}
-
-/* ══ NEXT ══ */
-document.getElementById('next-btn').onclick=()=>{
-  current++;
-  document.getElementById('explanation-panel').style.display='none';
-  document.getElementById('feedback-msg').textContent='';
-  loadQuestion();
-};
-
-/* ══ RESET ══ */
-document.getElementById('reset-btn').onclick=()=>{
-  const q=QUEST.questions[current];
+/* ═══ RESET ═══ */
+$('reset-btn').onclick=()=>{
+  const q=QUEST.questions[cur];
   displayOrder=shuffleNoFixed(q.sentences.length,q.correctOrder);
-  tapSelected=null;lockedPositions=new Set();firstAttemptThisQ=true;
-  document.getElementById('feedback-msg').textContent='';
-  document.getElementById('explanation-panel').style.display='none';
-  document.getElementById('submit-btn').style.display='block';
-  document.getElementById('next-btn').style.display='none';
-  renderList(q);
+  sel=null;locked=new Set();firstAttempt=true;
+  $('feedback').textContent='';
+  $('next-btn').style.display='none';
+  $('submit-btn').style.display='block';
+  renderExp(q);renderCards(q);
 };
 
-/* ══ HINT ══ */
-document.getElementById('hint-btn').onclick=()=>{
-  if(currentGems<1){showFeedback('💎 Not enough gems!','wrong-msg');return;}
-  const q=QUEST.questions[current];
+/* ═══ HINT ═══ */
+$('hint-btn').onclick=()=>{
+  if(gems<1){fb('💎 Not enough gems!','fb-err');return;}
+  const q=QUEST.questions[cur];
   for(let pos=0;pos<displayOrder.length;pos++){
-    if(!lockedPositions.has(pos)){
-      currentGems=Math.max(0,currentGems-1);showFlyingGem(false,1);
-      firstAttemptThisQ=false;
-      showFeedback(`💡 Position ${pos+1} needs fixing — tap it!`,'info-msg');
-      const cards=[...document.querySelectorAll('.sent-card')];
-      if(cards[pos]){cards[pos].style.outline='3px solid var(--accent2)';setTimeout(()=>cards[pos].style.outline='',1500);}
+    if(!locked.has(pos)){
+      gems=Math.max(0,gems-1);flyGem(false,1);
+      $('hud-gems').textContent=gems;
+      firstAttempt=false;
+      fb(`💡 Position ${pos+1} needs a fix — tap it!`,'fb-info');
+      const cards=[...$('card-list').querySelectorAll('.s-card')];
+      if(cards[pos]){
+        cards[pos].style.outline='3px solid var(--accent2)';
+        cards[pos].style.boxShadow='0 0 16px rgba(255,179,71,0.4)';
+        setTimeout(()=>{cards[pos].style.outline='';cards[pos].style.boxShadow='';},1600);
+      }
+      // Also open explanation for that position
+      const ww=$(`exp-ww-${pos}`);
+      if(ww&&!ww.classList.contains('open')){ww.classList.add('open');}
       return;
     }
   }
-  showFeedback('💡 Looks good!','info-msg');
+  fb('💡 Looks perfect already!','fb-info');
 };
 
-/* ══ SCORE ══ */
-function showScore(){
-  sfxVictory();createConfetti();
-  const t=Math.floor((Date.now()-startTime)/1000);
-  const acc=Math.round((totalCorrectFirst/QUEST.questions.length)*100);
-  document.getElementById('score-trophy').textContent=acc>=90?'🏆':acc>=70?'🥈':acc>=50?'🥉':'🎮';
-  document.getElementById('score-name-lbl').textContent=playerName+' · '+playerDept;
-  document.getElementById('sc-gems').textContent=currentGems;
-  document.getElementById('sc-correct').textContent=totalCorrectFirst+'/'+QUEST.questions.length;
-  document.getElementById('sc-streak').textContent=highestStreak;
-  document.getElementById('sc-time').textContent=t+'s';
-  document.getElementById('sc-acc-pct').textContent=acc+'%';
-  setTimeout(()=>document.getElementById('sc-acc-bar').style.width=acc+'%',300);
-  showOnly('score-screen');
-  document.getElementById('header-bar').classList.add('hidden');
-  sendToSupabase({student_name:playerName,department:playerDept,quest_id:QUEST.id,quest_title:QUEST.title,correct:totalCorrectFirst,wrong:totalWrong,gems:currentGems,highest_streak:highestStreak,accuracy:acc,time_spent:t});
-}
-async function sendToSupabase(p){try{await fetch(SUPABASE_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)});}catch(e){}}
-document.getElementById('back-lobby-btn').onclick=()=>location.reload();
+/* ═══ MUTE ═══ */
+$('mute-btn').onclick=()=>{muted=!muted;$('mute-btn').textContent=muted?'🔇 SFX':'🔊 SFX';};
 
-/* ══ HELPERS ══ */
-function showOnly(id){
-  ['loading-screen','lobby-screen','game-board','score-screen'].forEach(sid=>{
-    const el=document.getElementById(sid);
-    if(sid==='loading-screen') el.style.display=sid===id?'block':'none';
-    else{el.style.display=sid===id?'flex':'none';if(sid===id)el.style.flexDirection='column';}
-  });
-}
-function showFeedback(msg,cls){const el=document.getElementById('feedback-msg');el.textContent=msg;el.className=cls;}
-function showWordOverlay(){const o=document.getElementById('word-correct-overlay');o.classList.add('show');setTimeout(()=>o.classList.remove('show'),1000);}
-function flashSpeedBonus(){const el=document.getElementById('time-bonus-flash');el.classList.add('show');setTimeout(()=>el.classList.remove('show'),1400);}
-function showFlyingGem(isGain,amount=1){
-  const ref=document.getElementById('q-label');
-  const rect=ref.getBoundingClientRect();
-  const el=document.createElement('span');
-  el.className=`flying-gem ${isGain?'plus':'minus'}`;
-  el.textContent=isGain?`+${amount}💎`:`-${amount}💎`;
-  el.style.cssText=`left:${rect.left}px;top:${rect.top}px;`;
-  document.body.appendChild(el);setTimeout(()=>el.remove(),900);
-}
-function createSparks(){
-  const list=document.getElementById('sentence-list');
-  const rect=list.getBoundingClientRect();
-  const cx=rect.left+rect.width/2,cy=rect.top+rect.height/2;
-  const cols=['#ffd700','#63b3ed','#68d391','#f6ad55','#b794f4'];
-  for(let i=0;i<16;i++){
-    const s=document.createElement('div');s.className='spark';
-    const angle=(Math.PI*2*i)/16,v=55+Math.random()*45;
-    s.style.cssText=`left:${cx}px;top:${cy}px;background:${cols[i%cols.length]};--tx:${Math.cos(angle)*v}px;--ty:${Math.sin(angle)*v}px;animation-delay:${Math.random()*0.08}s;`;
-    document.body.appendChild(s);setTimeout(()=>s.remove(),800);
+/* ═══ STREAK ═══ */
+function updateStreak(){
+  const badge=$('streak-badge');
+  if(streak>=2){
+    badge.classList.remove('hidden');
+    $('streak-num').textContent=streak;
+  } else {
+    badge.classList.add('hidden');
   }
 }
-function createConfetti(){
-  const cols=['#ff1744','#00e5ff','#ffd600','#00e676','#d500f9','#ff6d00','#63b3ed'];
-  for(let i=0;i<28;i++){
-    const c=document.createElement('div');c.className='confetti-piece';
-    c.style.cssText=`left:${5+Math.random()*90}%;top:${5+Math.random()*25}%;background:${cols[i%cols.length]};border-radius:${Math.random()>0.5?'50%':'2px'};animation-delay:${Math.random()*0.4}s;`;
-    document.body.appendChild(c);setTimeout(()=>c.remove(),1800);
+
+/* ═══ SCORE ═══ */
+function showScore(){
+  clearInterval(timerInterval);
+  sfx.victory();confetti();
+  const t=Math.floor((Date.now()-t0)/1000);
+  const acc=Math.round((correctFirst/QUEST.questions.length)*100);
+  $('s-trophy').textContent=acc>=90?'🏆':acc>=70?'🥈':acc>=50?'🥉':'🎮';
+  $('s-name').textContent=pName+' · '+pDept;
+  $('s-gems').textContent=gems;
+  $('s-correct').textContent=correctFirst+'/'+QUEST.questions.length;
+  $('s-streak').textContent=highStreak;
+  $('s-time').textContent=t+'s';
+  $('s-pct').textContent=acc+'%';
+  setTimeout(()=>$('s-bar').style.width=acc+'%',300);
+  $('hdr').classList.remove('vis');
+  $('bottom-bar').classList.remove('vis');
+  show('score');
+  supabase({student_name:pName,department:pDept,quest_id:QUEST.id,quest_title:QUEST.title,correct:correctFirst,wrong,gems,highest_streak:highStreak,accuracy:acc,time_spent:t});
+}
+
+async function supabase(p){
+  try{await fetch("https://yellow-lab-4999.andrewveda.workers.dev/functions/v1/logQuest",
+    {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)});}catch(e){}
+}
+
+$('play-again').onclick=()=>location.reload();
+
+/* ═══ PARTICLES & FX ═══ */
+function showOverlay(){
+  const o=$('correct-overlay');o.classList.add('show');
+  setTimeout(()=>o.classList.remove('show'),900);
+}
+function showSpeedFlash(){
+  const el=$('speed-flash');el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'),1400);
+}
+function flyGem(isGain,amt=1){
+  const ref=$('gem-hud');const rect=ref.getBoundingClientRect();
+  const el=document.createElement('span');
+  el.className=`gem-fly ${isGain?'p':'m'}`;
+  el.textContent=isGain?`+${amt}💎`:`-${amt}💎`;
+  el.style.cssText=`left:${rect.left}px;top:${rect.top}px;`;
+  document.body.appendChild(el);setTimeout(()=>el.remove(),950);
+}
+function showCombo(msg,color){
+  const el=$('combo-indicator');
+  el.textContent=msg;el.style.color=color;
+  el.classList.remove('show');
+  void el.offsetWidth;
+  el.classList.add('show');
+}
+function spawnSparks(){
+  const list=$('card-list');const rect=list.getBoundingClientRect();
+  const cx=rect.left+rect.width/2,cy=rect.top+rect.height/2;
+  const cols=['#ffd700','#5b9cf6','#4ade80','#ffb347','#a78bfa'];
+  for(let i=0;i<18;i++){
+    const s=document.createElement('div');s.className='spark';
+    const ang=(Math.PI*2*i)/18,v=50+Math.random()*55;
+    s.style.cssText=`left:${cx}px;top:${cy}px;background:${cols[i%cols.length]};--tx:${Math.cos(ang)*v}px;--ty:${Math.sin(ang)*v}px;animation-delay:${Math.random()*.07}s;`;
+    document.body.appendChild(s);setTimeout(()=>s.remove(),850);
+  }
+}
+function confetti(){
+  const cols=['#ff1744','#00e5ff','#ffd600','#00e676','#d500f9','#ff6d00','#5b9cf6'];
+  for(let i=0;i<30;i++){
+    const c=document.createElement('div');c.className='cfeti';
+    c.style.cssText=`left:${3+Math.random()*94}%;top:${3+Math.random()*20}%;background:${cols[i%cols.length]};border-radius:${Math.random()>.5?'50%':'2px'};animation-delay:${Math.random()*.45}s;`;
+    document.body.appendChild(c);setTimeout(()=>c.remove(),1900);
   }
 }
 </script>

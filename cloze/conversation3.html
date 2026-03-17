@@ -501,6 +501,7 @@ const conversation = [
 { speaker: 'farmer',    text: 'Perhaps that is the greatest gift any ___ can offer — a shift in how we see.', answer: 'story' },
 
 { speaker: 'narrator',  text: 'The neighbour walked home slowly, turning the farmer\'s words over in his ___. Maybe, he thought. Just maybe. “Nothing is permanent.” — Buddha. “My formula for greatness in a human being is amor fati: that one wants nothing to be different, not forward, not backward, not in all eternity.” — Friedrich Nietzsche', answer: 'mind' }
+
 ];
 
 const quizDataStore = [{ passage: conversation.map(l=>l.text).join(' '), answers: conversation.filter(l=>l.answer).map(l=>l.answer) }];
@@ -598,15 +599,15 @@ function showNextLine() {
 
   const line = conversation[currentLine];
   const hasBlank = !!line.answer;
-  const side = line.speaker === 'teacher' ? 'left' : line.speaker === 'scholar' ? 'right' : 'narrator';
+  const side = line.speaker === 'farmer' ? 'left' : line.speaker === 'neighbour' ? 'right' : 'narrator';
 
   const row = document.createElement('div');
   row.className = `bubble-row ${side}`;
   row.dataset.lineIndex = currentLine;
 
   if (side !== 'narrator') {
-    const emoji = line.speaker === 'teacher' ? '🧘' : '📚';
-    const speakerName = line.speaker === 'teacher' ? 'Teacher' : 'Scholar';
+    const emoji = line.speaker === 'farmer' ? '🧘' : '🏡';
+    const speakerName = line.speaker === 'farmer' ? 'Farmer' : 'Neighbour';
     const avatar = document.createElement('div');
     avatar.className = 'avatar'; avatar.textContent = emoji;
     const col = document.createElement('div');
@@ -620,10 +621,14 @@ function showNextLine() {
     col.appendChild(nameEl); col.appendChild(bub);
     row.appendChild(avatar); row.appendChild(col);
   } else {
-    const bub = document.createElement('div');
-    bub.className = 'bubble'; bub.textContent = line.text;
-    row.appendChild(bub);
-  }
+  const bub = document.createElement('div');
+  bub.className = 'bubble';
+
+  if (hasBlank) buildBubbleWithBlank(bub, line, currentLine);
+  else bub.textContent = line.text;
+
+  row.appendChild(bub);
+}
 
   chatAreaEl.appendChild(row);
   setTimeout(() => row.scrollIntoView({ behavior: 'smooth', block: 'end' }), 60);
@@ -651,7 +656,8 @@ function buildBubbleWithBlank(bub, line, lineIndex) {
 
 function buildChoiceDeck(targetEl, lineIndex) {
   const correct = conversation[lineIndex].answer;
-  const pool = conversation.map(l => l.answer).filter(a => a && a !== correct);
+ const pool = [...new Set(conversation.map(l => l.answer))]
+  .filter(a => a && a !== correct);
   const distractors = [];
   const seen = new Set([correct]);
   for (const w of pool.sort(() => Math.random() - 0.5)) {

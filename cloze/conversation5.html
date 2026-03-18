@@ -1,0 +1,1056 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>The Story Quest</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=DM+Sans:wght@300;400;500&family=Cormorant:ital,wght@1,300;1,400&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+<style>
+:root {
+  --white:        #ffffff;
+  --off-white:    #fafaf9;
+  --paper:        #f7f5f2;
+  --border:       #e8e3dc;
+  --border-soft:  #f0ece6;
+  --ink:          #1c1916;
+  --ink-mid:      #4a4540;
+  --ink-light:    #9a9188;
+  --rose-gold:    #c4956a;
+  --rose-gold-lt: #d4a87a;
+  --rose-gold-dk: #a07550;
+  --rose-glow:    rgba(196,149,106,0.12);
+  --rose-pale:    rgba(196,149,106,0.07);
+  --sage:         #7a9b7a;
+  --sage-pale:    rgba(122,155,122,0.1);
+  --error:        #c0604a;
+  --shadow-sm:    0 1px 4px rgba(28,25,22,0.06);
+  --shadow-md:    0 4px 24px rgba(28,25,22,0.08);
+  --shadow-lg:    0 12px 48px rgba(28,25,22,0.1);
+  --radius:       14px;
+  --radius-sm:    8px;
+  --transition:   cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--off-white);
+  color: var(--ink);
+  min-height: 100vh;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image:
+    radial-gradient(ellipse 80% 50% at 10% 0%, rgba(196,149,106,0.06) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 40% at 90% 100%, rgba(196,149,106,0.04) 0%, transparent 55%);
+}
+
+.progress-bar-wrap {
+  position: fixed; top: 0; left: 0; right: 0;
+  height: 2px; background: var(--border-soft); z-index: 100; display: none;
+}
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--rose-gold-dk), var(--rose-gold), var(--rose-gold-lt));
+  transition: width 0.6s var(--transition);
+}
+
+.top-strip {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+  background: rgba(255,255,255,0.92);
+  border-bottom: 1px solid var(--border-soft);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  padding: 0.6rem 1.5rem; display: none;
+}
+.top-strip-inner { max-width: 680px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
+.stat-pill {
+  display: flex; align-items: center; gap: 0.35rem;
+  font-size: 0.78rem; font-weight: 500; letter-spacing: 0.04em;
+  color: var(--ink-mid); background: var(--paper);
+  border: 1px solid var(--border); border-radius: 20px; padding: 0.28rem 0.75rem;
+  font-family: 'DM Sans', sans-serif; transition: all 0.3s ease;
+}
+.stat-pill.pulse { animation: pillPulse 0.35s ease; }
+@keyframes pillPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+#timer { color: var(--ink-light); }
+#gemsCounter { color: var(--rose-gold-dk); }
+
+.container { position: relative; z-index: 1; width: 100%; min-height: 100vh; }
+
+/* NAME FORM */
+#nameForm {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  min-height: 100vh; padding: 2rem 1.5rem;
+  animation: entryFade 0.9s var(--transition) forwards;
+}
+@keyframes entryFade { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+
+.form-card {
+  background: var(--white); border: 1px solid var(--border); border-radius: 20px;
+  padding: 3.5rem 3rem 3rem; max-width: 420px; width: 100%;
+  box-shadow: var(--shadow-lg); position: relative; overflow: hidden;
+}
+.form-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent 5%, var(--rose-gold) 40%, var(--rose-gold-lt) 60%, transparent 95%); opacity: 0.7;
+}
+.form-eyebrow { font-family: 'DM Sans', sans-serif; font-size: 0.68rem; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--rose-gold); text-align: center; margin-bottom: 0.75rem; }
+.form-title { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 2.6rem; font-weight: 300; text-align: center; color: var(--ink); line-height: 1.15; letter-spacing: -0.01em; margin-bottom: 0.4rem; }
+.form-subtitle { font-family: 'Cormorant', Georgia, serif; font-style: italic; font-size: 1.05rem; font-weight: 300; color: var(--ink-light); text-align: center; margin-bottom: 2.5rem; line-height: 1.5; }
+.form-rule { width: 40px; height: 1px; background: linear-gradient(90deg, transparent, var(--rose-gold), transparent); margin: 0 auto 2rem; }
+.field-label { display: block; font-size: 0.7rem; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-light); margin-bottom: 0.5rem; margin-top: 1.2rem; }
+.field-label:first-of-type { margin-top: 0; }
+
+#nameInput, #departmentSelect {
+  display: block; width: 100%; padding: 0.8rem 1rem; font-size: 0.95rem;
+  font-family: 'DM Sans', sans-serif; border: 1px solid var(--border);
+  border-radius: var(--radius-sm); background: var(--off-white); color: var(--ink);
+  transition: all 0.2s ease; outline: none; -webkit-appearance: none; appearance: none;
+}
+#departmentSelect {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='7' viewBox='0 0 12 7'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%239a9188' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 1rem center; padding-right: 2.5rem;
+}
+#nameInput:focus, #departmentSelect:focus { border-color: var(--rose-gold); background: var(--white); box-shadow: 0 0 0 3px rgba(196,149,106,0.1); }
+
+#startQuizBtn {
+  width: 100%; margin-top: 2rem; padding: 0.95rem; font-size: 0.85rem;
+  font-family: 'DM Sans', sans-serif; font-weight: 500; letter-spacing: 0.12em;
+  text-transform: uppercase; background: var(--ink); border: none;
+  border-radius: var(--radius-sm); cursor: pointer; color: var(--white);
+  transition: all 0.25s ease; position: relative; overflow: hidden;
+}
+#startQuizBtn::after { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, rgba(196,149,106,0.15), transparent); opacity: 0; transition: opacity 0.25s ease; }
+#startQuizBtn:hover { background: #2e2a26; transform: translateY(-1px); box-shadow: var(--shadow-md); }
+#startQuizBtn:hover::after { opacity: 1; }
+
+/* CHAT */
+#quizContent { display: none; }
+.chat-area { padding: 5rem 1.5rem 6rem; display: flex; flex-direction: column; gap: 0; max-width: 660px; margin: 0 auto; }
+
+.bubble-row {
+  display: flex; align-items: flex-start; gap: 0.75rem; width: 100%;
+  opacity: 0; transform: translateY(14px);
+  animation: bubbleReveal 0.5s var(--transition) forwards; padding: 0.5rem 0;
+}
+@keyframes bubbleReveal { to { opacity: 1; transform: translateY(0); } }
+.bubble-row.left  { flex-direction: row; padding-right: 4rem; }
+.bubble-row.right { flex-direction: row-reverse; padding-left: 4rem; }
+.bubble-row.narrator { justify-content: center; padding: 0.6rem 2rem; }
+
+.avatar { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0; margin-top: 0.25rem; border: 1px solid var(--border); background: var(--white); box-shadow: var(--shadow-sm); }
+.left  .avatar { background: linear-gradient(135deg, #f7f0e8, #eedfc8); }
+.right .avatar { background: linear-gradient(135deg, #eef4ee, #ddeedd); }
+.bubble-col { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.speaker-name { font-size: 0.65rem; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-light); margin-bottom: 0.3rem; font-family: 'DM Sans', sans-serif; }
+.right .speaker-name { text-align: right; }
+
+.bubble { padding: 0.9rem 1.15rem; border-radius: 16px; font-family: 'Cormorant Garamond', Georgia, serif; font-size: 1.2rem; font-weight: 400; line-height: 1.75; color: var(--ink); position: relative; word-break: break-word; }
+.left .bubble { background: var(--white); border: 1px solid var(--border); border-top-left-radius: 4px; box-shadow: var(--shadow-sm); }
+.right .bubble { background: linear-gradient(135deg, #f2f8f2, #e8f2e8); border: 1px solid rgba(122,155,122,0.2); border-top-right-radius: 4px; box-shadow: var(--shadow-sm); }
+.narrator .bubble { background: transparent; border: none; box-shadow: none; font-family: 'Cormorant', Georgia, serif; font-style: italic; font-weight: 300; color: var(--ink-light); font-size: 0.95rem; text-align: center; padding: 0; }
+
+.drop-zone {
+  display: inline-block; border: none; border-bottom: 1.5px solid var(--rose-gold);
+  background: transparent; color: transparent;
+  font-family: 'Cormorant Garamond', serif; font-size: 1em; line-height: 1;
+  padding: 0 0.2rem 0.05rem; margin: 0 0.1rem; min-width: 64px;
+  text-align: center; cursor: pointer; vertical-align: baseline;
+  transition: all 0.25s ease; border-radius: 0; position: relative;
+}
+.drop-zone::after { content: '·  ·  ·'; color: var(--rose-gold); font-size: 0.7em; letter-spacing: 0.1em; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); pointer-events: none; opacity: 0.7; }
+.drop-zone.ready { border-bottom-color: var(--rose-gold); background: var(--rose-pale); border-radius: 3px 3px 0 0; animation: blankPulse 2s ease-in-out infinite; }
+.drop-zone.ready::after { opacity: 1; }
+@keyframes blankPulse { 0%,100% { background: var(--rose-pale); } 50% { background: rgba(196,149,106,0.13); } }
+.drop-zone.filled { border-bottom: 1.5px solid var(--rose-gold); background: transparent; color: var(--rose-gold-dk); font-weight: 600; font-style: italic; cursor: default; min-width: unset; padding: 0 0.15rem; animation: fillSettle 0.5s var(--transition) forwards; }
+.drop-zone.filled::after { display: none; }
+@keyframes fillSettle { 0% { color: transparent; transform: translateY(3px) scale(0.9); } 40% { color: var(--rose-gold); transform: translateY(-2px) scale(1.05); } 100% { color: var(--rose-gold-dk); transform: translateY(0) scale(1); } }
+.drop-zone.wrong { border-bottom-color: var(--error); background: rgba(192,96,74,0.06); animation: wrongShake 0.45s ease-in-out; }
+@keyframes wrongShake { 0%,100% { transform: translateX(0); } 20% { transform: translateX(-4px); } 40% { transform: translateX(4px); } 60% { transform: translateX(-3px); } 80% { transform: translateX(2px); } }
+
+.glow-ring { position: absolute; inset: -6px; border-radius: 8px; border: 1px solid var(--rose-gold); opacity: 0; pointer-events: none; animation: glowFade 0.8s ease forwards; }
+@keyframes glowFade { 0% { opacity: 0.7; transform: scale(0.9); } 100% { opacity: 0; transform: scale(1.3); } }
+
+.choice-deck { display: flex; flex-wrap: wrap; gap: 0.6rem; padding: 0.9rem 0 0.3rem 0.1rem; justify-content: flex-start; animation: deckRise 0.4s var(--transition) forwards; opacity: 0; transform: translateY(8px); }
+.bubble-row.right .choice-deck { justify-content: flex-end; }
+.bubble-row.narrator .choice-deck { justify-content: center; }
+@keyframes deckRise { to { opacity: 1; transform: translateY(0); } }
+
+.choice-card { padding: 0.55rem 1.1rem; font-family: 'Cormorant Garamond', Georgia, serif; font-size: 1.05rem; font-weight: 500; background: var(--white); border: 1px solid var(--border); border-radius: var(--radius); cursor: pointer; color: var(--ink-mid); transition: all 0.2s var(--transition); box-shadow: var(--shadow-sm); position: relative; overflow: hidden; user-select: none; white-space: nowrap; }
+.choice-card::before { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, rgba(196,149,106,0.08), transparent); opacity: 0; transition: opacity 0.2s ease; }
+.choice-card:hover { border-color: var(--rose-gold); color: var(--ink); transform: translateY(-2px); box-shadow: 0 4px 16px rgba(196,149,106,0.18); }
+.choice-card:hover::before { opacity: 1; }
+.choice-card.selected { border-color: var(--rose-gold); background: linear-gradient(135deg, #fdf7f1, #faeede); color: var(--ink); box-shadow: 0 4px 20px rgba(196,149,106,0.2), 0 0 0 2px rgba(196,149,106,0.15); transform: translateY(-2px); }
+.choice-card.used { opacity: 0; transform: translateY(-8px) scale(0.9); pointer-events: none; transition: all 0.25s ease; }
+.choice-card.dismissed { opacity: 0; transform: translateY(4px) scale(0.95); pointer-events: none; transition: all 0.2s ease; }
+
+.bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; padding: 1rem 1.5rem 1.5rem; z-index: 50; pointer-events: none; display: flex; justify-content: center; }
+
+#nextPageBtn { pointer-events: all; display: none; padding: 0.8rem 2.8rem; font-size: 0.8rem; font-family: 'DM Sans', sans-serif; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; background: var(--ink); border: none; border-radius: 50px; cursor: pointer; color: var(--white); transition: all 0.25s var(--transition); box-shadow: var(--shadow-md); animation: btnRise 0.4s var(--transition) forwards; }
+@keyframes btnRise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+#nextPageBtn:hover { background: #2e2a26; transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+
+#restartBtn { pointer-events: all; display: none; padding: 0.65rem 1.8rem; font-size: 0.75rem; font-family: 'DM Sans', sans-serif; font-weight: 400; letter-spacing: 0.1em; text-transform: uppercase; background: transparent; border: 1px solid var(--border); border-radius: 50px; cursor: pointer; color: var(--ink-light); transition: all 0.2s ease; margin: 0.5rem auto; }
+#restartBtn:hover { border-color: var(--rose-gold); color: var(--ink); }
+
+/* ══════════════════════════════════════════════
+   SCORE CARD — REDESIGNED
+   ══════════════════════════════════════════════ */
+@keyframes cardReveal { from { opacity: 0; transform: translateY(20px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+
+.score-wrapper {
+  max-width: 520px;
+  margin: 2rem auto 1rem;
+  padding: 0 1rem;
+  animation: cardReveal 0.7s var(--transition) forwards;
+}
+
+/* ── TROPHY BAND ── */
+.score-trophy-band {
+  background: var(--ink);
+  border-radius: 20px 20px 0 0;
+  padding: 2.4rem 2.5rem 2.2rem;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.score-trophy-band::before {
+  content: '';
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse 70% 80% at 50% -10%, rgba(196,149,106,0.22) 0%, transparent 65%),
+    radial-gradient(ellipse 40% 40% at 80% 110%, rgba(196,149,106,0.1) 0%, transparent 55%);
+  pointer-events: none;
+}
+.score-trophy-band::after {
+  content: '';
+  position: absolute; bottom: 0; left: 10%; right: 10%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(196,149,106,0.4), transparent);
+}
+.score-status-pill {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  font-family: 'DM Sans', sans-serif; font-size: 0.65rem; font-weight: 500;
+  letter-spacing: 0.2em; text-transform: uppercase;
+  color: var(--rose-gold); background: rgba(196,149,106,0.12);
+  border: 1px solid rgba(196,149,106,0.25); border-radius: 20px;
+  padding: 0.3rem 0.9rem; margin-bottom: 1.1rem;
+}
+.score-main-emoji {
+  font-size: 3.4rem; line-height: 1; margin-bottom: 0.75rem; display: block;
+  filter: drop-shadow(0 0 20px rgba(196,149,106,0.4));
+  animation: emojiFloat 0.6s var(--transition) 0.2s both;
+}
+@keyframes emojiFloat { from { opacity: 0; transform: scale(0.6) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+.score-headline { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 2.9rem; font-weight: 300; color: var(--white); line-height: 1; letter-spacing: -0.01em; margin-bottom: 0.3rem; }
+.score-tagline { font-family: 'Cormorant', serif; font-style: italic; font-weight: 300; font-size: 1rem; color: rgba(255,255,255,0.4); }
+
+/* ── STATS BAND ── */
+.score-stats-band {
+  background: var(--white);
+  border-left: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+  padding: 1.6rem 2rem;
+}
+.score-name-row {
+  display: flex; justify-content: space-between; align-items: baseline;
+  padding-bottom: 1rem; margin-bottom: 1.2rem;
+  border-bottom: 1px solid var(--border-soft);
+}
+.score-player-name { font-family: 'Cormorant Garamond', serif; font-size: 1.35rem; font-weight: 500; color: var(--ink); }
+.score-player-dept { font-family: 'DM Sans', sans-serif; font-size: 0.7rem; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-light); }
+
+.score-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem; }
+.score-cell { background: var(--paper); border: 1px solid var(--border-soft); border-radius: 10px; padding: 0.85rem 0.7rem; text-align: center; }
+.score-cell-val { font-family: 'Cormorant Garamond', serif; font-size: 1.6rem; font-weight: 500; line-height: 1; margin-bottom: 0.25rem; display: block; }
+.score-cell-val.good { color: var(--sage); }
+.score-cell-val.bad  { color: var(--error); }
+.score-cell-val.gems { color: var(--rose-gold-dk); }
+.score-cell-label { font-family: 'DM Sans', sans-serif; font-size: 0.6rem; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-light); }
+
+.score-time-row {
+  display: flex; align-items: center; justify-content: center; gap: 0.6rem;
+  background: var(--paper); border: 1px solid var(--border-soft); border-radius: 10px;
+  padding: 0.75rem 1rem;
+}
+.score-time-val { font-family: 'Cormorant Garamond', serif; font-size: 1.25rem; font-weight: 500; color: var(--ink); }
+.score-time-label { font-family: 'DM Sans', sans-serif; font-size: 0.6rem; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-light); }
+
+.flawless-strip {
+  margin-top: 0.85rem; padding: 0.6rem 1rem;
+  background: linear-gradient(135deg, rgba(122,155,122,0.08), rgba(122,155,122,0.04));
+  border: 1px solid rgba(122,155,122,0.2); border-radius: 8px;
+  display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+  font-family: 'DM Sans', sans-serif; font-size: 0.7rem; font-weight: 500;
+  letter-spacing: 0.1em; text-transform: uppercase; color: var(--sage);
+}
+
+/* ══════════════════════════════════════════════
+   NEXT STORY — THE HERO
+   ══════════════════════════════════════════════ */
+.score-next-band {
+  background: var(--ink);
+  border-left: 1px solid rgba(255,255,255,0.04);
+  border-right: 1px solid rgba(255,255,255,0.04);
+  padding: 1.5rem 1.8rem 1.8rem;
+  position: relative; overflow: hidden;
+}
+.score-next-band::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse 80% 120% at 50% 100%, rgba(196,149,106,0.15) 0%, transparent 65%);
+  pointer-events: none;
+}
+.score-next-eyebrow {
+  font-family: 'DM Sans', sans-serif; font-size: 0.62rem; font-weight: 500;
+  letter-spacing: 0.2em; text-transform: uppercase;
+  color: rgba(255,255,255,0.3); text-align: center; margin-bottom: 0.9rem;
+}
+
+.next-story-btn {
+  display: flex; align-items: center; justify-content: space-between;
+  width: 100%; padding: 1.2rem 1.2rem 1.2rem 1.6rem;
+  background: linear-gradient(135deg, #c4956a 0%, #d4a87a 50%, #c4956a 100%);
+  border: none; border-radius: 14px; cursor: pointer; text-decoration: none;
+  position: relative; overflow: hidden;
+  transition: all 0.3s var(--transition);
+  box-shadow: 0 6px 28px rgba(196,149,106,0.5), 0 2px 8px rgba(196,149,106,0.3);
+  animation: nextPulse 2.5s ease-in-out 1.2s 3;
+}
+@keyframes nextPulse {
+  0%   { box-shadow: 0 6px 28px rgba(196,149,106,0.5), 0 2px 8px rgba(196,149,106,0.3), 0 0 0 0   rgba(196,149,106,0.5); }
+  70%  { box-shadow: 0 6px 28px rgba(196,149,106,0.5), 0 2px 8px rgba(196,149,106,0.3), 0 0 0 12px rgba(196,149,106,0); }
+  100% { box-shadow: 0 6px 28px rgba(196,149,106,0.5), 0 2px 8px rgba(196,149,106,0.3), 0 0 0 0   rgba(196,149,106,0); }
+}
+.next-story-btn::before {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.18) 0%, transparent 60%);
+  opacity: 0; transition: opacity 0.25s ease;
+}
+.next-story-btn:hover { transform: translateY(-3px); box-shadow: 0 12px 40px rgba(196,149,106,0.6), 0 4px 12px rgba(196,149,106,0.4); }
+.next-story-btn:hover::before { opacity: 1; }
+.next-story-btn:active { transform: translateY(0); }
+
+.next-story-text { display: flex; flex-direction: column; gap: 0.15rem; align-items: flex-start; flex: 1; }
+.next-story-pre { font-family: 'DM Sans', sans-serif; font-size: 0.62rem; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: rgba(28,25,22,0.5); line-height: 1; }
+.next-story-title { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 1.4rem; font-weight: 500; color: var(--ink); line-height: 1.2; }
+
+.next-story-arrow {
+  width: 48px; height: 48px;
+  background: rgba(28,25,22,0.12);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.3rem; flex-shrink: 0; color: var(--ink);
+  transition: transform 0.25s var(--transition), background 0.25s ease;
+}
+.next-story-btn:hover .next-story-arrow { transform: translateX(5px); background: rgba(28,25,22,0.2); }
+
+/* ── FOOTER BAND ── */
+.score-footer-band {
+  background: var(--paper);
+  border: 1px solid var(--border);
+  border-top: none;
+  border-radius: 0 0 20px 20px;
+  padding: 1.1rem 1.8rem;
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+}
+.save-ok { font-size: 0.75rem; color: var(--sage); font-family: 'DM Sans', sans-serif; }
+.save-fail { font-size: 0.75rem; color: var(--error); font-family: 'DM Sans', sans-serif; }
+
+.pdf-btn {
+  display: inline-flex; align-items: center; gap: 0.35rem;
+  padding: 0.5rem 1.1rem; font-size: 0.7rem; font-family: 'DM Sans', sans-serif;
+  font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase;
+  background: transparent; border: 1px solid var(--border); border-radius: 50px;
+  cursor: pointer; color: var(--ink-light); transition: all 0.2s ease;
+}
+.pdf-btn:hover { border-color: var(--rose-gold); color: var(--ink); }
+
+/* SPINNER */
+.spinner-wrap { display: none; text-align: center; padding: 3rem 2rem; font-family: 'Cormorant', serif; font-style: italic; font-size: 1rem; color: var(--ink-light); }
+.spinner { width: 28px; height: 28px; border: 1.5px solid var(--border); border-top-color: var(--rose-gold); border-radius: 50%; animation: spin 0.9s linear infinite; margin: 0 auto 0.8rem; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.glow-particle { position: fixed; pointer-events: none; z-index: 200; width: 5px; height: 5px; border-radius: 50%; background: var(--rose-gold); animation: particleFloat 0.8s ease-out forwards; }
+@keyframes particleFloat { 0% { opacity: 0.8; transform: translate(0,0) scale(1); } 100% { opacity: 0; transform: translate(var(--px), var(--py)) scale(0.2); } }
+
+@keyframes confettiFall { 0% { transform: translateY(-20px) rotate(0deg); opacity: 1; } 100% { transform: translateY(110vh) rotate(540deg); opacity: 0; } }
+.confetti-piece { position: fixed; border-radius: 1px; pointer-events: none; z-index: 300; animation: confettiFall linear forwards; }
+/* ── NARRATOR ROW: full-width, generous vertical rhythm ── */
+.bubble-row.narrator {
+  justify-content: center;
+  padding: 2rem 0;
+  flex-direction: column;
+  align-items: center;
+}
+
+.narrator .bubble {
+  background: linear-gradient(135deg, rgba(196,149,106,0.06), rgba(196,149,106,0.02));
+  border: 1px solid rgba(196,149,106,0.18);
+  border-radius: 12px;
+  box-shadow: none;
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-style: italic;
+  font-weight: 400;
+  color: var(--ink-mid);
+  font-size: 1.45rem;
+  line-height: 1.9;
+  text-align: center;
+  padding: 1.4rem 2rem;
+  max-width: 580px;
+  width: 100%;
+  position: relative;
+}
+
+/* Decorative side rules flanking the narrator text */
+.narrator .bubble::before,
+.narrator .bubble::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1px;
+  height: 60%;
+  background: linear-gradient(to bottom, transparent, rgba(196,149,106,0.35), transparent);
+}
+.narrator .bubble::before { left: 0; }
+.narrator .bubble::after  { right: 0; }
+</style>
+</head>
+
+<body>
+<div class="progress-bar-wrap" id="progressBarWrap">
+  <div class="progress-bar-fill" id="progressBarFill" style="width:0%"></div>
+</div>
+
+<div class="container" id="quizContainer">
+
+  <div id="nameForm">
+    <div class="form-card">
+      <p class="form-eyebrow">English</p>
+      <h1 class="form-title">The Story Quest</h1>
+      <p class="form-subtitle">A conversation to complete.</p>
+      <div class="form-rule"></div>
+
+      <label class="field-label" for="nameInput">Your Name</label>
+      <input type="text" id="nameInput" placeholder="Enter your name" autocomplete="name" />
+
+      <label class="field-label" for="departmentSelect">Department</label>
+      <select id="departmentSelect">
+        <option value="">— Select —</option>
+           <option value="Agri and Civil">Agri and Civil</option>
+        <option value="Cyber Security">Cyber Security</option>
+        <option value="CSE-1">CSE-1</option>
+        <option value="CSE-2">CSE-2</option>
+        <option value="CSE-3">CSE-3</option>
+        <option value="Mechanical Engineering">Mechanical Engineering</option>
+        <option value="ECE-1">ECE-1</option>
+        <option value="ECE-2">ECE-2</option>
+        <option value="ECE-3">ECE-3</option>
+        <option value="AI DS-1">AI DS-1</option>
+        <option value="AI DS-2">AI DS-2</option>
+        <option value="EEE">EEE</option>
+        <option value="EIE">EIE</option>
+        <option value="Medical Electronics">Medical Electronics</option>
+        <option value="IT-1">IT-1</option>
+        <option value="IT-2">IT-2</option>
+      </select>
+
+      <button id="startQuizBtn">Begin the Quest</button>
+    </div>
+  </div>
+
+  <div id="quizContent">
+    <div class="top-strip" id="topStrip">
+      <div class="top-strip-inner">
+        <div class="stat-pill" id="timer">⏳ 0s</div>
+        <div class="stat-pill" id="gemsCounter">💎 0</div>
+        <div class="stat-pill" id="progressTracker">1 / 1</div>
+      </div>
+    </div>
+
+    <div class="chat-area" id="chatArea"></div>
+
+    <div style="max-width:680px; margin:0 auto; padding: 0 0 3rem;">
+      <div class="spinner-wrap" id="savingSpinner">
+        <div class="spinner"></div>
+        <div>Saving your results…</div>
+      </div>
+      <div id="scoreCard"></div>
+      <div style="text-align:center; margin-top: 0.5rem;">
+        <button id="restartBtn">↺ Begin Again</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom-bar">
+    <button id="nextPageBtn">Continue</button>
+  </div>
+
+</div>
+
+<script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+(function() {
+
+let _supabaseClient = null;
+try {
+  if (window.supabase && window.supabase.createClient) {
+    _supabaseClient = window.supabase.createClient(
+      "https://yellow-lab-4999.andrewveda.workers.dev",
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoZXpzc29jenZwYmt0ZWZmY2d6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI4NTk1ODUsImV4cCI6MjA3ODQzNTU4NX0.2ZlqXnZxv0opkhynAT7OlK4S-xPygcc7ETUyTXRfGHE"
+    );
+  }
+} catch(e) { console.warn("Supabase unavailable:", e); }
+try { fetch("https://yellow-lab-4999.andrewveda.workers.dev/rest/v1/", { mode: "no-cors" }); } catch(e) {}
+
+const conversation = [
+
+{ speaker: 'narrator',  text: 'A ___ teacher was washing tea cups when a scholar arrived and said he wanted to learn about Zen.', answer: 'wise' },
+
+{ speaker: 'scholar',   text: 'Master, I have come to ___ from you.', answer: 'learn' },
+
+{ speaker: 'scholar',   text: 'I have read many books and heard many ___ about your legendary wisdom.', answer: 'stories' },
+
+{ speaker: 'narrator',  text: 'The teacher picked up a cup that was still ___ with soapy dishwater.', answer: 'filled' },
+
+{ speaker: 'narrator',  text: 'Without saying a word, he began to ___ tea into the cup.', answer: 'pour' },
+
+{ speaker: 'narrator',  text: 'The tea mixed with the soap and began to ___ everywhere.', answer: 'spill' },
+
+{ speaker: 'scholar',   text: 'Stop! The tea is being ___.', answer: 'ruined' },
+
+{ speaker: 'scholar',   text: 'That cup was already ___ with soapy muck!', answer: 'filled' },
+
+{ speaker: 'teacher',   text: 'Exactly. Your mind is just like this ___.', answer: 'cup' },
+
+{ speaker: 'teacher',   text: 'It is already ___ of your own opinions.', answer: 'full' },
+
+{ speaker: 'teacher',   text: 'If I pour wisdom into it now, it will only be ___.', answer: 'wasted' },
+
+{ speaker: 'scholar',   text: 'Then what should I ___ first?', answer: 'do' },
+
+{ speaker: 'teacher',   text: 'Simple. First wash the ___.', answer: 'cup' },
+
+{ speaker: 'teacher',   text: 'Because the problem is not that you know too little. The problem is that you think you already ___. Unlearning is the first step.', answer: 'know' },
+  { speaker: 'narrator',  text: 'When the Student is ready, the Master ___.', answer: 'appears' },
+];
+
+const quizDataStore = [{ passage: conversation.map(l=>l.text).join(' '), answers: conversation.filter(l=>l.answer).map(l=>l.answer) }];
+const currentQuestID = "Quest 210";
+
+let currentLine = 0, correctCount = 0, totalWrongGuesses = 0, gemsCount = 0;
+let startTime, timerInterval;
+let playerName = "", playerDept = "";
+let selectedCard = null;
+
+let chatAreaEl, timerEl, gemsCounterEl, progressTracker;
+let scoreCard, restartBtn, nextPageBtn, quizContentEl, nameFormEl;
+let nameInputEl, deptSelectEl, topStripEl, progressBarWrap, progressBarFill;
+
+function autoFillFromStorage() {
+  try {
+    const n = localStorage.getItem('playerName'), d = localStorage.getItem('playerDept');
+    if (n) nameInputEl.value = n;
+    if (d) deptSelectEl.value = d;
+  } catch(e) {}
+}
+
+async function resendPendingSubmissions() {
+  let pending = [];
+  try { pending = JSON.parse(localStorage.getItem('pendingQuestSubmissions') || "[]"); } catch(e) { return; }
+  if (!pending.length) return;
+  const still = [];
+  for (const entry of pending) {
+    const ok = await sendViaEdgeFunction(entry).catch(() => false);
+    if (!ok) still.push(entry);
+  }
+  try {
+    if (still.length) localStorage.setItem('pendingQuestSubmissions', JSON.stringify(still));
+    else localStorage.removeItem('pendingQuestSubmissions');
+  } catch(e) {}
+}
+
+function beginQuiz() {
+  if (!nameInputEl.value.trim()) { nameInputEl.focus(); nameInputEl.style.borderColor = "var(--error)"; return; }
+  if (!deptSelectEl.value) { deptSelectEl.style.borderColor = "var(--error)"; return; }
+  nameInputEl.style.borderColor = ""; deptSelectEl.style.borderColor = "";
+  playerName = nameInputEl.value.trim();
+  playerDept = deptSelectEl.value;
+  try { localStorage.setItem('playerName', playerName); localStorage.setItem('playerDept', playerDept); } catch(e) {}
+
+  const card = nameFormEl.querySelector('.form-card');
+  card.style.transition = "opacity 0.3s ease, transform 0.3s ease";
+  card.style.opacity = "0"; card.style.transform = "scale(0.97) translateY(8px)";
+  setTimeout(() => {
+    try {
+      nameFormEl.style.display = "none";
+      quizContentEl.style.display = "block";
+      topStripEl.style.display = "block";
+      progressBarWrap.style.display = "block";
+      chatAreaEl = document.getElementById("chatArea");
+      scoreCard = document.getElementById("scoreCard");
+      restartBtn = document.getElementById("restartBtn");
+      nextPageBtn = document.getElementById("nextPageBtn");
+      startQuiz();
+    } catch(err) { console.error("Quiz start failed:", err); }
+  }, 300);
+}
+
+function startQuiz() {
+  currentLine = 0; correctCount = 0; totalWrongGuesses = 0; gemsCount = 0;
+  startTime = Date.now();
+  timerEl.textContent = "⏳ 0s";
+  gemsCounterEl.textContent = "💎 0";
+  scoreCard.innerHTML = "";
+  chatAreaEl.innerHTML = "";
+  restartBtn.style.display = nextPageBtn.style.display = "none";
+  document.getElementById('savingSpinner').style.display = 'none';
+  setTimeout(adjustPadding, 50);
+  showNextLine();
+  startTimer();
+}
+
+function adjustPadding() {
+  if (!chatAreaEl || !topStripEl) return;
+  chatAreaEl.style.paddingTop = (topStripEl.offsetHeight + 16) + 'px';
+}
+
+function updateProgressBar() {
+  if (progressBarFill) progressBarFill.style.width = (conversation.length ? (currentLine / conversation.length) * 100 : 0) + '%';
+}
+function updateProgress() {
+  progressTracker.textContent = `${Math.min(currentLine + 1, conversation.length)} / ${conversation.length}`;
+  updateProgressBar();
+}
+
+function showNextLine() {
+  if (!chatAreaEl) chatAreaEl = document.getElementById("chatArea");
+  if (currentLine >= conversation.length) { showScore(); return; }
+  updateProgress();
+
+  const line = conversation[currentLine];
+  const hasBlank = !!line.answer;
+  const side = line.speaker === 'teacher' ? 'left' : line.speaker === 'scholar' ? 'right' : 'narrator';
+
+  const row = document.createElement('div');
+  row.className = `bubble-row ${side}`;
+  row.dataset.lineIndex = currentLine;
+
+  if (side !== 'narrator') {
+    const emoji = line.speaker === 'teacher' ? '🧘' : '📚';
+    const speakerName = line.speaker === 'teacher' ? 'Teacher' : 'Scholar';
+    const avatar = document.createElement('div');
+    avatar.className = 'avatar'; avatar.textContent = emoji;
+    const col = document.createElement('div');
+    col.className = 'bubble-col';
+    const nameEl = document.createElement('div');
+    nameEl.className = 'speaker-name'; nameEl.textContent = speakerName;
+    const bub = document.createElement('div');
+    bub.className = 'bubble';
+    if (hasBlank) buildBubbleWithBlank(bub, line, currentLine);
+    else bub.textContent = line.text;
+    col.appendChild(nameEl); col.appendChild(bub);
+    row.appendChild(avatar); row.appendChild(col);
+ // FIXED (narrator branch)
+} else {
+  const col = document.createElement('div');
+  col.className = 'bubble-col';
+
+  const bub = document.createElement('div');
+  bub.className = 'bubble';
+
+  if (hasBlank) {
+    buildBubbleWithBlank(bub, line, currentLine);
+  } else {
+    bub.textContent = line.text;
+  }
+
+  col.appendChild(bub);
+  row.appendChild(col);
+}
+  chatAreaEl.appendChild(row);
+  setTimeout(() => row.scrollIntoView({ behavior: 'smooth', block: 'end' }), 60);
+
+  if (hasBlank) {
+    const target = row.querySelector('.bubble-col') || row;
+    buildChoiceDeck(target, currentLine, row);
+    nextPageBtn.style.display = 'none';
+  } else {
+    setTimeout(() => { nextPageBtn.style.display = 'inline-block'; }, 350);
+  }
+}
+
+function buildBubbleWithBlank(bub, line, lineIndex) {
+  const parts = line.text.split('___');
+  bub.appendChild(document.createTextNode(parts[0]));
+  const dz = document.createElement('button');
+  dz.className = 'drop-zone ready';
+  dz.dataset.answer = line.answer;
+  dz.dataset.lineIndex = lineIndex;
+  dz.onclick = () => { if (selectedCard) placeAnswer(dz); };
+  bub.appendChild(dz);
+  if (parts[1]) bub.appendChild(document.createTextNode(parts[1]));
+}
+
+function buildChoiceDeck(targetEl, lineIndex) {
+  const correct = conversation[lineIndex].answer;
+  const pool = conversation.map(l => l.answer).filter(a => a && a !== correct);
+  const distractors = [];
+  const seen = new Set([correct]);
+  for (const w of pool.sort(() => Math.random() - 0.5)) {
+    if (!seen.has(w)) { seen.add(w); distractors.push(w); }
+    if (distractors.length >= 3) break;
+  }
+  const choices = [correct, ...distractors].sort(() => Math.random() - 0.5);
+  const deck = document.createElement('div');
+  deck.className = 'choice-deck'; deck.dataset.deckIndex = lineIndex;
+  choices.forEach((word, i) => {
+    const card = document.createElement('div');
+    card.className = 'choice-card'; card.textContent = word;
+    card.style.opacity = '0'; card.style.transform = 'translateY(10px)';
+    card.onclick = () => selectCard(card, lineIndex);
+    deck.appendChild(card);
+    setTimeout(() => {
+      card.style.transition = 'all 0.3s var(--transition), opacity 0.25s ease, transform 0.25s ease';
+      card.style.opacity = '1'; card.style.transform = 'translateY(0)';
+    }, i * 60 + 30);
+  });
+  targetEl.appendChild(deck);
+  setTimeout(() => deck.style.opacity = '1', 20);
+}
+
+function selectCard(card, lineIndex) {
+  if (card.classList.contains('used') || card.classList.contains('dismissed')) return;
+  if (selectedCard) selectedCard.classList.remove('selected');
+  selectedCard = card; card.classList.add('selected');
+  const dz = chatAreaEl.querySelector(`.drop-zone[data-line-index="${lineIndex}"]`);
+  if (dz) setTimeout(() => placeAnswer(dz), 120);
+}
+
+function placeAnswer(dz) {
+  if (!selectedCard || dz.classList.contains('filled')) return;
+  const chosen = selectedCard.textContent;
+  const correct = dz.dataset.answer;
+
+  if (chosen === correct) {
+    correctCount++; gemsCount++;
+    gemsCounterEl.textContent = `💎 ${gemsCount}`; animatePill(gemsCounterEl);
+    dz.textContent = chosen;
+    dz.classList.remove('ready', 'wrong'); dz.classList.add('filled'); dz.disabled = true;
+    const ring = document.createElement('div');
+    ring.className = 'glow-ring'; dz.style.position = 'relative'; dz.appendChild(ring);
+    setTimeout(() => ring.remove(), 900);
+    spawnGlowParticles(dz);
+    selectedCard.classList.add('used'); selectedCard.classList.remove('selected'); selectedCard = null;
+    setTimeout(() => {
+      const deck = chatAreaEl.querySelector(`.choice-deck[data-deck-index="${dz.dataset.lineIndex}"]`);
+      if (deck) { deck.querySelectorAll('.choice-card:not(.used)').forEach(c => c.classList.add('dismissed')); setTimeout(() => deck.remove(), 250); }
+      currentLine++;
+      if (currentLine >= conversation.length) showScore();
+      else setTimeout(showNextLine, 420);
+    }, 520);
+  } else {
+    totalWrongGuesses++; gemsCount--;
+    gemsCounterEl.textContent = `💎 ${gemsCount}`; animatePill(gemsCounterEl);
+    dz.classList.add('wrong'); setTimeout(() => dz.classList.remove('wrong'), 500);
+    selectedCard.classList.remove('selected');
+    selectedCard.style.transition = 'all 0.1s ease'; selectedCard.style.transform = 'scale(0.94)';
+    setTimeout(() => { if (selectedCard) { selectedCard.style.transform = ''; selectedCard.classList.remove('selected'); } }, 200);
+    selectedCard = null;
+  }
+}
+
+function animatePill(el) { el.classList.remove('pulse'); void el.offsetWidth; el.classList.add('pulse'); }
+
+function spawnGlowParticles(anchorEl) {
+  const rect = anchorEl.getBoundingClientRect();
+  const cx = rect.left + rect.width / 2, cy = rect.top + rect.height / 2;
+  for (let i = 0; i < 8; i++) {
+    const p = document.createElement('div');
+    p.className = 'glow-particle'; p.style.left = cx + 'px'; p.style.top = cy + 'px';
+    const angle = (Math.random() * Math.PI * 2), dist = 30 + Math.random() * 50;
+    p.style.setProperty('--px', Math.cos(angle) * dist + 'px');
+    p.style.setProperty('--py', Math.sin(angle) * dist + 'px');
+    p.style.background = Math.random() > 0.5 ? 'var(--rose-gold)' : 'var(--rose-gold-lt)';
+    p.style.animationDuration = (0.5 + Math.random() * 0.4) + 's';
+    document.body.appendChild(p); setTimeout(() => p.remove(), 1000);
+  }
+}
+
+function launchConfetti() {
+  const colors = ['#c4956a','#d4a87a','#a07550','#e8e3dc','#7a9b7a','#1c1916'];
+  for (let i = 0; i < 60; i++) {
+    const c = document.createElement('div');
+    c.className = 'confetti-piece'; c.style.left = Math.random() * 100 + 'vw'; c.style.top = '-20px';
+    c.style.background = colors[Math.floor(Math.random() * colors.length)];
+    const sz = 5 + Math.random() * 7;
+    c.style.width = sz + 'px'; c.style.height = sz + 'px';
+    c.style.animationDuration = (2 + Math.random() * 2.5) + 's';
+    c.style.animationDelay = (Math.random() * 1.2) + 's';
+    document.body.appendChild(c); setTimeout(() => c.remove(), 5000);
+  }
+}
+
+function startTimer() {
+  clearInterval(timerInterval);
+  timerInterval = setInterval(() => {
+    const e = Math.floor((Date.now() - startTime) / 1000);
+    const m = Math.floor(e / 60), s = e % 60;
+    timerEl.textContent = m > 0 ? `⏳ ${m}m ${s}s` : `⏳ ${e}s`;
+  }, 1000);
+}
+
+async function showScore() {
+  clearInterval(timerInterval);
+  const totalTime = Math.floor((Date.now() - startTime) / 1000);
+
+  document.getElementById('savingSpinner').style.display = 'block';
+  scoreCard.innerHTML = '';
+  nextPageBtn.style.display = 'none';
+  chatAreaEl.innerHTML = '';
+  progressBarFill.style.width = '100%';
+
+  async function trySave(attempt) {
+    attempt = attempt || 1;
+    const sub = { student_name: playerName, department: playerDept, correct: correctCount, wrong: totalWrongGuesses, time_spent: totalTime, quest_id: currentQuestID };
+    try {
+      const ok = await sendViaEdgeFunction(sub);
+      if (ok) return true; throw new Error();
+    } catch(e) {
+      if (attempt < 3) {
+        const lbl = document.querySelector('#savingSpinner div:last-child');
+        if (lbl) lbl.textContent = `Retrying… (${attempt} of 3)`;
+        await new Promise(r => setTimeout(r, 1500));
+        return trySave(attempt + 1);
+      }
+      return false;
+    }
+  }
+
+  const saved = await trySave(1);
+  document.getElementById('savingSpinner').style.display = 'none';
+  progressTracker.textContent = '✦';
+  launchConfetti();
+
+  const mins = Math.floor(totalTime / 60), secs = totalTime % 60;
+  const timeStr = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+  const flawless = totalWrongGuesses === 0;
+  const trophy = flawless ? '🏆' : correctCount >= conversation.length * 0.8 ? '🌟' : '📖';
+
+  let saveStatusHTML = '';
+  if (saved) {
+    saveStatusHTML = `<p class="save-ok">✓ Results saved</p>`;
+  } else {
+    try {
+      const key = 'pendingQuestSubmissions';
+      const pending = JSON.parse(localStorage.getItem(key) || "[]");
+      pending.push({ student_name: playerName, department: playerDept, correct: correctCount, wrong: totalWrongGuesses, time_spent: totalTime, quest_id: currentQuestID, timestamp: Date.now() });
+      localStorage.setItem(key, JSON.stringify(pending));
+    } catch(e) {}
+    saveStatusHTML = `<p class="save-fail">⚠ Could not reach server</p>
+      <button id="retrySaveBtn" style="padding:4px 12px;background:var(--error);color:white;border:none;border-radius:6px;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:0.72rem;letter-spacing:0.05em;margin-top:0.3rem">↺ Retry</button>`;
+  }
+
+  scoreCard.innerHTML = `
+    <div class="score-wrapper">
+
+      <div class="score-trophy-band">
+        <div class="score-status-pill">✦ ${currentQuestID} · Complete</div>
+        <span class="score-main-emoji">${trophy}</span>
+        <h2 class="score-headline">${flawless ? 'Perfect.' : 'Well done.'}</h2>
+        <p class="score-tagline">${flawless ? 'A flawless performance.' : 'Your journey is recorded.'}</p>
+      </div>
+
+      <div class="score-stats-band">
+        <div class="score-name-row">
+          <span class="score-player-name">${playerName}</span>
+          <span class="score-player-dept">${playerDept}</span>
+        </div>
+        <div class="score-grid">
+          <div class="score-cell">
+            <span class="score-cell-val good">✓ ${correctCount}</span>
+            <span class="score-cell-label">Correct</span>
+          </div>
+          <div class="score-cell">
+            <span class="score-cell-val bad">✗ ${totalWrongGuesses}</span>
+            <span class="score-cell-label">Wrong</span>
+          </div>
+          <div class="score-cell">
+            <span class="score-cell-val gems">💎 ${gemsCount}</span>
+            <span class="score-cell-label">Gems</span>
+          </div>
+        </div>
+        <div class="score-time-row" style="margin-top:0.75rem;">
+          <span class="score-time-val">⏱ ${timeStr}</span>
+          <span class="score-time-label">time spent</span>
+        </div>
+        ${flawless ? `<div class="flawless-strip">✦ &nbsp; Flawless — zero errors</div>` : ''}
+      </div>
+
+      <div class="score-next-band">
+        <p class="score-next-eyebrow">Continue your journey</p>
+        <a href="https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/conversation6"
+           class="next-story-btn">
+          <div class="next-story-text">
+            <span class="next-story-pre">Up next</span>
+            <span class="next-story-title">Story 2 — The Next Conversation</span>
+          </div>
+          <div class="next-story-arrow">→</div>
+        </a>
+      </div>
+
+      <div class="score-footer-band">
+        <div>${saveStatusHTML}</div>
+        <button class="pdf-btn" onclick="downloadPDFReport()">↓ Download Report</button>
+      </div>
+
+    </div>`;
+
+  restartBtn.style.display = 'inline-block';
+
+  setTimeout(() => {
+    const rb = document.getElementById('retrySaveBtn');
+    if (rb) rb.onclick = async () => {
+      rb.textContent = 'Trying…'; rb.style.opacity = '0.6';
+      await resendPendingSubmissions();
+      let p = [];
+      try { p = JSON.parse(localStorage.getItem('pendingQuestSubmissions') || "[]"); } catch(e) {}
+      rb.textContent = p.length === 0 ? '✓ Saved' : 'Still failed';
+      rb.style.background = p.length === 0 ? 'var(--sage)' : 'var(--error)';
+      rb.style.opacity = '1';
+    };
+  }, 60);
+}
+
+async function sendViaEdgeFunction(payload) {
+  try {
+    const ctrl = new AbortController();
+    const timeout = setTimeout(() => ctrl.abort(), 4000);
+    const r = await fetch("https://yellow-lab-4999.andrewveda.workers.dev/functions/v1/logQuest", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload), signal: ctrl.signal
+    });
+    clearTimeout(timeout);
+    if (!r.ok) return false;
+    const d = await r.json();
+    return d.success === true;
+  } catch(e) { return false; }
+}
+
+function downloadPDFReport() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: "mm", format: "a4" });
+  const pageH = doc.internal.pageSize.height, mL = 20, uW = 170;
+  const totalTime = Math.floor((Date.now() - startTime) / 1000);
+  const reportDate = new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
+
+  doc.setFillColor(25, 25, 60); doc.rect(0, 0, 210, 45, "F");
+  doc.setTextColor(255,255,255); doc.setFont("times","bold"); doc.setFontSize(18);
+  doc.text("SRM VALLIAMMAI ENGINEERING COLLEGE", 105, 16, {align:"center"});
+  doc.setFontSize(12); doc.setFont("times","italic"); doc.text("(Autonomous)", 105, 23, {align:"center"});
+  doc.setFontSize(15); doc.setFont("times","normal"); doc.text("Department of English", 105, 31, {align:"center"});
+  doc.setFontSize(14); doc.setFont("times","bold"); doc.setTextColor(212,175,55);
+  doc.text(`${currentQuestID} — Performance Report`, 105, 39, {align:"center"});
+
+  doc.setTextColor(0,0,0); doc.setFontSize(11); doc.setFont("times","bold"); doc.text("CANDIDATE INFORMATION", mL, 55);
+  doc.autoTable({ startY:58, body:[["Student Name",playerName],["Department",playerDept],["Quest ID",currentQuestID],["Completed On",reportDate]], theme:"plain", styles:{fontSize:10,font:"times",cellPadding:3}, columnStyles:{0:{fontStyle:"bold",cellWidth:60,textColor:[70,70,70]},1:{cellWidth:120}}, margin:{left:mL,right:mL} });
+
+  let y = doc.lastAutoTable.finalY + 10;
+  if (y > pageH-30) { doc.addPage(); y = 20; }
+  doc.setFont("times","bold"); doc.text("PERFORMANCE SUMMARY", mL, y); y += 3;
+  doc.autoTable({ startY:y+3, body:[["Total Lines",conversation.length.toString()],["Correct",correctCount.toString()],["Wrong Attempts",totalWrongGuesses.toString()],["Gems",gemsCount.toString()],["Time",`${Math.floor(totalTime/60)}m ${totalTime%60}s`]], theme:"grid", styles:{fontSize:10,font:"times",cellPadding:3}, margin:{left:mL,right:mL}, pageBreak:"auto" });
+
+  y = doc.lastAutoTable.finalY + 12;
+  if (y > pageH-30) { doc.addPage(); y = 20; }
+  doc.setFont("times","bold"); doc.text("QUESTION BANK", mL, y); y += 6;
+  quizDataStore.forEach((item, i) => {
+    let fp = item.passage;
+    item.answers.forEach(a => { fp = fp.replace("___", ` [${a}] `); });
+    const lines = doc.splitTextToSize(fp, uW);
+    const bh = lines.length * 5 + 10;
+    if (y + bh > pageH-20) { doc.addPage(); y = 20; }
+    doc.setFont("times","bold"); doc.setFontSize(11); doc.setTextColor(25,25,60);
+    doc.text(`Question ${i+1}:`, mL, y); y += 6;
+    doc.setFont("times","normal"); doc.setTextColor(0,0,0);
+    doc.text(lines, mL+5, y); y += lines.length * 5 + 3;
+    doc.setDrawColor(230,230,230); doc.setLineWidth(0.3); doc.line(mL,y,190,y); y += 5;
+  });
+
+  doc.setDrawColor(184,134,11); doc.setLineWidth(0.5); doc.line(mL,pageH-17,190,pageH-17);
+  doc.setFontSize(8); doc.setTextColor(128,128,128); doc.setFont("times","italic");
+  doc.text("System-generated report", 105, pageH-10, {align:"center"});
+  doc.save(`${playerName.replace(/[^a-zA-Z0-9]/g,"_")}_${currentQuestID.replace(/[^a-zA-Z0-9]/g,"_")}_Report.pdf`);
+}
+window.downloadPDFReport = downloadPDFReport;
+
+window.addEventListener('DOMContentLoaded', () => {
+  chatAreaEl      = document.getElementById("chatArea");
+  timerEl         = document.getElementById("timer");
+  gemsCounterEl   = document.getElementById("gemsCounter");
+  progressTracker = document.getElementById("progressTracker");
+  scoreCard       = document.getElementById("scoreCard");
+  restartBtn      = document.getElementById("restartBtn");
+  nextPageBtn     = document.getElementById("nextPageBtn");
+  quizContentEl   = document.getElementById("quizContent");
+  nameFormEl      = document.getElementById("nameForm");
+  nameInputEl     = document.getElementById("nameInput");
+  deptSelectEl    = document.getElementById("departmentSelect");
+  topStripEl      = document.getElementById("topStrip");
+  progressBarWrap = document.getElementById("progressBarWrap");
+  progressBarFill = document.getElementById("progressBarFill");
+
+  document.getElementById("startQuizBtn").onclick = beginQuiz;
+
+  restartBtn.onclick = () => {
+    clearInterval(timerInterval);
+    quizContentEl.style.display = "none";
+    topStripEl.style.display = "none";
+    progressBarWrap.style.display = "none";
+    progressBarFill.style.width = "0%";
+    nameFormEl.style.display = "flex";
+    nameInputEl.value = ""; deptSelectEl.value = "";
+    const card = nameFormEl.querySelector('.form-card');
+    card.style.transition = "none"; card.style.opacity = "1"; card.style.transform = "";
+    try { localStorage.removeItem('playerName'); localStorage.removeItem('playerDept'); } catch(e) {}
+    restartBtn.style.display = nextPageBtn.style.display = "none";
+    chatAreaEl.innerHTML = "";
+  };
+
+  nextPageBtn.onclick = () => {
+    currentLine++; nextPageBtn.style.display = 'none';
+    setTimeout(showNextLine, 100);
+  };
+
+  autoFillFromStorage();
+  resendPendingSubmissions();
+  window.addEventListener('resize', adjustPadding);
+});
+
+})();
+</script>
+
+<script>
+document.addEventListener("click", function(e) {
+  const target = e.target.closest("a"); if (!target) return;
+  const url = target.href;
+  const internalDomains = [window.location.origin,"andrewveda.github.io","sites.google.com/view/cys-english/","sites.google.com/view/srm-vec-english/"];
+  const isInternal = internalDomains.some(d => url.includes(d));
+  if (isInternal && (window.matchMedia("(display-mode: standalone)").matches || window.matchMedia("(display-mode: fullscreen)").matches)) {
+    e.preventDefault(); window.location.href = url;
+  } else { target.setAttribute("target","_blank"); }
+});
+</script>
+</body>
+</html>

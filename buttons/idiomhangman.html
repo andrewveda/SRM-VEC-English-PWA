@@ -144,9 +144,10 @@
   }
   .gdial-line { display: flex; gap: 9px; align-items: flex-start; }
   .gdial-speaker {
-    font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: 0.15em;
+    font-family: 'DM Mono', monospace; font-size: 8px; letter-spacing: 0.1em;
     text-transform: uppercase; color: var(--gold); flex-shrink: 0;
-    padding-top: 3px; min-width: 16px;
+    padding-top: 4px; min-width: 80px; max-width: 80px; line-height: 1.3;
+    word-break: break-word;
   }
   .gdial-text {
     font-family: 'Cormorant Garamond', serif; font-size: 14px;
@@ -223,7 +224,7 @@
   .idiom-card.collapsed .idiom-dialogue { display: none; }
   .idiom-card.expanded  .idiom-dialogue { display: flex; }
   .dial-line { display: flex; gap: 8px; align-items: flex-start; }
-  .dial-speaker { font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--gold); flex-shrink: 0; padding-top: 2px; min-width: 18px; }
+  .dial-speaker { font-family: 'DM Mono', monospace; font-size: 8px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gold); flex-shrink: 0; padding-top: 3px; min-width: 80px; max-width: 80px; line-height: 1.3; word-break: break-word; }
   .dial-text { font-family: 'Cormorant Garamond', serif; font-size: 13px; color: rgba(245,230,184,0.8); line-height: 1.45; }
   .dial-text em { color: var(--gold-light); font-style: normal; font-weight: 700; }
   .idiom-expand-hint { font-size: 9px; font-family: 'DM Mono', monospace; color: rgba(201,168,76,0.3); letter-spacing: 0.12em; text-align: right; margin-top: 5px; }
@@ -384,235 +385,234 @@ const supabase = createClient(
 const EDGE_URL = "https://yellow-lab-4999.andrewveda.workers.dev/functions/v1/logQuest";
 
 // ── IDIOM DATA ────────────────────────────────────────────────────
-// dialogue: [{s:"Speaker", l:"line"}, ...]  — idiom is bolded in the line automatically
+// dialogue: [{s:"Speaker", t:"text"}]  — idiom phrase is blanked in game context
 const idioms = [
-  { id:1000, phrase:"bite the bullet",
-    hint:"Endure a painful or difficult situation stoically.", theme:"Courage",
+  { id:1000, phrase:"bite the bullet", theme:"Courage",
+    hint:"To endure a painful or difficult situation stoically.",
     dialogue:[
-      {s:"Priya",  l:"I\u2019m terrified of the dentist. I\u2019ve been avoiding it for two years."},
-      {s:"Rajan",  l:"You just have to bite the bullet. The longer you wait, the worse it gets."},
-      {s:"Priya",  l:"I know. I\u2019ll call them tomorrow morning."} ]},
+      {s:"Harry",    t:"I hate going to Madam Pomfrey. She always makes me drink disgusting potions."},
+      {s:"Hermione", t:"You just have to bite the bullet, Harry. The sooner you go, the sooner you feel better."},
+      {s:"Harry",    t:"Fine. I’ll go after Defence Against the Dark Arts."} ]},
 
-  { id:1001, phrase:"barking up the wrong tree",
-    hint:"Pursuing a mistaken or misguided course of action.", theme:"Mistakes",
+  { id:1001, phrase:"barking up the wrong tree", theme:"Mistakes",
+    hint:"To pursue a mistaken or misguided course of action.",
     dialogue:[
-      {s:"Officer", l:"We\u2019ve been investigating Mr. Sharma for weeks."},
-      {s:"Detective",l:"I think we\u2019re barking up the wrong tree. His alibi checks out completely."},
-      {s:"Officer", l:"Then who did it?"} ]},
+      {s:"Ron",      t:"I’m sure it was Draco who hexed my bag."},
+      {s:"Hermione", t:"Ron, you’re barking up the wrong tree. Draco was in Potions all morning."},
+      {s:"Ron",      t:"Then who was it?"} ]},
 
-  { id:1002, phrase:"beat around the bush",
-    hint:"Avoid coming to the main point; be deliberately vague.", theme:"Communication",
+  { id:1002, phrase:"beat around the bush", theme:"Communication",
+    hint:"To avoid coming to the main point; to be deliberately vague.",
     dialogue:[
-      {s:"Ananya", l:"Do you like my presentation or not? Just tell me."},
-      {s:"Vikram", l:"Well, it had some interesting elements and the colours were nice\u2014"},
-      {s:"Ananya", l:"Stop beating around the bush. Was it good or not?"},
-      {s:"Vikram", l:"Honestly? It needs a lot of work."} ]},
+      {s:"Harry",    t:"Dumbledore, did I do something wrong in the task?"},
+      {s:"Dumbledore",t:"Well, there are many ways to approach such a challenge, and one might say—"},
+      {s:"Harry",    t:"Please don’t beat around the bush. Just tell me."},
+      {s:"Dumbledore",t:"You were reckless. But also brave."} ]},
 
-  { id:1003, phrase:"bite off more than you can chew",
-    hint:"Take on a task too big or difficult to manage.", theme:"Ambition",
+  { id:1003, phrase:"bite off more than you can chew", theme:"Ambition",
+    hint:"To take on a task that is too big or difficult to manage.",
     dialogue:[
-      {s:"Meera",  l:"I volunteered to organise the entire college fest alone."},
-      {s:"Suresh", l:"That\u2019s five hundred people! You\u2019ve bitten off more than you can chew."},
-      {s:"Meera",  l:"Maybe I should ask for help."},
-      {s:"Suresh", l:"Definitely."} ]},
+      {s:"Hermione", t:"I’ve signed up for eleven subjects this term."},
+      {s:"Ron",      t:"Eleven?! Hermione, you’ve bitten off more than you can chew."},
+      {s:"Hermione", t:"I’ll manage. I have a plan."} ]},
 
-  { id:1004, phrase:"burn the midnight oil",
-    hint:"Work very late into the night.", theme:"Hard Work",
+  { id:1004, phrase:"burn the midnight oil", theme:"Hard Work",
+    hint:"To work or study late into the night.",
     dialogue:[
-      {s:"Karan",  l:"You look exhausted. Did you sleep at all?"},
-      {s:"Divya",  l:"Not really. I was burning the midnight oil to finish my project."},
-      {s:"Karan",  l:"Is it done now at least?"},
-      {s:"Divya",  l:"Finally, yes."} ]},
+      {s:"Ron",      t:"You look terrible. Did you sleep at all?"},
+      {s:"Hermione", t:"Not really. I was burning the midnight oil revising for the Transfiguration exam."},
+      {s:"Ron",      t:"Is it finished?"},
+      {s:"Hermione", t:"Both essays and all the revision notes. Yes."} ]},
 
-  { id:1005, phrase:"cut corners",
-    hint:"Do something the easy way, at the expense of quality.", theme:"Shortcuts",
+  { id:1005, phrase:"cut corners", theme:"Shortcuts",
+    hint:"To do something the quick or easy way, sacrificing quality.",
     dialogue:[
-      {s:"Manager",  l:"Why did the client reject the report?"},
-      {s:"Teammate", l:"Someone cut corners on the data verification step."},
-      {s:"Manager",  l:"We cannot afford that. Please redo it properly."} ]},
+      {s:"Snape",    t:"This potion is completely wrong. Why is it orange?"},
+      {s:"Neville",  t:"I... I may have skipped the stirring stage."},
+      {s:"Snape",    t:"You cut corners, Longbottom. That is why your cauldron is about to melt."} ]},
 
-  { id:1006, phrase:"hit the nail on the head",
-    hint:"Describe exactly what is causing a situation; be precisely correct.", theme:"Accuracy",
+  { id:1006, phrase:"hit the nail on the head", theme:"Accuracy",
+    hint:"To describe exactly what is causing a situation or problem.",
     dialogue:[
-      {s:"Professor", l:"Why do students score poorly in exams?"},
-      {s:"Student",   l:"They study to pass, not to understand."},
-      {s:"Professor", l:"You\u2019ve hit the nail on the head. That is exactly the problem."} ]},
+      {s:"Lupin",    t:"Why do you think students fear the Boggart most?"},
+      {s:"Harry",    t:"Because it becomes whatever you’re most afraid of — it’s personal."},
+      {s:"Lupin",    t:"You’ve hit the nail on the head. That is precisely what makes it so powerful."} ]},
 
-  { id:1007, phrase:"let the cat out of the bag",
-    hint:"Reveal a secret carelessly or by mistake.", theme:"Secrets",
+  { id:1007, phrase:"let the cat out of the bag", theme:"Secrets",
+    hint:"To accidentally reveal a secret or surprise.",
     dialogue:[
-      {s:"Rohit",  l:"You told Preethi about her surprise party?!"},
-      {s:"Sneha",  l:"I\u2019m so sorry! She asked where we were going and I let the cat out of the bag."},
-      {s:"Rohit",  l:"Now the surprise is ruined."} ]},
+      {s:"Ron",      t:"You told Ginny about the surprise Quidditch practice?!"},
+      {s:"Fred",     t:"I didn’t mean to! She asked what we were doing and I let the cat out of the bag."},
+      {s:"Ron",      t:"So much for the element of surprise."} ]},
 
-  { id:1008, phrase:"a blessing in disguise",
-    hint:"Something that seems bad at first but turns out to be good.", theme:"Fortune",
+  { id:1008, phrase:"a blessing in disguise", theme:"Fortune",
+    hint:"Something that seems bad at first but turns out to be good.",
     dialogue:[
-      {s:"Arun",   l:"I\u2019m devastated. I missed my flight."},
-      {s:"Kavya",  l:"That flight was delayed eight hours. Missing it was a blessing in disguise."},
-      {s:"Arun",   l:"Oh wow, I had no idea!"} ]},
+      {s:"Harry",    t:"I can’t believe I missed the Quidditch tryouts."},
+      {s:"Ginny",    t:"It was a blessing in disguise. The pitch was hit by a rogue Bludger. Three people got hurt."},
+      {s:"Harry",    t:"Wow. I had no idea."} ]},
 
-  { id:1009, phrase:"piece of cake",
-    hint:"Something very easy to do.", theme:"Ease",
+  { id:1009, phrase:"piece of cake", theme:"Ease",
+    hint:"Something that is very easy to do.",
     dialogue:[
-      {s:"Nisha",  l:"Are you nervous about tomorrow\u2019s coding test?"},
-      {s:"Ajay",   l:"Not at all. I\u2019ve done this a hundred times. It\u2019s a piece of cake."},
-      {s:"Nisha",  l:"I wish I had your confidence."} ]},
+      {s:"Ron",      t:"Are you nervous about the Charms practical?"},
+      {s:"Hermione", t:"Not at all. We’ve practised Accio fifty times. It’s a piece of cake."},
+      {s:"Ron",      t:"Easy for you to say."} ]},
 
-  { id:1010, phrase:"once in a blue moon",
-    hint:"Very rarely.", theme:"Rarity",
+  { id:1010, phrase:"once in a blue moon", theme:"Rarity",
+    hint:"Something that happens very rarely.",
     dialogue:[
-      {s:"Grandma", l:"Does your uncle visit?"},
-      {s:"Priya",   l:"Once in a blue moon. Maybe once a year, if we\u2019re lucky."},
-      {s:"Grandma", l:"Such a pity. He used to come every week."} ]},
+      {s:"Mrs Weasley", t:"Does Percy visit?"},
+      {s:"Ron",         t:"Once in a blue moon. He’s always busy at the Ministry."},
+      {s:"Mrs Weasley", t:"I do wish he’d come home more often."} ]},
 
-  { id:1011, phrase:"under the weather",
-    hint:"Feeling slightly ill or unwell.", theme:"Health",
+  { id:1011, phrase:"under the weather", theme:"Health",
+    hint:"To feel slightly ill or unwell.",
     dialogue:[
-      {s:"Teacher", l:"You look pale today. Are you all right?"},
-      {s:"Riya",    l:"I\u2019m a little under the weather. I think I\u2019m getting a cold."},
-      {s:"Teacher", l:"Go to the sick room and rest."} ]},
+      {s:"Madam Pomfrey", t:"You look peaky. Are you all right?"},
+      {s:"Neville",       t:"I’m a little under the weather. I think I ate something off at the feast."},
+      {s:"Madam Pomfrey", t:"Lie down. I’ll bring you a Pepperup Potion."} ]},
 
-  { id:1012, phrase:"kill two birds with one stone",
-    hint:"Accomplish two things with a single action.", theme:"Efficiency",
+  { id:1012, phrase:"kill two birds with one stone", theme:"Efficiency",
+    hint:"To accomplish two things with a single action.",
     dialogue:[
-      {s:"Rahul",  l:"I need to post a letter and also buy groceries."},
-      {s:"Mira",   l:"The post office is next to the supermarket. Kill two birds with one stone."},
-      {s:"Rahul",  l:"Perfect idea!"} ]},
+      {s:"Harry",    t:"I need to visit Hagrid and return this book to the library."},
+      {s:"Hermione", t:"Hagrid’s hut is right past the library. Kill two birds with one stone."},
+      {s:"Harry",    t:"Brilliant. Let’s go."} ]},
 
-  { id:1013, phrase:"add fuel to the fire",
-    hint:"Make an already bad or angry situation even worse.", theme:"Conflict",
+  { id:1013, phrase:"add fuel to the fire", theme:"Conflict",
+    hint:"To make a bad or tense situation even worse.",
     dialogue:[
-      {s:"Sonia",  l:"They were already arguing. Then he brought up that old mistake."},
-      {s:"Dev",    l:"That just added fuel to the fire."},
-      {s:"Sonia",  l:"Exactly. They haven\u2019t spoken since."} ]},
+      {s:"Ginny",    t:"Ron and Harry were already rowing, and then Fred made a joke about it."},
+      {s:"Hermione", t:"That just added fuel to the fire. They didn’t speak for two days after."},
+      {s:"Ginny",    t:"Fred never knows when to stop."} ]},
 
-  { id:1014, phrase:"miss the boat",
-    hint:"Miss an opportunity, often by being too slow.", theme:"Opportunity",
+  { id:1014, phrase:"miss the boat", theme:"Opportunity",
+    hint:"To miss an opportunity, often by being too slow.",
     dialogue:[
-      {s:"Tarun",  l:"I kept thinking about whether to apply for that scholarship."},
-      {s:"Latha",  l:"The deadline was yesterday. You\u2019ve missed the boat."},
-      {s:"Tarun",  l:"I should have decided sooner."} ]},
+      {s:"Seamus",   t:"I kept meaning to sign up for the Duelling Club."},
+      {s:"Dean",     t:"The list closed yesterday. You’ve missed the boat."},
+      {s:"Seamus",   t:"I should’ve just signed up on the first day."} ]},
 
-  { id:1015, phrase:"spill the beans",
-    hint:"Reveal secret or confidential information unintentionally.", theme:"Secrets",
+  { id:1015, phrase:"spill the beans", theme:"Secrets",
+    hint:"To reveal secret or confidential information, usually unintentionally.",
     dialogue:[
-      {s:"Arjun",  l:"Who told the principal about our plan?"},
-      {s:"Keerthi",l:"I think Ramu spilled the beans by accident."},
-      {s:"Arjun",  l:"We specifically asked him to keep quiet!"} ]},
+      {s:"Harry",    t:"Who told Umbridge about the DA meetings?"},
+      {s:"Hermione", t:"Marietta spilled the beans. That’s why her face is covered in spots now."},
+      {s:"Harry",    t:"We trusted her."} ]},
 
-  { id:1016, phrase:"the ball is in your court",
-    hint:"It is now your turn or responsibility to take action.", theme:"Decision",
+  { id:1016, phrase:"the ball is in your court", theme:"Decision",
+    hint:"It is up to you to take the next step or make the next decision.",
     dialogue:[
-      {s:"HR",      l:"We\u2019ve sent you the offer letter. Please let us know your decision."},
-      {s:"Applicant",l:"Thank you. I\u2019ll think it over."},
-      {s:"HR",      l:"Of course. The ball is in your court now."} ]},
+      {s:"Dumbledore", t:"I have given Harry all the information I can. He knows what must be done."},
+      {s:"McGonagall", t:"And if he chooses not to act?"},
+      {s:"Dumbledore", t:"Then that is his choice. The ball is in his court now."} ]},
 
-  { id:1017, phrase:"break a leg",
-    hint:"An expression meaning good luck, especially in theatre.", theme:"Theatre",
+  { id:1017, phrase:"break a leg", theme:"Theatre",
+    hint:"A way to wish someone good luck, especially before a performance.",
     dialogue:[
-      {s:"Director", l:"You\u2019re on in five minutes. Ready?"},
-      {s:"Actress",  l:"I think so. I\u2019m just very nervous."},
-      {s:"Director", l:"You\u2019ll be brilliant. Break a leg!"} ]},
+      {s:"Ron",      t:"I’m absolutely terrified. The whole school is going to watch us play."},
+      {s:"Harry",    t:"You’ve trained harder than anyone. Break a leg out there."},
+      {s:"Ron",      t:"Thanks. I needed that."} ]},
 
-  { id:1018, phrase:"cost an arm and a leg",
-    hint:"Be extremely expensive.", theme:"Money",
+  { id:1018, phrase:"cost an arm and a leg", theme:"Money",
+    hint:"To be extremely expensive.",
     dialogue:[
-      {s:"Nandita", l:"Did you see the price of that phone?"},
-      {s:"Ganesh",  l:"Yes! It costs an arm and a leg. I can\u2019t justify spending that much."},
-      {s:"Nandita", l:"Same. I\u2019ll stick with my old one."} ]},
+      {s:"Ron",      t:"Did you see the price of those Omnioculars?"},
+      {s:"Harry",    t:"Ten Galleons each! They cost an arm and a leg."},
+      {s:"Ron",      t:"I’ll just borrow yours."} ]},
 
-  { id:1019, phrase:"get out of hand",
-    hint:"Become impossible to control or manage.", theme:"Control",
+  { id:1019, phrase:"get out of hand", theme:"Control",
+    hint:"To become impossible to control or manage.",
     dialogue:[
-      {s:"Counsellor",l:"The noise in the corridor has really gotten out of hand."},
-      {s:"Prefect",   l:"I know. I\u2019ll speak to the students right away."},
-      {s:"Counsellor",l:"Please do. It can\u2019t continue like this."} ]},
+      {s:"McGonagall", t:"The pranks in the corridor have completely gotten out of hand."},
+      {s:"Filch",      t:"I’ve been saying so for weeks, Professor."},
+      {s:"McGonagall", t:"Double detentions for the next culprits. No exceptions."} ]},
 
-  { id:1020, phrase:"hit the sack",
-    hint:"Go to bed.", theme:"Sleep",
+  { id:1020, phrase:"hit the sack", theme:"Sleep",
+    hint:"To go to bed and sleep.",
     dialogue:[
-      {s:"Dad",   l:"It\u2019s past midnight. Why are you still up?"},
-      {s:"Rishi", l:"Just finishing one last chapter."},
-      {s:"Dad",   l:"Hit the sack now. You have an early class tomorrow."} ]},
+      {s:"Hermione", t:"It’s nearly two in the morning. Why are you still in the common room?"},
+      {s:"Ron",      t:"Just one more game of chess."},
+      {s:"Hermione", t:"Hit the sack, Ron. We have Potions at eight."} ]},
 
-  { id:1021, phrase:"put all your eggs in one basket",
-    hint:"Rely entirely on one single plan or source.", theme:"Risk",
+  { id:1021, phrase:"put all your eggs in one basket", theme:"Risk",
+    hint:"To rely entirely on one plan, person, or source — a risky strategy.",
     dialogue:[
-      {s:"Mentor",  l:"You only applied to one company?"},
-      {s:"Graduate",l:"Yes, I really want that job."},
-      {s:"Mentor",  l:"Don\u2019t put all your eggs in one basket. Apply to several places."} ]},
+      {s:"Lupin",    t:"You’ve spent all year studying only Defensive spells?"},
+      {s:"Harry",    t:"That’s what I thought I needed most."},
+      {s:"Lupin",    t:"Don’t put all your eggs in one basket, Harry. A duel requires much more than Defence."} ]},
 
-  { id:1022, phrase:"speak of the devil",
-    hint:"Said when someone appears just after being mentioned.", theme:"Coincidence",
+  { id:1022, phrase:"speak of the devil", theme:"Coincidence",
+    hint:"Said when someone appears just after you were talking about them.",
     dialogue:[
-      {s:"Pooja",  l:"I was just wondering where Kartik was."},
-      {s:"Ashwin", l:"Speak of the devil \u2014 here he comes now!"},
-      {s:"Kartik", l:"Were you talking about me?"} ]},
+      {s:"Ron",      t:"I was just wondering where Malfoy had got to—"},
+      {s:"Harry",    t:"Speak of the devil. Here he comes down the corridor."},
+      {s:"Draco",    t:"What are you two staring at?"} ]},
 
-  { id:1023, phrase:"sit on the fence",
-    hint:"Avoid committing to one side of an argument or decision.", theme:"Indecision",
+  { id:1023, phrase:"sit on the fence", theme:"Indecision",
+    hint:"To avoid committing to a side or opinion in a debate.",
     dialogue:[
-      {s:"Moderator",l:"Which policy do you support, Minister?"},
-      {s:"Minister", l:"Both approaches have merit\u2014"},
-      {s:"Moderator",l:"You can\u2019t sit on the fence forever. The public needs an answer."} ]},
+      {s:"Harry",    t:"Whose side is Slughorn on, really?"},
+      {s:"Hermione", t:"He’s been sitting on the fence ever since Voldemort returned."},
+      {s:"Harry",    t:"That’s not good enough. We need to know."} ]},
 
-  { id:1024, phrase:"the best of both worlds",
-    hint:"Enjoy two different advantages at the same time.", theme:"Balance",
+  { id:1024, phrase:"the best of both worlds", theme:"Balance",
+    hint:"To enjoy two different advantages at the same time.",
     dialogue:[
-      {s:"Prerna", l:"Working from home means I can focus and still be with my family."},
-      {s:"Colleague",l:"That\u2019s the best of both worlds."},
-      {s:"Prerna", l:"Exactly why I negotiated a hybrid schedule."} ]},
+      {s:"Hermione", t:"Being Muggle-born means I understand both worlds completely."},
+      {s:"Luna",     t:"You really do get the best of both worlds, don’t you?"},
+      {s:"Hermione", t:"I suppose I do. I’d never thought of it that way."} ]},
 
-  { id:1025, phrase:"no pain no gain",
-    hint:"Hard work and effort are necessary to achieve results.", theme:"Effort",
+  { id:1025, phrase:"no pain no gain", theme:"Effort",
+    hint:"Hard work and effort are necessary to achieve success.",
     dialogue:[
-      {s:"Trainer", l:"Your muscles will be sore tomorrow."},
-      {s:"Rohan",   l:"I was afraid of that."},
-      {s:"Trainer", l:"No pain, no gain. That soreness means they\u2019re getting stronger."} ]},
+      {s:"Oliver Wood", t:"Your arms will be sore from all that catching practice."},
+      {s:"Harry",       t:"They already are."},
+      {s:"Oliver Wood", t:"No pain, no gain, Potter. That’s how you become the best Seeker in the school."} ]},
 
-  { id:1026, phrase:"go back to the drawing board",
-    hint:"Start something over from the beginning after it has failed.", theme:"Planning",
+  { id:1026, phrase:"go back to the drawing board", theme:"Planning",
+    hint:"To start over from the beginning after a plan fails.",
     dialogue:[
-      {s:"CEO",      l:"The new app launch flopped completely."},
-      {s:"Dev Lead", l:"We need to go back to the drawing board and rethink the whole concept."},
-      {s:"CEO",      l:"Agreed. Let\u2019s schedule a strategy meeting."} ]},
+      {s:"Fred",     t:"The Portable Swamp flooded the wrong corridor entirely."},
+      {s:"George",   t:"We need to go back to the drawing board on the timing charm."},
+      {s:"Fred",     t:"Back to the lab tonight, then."} ]},
 
-  { id:1027, phrase:"hang in there",
-    hint:"Persist and remain strong despite difficulty.", theme:"Resilience",
+  { id:1027, phrase:"hang in there", theme:"Resilience",
+    hint:"To persist and keep going despite difficulty.",
     dialogue:[
-      {s:"Friend", l:"I\u2019ve failed the exam twice. I feel like giving up."},
-      {s:"Shreya", l:"Hang in there. You\u2019re so close. Third time will be different."},
-      {s:"Friend", l:"You really think so?"},
-      {s:"Shreya", l:"I know so."} ]},
+      {s:"Neville",  t:"I’ve failed Potions twice. Snape hates me. I don’t see the point."},
+      {s:"Harry",    t:"Hang in there, Neville. You’re brilliant at Herbology. That matters just as much."},
+      {s:"Neville",  t:"You really think so?"},
+      {s:"Harry",    t:"I know so."} ]},
 
-  { id:1028, phrase:"read between the lines",
-    hint:"Understand the hidden or implied meaning of something.", theme:"Insight",
+  { id:1028, phrase:"read between the lines", theme:"Insight",
+    hint:"To find a hidden or implied meaning that is not directly stated.",
     dialogue:[
-      {s:"Sunita",  l:"His email just said \u2018noted\u2019. Nothing else."},
-      {s:"Colleague",l:"Read between the lines. He\u2019s not happy with the proposal."},
-      {s:"Sunita",  l:"Oh. I\u2019ll revise it before sending again."} ]},
+      {s:"Harry",    t:"Dumbledore’s letter just said ‘be careful’. That’s all."},
+      {s:"Hermione", t:"Read between the lines, Harry. He’s warning you without saying it directly."},
+      {s:"Harry",    t:"So the danger is real. I thought so."} ]},
 
-  { id:1029, phrase:"steal someone\u2019s thunder",
-    hint:"Take attention or credit away from someone else\u2019s achievement.", theme:"Rivalry",
+  { id:1029, phrase:"steal someone’s thunder", theme:"Rivalry",
+    hint:"To take attention or credit away from someone else’s moment.",
     dialogue:[
-      {s:"Deepa",  l:"I was about to announce my promotion and Ramesh blurted out his news first."},
-      {s:"Harini", l:"He completely stole your thunder."},
-      {s:"Deepa",  l:"The whole evening became about him."} ]},
+      {s:"Ginny",    t:"I was about to tell everyone I made the team, but then Harry walked in and the whole room went mad."},
+      {s:"Hermione", t:"He completely stole your thunder. I’m sorry."},
+      {s:"Ginny",    t:"It’s fine. I’m used to it."} ]},
 
-  { id:1030, phrase:"wrap your head around it",
-    hint:"Manage to understand something complex or surprising.", theme:"Comprehension",
+  { id:1030, phrase:"wrap your head around it", theme:"Comprehension",
+    hint:"To come to understand something complex or difficult.",
     dialogue:[
-      {s:"Student", l:"I\u2019ve read the chapter three times and still can\u2019t wrap my head around quantum entanglement."},
-      {s:"Professor",l:"That\u2019s completely normal. It takes even physicists years to truly grasp it."},
-      {s:"Student", l:"That\u2019s oddly comforting."} ]},
+      {s:"Ron",      t:"I’ve read the chapter on Time-Turners three times and I still can’t wrap my head around it."},
+      {s:"Hermione", t:"Time travel is genuinely paradoxical. Even experts find it confusing."},
+      {s:"Ron",      t:"That makes me feel slightly better."} ]},
 
-  { id:1031, phrase:"on the fence",
-    hint:"Undecided or uncommitted about something.", theme:"Indecision",
+  { id:1031, phrase:"on the fence", theme:"Indecision",
+    hint:"To be undecided or uncommitted about something.",
     dialogue:[
-      {s:"Anita",  l:"Are you coming to the trip or not?"},
-      {s:"Hari",   l:"I\u2019m still on the fence. I\u2019m not sure I can afford it."},
-      {s:"Anita",  l:"Decide soon \u2014 we need to book the tickets."} ]},
+      {s:"Fred",     t:"Are you joining the Order or not?"},
+      {s:"Percy",    t:"I’m still on the fence. The Ministry says one thing and you lot say another."},
+      {s:"Fred",     t:"There’s no time to be on the fence anymore, Percy."} ]},
 ];
 
 const TOTAL_SECS    = 180;
@@ -683,7 +683,8 @@ window.handleLogin = async function () {
 
     if (matches.length === 0) {
       // New student — just save and go
-      savePlayer(upperName, dept || "Idiom Game");
+      if (!dept) { alert('Please select your department!'); return; }
+      savePlayer(upperName, dept);
       closeLogin();
       showPlayerPill();
       return;
@@ -703,7 +704,8 @@ window.handleLogin = async function () {
 
   } catch (err) {
     console.warn("Supabase lookup failed, proceeding offline:", err);
-    savePlayer(upperName, dept || "Idiom Game");
+    if (!dept) { alert("Please select your department!"); return; }
+    savePlayer(upperName, dept);
     closeLogin();
     showPlayerPill();
   }
@@ -724,7 +726,9 @@ function showDupPicker(matches, dept) {
         " \u00B7 " + (match.quests_completed ?? 0) + " quests" +
       '</div>';
     btn.onclick = () => {
-      savePlayer(match.name.toUpperCase(), dept || match.department || "");
+      // dept = what the user typed in the field; match.department = what's in DB
+      const chosenDept = dept || match.department || "";
+      savePlayer(match.name.toUpperCase(), chosenDept);
       userData = match;
       closeLogin();
       showPlayerPill();
@@ -896,10 +900,10 @@ function buildDialogueDOM() {
     const row = document.createElement('div');
     row.className = 'gdial-line';
 
-    // Speaker initial
+    // Speaker name (full name shown)
     const spEl = document.createElement('span');
     spEl.className = 'gdial-speaker';
-    spEl.textContent = speaker.charAt(0);
+    spEl.textContent = speaker;
     row.appendChild(spEl);
 
     // Text span
@@ -1021,7 +1025,7 @@ function endGame(won) {
 
   if (playerName) {
     document.getElementById('msgLog').textContent = 'Saving Quest ' + currentIdiom.id + '\u2026';
-    logToSupabase({ student_name: playerName, department: playerDept || "Idiom Game", correct, wrong, time_spent: timeSpent, quest_id: 'Quest ' + currentIdiom.id });
+    logToSupabase({ student_name: playerName, department: playerDept, correct, wrong, time_spent: timeSpent, quest_id: 'Quest ' + currentIdiom.id });
   } else {
     document.getElementById('msgLog').textContent = 'Sign in to save scores';
   }
@@ -1110,25 +1114,32 @@ window.openDashboard = async function () {
 };
 
 // Build one idiom card HTML — shows meaning + dialogue, hides phrase
-function boldIdiom(text, phrase) {
-  // Bold the idiom phrase within dialogue text (case-insensitive)
+function processDialogueLine(text, phrase, solved) {
+  // solved cards: bold the idiom; unsolved: blank it with underscores
   const escaped = phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  return text.replace(new RegExp('(' + escaped + ')', 'gi'), '<em>$1</em>');
+  if (solved) {
+    return text.replace(new RegExp('(' + escaped + ')', 'gi'), '<em>$1</em>');
+  } else {
+    // Replace idiom with a blank of equal word-count underscores
+    const blank = phrase.split(' ').map(w => '_'.repeat(w.length)).join(' ');
+    return text.replace(new RegExp(escaped, 'gi'), '<span style="color:rgba(201,168,76,0.4);font-style:normal;letter-spacing:0.08em;">' + blank + '</span>');
+  }
 }
 
 function buildIdiomCard(idiom, solved) {
   const statusIcon = solved ? '\u2713' : '\u25CB';
   const solvedClass = solved ? ' solved' : '';
 
-  // Dialogue lines with idiom bolded
+  // Dialogue lines — bold idiom if solved, blank it if unsolved
   const dialHtml = (idiom.dialogue || []).map(line => {
-    const initial = line.s.charAt(0);
-    const bolded  = boldIdiom(line.t || line.l || '', idiom.phrase);
+    const processed = processDialogueLine(line.t || '', idiom.phrase, solved);
     return '<div class="dial-line">'
-      + '<span class="dial-speaker">' + initial + '</span>'
-      + '<span class="dial-text">' + bolded + '</span>'
+      + '<span class="dial-speaker">' + line.s + '</span>'
+      + '<span class="dial-text">' + processed + '</span>'
       + '</div>';
   }).join('');
+
+  const expandHint = solved ? 'tap to see example &#9660;' : 'tap to see example &#9660;';
 
   return '<div class="idiom-card collapsed' + solvedClass + '" onclick="toggleIdiomCard(this)">'
     + '<div class="idiom-top">'
@@ -1140,10 +1151,9 @@ function buildIdiomCard(idiom, solved) {
       + '<div class="idiom-qid">Q' + idiom.id + '</div>'
     + '</div>'
     + (dialHtml ? '<div class="idiom-dialogue">' + dialHtml + '</div>' : '')
-    + '<div class="idiom-expand-hint">tap for example &#9660;</div>'
+    + '<div class="idiom-expand-hint">' + expandHint + '</div>'
     + '</div>';
 }
-
 window.toggleIdiomCard = function (el) {
   const isExpanded = el.classList.contains('expanded');
   el.classList.toggle('collapsed', isExpanded);

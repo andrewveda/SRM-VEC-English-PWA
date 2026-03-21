@@ -172,7 +172,12 @@
   .game-dialogue-label {
     font-size: 8px; letter-spacing: 0.25em; text-transform: uppercase;
     color: rgba(201,168,76,0.35); font-family: 'DM Mono', monospace;
-    margin-bottom: 1px;
+    margin-bottom: 3px;
+  }
+  .game-definition {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 15px; font-style: italic;
+    color: var(--gold-pale); line-height: 1.45; text-align: center;
   }
   .gdial-line { display: flex; gap: 6px; align-items: flex-start; }
   .gdial-speaker {
@@ -223,6 +228,13 @@
   .msg-time  { font-family: 'Playfair Display', serif; font-size: 14px; color: rgba(201,168,76,0.5); margin-bottom: 6px; }
   .msg-time strong { color: var(--gold-light); }
   .msg-log   { font-size: 11px; color: rgba(201,168,76,0.38); margin-bottom: 18px; min-height: 16px; font-family: 'DM Mono', monospace; letter-spacing: 0.06em; }
+  /* Dialogue shown in result overlay */
+  .msg-dialogue { margin: 8px 0 14px; text-align: left; display: flex; flex-direction: column; gap: 5px; }
+  .msg-dial-line { display: flex; gap: 8px; align-items: flex-start; }
+  .msg-dial-speaker { font-family: 'DM Mono', monospace; font-size: 8px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gold); flex-shrink: 0; padding-top: 3px; min-width: 64px; max-width: 64px; line-height: 1.3; word-break: break-word; }
+  .msg-dial-text { font-family: 'Cormorant Garamond', serif; font-size: 13px; color: rgba(245,230,184,0.85); line-height: 1.45; flex: 1; }
+  .msg-dial-text em { color: var(--gold-light); font-style: normal; font-weight: 700; }
+  .msg-section-lbl { font-size: 8px; letter-spacing: 0.25em; text-transform: uppercase; color: rgba(201,168,76,0.38); font-family: 'DM Mono', monospace; margin-top: 2px; margin-bottom: 2px; text-align: left; }
 
   /* Dashboard overlay */
   .dash-overlay { display: none; position: fixed; inset: 0; background: rgba(10,8,3,0.95); z-index: 150; overflow-y: auto; padding: 16px 14px 32px; backdrop-filter: blur(8px); }
@@ -326,10 +338,10 @@
 
   <div class="hint-strip">Theme: <span id="hintText">&mdash;</span></div>
 
-  <!-- In-game dialogue with idiom blanked -->
+  <!-- Definition clue -->
   <div class="game-dialogue" id="gameDialogue">
-    <div class="game-dialogue-label">Context</div>
-    <div id="gameDialogueLines"></div>
+    <div class="game-dialogue-label">Definition</div>
+    <div class="game-definition" id="gameDefinition"></div>
   </div>
 
   <div class="word-area"     id="wordArea"></div>
@@ -389,9 +401,10 @@
     <span class="msg-icon"  id="msgIcon"></span>
     <div class="msg-title"  id="msgTitle"></div>
     <div class="msg-idiom"  id="msgIdiom"></div>
-    <div class="msg-hint"   id="msgHint"></div>
     <div class="msg-time"   id="msgTime"></div>
-    <div class="msg-log"    id="msgLog"></div>
+    <div class="msg-section-lbl" id="msgDialLbl" style="display:none;">In context</div>
+    <div class="msg-dialogue"    id="msgDialogue"></div>
+    <div class="msg-log"         id="msgLog"></div>
     <button class="btn-gold" onclick="newGame()">Next Idiom</button>
   </div>
 </div>
@@ -860,7 +873,10 @@ window.newGame = function () {
   document.getElementById('wrongStreak').textContent   = '0';
   document.getElementById('gemCount').textContent      = gemCount;
   document.getElementById('msgLog').textContent        = '';
-  updateTimerUI(); renderWord(); buildDialogueDOM(); startTimer();
+  document.getElementById('msgDialogue').innerHTML     = '';
+  const dl = document.getElementById('msgDialLbl'); if (dl) dl.style.display = 'none';
+  document.getElementById('gameDefinition').textContent = currentIdiom.hint;
+  updateTimerUI(); renderWord(); startTimer();
 };
 
 // ── GUESS ─────────────────────────────────────────────────────────
@@ -1068,7 +1084,8 @@ function endGame(won) {
   }
 
   document.getElementById('msgIdiom').textContent = '\u201C' + currentIdiom.phrase + '\u201D';
-  document.getElementById('msgHint').textContent  = currentIdiom.hint;
+  // Build dialogue in overlay
+  buildOverlayDialogue();
 
   if (playerName) {
     document.getElementById('msgLog').textContent = 'Saving Quest ' + currentIdiom.id + '\u2026';
@@ -1077,6 +1094,32 @@ function endGame(won) {
     document.getElementById('msgLog').textContent = 'Sign in to save scores';
   }
   showOverlay();
+}
+
+function buildOverlayDialogue() {
+  const container = document.getElementById('msgDialogue');
+  const lbl       = document.getElementById('msgDialLbl');
+  if (!container) return;
+  container.innerHTML = '';
+
+  const lines  = currentIdiom.dialogue || [];
+  const phrase = currentIdiom.phrase;
+
+  if (!lines.length) { if (lbl) lbl.style.display = 'none'; return; }
+  if (lbl) lbl.style.display = 'block';
+
+  // Bold the idiom phrase in each line
+  const escaped = phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  lines.forEach(line => {
+    const text    = line.t || '';
+    const bolded  = text.replace(new RegExp(escaped, 'gi'), '<em>$&</em>');
+    const row     = document.createElement('div');
+    row.className = 'msg-dial-line';
+    row.innerHTML =
+      '<span class="msg-dial-speaker">' + line.s + '</span>' +
+      '<span class="msg-dial-text">'    + bolded  + '</span>';
+    container.appendChild(row);
+  });
 }
 
 async function logToSupabase(payload) {

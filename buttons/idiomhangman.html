@@ -159,6 +159,7 @@
   .dash-btn{display:flex;align-items:center;justify-content:center;gap:6px;padding:6px 12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--gold);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.1em;cursor:pointer;transition:background .2s,border-color .2s;text-transform:uppercase;flex-shrink:0;}
   .dash-btn:active{background:var(--surface2);}
   .overlay{display:none;position:fixed;inset:0;background:rgba(10,8,3,.9);z-index:100;justify-content:center;align-items:center;padding:24px;backdrop-filter:blur(6px);}
+
   html.light .overlay{background:rgba(250,244,232,.92);}
   .overlay.show{display:flex;}
   .msg-card{background:var(--card-bg);border:1px solid var(--gold);border-radius:16px;padding:22px 20px;text-align:center;max-width:340px;width:100%;box-shadow:0 0 50px rgba(201,168,76,.15);animation:cardIn .4s cubic-bezier(.34,1.56,.64,1) forwards;overflow-y:auto;max-height:90dvh;}
@@ -224,6 +225,20 @@
   @keyframes gemPop{0%{transform:scale(1)}50%{transform:scale(1.35) rotate(8deg)}100%{transform:scale(1)}}
   .gem-pop{animation:gemPop .4s ease;}
   @keyframes wrongShake{0%,100%{transform:translateX(0)}20%{transform:translateX(-5px)}60%{transform:translateX(5px)}80%{transform:translateX(-3px)}}
+  /* Win: each letter bounces gold */
+  @keyframes winBounce{0%{transform:translateY(0) scale(1)}30%{transform:translateY(-10px) scale(1.18)}55%{transform:translateY(2px) scale(0.95)}75%{transform:translateY(-4px) scale(1.06)}100%{transform:translateY(0) scale(1)}}
+  .letter-char.win-bounce{animation:winBounce .55s ease forwards;}
+  /* Word group glows gold on win */
+  .word-group.win-glow{border-color:var(--gold) !important;box-shadow:0 0 14px rgba(201,168,76,.5);transition:box-shadow .3s,border-color .3s;}
+  /* In-game dialogue card slides in */
+  .in-game-dial{display:none;background:var(--def-bg);border:1px solid var(--border);border-radius:10px;padding:10px 14px;flex-direction:column;gap:5px;flex-shrink:0;}
+  .in-game-dial.show{display:flex;animation:dialSlideIn .45s cubic-bezier(.22,1,.36,1) forwards;}
+  @keyframes dialSlideIn{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:translateY(0);}}
+  .in-game-dial-lbl{font-size:8px;letter-spacing:.25em;text-transform:uppercase;color:var(--gold);opacity:.45;font-family:'DM Mono',monospace;margin-bottom:2px;}
+  .in-game-dial-line{display:flex;gap:8px;align-items:flex-start;}
+  .in-game-dial-speaker{font-family:'DM Mono',monospace;font-size:7px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);flex-shrink:0;padding-top:3px;min-width:68px;max-width:68px;line-height:1.3;word-break:break-word;}
+  .in-game-dial-text{font-family:'Cormorant Garamond',serif;font-size:14px;color:var(--text-main);line-height:1.4;flex:1;opacity:.88;}
+  .in-game-dial-text em{color:var(--gold-light);font-style:normal;font-weight:700;}
   .shake{animation:wrongShake .35s ease;}
   @keyframes timerFlash{0%,100%{background:var(--surface)}40%{background:rgba(139,32,32,.22)}}
   .timer-card.penalty{animation:timerFlash .5s ease;}
@@ -289,6 +304,10 @@
 
   <div class="word-area"     id="wordArea"></div>
   <div class="wrong-letters" id="wrongLetters"></div>
+  <div class="in-game-dial" id="inGameDial">
+    <div class="in-game-dial-lbl">In context</div>
+    <div id="inGameDialLines"></div>
+  </div>
   <div class="keyboard"      id="keyboard"></div>
 
   <button class="dash-btn" onclick="openDashboard()">
@@ -421,7 +440,9 @@
     <div class="msg-idiom"  id="msgIdiom"></div>
     <div class="msg-time"   id="msgTime"></div>
     <div class="msg-section-lbl" id="msgDialLbl" style="display:none;">In context</div>
-    <div class="msg-dialogue"    id="msgDialogue"></div>
+    <div class="msg-dialogue-wrap" id="msgDialogueWrap" style="display:none;">
+      <div class="msg-dialogue" id="msgDialogue"></div>
+    </div>
     <div class="msg-log"         id="msgLog"></div>
     <button class="btn-gold" onclick="newGame()">Next Idiom</button>
   </div>
@@ -683,6 +704,7 @@ const idioms = [
       {s:"Percy",    t:"I’m still on the fence. The Ministry says one thing and you lot say another."},
       {s:"Fred",     t:"There’s no time to be on the fence anymore, Percy."} ]},
 
+  
   { 
   id:1032,
   phrase:"shoot for the stars",
@@ -1027,6 +1049,12 @@ window.newGame = function () {
   document.getElementById('msgLog').textContent        = '';
   document.getElementById('msgDialogue').innerHTML     = '';
   const dl = document.getElementById('msgDialLbl'); if (dl) dl.style.display = 'none';
+  const dw = document.getElementById('msgDialogueWrap'); if (dw) dw.style.display = 'none';
+  const inDial = document.getElementById('inGameDial');
+  if (inDial) inDial.classList.remove('show');
+  // Remove win animations from previous round
+  document.querySelectorAll('.letter-char').forEach(ch => ch.classList.remove('win-bounce'));
+  document.querySelectorAll('.word-group').forEach(g => g.classList.remove('win-glow'));
   document.getElementById('gameDefinition').textContent = currentIdiom.hint;
   updateTimerUI(); renderWord(); startTimer();
 };
@@ -1209,6 +1237,43 @@ function updateWrongLetters(letter) {
 }
 
 // ── END GAME + SUPABASE LOG ───────────────────────────────────────
+// Staggered bounce animation on each letter char
+function animateWinLetters() {
+  const chars = document.querySelectorAll('.letter-char');
+  chars.forEach((ch, i) => {
+    setTimeout(() => {
+      ch.classList.add('win-bounce');
+    }, i * 60);
+  });
+  // Glow each word group
+  document.querySelectorAll('.word-group').forEach((g, i) => {
+    setTimeout(() => g.classList.add('win-glow'), i * 80);
+  });
+}
+
+// Build in-game dialogue card (below wrong letters, above keyboard)
+function buildInGameDialogue() {
+  const dial    = document.getElementById('inGameDial');
+  const lines_c = document.getElementById('inGameDialLines');
+  if (!dial || !lines_c) return;
+  lines_c.innerHTML = '';
+  const lines   = currentIdiom.dialogue || [];
+  const phrase  = currentIdiom.phrase;
+  const escaped = phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  lines.forEach(line => {
+    const text   = line.t || '';
+    const bolded = text.replace(new RegExp(escaped, 'gi'), '<em>$&</em>');
+    const row    = document.createElement('div');
+    row.className = 'in-game-dial-line';
+    row.innerHTML = '<span class="in-game-dial-speaker">' + line.s + '</span>'
+                  + '<span class="in-game-dial-text">' + bolded + '</span>';
+    lines_c.appendChild(row);
+  });
+  dial.classList.remove('show');
+  void dial.offsetWidth; // reflow to restart animation
+  dial.classList.add('show');
+}
+
 function countGuesses() {
   const letters = new Set(currentIdiom.phrase.toUpperCase().replace(/[^A-Z]/g,'').split(''));
   let c = 0, w = 0;
@@ -1223,30 +1288,60 @@ function endGame(won) {
 
   if (won) {
     updateDialogueSlots();
-    document.getElementById('msgIcon').textContent   = '\uD83C\uDFC6';
-    document.getElementById('msgTitle').textContent  = 'Splendid! \uD83D\uDC8E' + gemCount;
-    document.getElementById('msgTime').innerHTML     = 'Time remaining: <strong>' + Math.floor(timeLeft/60) + ':' + (timeLeft%60).toString().padStart(2,'0') + '</strong>';
+    // ── Step 1: Animate each letter bouncing ──────────────────────
+    animateWinLetters();
+
+    // ── Step 2: After 1.8s show in-page dialogue card ─────────────
+    setTimeout(() => {
+      buildInGameDialogue();
+      // Disable keyboard — game is over
+      document.querySelectorAll('.kb-key').forEach(k => { k.disabled = true; });
+    }, 1800);
+
+    // ── Step 3: After 3.5s show the result overlay ────────────────
+    setTimeout(() => {
+      document.getElementById('msgIcon').textContent   = '\uD83C\uDFC6';
+      document.getElementById('msgTitle').textContent  = 'Splendid!';
+      document.getElementById('msgTime').innerHTML     = 'You earned \uD83D\uDC8E <strong>' + gemCount + '</strong> gems';
+      document.getElementById('msgIdiom').textContent  = '\u201C' + currentIdiom.phrase + '\u201D';
+      buildOverlayDialogue();
+      const wrap = document.getElementById('msgDialogueWrap');
+      const lbl  = document.getElementById('msgDialLbl');
+      if (wrap) wrap.style.display = 'block';
+      if (lbl)  lbl.style.display  = 'block';
+      if (playerName) {
+        document.getElementById('msgLog').textContent = 'Saving Quest ' + currentIdiom.id + '\u2026';
+        logToSupabase({ student_name: playerName, department: playerDept, correct, wrong, time_spent: timeSpent, quest_id: 'Quest ' + currentIdiom.id });
+      } else {
+        document.getElementById('msgLog').textContent = 'Sign in to save scores';
+      }
+      showOverlay();
+    }, 3600);
+
   } else {
+    // Time's up — go straight to overlay, no celebration
     guessed = new Set(currentIdiom.phrase.toUpperCase().replace(/[^A-Z]/g,'').split(''));
     renderWord();
     updateDialogueSlots();
     document.getElementById('msgIcon').textContent   = '\u23F3';
     document.getElementById('msgTitle').textContent  = 'Time\u2019s Up!';
     document.getElementById('msgTime').innerHTML     = '';
+    document.getElementById('msgIdiom').textContent  = '\u201C' + currentIdiom.phrase + '\u201D';
+    buildOverlayDialogue();
+    const wrap = document.getElementById('msgDialogueWrap');
+    const lbl  = document.getElementById('msgDialLbl');
+    if (wrap) { wrap.style.display = 'block'; }
+    if (lbl)  lbl.style.display = 'block';
+    if (playerName) {
+      document.getElementById('msgLog').textContent = 'Saving Quest ' + currentIdiom.id + '\u2026';
+      logToSupabase({ student_name: playerName, department: playerDept, correct, wrong, time_spent: timeSpent, quest_id: 'Quest ' + currentIdiom.id });
+    } else {
+      document.getElementById('msgLog').textContent = 'Sign in to save scores';
+    }
+    showOverlay();
   }
-
-  document.getElementById('msgIdiom').textContent = '\u201C' + currentIdiom.phrase + '\u201D';
-  // Build dialogue in overlay
-  buildOverlayDialogue();
-
-  if (playerName) {
-    document.getElementById('msgLog').textContent = 'Saving Quest ' + currentIdiom.id + '\u2026';
-    logToSupabase({ student_name: playerName, department: playerDept, correct, wrong, time_spent: timeSpent, quest_id: 'Quest ' + currentIdiom.id });
-  } else {
-    document.getElementById('msgLog').textContent = 'Sign in to save scores';
-  }
-  showOverlay();
 }
+
 
 function buildOverlayDialogue() {
   const container = document.getElementById('msgDialogue');
@@ -1383,6 +1478,12 @@ window.playSpecificIdiom = function (idiomId) {
   document.getElementById('msgLog').textContent        = '';
   document.getElementById('msgDialogue').innerHTML     = '';
   const dl = document.getElementById('msgDialLbl'); if (dl) dl.style.display = 'none';
+  const dw = document.getElementById('msgDialogueWrap'); if (dw) dw.style.display = 'none';
+  const inDial = document.getElementById('inGameDial');
+  if (inDial) inDial.classList.remove('show');
+  // Remove win animations from previous round
+  document.querySelectorAll('.letter-char').forEach(ch => ch.classList.remove('win-bounce'));
+  document.querySelectorAll('.word-group').forEach(g => g.classList.remove('win-glow'));
   document.getElementById('gameDefinition').textContent = currentIdiom.hint;
   hideOverlay();
   updateTimerUI();

@@ -127,6 +127,53 @@
   /* Ornament */
   .ornament { text-align: center; color: rgba(201,168,76,0.2); font-size: 16px; letter-spacing: 8px; }
 
+  /* ── IN-GAME DIALOGUE CARD ── */
+  .game-dialogue {
+    background: rgba(201,168,76,0.04);
+    border: 1px solid rgba(201,168,76,0.18);
+    border-radius: 12px;
+    padding: 11px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+  .game-dialogue-label {
+    font-size: 9px; letter-spacing: 0.28em; text-transform: uppercase;
+    color: rgba(201,168,76,0.38); font-family: 'DM Mono', monospace;
+    margin-bottom: 2px;
+  }
+  .gdial-line { display: flex; gap: 9px; align-items: flex-start; }
+  .gdial-speaker {
+    font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: 0.15em;
+    text-transform: uppercase; color: var(--gold); flex-shrink: 0;
+    padding-top: 3px; min-width: 16px;
+  }
+  .gdial-text {
+    font-family: 'Cormorant Garamond', serif; font-size: 14px;
+    color: rgba(245,230,184,0.82); line-height: 1.5; flex: 1;
+  }
+  /* Blank slots inside the dialogue */
+  .gdial-blank {
+    display: inline-flex; gap: 2px; align-items: flex-end;
+    vertical-align: bottom; margin: 0 2px;
+  }
+  .gdial-slot {
+    display: inline-flex; flex-direction: column; align-items: center; gap: 1px;
+  }
+  .gdial-letter {
+    font-family: 'Playfair Display', serif; font-size: 14px; font-weight: 700;
+    color: var(--gold-light); line-height: 1; min-width: 10px; text-align: center;
+    transition: opacity 0.3s;
+  }
+  .gdial-letter.hidden { opacity: 0; }
+  .gdial-underline {
+    width: 100%; min-width: 10px; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    opacity: 0.6;
+  }
+  /* Spaces between words in blank show as wider gap */
+  .gdial-word-gap { display: inline-block; width: 7px; }
+
   /* Dashboard button */
   .dash-btn { display: flex; align-items: center; justify-content: center; gap: 7px; padding: 9px 14px; background: rgba(201,168,76,0.06); border: 1px solid rgba(201,168,76,0.25); border-radius: 10px; color: rgba(201,168,76,0.7); font-family: 'DM Mono', monospace; font-size: 12px; letter-spacing: 0.1em; cursor: pointer; transition: all 0.2s; text-transform: uppercase; }
   .dash-btn:active { background: rgba(201,168,76,0.14); }
@@ -240,6 +287,13 @@
   </div>
 
   <div class="hint-strip">Theme: <span id="hintText">&mdash;</span></div>
+
+  <!-- In-game dialogue with idiom blanked -->
+  <div class="game-dialogue" id="gameDialogue">
+    <div class="game-dialogue-label">Context</div>
+    <div id="gameDialogueLines"></div>
+  </div>
+
   <div class="word-area"     id="wordArea"></div>
   <div class="wrong-letters" id="wrongLetters"></div>
   <div class="keyboard"      id="keyboard"></div>
@@ -764,7 +818,7 @@ window.newGame = function () {
   document.getElementById('correctStreak').textContent = '0';
   document.getElementById('wrongStreak').textContent   = '0';
   document.getElementById('msgLog').textContent        = '';
-  updateTimerUI(); renderWord(); startTimer();
+  updateTimerUI(); renderWord(); buildDialogueDOM(); startTimer();
 };
 
 // ── GUESS ─────────────────────────────────────────────────────────
@@ -780,6 +834,7 @@ function guess(letter) {
     document.getElementById('correctStreak').textContent = consecutiveCorrect;
     document.getElementById('wrongStreak').textContent   = '0';
     renderWord();
+    updateDialogueSlots();
     if (checkWin()) { endGame(true); return; }
   } else {
     consecutiveCorrect = 0; consecutiveWrong++;
@@ -818,6 +873,108 @@ function checkWin() {
   return currentIdiom.phrase.split('').every(ch => !/[a-z]/i.test(ch) || guessed.has(ch.toUpperCase()));
 }
 
+// ── IN-GAME DIALOGUE RENDERING ────────────────────────────────────
+// Builds slot-based blanks for the idiom phrase within dialogue text.
+// Each letter of the idiom becomes a slot; spaces between idiom words
+// become visible gaps. Non-idiom text is rendered normally.
+// Call renderDialogue() on new game, updateDialogue() on each guess.
+
+function buildDialogueDOM() {
+  const container = document.getElementById('gameDialogueLines');
+  if (!container) return;
+  container.innerHTML = '';
+
+  const lines = currentIdiom.dialogue || [];
+  const phrase = currentIdiom.phrase.toLowerCase();
+
+  lines.forEach(line => {
+    const text = line.t || line.l || '';
+    const speaker = line.s || '';
+    const lowerText = text.toLowerCase();
+    const phraseIdx = lowerText.indexOf(phrase);
+
+    const row = document.createElement('div');
+    row.className = 'gdial-line';
+
+    // Speaker initial
+    const spEl = document.createElement('span');
+    spEl.className = 'gdial-speaker';
+    spEl.textContent = speaker.charAt(0);
+    row.appendChild(spEl);
+
+    // Text span
+    const txEl = document.createElement('span');
+    txEl.className = 'gdial-text';
+
+    if (phraseIdx === -1) {
+      // Idiom not in this line — plain text
+      txEl.textContent = text;
+    } else {
+      // Before idiom
+      if (phraseIdx > 0) {
+        txEl.appendChild(document.createTextNode(text.slice(0, phraseIdx)));
+      }
+
+      // Blank zone: one slot per character of the phrase
+      const blankWrap = document.createElement('span');
+      blankWrap.className = 'gdial-blank';
+      blankWrap.id = 'gdial-blank-' + line.s.replace(/\W/g,'');
+
+      phrase.split('').forEach((ch, ci) => {
+        if (ch === ' ') {
+          // Word gap
+          const gap = document.createElement('span');
+          gap.className = 'gdial-word-gap';
+          blankWrap.appendChild(gap);
+        } else {
+          const slot = document.createElement('span');
+          slot.className = 'gdial-slot';
+          slot.dataset.char = ch;
+          slot.dataset.idx  = ci;
+
+          const letter = document.createElement('span');
+          letter.className = 'gdial-letter hidden';
+          letter.textContent = text[phraseIdx + ci].toUpperCase();
+          letter.id = 'gdl-' + line.s.replace(/\W/g,'') + '-' + ci;
+
+          const uline = document.createElement('span');
+          uline.className = 'gdial-underline';
+
+          slot.appendChild(letter);
+          slot.appendChild(uline);
+          blankWrap.appendChild(slot);
+        }
+      });
+
+      txEl.appendChild(blankWrap);
+
+      // After idiom
+      const afterStart = phraseIdx + phrase.length;
+      if (afterStart < text.length) {
+        txEl.appendChild(document.createTextNode(text.slice(afterStart)));
+      }
+    }
+
+    row.appendChild(txEl);
+    container.appendChild(row);
+  });
+}
+
+// Called on each correct guess — reveals matching letters in blanks
+function updateDialogueSlots() {
+  const phrase = currentIdiom.phrase.toLowerCase();
+  phrase.split('').forEach((ch, ci) => {
+    if (ch === ' ') return;
+    if (guessed.has(ch.toUpperCase())) {
+      // Reveal all slots with this character across all dialogue lines
+      document.querySelectorAll('.gdial-slot[data-char="' + ch + '"]').forEach(slot => {
+        const letter = slot.querySelector('.gdial-letter');
+        if (letter) letter.classList.remove('hidden');
+      });
+    }
+  });
+}
+
 function updateWrongLetters(letter) {
   const el = document.getElementById('wrongLetters');
   if (!el.querySelector('.wrong-label')) {
@@ -844,6 +1001,7 @@ function endGame(won) {
     if (currentStreak > bestStreak) bestStreak = currentStreak;
     document.getElementById('scoreWins').textContent      = wins;
     document.getElementById('scoreWinStreak').textContent = bestStreak;
+    updateDialogueSlots();
     document.getElementById('msgIcon').textContent   = '\uD83C\uDFC6';
     document.getElementById('msgTitle').textContent  = 'Splendid!';
     document.getElementById('msgTime').innerHTML     = 'Time remaining: <strong>' + Math.floor(timeLeft/60) + ':' + (timeLeft%60).toString().padStart(2,'0') + '</strong>';
@@ -852,6 +1010,7 @@ function endGame(won) {
     document.getElementById('scoreLosses').textContent = losses;
     guessed = new Set(currentIdiom.phrase.toUpperCase().replace(/[^A-Z]/g,'').split(''));
     renderWord();
+    updateDialogueSlots();
     document.getElementById('msgIcon').textContent   = '\u23F3';
     document.getElementById('msgTitle').textContent  = 'Time\u2019s Up!';
     document.getElementById('msgTime').innerHTML     = '';

@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#1a1208">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Idiom Hangman">
+<meta name="description" content="An elegant hangman game with English idioms">
+<title>Idiom Hangman</title>
+<link rel="manifest" href="manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --gold: #C9A84C;
+    --gold-light: #E8C97A;
+    --gold-pale: #F5E6B8;
+    --cream: #F9F3E3;
+    --cream-dark: #EDE3C8;
+    --dark: #1a1208;
+    --dark-mid: #2d2010;
+    --dark-warm: #3d2e12;
+    --shadow: rgba(201, 168, 76, 0.2);
+    --danger: #8B2020;
+    --success: #2D5A27;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    height: 100%;
+    background: var(--dark);
+    font-family: 'Cormorant Garamond', serif;
+    color: var(--cream);
+    overflow-x: hidden;
+  }
+
+  body {
+    background-image: 
+      radial-gradient(ellipse at 20% 10%, rgba(201,168,76,0.08) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 90%, rgba(201,168,76,0.06) 0%, transparent 50%),
+      repeating-linear-gradient(
+        45deg,
+        transparent,
+        transparent 40px,
+        rgba(201,168,76,0.02) 40px,
+        rgba(201,168,76,0.02) 41px
+      );
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── HEADER ── */
+  header {
+    text-align: center;
+    padding: 20px 16px 12px;
+    border-bottom: 1px solid rgba(201,168,76,0.25);
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  header::before, header::after {
+    content: '✦';
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--gold);
+    font-size: 14px;
+    opacity: 0.6;
+  }
+  header::before { left: 20px; }
+  header::after  { right: 20px; }
+
+  h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(22px, 6vw, 32px);
+    font-weight: 400;
+    letter-spacing: 0.12em;
+    color: var(--gold-light);
+    text-shadow: 0 0 30px rgba(201,168,76,0.4);
+    line-height: 1.1;
+  }
+
+  .subtitle {
+    font-size: 11px;
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+    color: rgba(201,168,76,0.55);
+    margin-top: 4px;
+  }
+
+  /* ── MAIN LAYOUT ── */
+  main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 12px 14px;
+    gap: 12px;
+    max-width: 480px;
+    margin: 0 auto;
+    width: 100%;
+  }
+
+  /* ── LIVES ROW ── */
+  .lives-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 14px;
+    background: rgba(201,168,76,0.06);
+    border: 1px solid rgba(201,168,76,0.2);
+    border-radius: 8px;
+  }
+
+  .lives-label {
+    font-size: 11px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: rgba(201,168,76,0.6);
+  }
+
+  .lives-pips {
+    display: flex;
+    gap: 6px;
+  }
+
+  .pip {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 1.5px solid var(--gold);
+    background: var(--gold);
+    transition: all 0.4s ease;
+    box-shadow: 0 0 6px rgba(201,168,76,0.4);
+  }
+
+  .pip.lost {
+    background: transparent;
+    border-color: rgba(201,168,76,0.25);
+    box-shadow: none;
+  }
+
+  .wrong-count {
+    font-size: 13px;
+    color: var(--gold-pale);
+    letter-spacing: 0.05em;
+  }
+
+  /* ── GALLOWS ── */
+  .gallows-card {
+    background: rgba(201,168,76,0.04);
+    border: 1px solid rgba(201,168,76,0.18);
+    border-radius: 12px;
+    padding: 10px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .gallows-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      90deg, transparent, transparent 20px,
+      rgba(201,168,76,0.015) 20px, rgba(201,168,76,0.015) 21px
+    );
+  }
+
+  svg#gallows {
+    width: 140px;
+    height: 140px;
+    filter: drop-shadow(0 0 8px rgba(201,168,76,0.15));
+  }
+
+  .gallows-beam { stroke: var(--gold); stroke-width: 2.5; stroke-linecap: round; }
+  .rope { stroke: var(--gold-pale); stroke-width: 1.5; opacity: 0; transition: opacity 0.3s; }
+  .body-part { stroke: var(--gold-light); stroke-width: 2.5; stroke-linecap: round; opacity: 0; transition: opacity 0.4s; fill: none; }
+
+  /* ── HINT / CATEGORY ── */
+  .hint-strip {
+    text-align: center;
+    font-size: 11px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: rgba(201,168,76,0.5);
+    padding: 2px 0;
+  }
+
+  .hint-strip span {
+    color: var(--gold);
+    font-style: italic;
+    font-family: 'Playfair Display', serif;
+    font-size: 13px;
+    letter-spacing: 0.05em;
+    text-transform: none;
+  }
+
+  /* ── WORD DISPLAY ── */
+  .word-area {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px 10px;
+    padding: 4px 0;
+  }
+
+  .word-group {
+    display: flex;
+    gap: 5px;
+    align-items: flex-end;
+  }
+
+  .letter-slot {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+
+  .letter-char {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(18px, 5vw, 26px);
+    font-weight: 700;
+    color: var(--gold-light);
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-shadow: 0 0 15px rgba(201,168,76,0.5);
+    transition: all 0.3s ease;
+    min-width: 18px;
+    text-align: center;
+  }
+
+  .letter-char.revealed {
+    animation: revealLetter 0.5s ease forwards;
+  }
+
+  @keyframes revealLetter {
+    0%   { transform: translateY(-10px); opacity: 0; }
+    60%  { transform: translateY(3px); }
+    100% { transform: translateY(0); opacity: 1; }
+  }
+
+  .letter-line {
+    width: 100%;
+    min-width: 16px;
+    height: 1.5px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    opacity: 0.7;
+  }
+
+  /* ── WRONG LETTERS ── */
+  .wrong-letters {
+    text-align: center;
+    font-family: 'Playfair Display', serif;
+    font-size: 14px;
+    letter-spacing: 0.15em;
+    color: rgba(180,60,60,0.9);
+    min-height: 24px;
+    padding: 2px 0;
+  }
+
+  .wrong-label {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 10px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: rgba(180,60,60,0.5);
+    margin-right: 6px;
+  }
+
+  /* ── KEYBOARD ── */
+  .keyboard {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 4px 0;
+  }
+
+  .kb-row {
+    display: flex;
+    justify-content: center;
+    gap: 5px;
+  }
+
+  .kb-key {
+    width: 30px;
+    height: 38px;
+    border-radius: 6px;
+    border: 1px solid rgba(201,168,76,0.35);
+    background: rgba(201,168,76,0.06);
+    color: var(--gold-light);
+    font-family: 'Playfair Display', serif;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    position: relative;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+
+  .kb-key::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(201,168,76,0.12) 0%, transparent 100%);
+    pointer-events: none;
+  }
+
+  .kb-key:active {
+    transform: scale(0.92);
+    background: rgba(201,168,76,0.2);
+  }
+
+  .kb-key.correct {
+    background: rgba(45,90,39,0.35);
+    border-color: rgba(100,180,80,0.4);
+    color: rgba(150,230,120,0.9);
+    cursor: not-allowed;
+  }
+
+  .kb-key.wrong {
+    background: rgba(100,20,20,0.3);
+    border-color: rgba(150,40,40,0.3);
+    color: rgba(180,80,80,0.5);
+    cursor: not-allowed;
+  }
+
+  .kb-key:disabled {
+    cursor: not-allowed;
+  }
+
+  /* ── MESSAGE OVERLAY ── */
+  .message-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(10,8,3,0.88);
+    z-index: 100;
+    justify-content: center;
+    align-items: center;
+    padding: 24px;
+    backdrop-filter: blur(6px);
+  }
+
+  .message-overlay.show { display: flex; }
+
+  .message-card {
+    background: linear-gradient(160deg, var(--dark-warm), var(--dark));
+    border: 1px solid var(--gold);
+    border-radius: 16px;
+    padding: 32px 28px;
+    text-align: center;
+    max-width: 340px;
+    width: 100%;
+    box-shadow: 0 0 60px rgba(201,168,76,0.2), inset 0 1px 0 rgba(201,168,76,0.15);
+    animation: cardIn 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards;
+  }
+
+  @keyframes cardIn {
+    from { transform: scale(0.7) translateY(20px); opacity: 0; }
+    to   { transform: scale(1) translateY(0); opacity: 1; }
+  }
+
+  .message-icon {
+    font-size: 48px;
+    margin-bottom: 12px;
+    display: block;
+  }
+
+  .message-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 28px;
+    font-weight: 400;
+    color: var(--gold-light);
+    margin-bottom: 8px;
+  }
+
+  .message-idiom {
+    font-family: 'Playfair Display', serif;
+    font-style: italic;
+    font-size: 18px;
+    color: var(--cream);
+    margin-bottom: 8px;
+  }
+
+  .message-hint {
+    font-size: 14px;
+    color: rgba(201,168,76,0.65);
+    line-height: 1.5;
+    margin-bottom: 24px;
+    font-style: italic;
+  }
+
+  .btn-play {
+    background: linear-gradient(135deg, var(--gold), #a07828);
+    color: var(--dark);
+    border: none;
+    border-radius: 8px;
+    padding: 13px 36px;
+    font-family: 'Playfair Display', serif;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    cursor: pointer;
+    width: 100%;
+    transition: all 0.2s;
+    box-shadow: 0 4px 20px rgba(201,168,76,0.3);
+  }
+
+  .btn-play:active { transform: scale(0.97); }
+
+  /* ── SCORE ── */
+  .score-row {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    padding: 6px 0;
+  }
+
+  .score-item {
+    text-align: center;
+  }
+
+  .score-val {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px;
+    color: var(--gold-light);
+    line-height: 1;
+  }
+
+  .score-lbl {
+    font-size: 9px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: rgba(201,168,76,0.45);
+    margin-top: 2px;
+  }
+
+  .divider {
+    width: 1px;
+    background: rgba(201,168,76,0.2);
+    align-self: stretch;
+    margin: 4px 0;
+  }
+
+  /* ── ORNAMENT ── */
+  .ornament {
+    text-align: center;
+    color: rgba(201,168,76,0.25);
+    font-size: 18px;
+    letter-spacing: 8px;
+    padding: 2px 0;
+  }
+
+  /* pulse on wrong guess */
+  @keyframes wrongShake {
+    0%,100% { transform: translateX(0); }
+    20%      { transform: translateX(-6px); }
+    60%      { transform: translateX(6px); }
+    80%      { transform: translateX(-3px); }
+  }
+  .shake { animation: wrongShake 0.4s ease; }
+
+  .theme-badge {
+    display: inline-block;
+    border: 1px solid rgba(201,168,76,0.3);
+    border-radius: 20px;
+    padding: 2px 10px;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgba(201,168,76,0.6);
+    margin-top: 6px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Idiom Hangman</h1>
+  <p class="subtitle">A Game of Elegant Expression</p>
+</header>
+
+<main>
+
+  <!-- Score -->
+  <div class="score-row">
+    <div class="score-item">
+      <div class="score-val" id="scoreWins">0</div>
+      <div class="score-lbl">Won</div>
+    </div>
+    <div class="divider"></div>
+    <div class="score-item">
+      <div class="score-val" id="scoreStreak">0</div>
+      <div class="score-lbl">Streak</div>
+    </div>
+    <div class="divider"></div>
+    <div class="score-item">
+      <div class="score-val" id="scoreLosses">0</div>
+      <div class="score-lbl">Lost</div>
+    </div>
+  </div>
+
+  <div class="ornament">✦ ✦ ✦</div>
+
+  <!-- Lives -->
+  <div class="lives-row">
+    <span class="lives-label">Lives</span>
+    <div class="lives-pips" id="pips"></div>
+    <span class="wrong-count" id="wrongCount">0 / 7</span>
+  </div>
+
+  <!-- Gallows -->
+  <div class="gallows-card">
+    <svg id="gallows" viewBox="0 0 140 140" xmlns="http://www.w3.org/2000/svg">
+      <!-- Structure -->
+      <line class="gallows-beam" x1="20" y1="130" x2="120" y2="130"/>
+      <line class="gallows-beam" x1="45" y1="130" x2="45" y2="15"/>
+      <line class="gallows-beam" x1="45" y1="15" x2="90" y2="15"/>
+      <line class="gallows-beam" x1="45" y1="30" x2="60" y2="15"/>
+      <!-- Rope -->
+      <line class="rope" id="rope" x1="90" y1="15" x2="90" y2="33"/>
+      <!-- Head -->
+      <circle class="body-part" id="head" cx="90" cy="43" r="10"/>
+      <!-- Body -->
+      <line class="body-part" id="body" x1="90" y1="53" x2="90" y2="85"/>
+      <!-- Left arm -->
+      <line class="body-part" id="armL" x1="90" y1="62" x2="72" y2="76"/>
+      <!-- Right arm -->
+      <line class="body-part" id="armR" x1="90" y1="62" x2="108" y2="76"/>
+      <!-- Left leg -->
+      <line class="body-part" id="legL" x1="90" y1="85" x2="74" y2="105"/>
+      <!-- Right leg -->
+      <line class="body-part" id="legR" x1="90" y1="85" x2="106" y2="105"/>
+      <!-- Left foot -->
+      <line class="body-part" id="footL" x1="74" y1="105" x2="64" y2="105"/>
+      <!-- Right foot -->
+      <line class="body-part" id="footR" x1="106" y1="105" x2="116" y2="105"/>
+    </svg>
+  </div>
+
+  <!-- Category hint -->
+  <div class="hint-strip" id="hintStrip">
+    Theme: <span id="hintText">—</span>
+  </div>
+
+  <!-- Word display -->
+  <div class="word-area" id="wordArea"></div>
+
+  <!-- Wrong letters -->
+  <div class="wrong-letters" id="wrongLetters"></div>
+
+  <!-- Keyboard -->
+  <div class="keyboard" id="keyboard"></div>
+
+</main>
+
+<!-- Win / Lose overlay -->
+<div class="message-overlay" id="overlay">
+  <div class="message-card">
+    <span class="message-icon" id="msgIcon"></span>
+    <div class="message-title" id="msgTitle"></div>
+    <div class="message-idiom" id="msgIdiom"></div>
+    <div class="message-hint" id="msgHint"></div>
+    <button class="btn-play" onclick="newGame()">Next Idiom</button>
+  </div>
+</div>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────────
+const idioms = [
+  { phrase: "bite the bullet",         hint: "Endure a painful or difficult situation stoically.", theme: "Courage" },
+  { phrase: "barking up the wrong tree",hint: "Pursuing a mistaken or misguided course of action.", theme: "Mistakes" },
+  { phrase: "beat around the bush",    hint: "Avoid coming to the main point; be deliberately vague.", theme: "Communication" },
+  { phrase: "bite off more than you can chew", hint: "Take on a task too big to manage.", theme: "Ambition" },
+  { phrase: "burn the midnight oil",   hint: "Work late into the night.", theme: "Hard Work" },
+  { phrase: "cut corners",             hint: "Do something the easy way, sacrificing quality.", theme: "Shortcuts" },
+  { phrase: "hit the nail on the head",hint: "Describe exactly what is causing a situation.", theme: "Accuracy" },
+  { phrase: "let the cat out of the bag", hint: "Reveal a secret carelessly or by mistake.", theme: "Secrets" },
+  { phrase: "a blessing in disguise",  hint: "Something seemingly bad that turns out to be good.", theme: "Fortune" },
+  { phrase: "piece of cake",           hint: "Something very easy to do.", theme: "Ease" },
+  { phrase: "once in a blue moon",     hint: "Very rarely.", theme: "Rarity" },
+  { phrase: "under the weather",       hint: "Feeling ill or slightly unwell.", theme: "Health" },
+  { phrase: "kill two birds with one stone", hint: "Accomplish two things with a single action.", theme: "Efficiency" },
+  { phrase: "add fuel to the fire",    hint: "Worsen an already bad situation.", theme: "Conflict" },
+  { phrase: "miss the boat",           hint: "Miss an opportunity.", theme: "Opportunity" },
+  { phrase: "spill the beans",         hint: "Reveal secret information unintentionally.", theme: "Secrets" },
+  { phrase: "the ball is in your court", hint: "It is up to you to make the next decision.", theme: "Decision" },
+  { phrase: "break a leg",             hint: "Good luck — used especially in theatre.", theme: "Theatre" },
+  { phrase: "cost an arm and a leg",   hint: "Be extremely expensive.", theme: "Money" },
+  { phrase: "get out of hand",         hint: "Become impossible to control.", theme: "Control" },
+  { phrase: "hit the sack",            hint: "Go to bed.", theme: "Sleep" },
+  { phrase: "put all your eggs in one basket", hint: "Rely on a single plan or source.", theme: "Risk" },
+  { phrase: "speak of the devil",      hint: "Said when someone appears right after being mentioned.", theme: "Coincidence" },
+  { phrase: "sit on the fence",        hint: "Avoid committing to a side in a debate.", theme: "Indecision" },
+  { phrase: "the best of both worlds", hint: "Enjoy two advantages simultaneously.", theme: "Balance" },
+  { phrase: "no pain no gain",         hint: "Hard work is necessary to achieve results.", theme: "Effort" },
+  { phrase: "go back to the drawing board", hint: "Start over after a plan fails.", theme: "Planning" },
+  { phrase: "hang in there",           hint: "Persist despite difficulty.", theme: "Resilience" },
+  { phrase: "hit the nail",            hint: "Be precisely correct about something.", theme: "Accuracy" },
+  { phrase: "read between the lines",  hint: "Find a hidden meaning.", theme: "Insight" },
+  { phrase: "steal someone's thunder", hint: "Overshadow someone else's achievement.", theme: "Rivalry" },
+  { phrase: "wrap your head around it",hint: "Understand something complex.", theme: "Comprehension" },
+];
+
+const BODY_PARTS = ['rope','head','body','armL','armR','legL','legR','footL','footR'];
+const MAX_WRONG  = BODY_PARTS.length;
+
+// ── STATE ─────────────────────────────────────────────────────────
+let currentIdiom, guessed, wrong, wins = 0, losses = 0, streak = 0;
+let usedIndices = [];
+
+// ── KEYBOARD ROWS ─────────────────────────────────────────────────
+const KB_ROWS = [
+  'QWERTYUIOP'.split(''),
+  'ASDFGHJKL'.split(''),
+  'ZXCVBNM'.split('')
+];
+
+// ── INIT ──────────────────────────────────────────────────────────
+function buildKeyboard() {
+  const kb = document.getElementById('keyboard');
+  kb.innerHTML = '';
+  KB_ROWS.forEach(row => {
+    const div = document.createElement('div');
+    div.className = 'kb-row';
+    row.forEach(letter => {
+      const btn = document.createElement('button');
+      btn.className = 'kb-key';
+      btn.textContent = letter;
+      btn.id = 'key-' + letter;
+      btn.setAttribute('data-letter', letter);
+      btn.onclick = () => guess(letter);
+      div.appendChild(btn);
+    });
+    kb.appendChild(div);
+  });
+}
+
+function newGame() {
+  hideOverlay();
+
+  // Pick unused idiom
+  if (usedIndices.length >= idioms.length) usedIndices = [];
+  let idx;
+  do { idx = Math.floor(Math.random() * idioms.length); }
+  while (usedIndices.includes(idx));
+  usedIndices.push(idx);
+
+  currentIdiom = idioms[idx];
+  guessed      = new Set();
+  wrong        = 0;
+
+  // Reset gallows
+  BODY_PARTS.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.opacity = '0';
+  });
+
+  // Reset keyboard
+  document.querySelectorAll('.kb-key').forEach(k => {
+    k.className = 'kb-key';
+    k.disabled  = false;
+  });
+
+  // Hint
+  document.getElementById('hintText').textContent = currentIdiom.theme;
+
+  renderWord();
+  updateLives();
+  document.getElementById('wrongLetters').innerHTML = '';
+}
+
+function renderWord() {
+  const area  = document.getElementById('wordArea');
+  area.innerHTML = '';
+  const words = currentIdiom.phrase.split(' ');
+
+  words.forEach(word => {
+    const group = document.createElement('div');
+    group.className = 'word-group';
+
+    word.split('').forEach(ch => {
+      const slot = document.createElement('div');
+      slot.className = 'letter-slot';
+
+      const char = document.createElement('div');
+      char.className = 'letter-char';
+      char.id = 'slot-' + Math.random().toString(36).slice(2);
+
+      const isLetter = /[a-z]/i.test(ch);
+      if (!isLetter || guessed.has(ch.toUpperCase())) {
+        char.textContent = ch.toUpperCase();
+        if (isLetter) char.classList.add('revealed');
+      } else {
+        char.textContent = '';
+      }
+
+      const line = document.createElement('div');
+      line.className = 'letter-line';
+      if (!isLetter) line.style.opacity = '0';
+
+      slot.appendChild(char);
+      slot.appendChild(line);
+      group.appendChild(slot);
+    });
+
+    area.appendChild(group);
+  });
+}
+
+function guess(letter) {
+  letter = letter.toUpperCase();
+  if (guessed.has(letter)) return;
+  guessed.add(letter);
+
+  const btn = document.getElementById('key-' + letter);
+
+  if (currentIdiom.phrase.toUpperCase().includes(letter)) {
+    if (btn) { btn.className = 'kb-key correct'; btn.disabled = true; }
+    renderWord();
+    if (checkWin()) { showWin(); return; }
+  } else {
+    wrong++;
+    if (btn) { btn.className = 'kb-key wrong'; btn.disabled = true; }
+    revealBodyPart(wrong - 1);
+    updateWrongLetters(letter);
+    updateLives();
+    // shake word
+    document.getElementById('wordArea').classList.remove('shake');
+    void document.getElementById('wordArea').offsetWidth;
+    document.getElementById('wordArea').classList.add('shake');
+    setTimeout(() => document.getElementById('wordArea').classList.remove('shake'), 400);
+    if (wrong >= MAX_WRONG) { showLose(); return; }
+  }
+}
+
+function revealBodyPart(idx) {
+  const el = document.getElementById(BODY_PARTS[idx]);
+  if (el) el.style.opacity = '1';
+}
+
+function checkWin() {
+  return currentIdiom.phrase.split('').every(ch =>
+    !/[a-z]/i.test(ch) || guessed.has(ch.toUpperCase())
+  );
+}
+
+function updateLives() {
+  const pips = document.getElementById('pips');
+  pips.innerHTML = '';
+  for (let i = 0; i < MAX_WRONG; i++) {
+    const pip = document.createElement('div');
+    pip.className = 'pip' + (i < wrong ? ' lost' : '');
+    pips.appendChild(pip);
+  }
+  document.getElementById('wrongCount').textContent = `${wrong} / ${MAX_WRONG}`;
+}
+
+function updateWrongLetters(letter) {
+  const el = document.getElementById('wrongLetters');
+  if (!el.querySelector('.wrong-label')) {
+    const lbl = document.createElement('span');
+    lbl.className = 'wrong-label';
+    lbl.textContent = 'Missed:';
+    el.appendChild(lbl);
+  }
+  const span = document.createElement('span');
+  span.textContent = letter + ' ';
+  el.appendChild(span);
+}
+
+function showWin() {
+  wins++; streak++;
+  document.getElementById('scoreWins').textContent   = wins;
+  document.getElementById('scoreStreak').textContent = streak;
+  document.getElementById('msgIcon').textContent  = '🏆';
+  document.getElementById('msgTitle').textContent = 'Splendid!';
+  document.getElementById('msgIdiom').textContent = `"${currentIdiom.phrase}"`;
+  document.getElementById('msgHint').textContent  = currentIdiom.hint;
+  showOverlay();
+}
+
+function showLose() {
+  losses++; streak = 0;
+  document.getElementById('scoreLosses').textContent  = losses;
+  document.getElementById('scoreStreak').textContent  = streak;
+  // Reveal all body parts
+  BODY_PARTS.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.opacity = '1';
+  });
+  // Reveal full phrase
+  guessed = new Set(currentIdiom.phrase.toUpperCase().replace(/[^A-Z]/g,'').split(''));
+  renderWord();
+  document.getElementById('msgIcon').textContent  = '💀';
+  document.getElementById('msgTitle').textContent = 'Alas!';
+  document.getElementById('msgIdiom').textContent = `"${currentIdiom.phrase}"`;
+  document.getElementById('msgHint').textContent  = currentIdiom.hint;
+  showOverlay();
+}
+
+function showOverlay() {
+  document.getElementById('overlay').classList.add('show');
+}
+function hideOverlay() {
+  document.getElementById('overlay').classList.remove('show');
+}
+
+// Keyboard input support
+document.addEventListener('keydown', e => {
+  if (/^[a-zA-Z]$/.test(e.key) && !document.getElementById('overlay').classList.contains('show')) {
+    guess(e.key.toUpperCase());
+  }
+});
+
+// Boot
+buildKeyboard();
+newGame();
+
+// Register service worker
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  });
+}
+</script>
+</body>
+</html>

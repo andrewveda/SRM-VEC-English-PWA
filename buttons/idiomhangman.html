@@ -46,6 +46,29 @@
     repeating-linear-gradient(-45deg,transparent,transparent 35px,var(--gold) 35px,var(--gold) 36px);transition:opacity .3s;}
   header{text-align:center;padding:8px 16px 6px;border-bottom:1px solid var(--border);flex-shrink:0;position:relative;z-index:1;display:flex;align-items:center;justify-content:center;transition:border-color .3s;}
   h1{font-family:'Playfair Display',serif;font-size:clamp(16px,4.5vw,22px);font-weight:400;letter-spacing:.12em;color:var(--gold-light);text-shadow:0 0 20px rgba(201,168,76,.25);transition:color .3s;}
+  /* Help button */
+  .help-btn{position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:17px;cursor:pointer;line-height:1;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:4px 9px;color:var(--gold);transition:background .2s,transform .15s;-webkit-tap-highlight-color:transparent;user-select:none;z-index:2;}
+  .help-btn:hover{background:var(--surface2);}
+  .help-btn:active{transform:translateY(-50%) scale(.88);}
+
+  /* Instructions popup */
+  .help-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:300;justify-content:center;align-items:center;padding:20px;backdrop-filter:blur(8px);}
+  html.light .help-overlay{background:rgba(250,244,232,.9);}
+  .help-overlay.show{display:flex;}
+  .help-card{background:var(--card-bg);border:1px solid var(--gold);border-radius:16px;padding:22px 20px 18px;width:100%;max-width:380px;position:relative;overflow:hidden;max-height:88dvh;overflow-y:auto;}
+  .help-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--gold),var(--gold-light),var(--gold));}
+  .help-title{font-family:'Playfair Display',serif;font-size:20px;font-weight:400;color:var(--gold-light);text-align:center;margin-bottom:4px;}
+  .help-sub{font-size:9px;letter-spacing:.28em;text-transform:uppercase;color:var(--gold);opacity:.5;text-align:center;font-family:'DM Mono',monospace;margin-bottom:18px;}
+  .help-close{position:absolute;top:14px;right:14px;background:none;border:1px solid var(--border);border-radius:50%;width:28px;height:28px;color:var(--gold);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;}
+  .help-section{margin-bottom:14px;}
+  .help-section-title{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.28em;text-transform:uppercase;color:var(--gold);opacity:.6;margin-bottom:8px;}
+  .help-row{display:flex;gap:10px;align-items:flex-start;margin-bottom:8px;}
+  .help-icon{font-size:18px;flex-shrink:0;width:28px;text-align:center;margin-top:1px;}
+  .help-text{font-family:'Cormorant Garamond',serif;font-size:15px;color:var(--text-main);line-height:1.45;opacity:.9;}
+  .help-text strong{color:var(--gold-light);font-weight:700;font-style:normal;}
+  .help-divider{height:1px;background:var(--border);margin:14px 0;opacity:.5;}
+  .help-tip{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-family:'Cormorant Garamond',serif;font-size:14px;font-style:italic;color:var(--text-main);opacity:.8;text-align:center;line-height:1.4;}
+
   .theme-toggle{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:16px;cursor:pointer;line-height:1;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:4px 9px;color:var(--gold);transition:background .2s,transform .15s;-webkit-tap-highlight-color:transparent;user-select:none;z-index:2;}
   .theme-toggle:hover{background:var(--surface2);}
   .theme-toggle:active{transform:translateY(-50%) scale(.88);}
@@ -173,6 +196,11 @@
 
 
 
+  .idiom-playable{cursor:pointer;transition:border-color .2s,transform .15s,box-shadow .15s;}
+  .idiom-playable:hover{border-color:var(--gold);transform:translateY(-1px);box-shadow:0 4px 16px rgba(201,168,76,.15);}
+  .idiom-playable:active{transform:scale(.98);}
+  .idiom-play-hint{font-size:9px;font-family:'DM Mono',monospace;color:var(--gold);opacity:.45;letter-spacing:.14em;text-align:right;margin-top:5px;transition:opacity .2s;}
+  .idiom-playable:hover .idiom-play-hint{opacity:.8;}
   .dash-spinner{display:flex;justify-content:center;align-items:center;padding:32px 0;}
   .spinner-ring{width:36px;height:36px;border-radius:50%;border:3px solid var(--surface2);border-top-color:var(--gold);animation:spin .8s linear infinite;}
   @keyframes spin{to{transform:rotate(360deg)}}
@@ -199,6 +227,7 @@
       <span class="player-dept" id="playerPillDept"></span>
     </div>
   </div>
+  <button class="help-btn" onclick="openHelp()" aria-label="How to play">&#9432;</button>
   <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" aria-label="Toggle theme">&#9728;&#65039;</button>
 </header>
 
@@ -233,7 +262,7 @@
     </div>
   </div>
 
-  <div class="hint-strip"><span class="theme-label">Theme</span><span class="theme-value" id="hintText">&mdash;</span></div>
+  <div class="hint-strip"><span class="theme-label">Theme</span><span class="theme-value" id="hintText"></span></div>
 
   <div class="game-dialogue" id="gameDialogue">
     <div class="game-dialogue-label">Definition</div>
@@ -248,6 +277,81 @@
     &#9643;&ensp;My Progress Dashboard
   </button>
 </main>
+
+<!-- HELP / INSTRUCTIONS POPUP -->
+<div class="help-overlay" id="helpOverlay">
+  <div class="help-card">
+    <div class="help-title">How to Play</div>
+    <div class="help-sub">Idiom Dash &mdash; Quick Guide</div>
+    <button class="help-close" onclick="closeHelp()">&#10005;</button>
+
+    <div class="help-section">
+      <div class="help-section-title">The Goal</div>
+      <div class="help-row">
+        <span class="help-icon">&#128161;</span>
+        <span class="help-text">A <strong>definition</strong> is shown. Guess the English idiom that matches it &mdash; one letter at a time.</span>
+      </div>
+      <div class="help-row">
+        <span class="help-icon">&#9200;</span>
+        <span class="help-text">You start with <strong>3 minutes</strong>. Solve as many idioms as you can before time runs out.</span>
+      </div>
+    </div>
+
+    <div class="help-divider"></div>
+
+    <div class="help-section">
+      <div class="help-section-title">Tapping Letters</div>
+      <div class="help-row">
+        <span class="help-icon">&#9989;</span>
+        <span class="help-text"><strong>Correct guess</strong> &mdash; the letter appears in the blank boxes. You earn time back and a gem bonus.</span>
+      </div>
+      <div class="help-row">
+        <span class="help-icon">&#10060;</span>
+        <span class="help-text"><strong>Wrong guess</strong> &mdash; time is deducted. The more wrong guesses in a row, the more time you lose.</span>
+      </div>
+    </div>
+
+    <div class="help-divider"></div>
+
+    <div class="help-section">
+      <div class="help-section-title">Streaks &amp; Gems &#128142;</div>
+      <div class="help-row">
+        <span class="help-icon">&#128293;</span>
+        <span class="help-text"><strong>Correct run</strong> &mdash; each consecutive correct guess earns <em>more</em> time and gems. Keep the streak alive!</span>
+      </div>
+      <div class="help-row">
+        <span class="help-icon">&#128148;</span>
+        <span class="help-text"><strong>Wrong run</strong> &mdash; each consecutive wrong guess costs <em>more</em> time. Gems are also deducted.</span>
+      </div>
+    </div>
+
+    <div class="help-divider"></div>
+
+    <div class="help-section">
+      <div class="help-section-title">Clues</div>
+      <div class="help-row">
+        <span class="help-icon">&#127991;</span>
+        <span class="help-text">The <strong>theme</strong> (e.g. Courage, Money) gives you a hint about what kind of idiom it is.</span>
+      </div>
+      <div class="help-row">
+        <span class="help-icon">&#128218;</span>
+        <span class="help-text">The <strong>definition</strong> tells you what the idiom means &mdash; use it to figure out the words.</span>
+      </div>
+    </div>
+
+    <div class="help-divider"></div>
+
+    <div class="help-section">
+      <div class="help-section-title">Dashboard</div>
+      <div class="help-row">
+        <span class="help-icon">&#9643;</span>
+        <span class="help-text">Open <strong>My Progress Dashboard</strong> to see which idioms you&rsquo;ve attempted. Tap any card to play that idiom directly.</span>
+      </div>
+    </div>
+
+    <div class="help-tip">Each idiom is saved to your profile &mdash; impress your friends on the leaderboard! &#127942;</div>
+  </div>
+</div>
 
 <!-- LOGIN GATE -->
 <div class="login-gate" id="loginGate">
@@ -1097,11 +1201,49 @@ window.openDashboard = async function () {
   }, 60));
 };
 
-// Build one idiom card HTML — shows meaning + dialogue, hides phrase
+// Play a specific idiom chosen from the dashboard
+function playSpecificIdiom(idiomId) {
+  const idiom = idioms.find(i => i.id === idiomId);
+  if (!idiom) return;
+  closeDashboard();
+
+  // Reset game state
+  clearInterval(timerInterval);
+  gameOver = false;
+  currentIdiom = idiom;
+  // Add to usedIndices so it won't be randomly picked next
+  const idx = idioms.indexOf(idiom);
+  if (!usedIndices.includes(idx)) usedIndices.push(idx);
+
+  guessed = new Set();
+  consecutiveCorrect = consecutiveWrong = 0;
+  timeLeft   = TOTAL_SECS;
+  roundStart = Date.now();
+
+  document.querySelectorAll('.kb-key').forEach(k => { k.className = 'kb-key'; k.disabled = false; });
+  document.getElementById('wrongLetters').innerHTML    = '';
+  document.getElementById('hintText').textContent      = currentIdiom.theme;
+  document.getElementById('correctStreak').textContent = '0';
+  document.getElementById('wrongStreak').textContent   = '0';
+  document.getElementById('gemCount').textContent      = gemCount;
+  document.getElementById('msgLog').textContent        = '';
+  document.getElementById('msgDialogue').innerHTML     = '';
+  const dl = document.getElementById('msgDialLbl'); if (dl) dl.style.display = 'none';
+  document.getElementById('gameDefinition').textContent = currentIdiom.hint;
+  hideOverlay();
+  updateTimerUI();
+  renderWord();
+  startTimer();
+}
+
+// Build one idiom card — tappable to play that idiom
 function buildIdiomCard(idiom, solved) {
   const statusIcon = solved ? '\u2713' : '\u25CB';
   const solvedClass = solved ? ' solved' : '';
-  return '<div class="idiom-card' + solvedClass + '">'
+  const playHint = solved
+    ? '<div class="idiom-play-hint">\u21BA Play again</div>'
+    : '<div class="idiom-play-hint">\u25B6 Play this</div>';
+  return '<div class="idiom-card' + solvedClass + ' idiom-playable" onclick="playSpecificIdiom(' + idiom.id + ')">'
     + '<div class="idiom-top">'
       + '<div class="idiom-status">' + statusIcon + '</div>'
       + '<div class="idiom-info">'
@@ -1110,6 +1252,7 @@ function buildIdiomCard(idiom, solved) {
       + '</div>'
       + '<div class="idiom-qid">Q' + idiom.id + '</div>'
     + '</div>'
+    + playHint
     + '</div>';
 }
 
@@ -1126,6 +1269,11 @@ document.addEventListener('keydown', e => {
 });
 
 // ── BOOT ─────────────────────────────────────────────────────────
+// ── HELP ──────────────────────────────────────────
+window.openHelp  = function () { document.getElementById('helpOverlay').classList.add('show'); };
+window.closeHelp = function () { document.getElementById('helpOverlay').classList.remove('show'); };
+document.getElementById('helpOverlay').addEventListener('click', function(e) { if (e.target === this) closeHelp(); });
+
 // ── THEME ────────────────────────────────────────────────────────
 const THEME_KEY = 'idiomDashTheme';
 

@@ -5,15 +5,18 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Idiom Game</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 
 <style>
   :root {
     --gold: #C9A84C; --gold-light: #E8C97A; --gold-pale: #F5E6B8;
+    --gold-dim: rgba(201,168,76,0.12);
     --cream: #F9F3E3; --cream-dark: #EDE3C8;
     --dark: #1a1208; --dark-mid: #2d2010; --dark-warm: #3d2e12;
+    --surface: #16161f; --surface2: #1e1e2a;
     --danger: #8B2020; --danger-light: #c43030;
     --success: #2D5A27; --success-light: #4a9c3f;
+    --border: rgba(201,168,76,0.18); --border-dim: rgba(255,255,255,0.06);
   }
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
   html, body { height: 100%; background: var(--dark); font-family: 'Cormorant Garamond', serif; color: var(--cream); overflow-x: hidden; }
@@ -25,45 +28,57 @@
     min-height: 100dvh; display: flex; flex-direction: column;
   }
 
-  /* HEADER */
-  header { text-align: center; padding: 18px 16px 10px; border-bottom: 1px solid rgba(201,168,76,0.25); flex-shrink: 0; position: relative; }
+  /* ── HEADER ── */
+  header { text-align: center; padding: 16px 16px 8px; border-bottom: 1px solid rgba(201,168,76,0.25); flex-shrink: 0; position: relative; }
   header::before, header::after { content: '\2726'; position: absolute; top: 50%; transform: translateY(-50%); color: var(--gold); font-size: 13px; opacity: 0.5; }
   header::before { left: 18px; } header::after { right: 18px; }
-  h1 { font-family: 'Playfair Display', serif; font-size: clamp(20px,5.5vw,28px); font-weight: 400; letter-spacing: 0.12em; color: var(--gold-light); text-shadow: 0 0 30px rgba(201,168,76,0.4); }
-  .subtitle { font-size: 10px; letter-spacing: 0.35em; text-transform: uppercase; color: rgba(201,168,76,0.5); margin-top: 3px; }
+  h1 { font-family: 'Playfair Display', serif; font-size: clamp(18px,5vw,26px); font-weight: 400; letter-spacing: 0.12em; color: var(--gold-light); text-shadow: 0 0 30px rgba(201,168,76,0.4); }
+  .subtitle { font-size: 10px; letter-spacing: 0.35em; text-transform: uppercase; color: rgba(201,168,76,0.5); margin-top: 2px; }
 
-  /* PLAYER PILL */
-  .player-pill { display: inline-flex; align-items: center; gap: 6px; margin-top: 6px; padding: 3px 12px; border: 1px solid rgba(201,168,76,0.28); border-radius: 20px; font-size: 11px; color: rgba(201,168,76,0.7); letter-spacing: 0.1em; cursor: pointer; transition: border-color 0.2s, color 0.2s; }
+  /* Player pill */
+  .player-pill { display: inline-flex; align-items: center; gap: 6px; margin-top: 5px; padding: 3px 12px; border: 1px solid rgba(201,168,76,0.28); border-radius: 20px; font-size: 11px; color: rgba(201,168,76,0.7); letter-spacing: 0.1em; cursor: pointer; transition: border-color 0.2s; font-family: 'DM Mono', monospace; }
   .player-pill:hover { border-color: var(--gold); color: var(--gold-light); }
-  .player-pill .pip { width: 6px; height: 6px; border-radius: 50%; background: var(--gold); }
+  .player-pill .pip { width: 6px; height: 6px; border-radius: 50%; background: var(--gold); flex-shrink:0; }
+  .player-dept { font-size: 9px; color: rgba(201,168,76,0.45); margin-left: 2px; }
 
-  /* NAME GATE */
-  .name-gate { display: none; position: fixed; inset: 0; background: rgba(10,8,3,0.92); z-index: 200; justify-content: center; align-items: center; padding: 24px; backdrop-filter: blur(6px); }
-  .name-gate.show { display: flex; }
-  .name-card { background: linear-gradient(160deg, var(--dark-warm), var(--dark)); border: 1px solid var(--gold); border-radius: 16px; padding: 28px 24px; width: 100%; max-width: 340px; text-align: center; box-shadow: 0 0 60px rgba(201,168,76,0.2); animation: cardIn 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards; }
-  .name-card h2 { font-family: 'Playfair Display', serif; font-size: 22px; font-weight: 400; color: var(--gold-light); margin-bottom: 6px; }
-  .name-card p  { font-size: 13px; color: rgba(201,168,76,0.55); margin-bottom: 20px; font-style: italic; }
-  .name-input { width: 100%; padding: 12px 14px; background: rgba(201,168,76,0.07); border: 1px solid rgba(201,168,76,0.35); border-radius: 8px; color: var(--cream); font-family: 'Cormorant Garamond', serif; font-size: 16px; letter-spacing: 0.05em; outline: none; margin-bottom: 14px; text-align: center; }
-  .name-input:focus { border-color: var(--gold); }
-  .name-input::placeholder { color: rgba(201,168,76,0.3); }
+  /* ── LOGIN GATE ── */
+  .login-gate { display: none; position: fixed; inset: 0; background: rgba(10,8,3,0.95); z-index: 200; justify-content: center; align-items: center; padding: 20px; backdrop-filter: blur(8px); }
+  .login-gate.show { display: flex; }
 
-  /* SHARED BUTTON */
-  .btn-gold { background: linear-gradient(135deg, var(--gold), #a07828); color: var(--dark); border: none; border-radius: 8px; padding: 12px 32px; font-family: 'Playfair Display', serif; font-size: 15px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; cursor: pointer; width: 100%; box-shadow: 0 4px 20px rgba(201,168,76,0.3); transition: transform 0.15s; }
-  .btn-gold:active { transform: scale(0.97); }
+  .login-card { background: linear-gradient(160deg, var(--dark-warm), var(--dark)); border: 1px solid var(--border); border-radius: 20px; padding: 28px 24px; width: 100%; max-width: 360px; position: relative; overflow: hidden; }
+  .login-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, var(--danger), var(--gold), var(--danger)); }
 
-  @keyframes cardIn { from { transform: scale(0.8) translateY(16px); opacity: 0; } to { transform: scale(1) translateY(0); opacity: 1; } }
+  .login-card-title { font-family: 'Playfair Display', serif; font-size: 22px; font-weight: 400; color: var(--gold-light); text-align: center; margin-bottom: 3px; }
+  .login-card-sub   { font-size: 10px; letter-spacing: 0.25em; text-transform: uppercase; color: rgba(201,168,76,0.45); text-align: center; margin-bottom: 22px; font-family: 'DM Mono', monospace; }
 
-  /* MAIN */
+  .field-group { margin-bottom: 14px; }
+  .field-group label { display: block; font-size: 9px; letter-spacing: 0.22em; text-transform: uppercase; color: rgba(201,168,76,0.45); margin-bottom: 6px; font-family: 'DM Mono', monospace; }
+  .field-group input, .field-group select { width: 100%; background: rgba(201,168,76,0.05); border: 1px solid rgba(201,168,76,0.25); border-radius: 10px; padding: 11px 14px; font-family: 'Cormorant Garamond', serif; font-size: 15px; color: var(--cream); outline: none; transition: border-color 0.2s; -webkit-appearance: none; appearance: none; }
+  .field-group input::placeholder { color: rgba(201,168,76,0.25); }
+  .field-group input:focus, .field-group select:focus { border-color: var(--gold); box-shadow: 0 0 0 3px var(--gold-dim); }
+  .field-group select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23c9a84c' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px; cursor: pointer; }
+  .field-group select option { background: #2d2010; color: var(--cream); }
+
+  .btn-gold { background: linear-gradient(135deg, var(--gold), #a07828); color: var(--dark); border: none; border-radius: 10px; padding: 12px 32px; font-family: 'DM Mono', monospace; font-size: 13px; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; cursor: pointer; width: 100%; box-shadow: 0 4px 20px rgba(201,168,76,0.3); transition: transform 0.15s, filter 0.15s; margin-top: 4px; }
+  .btn-gold:hover { filter: brightness(1.08); } .btn-gold:active { transform: scale(0.97); }
+
+  /* Duplicate picker */
+  .dup-btn { width: 100%; background: rgba(201,168,76,0.06); border: 1px solid rgba(201,168,76,0.2); border-radius: 10px; padding: 11px 14px; text-align: left; cursor: pointer; margin-bottom: 8px; transition: border-color 0.2s, background 0.2s; }
+  .dup-btn:hover { border-color: var(--gold); background: rgba(201,168,76,0.12); }
+  .dup-name { font-family: 'Playfair Display', serif; font-size: 15px; color: var(--cream); }
+  .dup-meta { font-size: 9px; letter-spacing: 0.15em; color: rgba(201,168,76,0.55); margin-top: 3px; font-family: 'DM Mono', monospace; }
+
+  /* ── MAIN ── */
   main { flex: 1; display: flex; flex-direction: column; padding: 10px 14px 14px; gap: 10px; max-width: 480px; margin: 0 auto; width: 100%; }
 
-  /* SCORE ROW */
+  /* Score row */
   .score-row { display: flex; justify-content: center; gap: 20px; }
   .score-item { text-align: center; }
   .score-val { font-family: 'Playfair Display', serif; font-size: 20px; color: var(--gold-light); line-height: 1; }
   .score-lbl { font-size: 9px; letter-spacing: 0.3em; text-transform: uppercase; color: rgba(201,168,76,0.45); margin-top: 2px; }
   .divider { width: 1px; background: rgba(201,168,76,0.2); align-self: stretch; margin: 3px 0; }
 
-  /* TIMER CARD */
+  /* Timer card */
   .timer-card { background: rgba(201,168,76,0.05); border: 1px solid rgba(201,168,76,0.22); border-radius: 14px; padding: 14px 16px 12px; display: flex; flex-direction: column; align-items: center; gap: 8px; position: relative; overflow: hidden; }
   .timer-card::before { content: ''; position: absolute; inset: 0; background: repeating-linear-gradient(90deg, transparent, transparent 24px, rgba(201,168,76,0.018) 24px, rgba(201,168,76,0.018) 25px); pointer-events: none; }
   .timer-ring-wrap { position: relative; width: 110px; height: 110px; }
@@ -81,26 +96,26 @@
   .delta-toast { position: absolute; top: 10px; right: 14px; font-family: 'Playfair Display', serif; font-size: 16px; font-weight: 700; opacity: 0; pointer-events: none; }
   .delta-toast.correct { color: #6ecf5a; } .delta-toast.wrong { color: #d96060; }
   .delta-toast.animate { animation: toastPop 1.4s ease forwards; }
-  @keyframes toastPop { 0% { opacity:0; transform:translateY(0); } 15% { opacity:1; transform:translateY(-4px); } 70% { opacity:1; transform:translateY(-12px); } 100% { opacity:0; transform:translateY(-20px); } }
+  @keyframes toastPop { 0%{opacity:0;transform:translateY(0)} 15%{opacity:1;transform:translateY(-4px)} 70%{opacity:1;transform:translateY(-12px)} 100%{opacity:0;transform:translateY(-20px)} }
 
-  /* HINT */
+  /* Hint */
   .hint-strip { text-align: center; font-size: 10px; letter-spacing: 0.28em; text-transform: uppercase; color: rgba(201,168,76,0.48); }
   .hint-strip span { color: var(--gold); font-style: italic; font-family: 'Playfair Display', serif; font-size: 12px; letter-spacing: 0.05em; text-transform: none; }
 
-  /* WORD AREA */
+  /* Word area */
   .word-area { display: flex; flex-wrap: wrap; justify-content: center; gap: 5px 8px; padding: 2px 0; min-height: 52px; align-items: flex-end; }
   .word-group { display: flex; gap: 4px; align-items: flex-end; }
   .letter-slot { display: flex; flex-direction: column; align-items: center; gap: 2px; }
   .letter-char { font-family: 'Playfair Display', serif; font-size: clamp(17px,4.8vw,24px); font-weight: 700; color: var(--gold-light); height: 30px; display: flex; align-items: center; justify-content: center; text-shadow: 0 0 12px rgba(201,168,76,0.4); min-width: 16px; text-align: center; }
   .letter-char.revealed { animation: revealLetter 0.45s ease forwards; }
-  @keyframes revealLetter { 0% { transform:translateY(-8px); opacity:0; } 60% { transform:translateY(2px); } 100% { transform:translateY(0); opacity:1; } }
+  @keyframes revealLetter { 0%{transform:translateY(-8px);opacity:0} 60%{transform:translateY(2px)} 100%{transform:translateY(0);opacity:1} }
   .letter-line { width: 100%; min-width: 14px; height: 1.5px; background: linear-gradient(90deg, transparent, var(--gold), transparent); opacity: 0.65; }
 
-  /* WRONG LETTERS */
+  /* Wrong letters */
   .wrong-letters { text-align: center; font-family: 'Playfair Display', serif; font-size: 13px; letter-spacing: 0.15em; color: rgba(200,70,70,0.85); min-height: 20px; }
   .wrong-label { font-family: 'Cormorant Garamond', serif; font-size: 10px; letter-spacing: 0.3em; text-transform: uppercase; color: rgba(180,60,60,0.5); margin-right: 5px; }
 
-  /* KEYBOARD */
+  /* Keyboard */
   .keyboard { display: flex; flex-direction: column; gap: 5px; }
   .kb-row { display: flex; justify-content: center; gap: 4px; }
   .kb-key { width: 29px; height: 36px; border-radius: 6px; border: 1px solid rgba(201,168,76,0.32); background: rgba(201,168,76,0.06); color: var(--gold-light); font-family: 'Playfair Display', serif; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.15s ease; position: relative; flex-shrink: 0; }
@@ -109,60 +124,59 @@
   .kb-key.correct { background: rgba(45,90,39,0.35); border-color: rgba(100,180,80,0.4); color: rgba(130,220,100,0.85); cursor: not-allowed; }
   .kb-key.wrong   { background: rgba(100,20,20,0.3);  border-color: rgba(150,40,40,0.3);  color: rgba(180,80,80,0.45);  cursor: not-allowed; }
 
-  /* ORNAMENT */
+  /* Ornament */
   .ornament { text-align: center; color: rgba(201,168,76,0.2); font-size: 16px; letter-spacing: 8px; }
 
-  /* DASHBOARD BUTTON */
-  .dash-btn { display: flex; align-items: center; justify-content: center; gap: 7px; padding: 9px 14px; background: rgba(201,168,76,0.06); border: 1px solid rgba(201,168,76,0.25); border-radius: 10px; color: rgba(201,168,76,0.7); font-family: 'Cormorant Garamond', serif; font-size: 13px; letter-spacing: 0.12em; cursor: pointer; transition: all 0.2s; text-transform: uppercase; }
+  /* Dashboard button */
+  .dash-btn { display: flex; align-items: center; justify-content: center; gap: 7px; padding: 9px 14px; background: rgba(201,168,76,0.06); border: 1px solid rgba(201,168,76,0.25); border-radius: 10px; color: rgba(201,168,76,0.7); font-family: 'DM Mono', monospace; font-size: 12px; letter-spacing: 0.1em; cursor: pointer; transition: all 0.2s; text-transform: uppercase; }
   .dash-btn:active { background: rgba(201,168,76,0.14); }
 
-  /* GAME OVERLAY */
+  /* Game overlay */
   .overlay { display: none; position: fixed; inset: 0; background: rgba(10,8,3,0.9); z-index: 100; justify-content: center; align-items: center; padding: 24px; backdrop-filter: blur(6px); }
   .overlay.show { display: flex; }
   .msg-card { background: linear-gradient(160deg, var(--dark-warm), var(--dark)); border: 1px solid var(--gold); border-radius: 16px; padding: 28px 24px; text-align: center; max-width: 340px; width: 100%; box-shadow: 0 0 60px rgba(201,168,76,0.2), inset 0 1px 0 rgba(201,168,76,0.15); animation: cardIn 0.45s cubic-bezier(0.34,1.56,0.64,1) forwards; }
+  @keyframes cardIn { from{transform:scale(0.8) translateY(16px);opacity:0} to{transform:scale(1) translateY(0);opacity:1} }
   .msg-icon  { font-size: 44px; margin-bottom: 10px; display: block; }
   .msg-title { font-family: 'Playfair Display', serif; font-size: 26px; font-weight: 400; color: var(--gold-light); margin-bottom: 6px; }
   .msg-idiom { font-family: 'Playfair Display', serif; font-style: italic; font-size: 16px; color: var(--cream); margin-bottom: 6px; line-height: 1.4; }
   .msg-hint  { font-size: 13px; color: rgba(201,168,76,0.6); line-height: 1.5; margin-bottom: 8px; font-style: italic; }
-  .msg-time  { font-family: 'Playfair Display', serif; font-size: 14px; color: rgba(201,168,76,0.5); margin-bottom: 6px; letter-spacing: 0.05em; }
+  .msg-time  { font-family: 'Playfair Display', serif; font-size: 14px; color: rgba(201,168,76,0.5); margin-bottom: 6px; }
   .msg-time strong { color: var(--gold-light); }
-  .msg-log   { font-size: 11px; color: rgba(201,168,76,0.38); margin-bottom: 18px; letter-spacing: 0.08em; min-height: 16px; }
+  .msg-log   { font-size: 11px; color: rgba(201,168,76,0.38); margin-bottom: 18px; min-height: 16px; font-family: 'DM Mono', monospace; letter-spacing: 0.06em; }
 
-  /* DASHBOARD OVERLAY */
-  .dash-overlay { display: none; position: fixed; inset: 0; background: rgba(10,8,3,0.94); z-index: 150; overflow-y: auto; padding: 16px 14px 32px; backdrop-filter: blur(8px); }
+  /* Dashboard overlay */
+  .dash-overlay { display: none; position: fixed; inset: 0; background: rgba(10,8,3,0.95); z-index: 150; overflow-y: auto; padding: 16px 14px 32px; backdrop-filter: blur(8px); }
   .dash-overlay.show { display: block; }
   .dash-inner { max-width: 480px; margin: 0 auto; }
   .dash-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 0 12px; border-bottom: 1px solid rgba(201,168,76,0.2); margin-bottom: 14px; }
-  .dash-title { font-family: 'Playfair Display', serif; font-size: 20px; font-weight: 400; color: var(--gold-light); letter-spacing: 0.06em; }
-  .dash-subtitle { font-size: 11px; color: rgba(201,168,76,0.45); letter-spacing: 0.12em; margin-top: 2px; }
-  .dash-close { background: none; border: 1px solid rgba(201,168,76,0.25); border-radius: 50%; width: 32px; height: 32px; color: rgba(201,168,76,0.6); font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: border-color 0.2s; }
-  .dash-close:hover { border-color: var(--gold); color: var(--gold-light); }
+  .dash-title { font-family: 'Playfair Display', serif; font-size: 20px; font-weight: 400; color: var(--gold-light); }
+  .dash-subtitle { font-size: 10px; color: rgba(201,168,76,0.45); letter-spacing: 0.15em; margin-top: 2px; font-family: 'DM Mono', monospace; }
+  .dash-close { background: none; border: 1px solid rgba(201,168,76,0.25); border-radius: 50%; width: 32px; height: 32px; color: rgba(201,168,76,0.6); font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
   .dash-stats { display: flex; gap: 8px; margin-bottom: 14px; }
   .dash-stat { flex: 1; background: rgba(201,168,76,0.06); border: 1px solid rgba(201,168,76,0.18); border-radius: 10px; padding: 10px 8px; text-align: center; }
   .dash-stat-val { font-family: 'Playfair Display', serif; font-size: 22px; color: var(--gold-light); line-height: 1; }
-  .dash-stat-lbl { font-size: 9px; letter-spacing: 0.22em; text-transform: uppercase; color: rgba(201,168,76,0.45); margin-top: 3px; }
+  .dash-stat-lbl { font-size: 9px; letter-spacing: 0.22em; text-transform: uppercase; color: rgba(201,168,76,0.45); margin-top: 3px; font-family: 'DM Mono', monospace; }
   .progress-wrap { background: rgba(201,168,76,0.08); border: 1px solid rgba(201,168,76,0.18); border-radius: 10px; padding: 10px 14px; margin-bottom: 14px; }
-  .progress-label { font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase; color: rgba(201,168,76,0.5); margin-bottom: 7px; display: flex; justify-content: space-between; }
+  .progress-label { font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase; color: rgba(201,168,76,0.5); margin-bottom: 7px; display: flex; justify-content: space-between; font-family: 'DM Mono', monospace; }
   .progress-track { height: 6px; background: rgba(201,168,76,0.1); border-radius: 3px; overflow: hidden; }
   .progress-fill  { height: 100%; background: linear-gradient(90deg, var(--gold), var(--gold-light)); border-radius: 3px; transition: width 0.8s ease; }
-  .section-lbl { font-size: 10px; letter-spacing: 0.3em; text-transform: uppercase; color: rgba(201,168,76,0.4); margin-bottom: 8px; padding-left: 2px; }
+  .section-lbl { font-size: 10px; letter-spacing: 0.3em; text-transform: uppercase; color: rgba(201,168,76,0.4); margin-bottom: 8px; padding-left: 2px; font-family: 'DM Mono', monospace; }
   .idiom-grid { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
   .idiom-card { background: rgba(201,168,76,0.04); border: 1px solid rgba(201,168,76,0.14); border-radius: 10px; padding: 10px 14px; display: flex; align-items: center; gap: 10px; }
   .idiom-card.solved   { border-color: rgba(100,180,80,0.2); background: rgba(45,90,39,0.1); }
-  .idiom-card.unsolved { border-color: rgba(201,168,76,0.22); }
   .idiom-status { font-size: 16px; flex-shrink: 0; width: 22px; text-align: center; }
   .idiom-info { flex: 1; min-width: 0; }
   .idiom-phrase { font-family: 'Playfair Display', serif; font-size: 14px; font-style: italic; color: var(--gold-light); line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .idiom-card.unsolved .idiom-phrase { color: rgba(201,168,76,0.6); }
-  .idiom-meta { font-size: 10px; color: rgba(201,168,76,0.38); margin-top: 2px; letter-spacing: 0.06em; }
-  .idiom-qid  { font-size: 9px; color: rgba(201,168,76,0.28); flex-shrink: 0; letter-spacing: 0.06em; }
+  .idiom-card:not(.solved) .idiom-phrase { color: rgba(201,168,76,0.55); }
+  .idiom-meta { font-size: 10px; color: rgba(201,168,76,0.38); margin-top: 2px; }
+  .idiom-qid  { font-size: 9px; color: rgba(201,168,76,0.28); flex-shrink: 0; font-family: 'DM Mono', monospace; }
   .dash-spinner { display: flex; justify-content: center; align-items: center; padding: 32px 0; }
   .spinner-ring { width: 36px; height: 36px; border-radius: 50%; border: 3px solid rgba(201,168,76,0.15); border-top-color: var(--gold); animation: spin 0.8s linear infinite; }
-  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes spin { to{transform:rotate(360deg)} }
   .dash-error { text-align: center; color: rgba(200,80,80,0.8); font-size: 13px; padding: 24px; font-style: italic; }
-  .all-done { text-align: center; padding: 16px 0 8px; font-family: 'Playfair Display', serif; font-size: 15px; color: var(--gold-light); }
+  .all-done { text-align: center; padding: 14px 0 6px; font-family: 'Playfair Display', serif; font-size: 15px; color: var(--gold-light); }
 
-  /* SHAKE / FLASH */
+  /* Shake / flash */
   @keyframes wrongShake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-5px)} 60%{transform:translateX(5px)} 80%{transform:translateX(-3px)} }
   .shake { animation: wrongShake 0.35s ease; }
   @keyframes timerFlash { 0%,100%{background:rgba(201,168,76,0.05)} 40%{background:rgba(139,32,32,0.22)} }
@@ -177,9 +191,10 @@
   <h1>Idiom Game</h1>
   <p class="subtitle">A Game of Elegant Expression</p>
   <div style="display:flex;justify-content:center;">
-    <div class="player-pill" id="playerPill" onclick="promptName()" style="display:none;">
+    <div class="player-pill" id="playerPill" onclick="openLogin()" style="display:none;">
       <span class="pip"></span>
       <span id="playerPillName"></span>
+      <span class="player-dept" id="playerPillDept"></span>
     </div>
   </div>
 </header>
@@ -215,26 +230,58 @@
   </div>
 
   <div class="hint-strip">Theme: <span id="hintText">&mdash;</span></div>
-  <div class="word-area"    id="wordArea"></div>
+  <div class="word-area"     id="wordArea"></div>
   <div class="wrong-letters" id="wrongLetters"></div>
-  <div class="keyboard"     id="keyboard"></div>
+  <div class="keyboard"      id="keyboard"></div>
 
   <button class="dash-btn" onclick="openDashboard()">
     &#9643;&ensp;My Progress Dashboard
   </button>
 </main>
 
-<!-- NAME GATE -->
-<div class="name-gate" id="nameGate">
-  <div class="name-card">
-    <h2>Welcome</h2>
-    <p>Enter your name to track progress &amp; sync scores</p>
-    <input class="name-input" id="nameInput" type="text" placeholder="Your name..." maxlength="40" autocomplete="off"/>
-    <button class="btn-gold" onclick="saveName()">Begin Playing</button>
+<!-- ── LOGIN GATE ── -->
+<div class="login-gate" id="loginGate">
+  <div class="login-card">
+    <div class="login-card-title">Idiom Game</div>
+    <div class="login-card-sub">Enter to begin</div>
+
+    <div class="field-group">
+      <label>Your Name</label>
+      <input id="nameInput" type="text" placeholder="Enter your name&hellip;" maxlength="60" autocomplete="off"/>
+    </div>
+    <div class="field-group">
+      <label>Department</label>
+      <select id="deptSelect">
+        <option value="">-- Select Department --</option>
+        <option value="Cyber Security">Cyber Security</option>
+        <option value="EIE">EIE</option>
+        <option value="CSE-1">CSE-1</option>
+        <option value="CSE-2">CSE-2</option>
+        <option value="CSE-3">CSE-3</option>
+        <option value="Mechanical Engineering">Mechanical Engineering</option>
+        <option value="ECE-1">ECE-1</option>
+        <option value="ECE-2">ECE-2</option>
+        <option value="ECE-3">ECE-3</option>
+        <option value="AI DS-1">AI DS-1</option>
+        <option value="AI DS-2">AI DS-2</option>
+        <option value="Agri and Civil">Agri and Civil</option>
+        <option value="EEE">EEE</option>
+        <option value="Medical Electronics">Medical Electronics</option>
+        <option value="IT-1">IT-1</option>
+        <option value="IT-2">IT-2</option>
+      </select>
+    </div>
+    <button class="btn-gold" onclick="handleLogin()">Enter &#8594;</button>
+
+    <!-- Duplicate picker (hidden initially) -->
+    <div id="dupSection" style="display:none; margin-top:18px;">
+      <div style="font-size:11px;color:rgba(201,168,76,0.55);margin-bottom:10px;text-align:center;font-family:'DM Mono',monospace;letter-spacing:0.1em;">MULTIPLE STUDENTS FOUND &mdash; CHOOSE YOURS</div>
+      <div id="dupList"></div>
+    </div>
   </div>
 </div>
 
-<!-- GAME END OVERLAY -->
+<!-- ── GAME OVERLAY ── -->
 <div class="overlay" id="overlay">
   <div class="msg-card">
     <span class="msg-icon"  id="msgIcon"></span>
@@ -247,7 +294,7 @@
   </div>
 </div>
 
-<!-- DASHBOARD OVERLAY -->
+<!-- ── DASHBOARD OVERLAY ── -->
 <div class="dash-overlay" id="dashOverlay">
   <div class="dash-inner">
     <div class="dash-header">
@@ -261,9 +308,18 @@
   </div>
 </div>
 
-<script>
-// ── IDIOM DATA ──────────────────────────────────────────────────
-// Quest IDs start at 1000; each idiom maps to one quest entry in Supabase
+<script type="module">
+// ── SUPABASE ─────────────────────────────────────────────────────
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm";
+
+const supabase = createClient(
+  "https://yellow-lab-4999.andrewveda.workers.dev",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoZXpzc29jenZwYmt0ZWZmY2d6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI4NTk1ODUsImV4cCI6MjA3ODQzNTU4NX0.2ZlqXnZxv0opkhynAT7OlK4S-xPygcc7ETUyTXRfGHE"
+);
+
+const EDGE_URL = "https://yellow-lab-4999.andrewveda.workers.dev/functions/v1/logQuest";
+
+// ── IDIOM DATA ────────────────────────────────────────────────────
 const idioms = [
   { id:1000, phrase:"bite the bullet",                hint:"Endure a painful situation stoically.",               theme:"Courage" },
   { id:1001, phrase:"barking up the wrong tree",       hint:"Pursuing a mistaken course of action.",              theme:"Mistakes" },
@@ -282,7 +338,7 @@ const idioms = [
   { id:1014, phrase:"miss the boat",                   hint:"Miss an opportunity.",                               theme:"Opportunity" },
   { id:1015, phrase:"spill the beans",                 hint:"Reveal secret information unintentionally.",         theme:"Secrets" },
   { id:1016, phrase:"the ball is in your court",       hint:"It is up to you to make the next decision.",         theme:"Decision" },
-  { id:1017, phrase:"break a leg",                     hint:"Good luck — used especially in theatre.",            theme:"Theatre" },
+  { id:1017, phrase:"break a leg",                     hint:"Good luck \u2014 used especially in theatre.",       theme:"Theatre" },
   { id:1018, phrase:"cost an arm and a leg",           hint:"Be extremely expensive.",                            theme:"Money" },
   { id:1019, phrase:"get out of hand",                 hint:"Become impossible to control.",                      theme:"Control" },
   { id:1020, phrase:"hit the sack",                    hint:"Go to bed.",                                         theme:"Sleep" },
@@ -299,63 +355,138 @@ const idioms = [
   { id:1031, phrase:"on the fence",                    hint:"Undecided about something.",                         theme:"Indecision" },
 ];
 
-// ── CONFIG ──────────────────────────────────────────────────────
-const EDGE_URL      = "https://yellow-lab-4999.andrewveda.workers.dev/functions/v1/logQuest";
-const SUPA_BASE     = "https://yellow-lab-4999.andrewveda.workers.dev";
-const SUPA_ANON     = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoZXpzc29jenZwYmt0ZWZmY2d6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI4NTk1ODUsImV4cCI6MjA3ODQzNTU4NX0.2ZlqXnZxv0opkhynAT7OlK4S-xPygcc7ETUyTXRfGHE";
-
 const TOTAL_SECS    = 180;
-const CIRCUMFERENCE = 2 * Math.PI * 48; // 301.6
-
+const CIRCUMFERENCE = 2 * Math.PI * 48;
 function penaltySecs(n) { return 15 + (n - 1) * 2; }
 function bonusSecs(n)   { return n; }
 
-// ── PLAYER ──────────────────────────────────────────────────────
-// Read from idiomPlayerName first; fall back to main PWA's questPlayerName
-let playerName = localStorage.getItem("idiomPlayerName") || localStorage.getItem("questPlayerName") || "";
-let playerDept = localStorage.getItem("questPlayerDept") || "Idiom Game";
+// ── PLAYER STATE ─────────────────────────────────────────────────
+// Reads from the shared keys used by the main PWA.
+// If not set yet, we show the login gate.
+let playerName = "";
+let playerDept = "";
+let userData   = null; // row from report_card_view
 
-function initPlayer() {
-  if (!playerName) {
-    document.getElementById("nameGate").classList.add("show");
-  } else {
-    showPlayerPill();
-  }
+function loadSavedPlayer() {
+  // Prefer main-PWA keys; fall back to idiom-game-specific ones
+  playerName = localStorage.getItem("userName") || localStorage.getItem("questPlayerName") || localStorage.getItem("idiomPlayerName") || "";
+  playerDept = localStorage.getItem("userDept")  || localStorage.getItem("questPlayerDept")  || "";
+  if (playerName) playerName = playerName.toUpperCase();
 }
 
-function saveName() {
-  const val = document.getElementById("nameInput").value.trim();
-  if (!val) return;
-  playerName = val;
-  localStorage.setItem("idiomPlayerName", playerName);
-  // keep in sync with main PWA key if not already set
-  if (!localStorage.getItem("questPlayerName")) localStorage.setItem("questPlayerName", playerName);
-  document.getElementById("nameGate").classList.remove("show");
-  showPlayerPill();
-}
-
-function promptName() {
-  document.getElementById("nameInput").value = playerName;
-  document.getElementById("nameGate").classList.add("show");
+function savePlayer(name, dept) {
+  playerName = name.toUpperCase();
+  playerDept = dept;
+  // Write to all three key sets so the whole PWA stays in sync
+  localStorage.setItem("userName",          playerName);
+  localStorage.setItem("questPlayerName",   playerName);
+  localStorage.setItem("idiomPlayerName",   playerName);
+  localStorage.setItem("userDept",          playerDept);
+  localStorage.setItem("questPlayerDept",   playerDept);
 }
 
 function showPlayerPill() {
   const pill = document.getElementById("playerPill");
   document.getElementById("playerPillName").textContent = playerName;
+  document.getElementById("playerPillDept").textContent = playerDept ? "\u00B7 " + playerDept : "";
   pill.style.display = "inline-flex";
 }
 
+// ── LOGIN FLOW ────────────────────────────────────────────────────
+window.openLogin = function () {
+  document.getElementById("nameInput").value  = playerName;
+  document.getElementById("deptSelect").value = playerDept;
+  document.getElementById("dupSection").style.display = "none";
+  document.getElementById("loginGate").classList.add("show");
+};
+
+function closeLogin() { document.getElementById("loginGate").classList.remove("show"); }
+
+window.handleLogin = async function () {
+  const rawName = document.getElementById("nameInput").value.trim();
+  const dept    = document.getElementById("deptSelect").value;
+  if (!rawName) { alert("Please enter your name!"); return; }
+
+  const upperName = rawName.toUpperCase();
+
+  // Look up in report_card_view to handle duplicates (mirrors main PWA logic)
+  try {
+    const { data, error } = await supabase
+      .from("report_card_view")
+      .select("name, department, quests_completed, quest_list");
+
+    if (error) throw error;
+
+    const matches = (data || []).filter(u =>
+      u.name && u.name.trim().toUpperCase() === upperName
+    );
+
+    if (matches.length === 0) {
+      // New student — just save and go
+      savePlayer(upperName, dept || "Idiom Game");
+      closeLogin();
+      showPlayerPill();
+      return;
+    }
+
+    if (matches.length === 1) {
+      // Unique match
+      savePlayer(matches[0].name.toUpperCase(), dept || matches[0].department || "");
+      userData = matches[0];
+      closeLogin();
+      showPlayerPill();
+      return;
+    }
+
+    // Multiple matches — show picker (identical UX to main PWA)
+    showDupPicker(matches, dept);
+
+  } catch (err) {
+    console.warn("Supabase lookup failed, proceeding offline:", err);
+    savePlayer(upperName, dept || "Idiom Game");
+    closeLogin();
+    showPlayerPill();
+  }
+};
+
+function showDupPicker(matches, dept) {
+  const sec  = document.getElementById("dupSection");
+  const list = document.getElementById("dupList");
+  list.innerHTML = "";
+
+  matches.forEach(match => {
+    const btn = document.createElement("button");
+    btn.className = "dup-btn";
+    btn.innerHTML =
+      '<div class="dup-name">' + match.name + '</div>' +
+      '<div class="dup-meta">' +
+        (match.department || "No department") +
+        " \u00B7 " + (match.quests_completed ?? 0) + " quests" +
+      '</div>';
+    btn.onclick = () => {
+      savePlayer(match.name.toUpperCase(), dept || match.department || "");
+      userData = match;
+      closeLogin();
+      showPlayerPill();
+      sec.style.display = "none";
+    };
+    list.appendChild(btn);
+  });
+
+  sec.style.display = "block";
+}
+
 document.getElementById("nameInput").addEventListener("keydown", e => {
-  if (e.key === "Enter") saveName();
+  if (e.key === "Enter") window.handleLogin();
 });
 
-// ── GAME STATE ───────────────────────────────────────────────────
+// ── GAME STATE ────────────────────────────────────────────────────
 let currentIdiom, guessed;
 let consecutiveCorrect = 0, consecutiveWrong = 0;
 let wins = 0, losses = 0, bestStreak = 0, currentStreak = 0;
 let usedIndices = [];
 let timeLeft, timerInterval, gameOver;
-let roundStart; // ms epoch
+let roundStart;
 
 const KB_ROWS = ['QWERTYUIOP'.split(''), 'ASDFGHJKL'.split(''), 'ZXCVBNM'.split('')];
 
@@ -364,13 +495,10 @@ function buildKeyboard() {
   const kb = document.getElementById('keyboard');
   kb.innerHTML = '';
   KB_ROWS.forEach(row => {
-    const div = document.createElement('div');
-    div.className = 'kb-row';
+    const div = document.createElement('div'); div.className = 'kb-row';
     row.forEach(letter => {
       const btn = document.createElement('button');
-      btn.className = 'kb-key';
-      btn.textContent = letter;
-      btn.id = 'key-' + letter;
+      btn.className = 'kb-key'; btn.textContent = letter; btn.id = 'key-' + letter;
       btn.onclick = () => guess(letter);
       div.appendChild(btn);
     });
@@ -378,7 +506,7 @@ function buildKeyboard() {
   });
 }
 
-// ── TIMER ────────────────────────────────────────────────────────
+// ── TIMER ─────────────────────────────────────────────────────────
 function startTimer() {
   clearInterval(timerInterval);
   timerInterval = setInterval(() => {
@@ -408,47 +536,37 @@ function adjustTime(delta, type) {
   const toast = document.getElementById('deltaToast');
   toast.textContent = (delta > 0 ? '+' : '') + delta + 's';
   toast.className   = 'delta-toast ' + (delta > 0 ? 'correct' : 'wrong');
-  void toast.offsetWidth;
-  toast.classList.add('animate');
+  void toast.offsetWidth; toast.classList.add('animate');
   setTimeout(() => toast.classList.remove('animate'), 1400);
 }
 
-// ── NEW GAME ─────────────────────────────────────────────────────
-function newGame() {
-  hideOverlay();
-  clearInterval(timerInterval);
-  gameOver = false;
-
+// ── NEW GAME ──────────────────────────────────────────────────────
+window.newGame = function () {
+  hideOverlay(); clearInterval(timerInterval); gameOver = false;
   if (usedIndices.length >= idioms.length) usedIndices = [];
   let idx;
   do { idx = Math.floor(Math.random() * idioms.length); } while (usedIndices.includes(idx));
   usedIndices.push(idx);
   currentIdiom = idioms[idx];
-
   guessed = new Set();
   consecutiveCorrect = consecutiveWrong = 0;
   timeLeft   = TOTAL_SECS;
   roundStart = Date.now();
-
   document.querySelectorAll('.kb-key').forEach(k => { k.className = 'kb-key'; k.disabled = false; });
-  document.getElementById('wrongLetters').innerHTML     = '';
-  document.getElementById('hintText').textContent       = currentIdiom.theme;
-  document.getElementById('correctStreak').textContent  = '0';
-  document.getElementById('wrongStreak').textContent    = '0';
-  document.getElementById('msgLog').textContent         = '';
+  document.getElementById('wrongLetters').innerHTML    = '';
+  document.getElementById('hintText').textContent      = currentIdiom.theme;
+  document.getElementById('correctStreak').textContent = '0';
+  document.getElementById('wrongStreak').textContent   = '0';
+  document.getElementById('msgLog').textContent        = '';
+  updateTimerUI(); renderWord(); startTimer();
+};
 
-  updateTimerUI();
-  renderWord();
-  startTimer();
-}
-
-// ── GUESS ────────────────────────────────────────────────────────
+// ── GUESS ─────────────────────────────────────────────────────────
 function guess(letter) {
   letter = letter.toUpperCase();
   if (guessed.has(letter) || gameOver) return;
   guessed.add(letter);
   const btn = document.getElementById('key-' + letter);
-
   if (currentIdiom.phrase.toUpperCase().includes(letter)) {
     consecutiveWrong = 0; consecutiveCorrect++;
     if (btn) { btn.className = 'kb-key correct'; btn.disabled = true; }
@@ -470,10 +588,8 @@ function guess(letter) {
   }
 }
 
-// ── RENDER WORD ──────────────────────────────────────────────────
 function renderWord() {
-  const area = document.getElementById('wordArea');
-  area.innerHTML = '';
+  const area = document.getElementById('wordArea'); area.innerHTML = '';
   currentIdiom.phrase.split(' ').forEach(word => {
     const grp = document.createElement('div'); grp.className = 'word-group';
     word.split('').forEach(ch => {
@@ -504,7 +620,7 @@ function updateWrongLetters(letter) {
   const span = document.createElement('span'); span.textContent = letter + ' '; el.appendChild(span);
 }
 
-// ── END GAME + SUPABASE LOG ──────────────────────────────────────
+// ── END GAME + SUPABASE LOG ───────────────────────────────────────
 function countGuesses() {
   const letters = new Set(currentIdiom.phrase.toUpperCase().replace(/[^A-Z]/g,'').split(''));
   let c = 0, w = 0;
@@ -513,9 +629,7 @@ function countGuesses() {
 }
 
 function endGame(won) {
-  gameOver = true;
-  clearInterval(timerInterval);
-
+  gameOver = true; clearInterval(timerInterval);
   const timeSpent = Math.round((Date.now() - roundStart) / 1000);
   const { correct, wrong } = countGuesses();
 
@@ -542,24 +656,17 @@ function endGame(won) {
 
   if (playerName) {
     document.getElementById('msgLog').textContent = 'Saving Quest ' + currentIdiom.id + '\u2026';
-    logToSupabase({ student_name: playerName, department: playerDept, correct, wrong, time_spent: timeSpent, quest_id: 'Quest ' + currentIdiom.id });
+    logToSupabase({ student_name: playerName, department: playerDept || "Idiom Game", correct, wrong, time_spent: timeSpent, quest_id: 'Quest ' + currentIdiom.id });
   } else {
     document.getElementById('msgLog').textContent = 'Sign in to save scores';
   }
-
   showOverlay();
 }
 
 async function logToSupabase(payload) {
   try {
-    const res = await fetch(EDGE_URL, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify(payload)
-    });
-    document.getElementById('msgLog').textContent = res.ok
-      ? '\u2713 Quest ' + currentIdiom.id + ' saved'
-      : 'Could not save score';
+    const res = await fetch(EDGE_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    document.getElementById('msgLog').textContent = res.ok ? '\u2713 Quest ' + currentIdiom.id + ' saved' : 'Could not save score';
   } catch {
     document.getElementById('msgLog').textContent = 'Could not save score';
   }
@@ -568,36 +675,12 @@ async function logToSupabase(payload) {
 function showOverlay() { document.getElementById('overlay').classList.add('show'); }
 function hideOverlay()  { document.getElementById('overlay').classList.remove('show'); }
 
-// ── DASHBOARD ────────────────────────────────────────────────────
-// Fetches the player's quest_list from report_card_view,
-// parses which Quest IDs (1000–1031) appear, and shows solved/unsolved.
-
-async function fetchAttempted(name) {
-  const url = SUPA_BASE + '/rest/v1/report_card_view?name=eq.' + encodeURIComponent(name) + '&select=quest_list';
-  const res = await fetch(url, {
-    headers: {
-      'apikey':        SUPA_ANON,
-      'Authorization': 'Bearer ' + SUPA_ANON,
-      'Accept':        'application/json'
-    }
-  });
-  if (!res.ok) throw new Error('HTTP ' + res.status);
-  const rows = await res.json();
-  const attempted = new Set();
-  if (rows && rows.length > 0) {
-    (rows[0].quest_list || '').split(',').forEach(item => {
-      const m = item.trim().match(/Quest\s+(\d+)/i);
-      if (m) attempted.add(Number(m[1]));
-    });
-  }
-  return attempted;
-}
-
-async function openDashboard() {
+// ── DASHBOARD ─────────────────────────────────────────────────────
+window.openDashboard = async function () {
   document.getElementById('dashOverlay').classList.add('show');
   const content  = document.getElementById('dashContent');
   const subtitle = document.getElementById('dashSubtitle');
-  subtitle.textContent = playerName ? playerName : '';
+  subtitle.textContent = playerName ? playerName + (playerDept ? ' \u00B7 ' + playerDept : '') : '';
 
   if (!playerName) {
     content.innerHTML = '<div class="dash-error">Sign in with your name first to see your progress.</div>';
@@ -606,89 +689,93 @@ async function openDashboard() {
 
   content.innerHTML = '<div class="dash-spinner"><div class="spinner-ring"></div></div>';
 
-  let attempted;
+  let attempted = new Set();
   try {
-    attempted = await fetchAttempted(playerName);
-  } catch {
-    content.innerHTML = '<div class="dash-error">Could not load data. Check your connection and try again.</div>';
-    return;
-  }
+    const { data, error } = await supabase
+      .from("report_card_view")
+      .select("quest_list")
+      .ilike("name", playerName);        // case-insensitive name match
+
+    if (!error && data && data.length > 0) {
+      // Merge quest_lists from all matching rows (handles duplicates gracefully)
+      data.forEach(row => {
+        (row.quest_list || '').split(',').forEach(item => {
+          const m = item.trim().match(/Quest\s+(\d+)/i);
+          if (m) attempted.add(Number(m[1]));
+        });
+      });
+    }
+  } catch { /* show empty state */ }
 
   const solved   = idioms.filter(i => attempted.has(i.id));
   const unsolved = idioms.filter(i => !attempted.has(i.id));
-  const total    = idioms.length;
-  const pct      = Math.round((solved.length / total) * 100);
+  const pct      = Math.round((solved.length / idioms.length) * 100);
 
-  // Build HTML
   let html = '';
-
-  // Stats
   html += '<div class="dash-stats">'
     + '<div class="dash-stat"><div class="dash-stat-val">' + solved.length + '</div><div class="dash-stat-lbl">Attempted</div></div>'
     + '<div class="dash-stat"><div class="dash-stat-val">' + unsolved.length + '</div><div class="dash-stat-lbl">Remaining</div></div>'
     + '<div class="dash-stat"><div class="dash-stat-val">' + pct + '%</div><div class="dash-stat-lbl">Complete</div></div>'
     + '</div>';
 
-  // Progress bar
   html += '<div class="progress-wrap">'
-    + '<div class="progress-label"><span>Overall Progress</span><span>' + solved.length + ' / ' + total + ' idioms</span></div>'
+    + '<div class="progress-label"><span>Overall Progress</span><span>' + solved.length + ' / ' + idioms.length + '</span></div>'
     + '<div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>'
     + '</div>';
 
-  // Unsolved section
   if (unsolved.length > 0) {
     html += '<div class="section-lbl">Yet to attempt &mdash; ' + unsolved.length + '</div><div class="idiom-grid">';
     unsolved.forEach(i => {
-      html += '<div class="idiom-card unsolved">'
+      html += '<div class="idiom-card">'
         + '<div class="idiom-status">\u25CB</div>'
         + '<div class="idiom-info"><div class="idiom-phrase">' + i.phrase + '</div><div class="idiom-meta">' + i.theme + '</div></div>'
-        + '<div class="idiom-qid">Q' + i.id + '</div>'
-        + '</div>';
+        + '<div class="idiom-qid">Q' + i.id + '</div></div>';
     });
     html += '</div>';
   } else {
     html += '<div class="all-done">\u2728 All idioms attempted! Remarkable.</div>';
   }
 
-  // Solved section
   if (solved.length > 0) {
     html += '<div class="section-lbl">Attempted &mdash; ' + solved.length + '</div><div class="idiom-grid">';
     solved.forEach(i => {
       html += '<div class="idiom-card solved">'
         + '<div class="idiom-status">\u2713</div>'
         + '<div class="idiom-info"><div class="idiom-phrase">' + i.phrase + '</div><div class="idiom-meta">' + i.theme + '</div></div>'
-        + '<div class="idiom-qid">Q' + i.id + '</div>'
-        + '</div>';
+        + '<div class="idiom-qid">Q' + i.id + '</div></div>';
     });
     html += '</div>';
   }
 
   content.innerHTML = html;
+  requestAnimationFrame(() => setTimeout(() => {
+    const fill = document.getElementById('progressFill');
+    if (fill) fill.style.width = pct + '%';
+  }, 60));
+};
 
-  // Animate progress bar after paint
-  requestAnimationFrame(() => {
-    setTimeout(() => {
-      const fill = document.getElementById('progressFill');
-      if (fill) fill.style.width = pct + '%';
-    }, 60);
-  });
-}
-
-function closeDashboard() {
+window.closeDashboard = function () {
   document.getElementById('dashOverlay').classList.remove('show');
-}
+};
 
 // ── PHYSICAL KEYBOARD ─────────────────────────────────────────────
 document.addEventListener('keydown', e => {
   if (document.getElementById('dashOverlay').classList.contains('show')) return;
   if (document.getElementById('overlay').classList.contains('show'))     return;
-  if (document.getElementById('nameGate').classList.contains('show'))    return;
+  if (document.getElementById('loginGate').classList.contains('show'))   return;
   if (/^[a-zA-Z]$/.test(e.key)) guess(e.key.toUpperCase());
 });
 
 // ── BOOT ─────────────────────────────────────────────────────────
+loadSavedPlayer();
 buildKeyboard();
-initPlayer();
+
+if (!playerName) {
+  document.getElementById('loginGate').classList.add('show');
+} else {
+  showPlayerPill();
+}
+
 newGame();
 </script>
 </body>

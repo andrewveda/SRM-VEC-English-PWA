@@ -183,6 +183,8 @@
   .dash-title{font-family:'Playfair Display',serif;font-size:20px;font-weight:400;color:var(--gold-light);}
   .dash-subtitle{font-size:10px;color:var(--gold);opacity:.5;letter-spacing:.15em;margin-top:2px;font-family:'DM Mono',monospace;}
   .dash-close{background:none;border:1px solid var(--border);border-radius:50%;width:32px;height:32px;color:var(--gold);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+  .dash-play-random{background:linear-gradient(135deg,var(--gold),#a07828);color:#1a1208;border:none;border-radius:8px;padding:8px 16px;font-family:'DM Mono',monospace;font-size:11px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;box-shadow:0 3px 12px rgba(201,168,76,.25);transition:filter .15s,transform .15s;}
+  .dash-play-random:active{transform:scale(.96);}
   .dash-stats{display:flex;gap:8px;margin-bottom:14px;}
   .dash-stat{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 8px;text-align:center;}
   .dash-stat-val{font-family:'Playfair Display',serif;font-size:22px;color:var(--gold-light);line-height:1;}
@@ -456,7 +458,10 @@
         <div class="dash-title">My Progress</div>
         <div class="dash-subtitle" id="dashSubtitle"></div>
       </div>
-      <button class="dash-close" onclick="closeDashboard()">&#10005;</button>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button class="dash-play-random" onclick="playRandom()">&#9654; Random</button>
+        <button class="dash-close" id="dashCloseBtn" onclick="closeDashboard()">&#10005;</button>
+      </div>
     </div>
     <div id="dashContent"></div>
   </div>
@@ -704,7 +709,7 @@ const idioms = [
       {s:"Percy",    t:"I’m still on the fence. The Ministry says one thing and you lot say another."},
       {s:"Fred",     t:"There’s no time to be on the fence anymore, Percy."} ]},
 
-
+  
    
   { 
   id:1032,
@@ -825,7 +830,7 @@ const idioms = [
     {s:"Hermione", t:"I’ll explain it later."}
   ]
 },
-  ];
+];
 
 const TOTAL_SECS    = 180;
 const CIRCUMFERENCE = 2 * Math.PI * 38; // matches r=38 in the 88px ring
@@ -959,6 +964,7 @@ document.getElementById("nameInput").addEventListener("keydown", e => {
 // ── GAME STATE ────────────────────────────────────────────────────
 let currentIdiom, guessed;
 let consecutiveCorrect = 0, consecutiveWrong = 0;
+let gameStarted = false; // true once first idiom is loaded
 let gemCount = 0;
 let usedIndices = [];
 let timeLeft, timerInterval, gameOver;
@@ -1032,6 +1038,7 @@ function adjustTime(delta, type) {
 // ── NEW GAME ──────────────────────────────────────────────────────
 window.newGame = function () {
   hideOverlay(); clearInterval(timerInterval); gameOver = false;
+  gameStarted = true;
   if (usedIndices.length >= idioms.length) usedIndices = [];
   let idx;
   do { idx = Math.floor(Math.random() * idioms.length); } while (usedIndices.includes(idx));
@@ -1385,6 +1392,9 @@ function hideOverlay()  { document.getElementById('overlay').classList.remove('s
 // ── DASHBOARD ─────────────────────────────────────────────────────
 window.openDashboard = async function () {
   document.getElementById('dashOverlay').classList.add('show');
+  // Hide close btn if no game is in progress yet
+  const closeBtn = document.getElementById('dashCloseBtn');
+  if (closeBtn) closeBtn.style.display = gameStarted ? 'flex' : 'none';
   const content  = document.getElementById('dashContent');
   const subtitle = document.getElementById('dashSubtitle');
   subtitle.textContent = playerName ? playerName + (playerDept ? ' \u00B7 ' + playerDept : '') : '';
@@ -1455,6 +1465,7 @@ window.openDashboard = async function () {
 window.playSpecificIdiom = function (idiomId) {
   const idiom = idioms.find(i => i.id === idiomId);
   if (!idiom) return;
+  gameStarted = true;
   closeDashboard();
 
   // Reset game state
@@ -1513,7 +1524,14 @@ function buildIdiomCard(idiom, solved) {
 }
 
 window.closeDashboard = function () {
+  if (!gameStarted) return; // must pick an idiom to start
   document.getElementById('dashOverlay').classList.remove('show');
+};
+
+window.playRandom = function () {
+  gameStarted = true;
+  document.getElementById('dashOverlay').classList.remove('show');
+  newGame();
 };
 
 // ── PHYSICAL KEYBOARD ─────────────────────────────────────────────
@@ -1554,9 +1572,8 @@ if (!playerName) {
   document.getElementById('loginGate').classList.add('show');
 } else {
   showPlayerPill();
+  openDashboard(); // open dashboard on load so student picks idiom first
 }
-
-newGame();
 
 </script>
 </body>

@@ -1,0 +1,1209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Vox Velocity</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --gold:#C9A84C; --gold-light:#E8C97A; --gold-pale:#F5E6B8;
+    --gold-dim:rgba(201,168,76,0.12);
+    --bg-body:#1a1208; --dark:#1a1208; --dark-mid:#2d2010; --dark-warm:#3d2e12;
+    --surface:rgba(201,168,76,0.05); --surface2:rgba(201,168,76,0.09);
+    --card-bg:linear-gradient(160deg,#3d2e12,#1a1208);
+    --text-main:#F9F3E3;
+    --danger:#8B2020; --danger-light:#c43030;
+    --border:rgba(201,168,76,0.22); --border-dim:rgba(255,255,255,0.06);
+    --key-bg:rgba(201,168,76,0.07); --key-border:rgba(201,168,76,0.35); --key-color:#E8C97A;
+    --key-correct-bg:rgba(45,90,39,0.35); --key-correct-border:rgba(100,180,80,0.45); --key-correct-color:rgba(130,220,100,0.9);
+    --key-wrong-bg:rgba(100,20,20,0.35); --key-wrong-border:rgba(150,40,40,0.35); --key-wrong-color:rgba(180,80,80,0.5);
+    --def-bg:rgba(201,168,76,0.04); --def-border:rgba(201,168,76,0.18);
+    --wrong-color:rgba(200,70,70,0.85); --pattern-op:0.025;
+  }
+  html.light {
+    --gold:#9a6e00; --gold-light:#b88a00; --gold-pale:#5a3d00;
+    --gold-dim:rgba(154,110,0,0.14);
+    --bg-body:#faf4e8; --dark:#faf4e8; --dark-mid:#f0e8d0; --dark-warm:#e8dcc0;
+    --surface:rgba(154,110,0,0.06); --surface2:rgba(154,110,0,0.10);
+    --card-bg:linear-gradient(160deg,#ede0c0,#faf4e8);
+    --text-main:#3a2800;
+    --danger:#9a1a1a; --danger-light:#c43030;
+    --border:rgba(154,110,0,0.28); --border-dim:rgba(0,0,0,0.07);
+    --key-bg:rgba(154,110,0,0.08); --key-border:rgba(154,110,0,0.38); --key-color:#6b4800;
+    --key-correct-bg:rgba(30,80,25,0.18); --key-correct-border:rgba(60,160,50,0.5); --key-correct-color:#1a5c14;
+    --key-wrong-bg:rgba(120,20,20,0.12); --key-wrong-border:rgba(160,40,40,0.4); --key-wrong-color:#8b2020;
+    --def-bg:rgba(154,110,0,0.06); --def-border:rgba(154,110,0,0.22);
+    --wrong-color:rgba(160,40,40,0.85); --pattern-op:0.045;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;background:var(--bg-body);font-family:'Cormorant Garamond',serif;color:var(--text-main);overflow:hidden;transition:background .3s,color .3s;}
+  body{height:100dvh;display:flex;flex-direction:column;overflow:hidden;position:relative;}
+  body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opacity:var(--pattern-op);
+    background-image:repeating-linear-gradient(45deg,transparent,transparent 35px,var(--gold) 35px,var(--gold) 36px),
+    repeating-linear-gradient(-45deg,transparent,transparent 35px,var(--gold) 35px,var(--gold) 36px);transition:opacity .3s;}
+  header{text-align:center;padding:8px 16px 6px;border-bottom:1px solid var(--border);flex-shrink:0;position:relative;z-index:1;display:flex;align-items:center;justify-content:center;transition:border-color .3s;}
+  h1{font-family:'Playfair Display',serif;font-size:clamp(16px,4.5vw,22px);font-weight:400;letter-spacing:.12em;color:var(--gold-light);text-shadow:0 0 20px rgba(201,168,76,.25);transition:color .3s;}
+  .left-btns{position:absolute;left:10px;top:50%;transform:translateY(-50%);display:flex;gap:5px;align-items:center;z-index:2;}
+  .right-btns{position:absolute;right:10px;top:50%;transform:translateY(-50%);display:flex;gap:5px;align-items:center;z-index:2;}
+  .help-btn,.home-btn,.theme-toggle,.mute-btn{font-size:16px;cursor:pointer;line-height:1;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:4px 9px;color:var(--gold);transition:background .2s,transform .15s;-webkit-tap-highlight-color:transparent;user-select:none;}
+  .help-btn:hover,.home-btn:hover,.theme-toggle:hover,.mute-btn:hover{background:var(--surface2);}
+  .help-btn:active,.home-btn:active,.theme-toggle:active,.mute-btn:active{transform:scale(.88);}
+  .player-pill{display:inline-flex;align-items:center;gap:6px;margin-top:3px;padding:2px 10px;border:1px solid var(--border);border-radius:20px;font-size:11px;color:var(--gold);letter-spacing:.1em;cursor:pointer;transition:border-color .2s,color .2s;font-family:'DM Mono',monospace;}
+  .player-pill:hover{border-color:var(--gold-light);color:var(--gold-light);}
+  .player-pill .pip{width:6px;height:6px;border-radius:50%;background:var(--gold);flex-shrink:0;}
+  .player-dept{font-size:9px;color:var(--gold);opacity:.6;margin-left:2px;}
+  .login-gate{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:200;justify-content:center;align-items:center;padding:20px;backdrop-filter:blur(8px);}
+  .login-gate.show{display:flex;}
+  .login-card{background:var(--card-bg);border:1px solid var(--border);border-radius:20px;padding:28px 24px;width:100%;max-width:360px;position:relative;overflow:hidden;transition:background .3s,border-color .3s;}
+  .login-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--danger),var(--gold),var(--danger));}
+  .login-card-title{font-family:'Playfair Display',serif;font-size:22px;font-weight:400;color:var(--gold-light);text-align:center;margin-bottom:3px;}
+  .login-card-sub{font-size:10px;letter-spacing:.25em;text-transform:uppercase;color:var(--gold);opacity:.5;text-align:center;margin-bottom:22px;font-family:'DM Mono',monospace;}
+  .field-group{margin-bottom:14px;}
+  .field-group label{display:block;font-size:9px;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);opacity:.55;margin-bottom:6px;font-family:'DM Mono',monospace;}
+  .field-group input,.field-group select{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:11px 14px;font-family:'Cormorant Garamond',serif;font-size:15px;color:var(--text-main);outline:none;transition:border-color .2s;-webkit-appearance:none;appearance:none;}
+  .field-group input::placeholder{color:var(--gold);opacity:.3;}
+  .field-group input:focus,.field-group select:focus{border-color:var(--gold);box-shadow:0 0 0 3px var(--gold-dim);}
+  .field-group select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23c9a84c' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:36px;cursor:pointer;}
+  .field-group select option{background:var(--dark-mid);color:var(--text-main);}
+  .btn-gold{background:linear-gradient(135deg,var(--gold),#a07828);color:#1a1208;border:none;border-radius:10px;padding:12px 32px;font-family:'DM Mono',monospace;font-size:13px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;width:100%;box-shadow:0 4px 20px rgba(201,168,76,.25);transition:transform .15s,filter .15s;margin-top:4px;}
+  .btn-gold:hover{filter:brightness(1.08);} .btn-gold:active{transform:scale(.97);}
+  .dup-btn{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:11px 14px;text-align:left;cursor:pointer;margin-bottom:8px;transition:border-color .2s,background .2s;}
+  .dup-btn:hover{border-color:var(--gold);background:var(--surface2);}
+  .dup-name{font-family:'Playfair Display',serif;font-size:15px;color:var(--text-main);}
+  .dup-meta{font-size:9px;letter-spacing:.15em;color:var(--gold);opacity:.6;margin-top:3px;font-family:'DM Mono',monospace;}
+  main{flex:1;display:flex;flex-direction:column;padding:8px 12px 10px;gap:0;max-width:480px;margin:0 auto;width:100%;overflow:hidden;position:relative;z-index:1;justify-content:space-evenly;}
+  .timer-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 14px;display:flex;flex-direction:row;align-items:center;gap:12px;position:relative;overflow:hidden;flex-shrink:0;transition:background .3s,border-color .3s;}
+  .timer-card::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent,transparent 24px,rgba(201,168,76,.018) 24px,rgba(201,168,76,.018) 25px);pointer-events:none;}
+  .timer-ring-wrap{position:relative;width:88px;height:88px;flex-shrink:0;}
+  .timer-ring-wrap svg{transform:rotate(-90deg);width:88px;height:88px;}
+  .ring-track{fill:none;stroke:rgba(201,168,76,.12);stroke-width:6;}
+  .ring-progress{fill:none;stroke:var(--gold);stroke-width:6;stroke-linecap:round;transition:stroke-dashoffset 1s linear,stroke .4s ease;filter:drop-shadow(0 0 4px rgba(201,168,76,.4));}
+  .timer-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+  .timer-display{font-family:'Playfair Display',serif;font-size:24px;font-weight:700;color:var(--gold-light);letter-spacing:.04em;line-height:1;transition:color .4s ease;}
+  .timer-display.urgent{color:var(--danger-light);text-shadow:0 0 12px rgba(196,48,48,.5);}
+  .gem-row{display:flex;align-items:center;justify-content:space-between;flex:1;gap:6px;}
+  .gem-badge{display:flex;align-items:center;gap:4px;}
+  .gem-icon{font-size:13px;line-height:1;}
+  .gem-val{font-family:'Playfair Display',serif;font-size:18px;line-height:1;}
+  .gem-val.correct-color{color:#4caf50;} .gem-val.wrong-color{color:#d96060;}
+  .gem-lbl{font-size:8px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);opacity:.45;font-family:'DM Mono',monospace;}
+  .gem-total{display:flex;flex-direction:column;align-items:center;gap:1px;}
+  .gem-total-icon{font-size:18px;line-height:1;}
+  .gem-total-val{font-family:'Playfair Display',serif;font-size:20px;font-weight:700;color:var(--gold-light);line-height:1;text-shadow:0 0 10px rgba(201,168,76,.4);}
+  .delta-toast{position:absolute;top:6px;right:10px;font-family:'Playfair Display',serif;font-size:13px;font-weight:700;opacity:0;pointer-events:none;}
+  .delta-toast.correct{color:#4caf50;} .delta-toast.wrong{color:#d96060;}
+  .delta-toast.animate{animation:toastPop 1s ease forwards;}
+  @keyframes toastPop{0%{opacity:0;transform:translateY(0)}15%{opacity:1;transform:translateY(-3px)}70%{opacity:1;transform:translateY(-10px)}100%{opacity:0;transform:translateY(-18px)}}
+  .big-toast{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:500;pointer-events:none;font-family:'Playfair Display',serif;font-size:clamp(56px,18vw,88px);font-weight:700;letter-spacing:-.02em;line-height:1;opacity:0;text-align:center;}
+  .big-toast.correct{color:#4caf50;text-shadow:0 0 40px rgba(76,175,80,.5),0 4px 20px rgba(0,0,0,.3);}
+  .big-toast.wrong{color:#d96060;text-shadow:0 0 40px rgba(217,96,96,.5),0 4px 20px rgba(0,0,0,.3);}
+  .big-toast.pop{animation:bigToastPop 1.1s cubic-bezier(.22,1,.36,1) forwards;}
+  @keyframes bigToastPop{0%{opacity:0;transform:translate(-50%,-50%) scale(.6);}20%{opacity:1;transform:translate(-50%,-50%) scale(1.08);}45%{opacity:1;transform:translate(-50%,-50%) scale(1);}75%{opacity:1;transform:translate(-50%,-55%);}100%{opacity:0;transform:translate(-50%,-65%);}}
+  .hint-strip{text-align:center;flex-shrink:0;padding:2px 0;}
+  .hint-strip .theme-label{font-size:8px;letter-spacing:.3em;text-transform:uppercase;color:var(--gold);opacity:.5;font-family:'DM Mono',monospace;display:block;margin-bottom:2px;}
+  .hint-strip .theme-value{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;letter-spacing:.08em;color:var(--gold-light);text-shadow:0 0 18px rgba(201,168,76,.35);display:block;line-height:1.1;}
+  .game-dialogue{background:var(--def-bg);border:1px solid var(--def-border);border-radius:10px;padding:10px 14px;display:flex;flex-direction:column;gap:4px;flex-shrink:0;transition:background .3s,border-color .3s;}
+  .game-dialogue-label{font-size:8px;letter-spacing:.25em;text-transform:uppercase;color:var(--gold);opacity:.4;font-family:'DM Mono',monospace;}
+  .game-definition{font-family:'Cormorant Garamond',serif;font-size:18px;font-style:italic;color:var(--text-main);line-height:1.45;text-align:center;opacity:.9;}
+  .word-area{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 8px;padding:4px 0;min-height:70px;align-items:center;flex-shrink:0;}
+  .word-group{display:flex;gap:4px;align-items:flex-end;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:6px 8px 5px;position:relative;transition:background .3s,border-color .3s;}
+  .word-group+.word-group::before{content:'\B7';position:absolute;left:-7px;top:50%;transform:translateY(-50%);color:var(--gold);opacity:.4;font-size:14px;line-height:1;pointer-events:none;}
+  .letter-slot{display:flex;flex-direction:column;align-items:center;gap:1px;}
+  .letter-char{font-family:'Playfair Display',serif;font-size:clamp(20px,5vw,28px);font-weight:700;color:var(--gold-light);height:32px;display:flex;align-items:center;justify-content:center;text-shadow:0 0 10px rgba(201,168,76,.35);min-width:16px;text-align:center;}
+  .letter-char.revealed{animation:revealLetter .45s ease forwards;}
+  @keyframes revealLetter{0%{transform:translateY(-8px);opacity:0}60%{transform:translateY(2px)}100%{transform:translateY(0);opacity:1}}
+  .letter-line{width:100%;min-width:16px;height:1.5px;background:var(--gold);opacity:.45;border-radius:1px;}
+  .wrong-letters{text-align:center;font-family:'Playfair Display',serif;font-size:16px;letter-spacing:.15em;color:var(--wrong-color);min-height:24px;flex-shrink:0;}
+  .wrong-label{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--wrong-color);opacity:.6;margin-right:6px;}
+  .in-game-dial{display:none;background:var(--def-bg);border:1px solid var(--border);border-radius:10px;padding:10px 14px;flex-direction:column;gap:5px;flex-shrink:0;}
+  .in-game-dial.show{display:flex;animation:dialSlideIn .45s cubic-bezier(.22,1,.36,1) forwards;}
+  @keyframes dialSlideIn{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:translateY(0);}}
+  .in-game-dial-lbl{font-size:8px;letter-spacing:.25em;text-transform:uppercase;color:var(--gold);opacity:.45;font-family:'DM Mono',monospace;margin-bottom:2px;}
+  .in-game-dial-line{display:flex;gap:8px;align-items:flex-start;}
+  .in-game-dial-speaker{font-family:'DM Mono',monospace;font-size:7px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);flex-shrink:0;padding-top:3px;min-width:68px;max-width:68px;line-height:1.3;word-break:break-word;}
+  .in-game-dial-text{font-family:'Cormorant Garamond',serif;font-size:14px;color:var(--text-main);line-height:1.4;flex:1;opacity:.88;}
+  .in-game-dial-text em{color:var(--gold-light);font-style:normal;font-weight:700;}
+  .keyboard{display:flex;flex-direction:column;gap:5px;flex-shrink:0;}
+  .kb-row{display:flex;justify-content:center;gap:5px;width:100%;}
+  .kb-key{flex:1;min-width:0;height:46px;border-radius:7px;border:1px solid var(--key-border);background:var(--key-bg);color:var(--key-color);font-family:'Playfair Display',serif;font-size:clamp(13px,3.5vw,16px);font-weight:700;cursor:pointer;transition:background .12s,transform .1s;position:relative;}
+  .kb-key::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,.06) 0%,transparent 100%);border-radius:7px;pointer-events:none;}
+  .kb-key:active{transform:scale(.91);}
+  .kb-key.correct{background:var(--key-correct-bg);border-color:var(--key-correct-border);color:var(--key-correct-color);cursor:not-allowed;}
+  .kb-key.wrong{background:var(--key-wrong-bg);border-color:var(--key-wrong-border);color:var(--key-wrong-color);cursor:not-allowed;}
+  .dash-btn{display:flex;align-items:center;justify-content:center;gap:6px;padding:6px 12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--gold);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.1em;cursor:pointer;transition:background .2s,border-color .2s;text-transform:uppercase;flex-shrink:0;}
+  .dash-btn:active{background:var(--surface2);}
+  .overlay{display:none;position:fixed;inset:0;background:rgba(10,8,3,.9);z-index:100;justify-content:center;align-items:center;padding:24px;backdrop-filter:blur(6px);}
+  html.light .overlay{background:rgba(250,244,232,.92);}
+  .overlay.show{display:flex;}
+  .msg-card{background:var(--card-bg);border:1px solid var(--gold);border-radius:16px;padding:22px 20px;text-align:center;max-width:340px;width:100%;box-shadow:0 0 50px rgba(201,168,76,.15);animation:cardIn .4s cubic-bezier(.34,1.56,.64,1) forwards;overflow-y:auto;max-height:90dvh;}
+  @keyframes cardIn{from{transform:scale(.8) translateY(16px);opacity:0}to{transform:scale(1) translateY(0);opacity:1}}
+  .msg-icon{font-size:40px;margin-bottom:8px;display:block;}
+  .msg-title{font-family:'Playfair Display',serif;font-size:22px;font-weight:400;color:var(--gold-light);margin-bottom:5px;}
+  .msg-idiom{font-family:'Playfair Display',serif;font-style:italic;font-size:15px;color:var(--text-main);margin-bottom:5px;line-height:1.4;}
+  .msg-time{font-family:'Playfair Display',serif;font-size:13px;color:var(--gold);opacity:.6;margin-bottom:5px;}
+  .msg-time strong{color:var(--gold-light);opacity:1;}
+  .msg-log{font-size:10px;color:var(--gold);opacity:.4;margin-bottom:14px;min-height:14px;font-family:'DM Mono',monospace;letter-spacing:.06em;}
+  .msg-dialogue{margin:6px 0 12px;text-align:left;display:flex;flex-direction:column;gap:5px;}
+  .msg-dial-line{display:flex;gap:8px;align-items:flex-start;}
+  .msg-dial-speaker{font-family:'DM Mono',monospace;font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);flex-shrink:0;padding-top:3px;min-width:64px;max-width:64px;line-height:1.3;word-break:break-word;}
+  .msg-dial-text{font-family:'Cormorant Garamond',serif;font-size:13px;color:var(--text-main);line-height:1.45;flex:1;opacity:.88;}
+  .msg-dial-text em{color:var(--gold-light);font-style:normal;font-weight:700;}
+  .msg-section-lbl{font-size:8px;letter-spacing:.25em;text-transform:uppercase;color:var(--gold);opacity:.4;font-family:'DM Mono',monospace;margin-top:2px;margin-bottom:2px;text-align:left;}
+  .dash-overlay{display:none;position:fixed;inset:0;background:var(--bg-body);z-index:150;overflow-y:auto;padding:16px 14px 32px;}
+  .dash-overlay.show{display:block;}
+  .dash-inner{max-width:480px;margin:0 auto;}
+  .dash-header{display:flex;align-items:center;justify-content:space-between;padding:14px 0 12px;border-bottom:1px solid var(--border);margin-bottom:14px;}
+  .dash-title{font-family:'Playfair Display',serif;font-size:20px;font-weight:400;color:var(--gold-light);}
+  .dash-subtitle{font-size:10px;color:var(--gold);opacity:.5;letter-spacing:.15em;margin-top:2px;font-family:'DM Mono',monospace;}
+  .dash-close{background:none;border:1px solid var(--border);border-radius:50%;width:32px;height:32px;color:var(--gold);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+  .dash-play-random{background:linear-gradient(135deg,var(--gold),#a07828);color:#1a1208;border:none;border-radius:8px;padding:8px 16px;font-family:'DM Mono',monospace;font-size:11px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;box-shadow:0 3px 12px rgba(201,168,76,.25);transition:filter .15s,transform .15s;}
+  .dash-play-random:active{transform:scale(.96);}
+  .dash-stats{display:flex;gap:8px;margin-bottom:14px;}
+  .dash-stat{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 8px;text-align:center;}
+  .dash-stat-val{font-family:'Playfair Display',serif;font-size:22px;color:var(--gold-light);line-height:1;}
+  .dash-stat-lbl{font-size:9px;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);opacity:.5;margin-top:3px;font-family:'DM Mono',monospace;}
+  .progress-wrap{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 14px;margin-bottom:14px;}
+  .progress-label{font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);opacity:.55;margin-bottom:7px;display:flex;justify-content:space-between;font-family:'DM Mono',monospace;}
+  .progress-track{height:6px;background:var(--surface2);border-radius:3px;overflow:hidden;}
+  .progress-fill{height:100%;background:linear-gradient(90deg,var(--gold),var(--gold-light));border-radius:3px;transition:width .8s ease;}
+  .section-lbl{font-size:10px;letter-spacing:.3em;text-transform:uppercase;color:var(--gold);opacity:.45;margin-bottom:8px;padding-left:2px;font-family:'DM Mono',monospace;}
+  .idiom-grid{display:flex;flex-direction:column;gap:8px;margin-bottom:16px;}
+  .idiom-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px;transition:border-color .2s,background .3s;}
+  .idiom-card.solved{border-color:rgba(100,180,80,.3);background:rgba(45,90,39,.08);}
+  html.light .idiom-card.solved{border-color:rgba(40,140,30,.4);background:rgba(40,140,30,.07);}
+  .idiom-playable{cursor:pointer;transition:border-color .2s,transform .15s,box-shadow .15s;}
+  .idiom-playable:hover{border-color:var(--gold);transform:translateY(-1px);box-shadow:0 4px 16px rgba(201,168,76,.15);}
+  .idiom-playable:active{transform:scale(.98);}
+  .idiom-play-hint{font-size:9px;font-family:'DM Mono',monospace;color:var(--gold);opacity:.45;letter-spacing:.14em;text-align:right;margin-top:5px;transition:opacity .2s;}
+  .idiom-playable:hover .idiom-play-hint{opacity:.8;}
+  .idiom-top{display:flex;align-items:flex-start;gap:10px;}
+  .idiom-status{font-size:15px;flex-shrink:0;width:20px;margin-top:1px;}
+  .idiom-info{flex:1;min-width:0;}
+  .idiom-qid{font-size:9px;color:var(--gold);opacity:.3;flex-shrink:0;font-family:'DM Mono',monospace;margin-top:2px;}
+  .idiom-meaning{font-family:'Cormorant Garamond',serif;font-size:14px;font-style:italic;color:var(--gold-light);line-height:1.4;}
+  .idiom-card:not(.solved) .idiom-meaning{color:var(--gold);opacity:.6;}
+  .idiom-theme{font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);opacity:.4;margin-top:3px;font-family:'DM Mono',monospace;}
+  .dash-spinner{display:flex;justify-content:center;align-items:center;padding:32px 0;}
+  .spinner-ring{width:36px;height:36px;border-radius:50%;border:3px solid var(--surface2);border-top-color:var(--gold);animation:spin .8s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .dash-error{text-align:center;color:var(--danger-light);font-size:13px;padding:24px;font-style:italic;}
+  .all-done{text-align:center;padding:14px 0 6px;font-family:'Playfair Display',serif;font-size:15px;color:var(--gold-light);}
+  @keyframes gemPop{0%{transform:scale(1)}50%{transform:scale(1.35) rotate(8deg)}100%{transform:scale(1)}}
+  .gem-pop{animation:gemPop .4s ease;}
+  @keyframes wrongShake{0%,100%{transform:translateX(0)}20%{transform:translateX(-5px)}60%{transform:translateX(5px)}80%{transform:translateX(-3px)}}
+  .shake{animation:wrongShake .35s ease;}
+  @keyframes winBounce{0%{transform:translateY(0) scale(1)}30%{transform:translateY(-10px) scale(1.18)}55%{transform:translateY(2px) scale(0.95)}75%{transform:translateY(-4px) scale(1.06)}100%{transform:translateY(0) scale(1)}}
+  .letter-char.win-bounce{animation:winBounce .55s ease forwards;}
+  .word-group.win-glow{border-color:var(--gold) !important;box-shadow:0 0 14px rgba(201,168,76,.5);transition:box-shadow .3s,border-color .3s;}
+  @keyframes timerFlash{0%,100%{background:var(--surface)}40%{background:rgba(139,32,32,.22)}}
+  .timer-card.penalty{animation:timerFlash .5s ease;}
+  @keyframes timerBonus{0%,100%{background:var(--surface)}40%{background:rgba(45,90,39,.25)}}
+  .timer-card.bonus{animation:timerBonus .5s ease;}
+  .help-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:300;justify-content:center;align-items:center;padding:20px;backdrop-filter:blur(8px);}
+  html.light .help-overlay{background:rgba(250,244,232,.9);}
+  .help-overlay.show{display:flex;}
+  .help-card{background:var(--card-bg);border:1px solid var(--gold);border-radius:16px;padding:22px 20px 18px;width:100%;max-width:380px;position:relative;overflow:hidden;max-height:88dvh;overflow-y:auto;}
+  .help-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--gold),var(--gold-light),var(--gold));}
+  .help-title{font-family:'Playfair Display',serif;font-size:20px;font-weight:400;color:var(--gold-light);text-align:center;margin-bottom:4px;}
+  .help-sub{font-size:9px;letter-spacing:.28em;text-transform:uppercase;color:var(--gold);opacity:.5;text-align:center;font-family:'DM Mono',monospace;margin-bottom:18px;}
+  .help-close{position:absolute;top:14px;right:14px;background:none;border:1px solid var(--border);border-radius:50%;width:28px;height:28px;color:var(--gold);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;}
+  .help-section{margin-bottom:14px;}
+  .help-section-title{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.28em;text-transform:uppercase;color:var(--gold);opacity:.6;margin-bottom:8px;}
+  .help-row{display:flex;gap:10px;align-items:flex-start;margin-bottom:8px;}
+  .help-icon{font-size:18px;flex-shrink:0;width:28px;text-align:center;margin-top:1px;}
+  .help-text{font-family:'Cormorant Garamond',serif;font-size:15px;color:var(--text-main);line-height:1.45;opacity:.9;}
+  .help-text strong{color:var(--gold-light);font-weight:700;font-style:normal;}
+  .help-divider{height:1px;background:var(--border);margin:14px 0;opacity:.5;}
+  .help-tip{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-family:'Cormorant Garamond',serif;font-size:14px;font-style:italic;color:var(--text-main);opacity:.8;text-align:center;line-height:1.4;}
+</style>
+</head>
+<body>
+
+<div class="big-toast" id="bigToast"></div>
+
+<header>
+  <div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
+    <h1>Vox Velocity</h1>
+    <div class="player-pill" id="playerPill" onclick="openLogin()" style="display:none;">
+      <span class="pip"></span><span id="playerPillName"></span><span class="player-dept" id="playerPillDept"></span>
+    </div>
+  </div>
+  <div class="left-btns">
+    <button class="home-btn" onclick="openDashboard()" aria-label="Progress dashboard">&#127968;</button>
+    <button class="help-btn" onclick="openHelp()" aria-label="How to play">&#9432;</button>
+  </div>
+  <div class="right-btns">
+    <button class="mute-btn" id="muteBtn" onclick="toggleMute()" aria-label="Toggle sound">&#128266;</button>
+    <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" aria-label="Toggle theme">&#9728;&#65039;</button>
+  </div>
+</header>
+
+<main>
+  <div class="timer-card" id="timerCard">
+    <div class="delta-toast" id="deltaToast"></div>
+    <div class="timer-ring-wrap">
+      <svg viewBox="0 0 88 88" xmlns="http://www.w3.org/2000/svg">
+        <circle class="ring-track" cx="44" cy="44" r="38"/>
+        <circle class="ring-progress" id="ringProgress" cx="44" cy="44" r="38" stroke-dasharray="238.8" stroke-dashoffset="0"/>
+      </svg>
+      <div class="timer-center"><div class="timer-display" id="timerDisplay">3:00</div></div>
+    </div>
+    <div class="gem-row">
+      <div class="gem-badge">
+        <span class="gem-icon">&#9989;</span>
+        <span class="gem-val correct-color" id="correctStreak">0</span>
+        <span class="gem-lbl">Run</span>
+      </div>
+      <div class="gem-total">
+        <span class="gem-total-icon">&#128142;</span>
+        <span class="gem-total-val" id="gemCount">0</span>
+      </div>
+      <div class="gem-badge">
+        <span class="gem-lbl">Run</span>
+        <span class="gem-val wrong-color" id="wrongStreak">0</span>
+        <span class="gem-icon">&#10060;</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="hint-strip"><span class="theme-label">Theme</span><span class="theme-value" id="hintText"></span></div>
+
+  <div class="game-dialogue" id="gameDialogue">
+    <div class="game-dialogue-label">Definition</div>
+    <div class="game-definition" id="gameDefinition"></div>
+  </div>
+
+  <div class="word-area" id="wordArea"></div>
+  <div class="wrong-letters" id="wrongLetters"></div>
+
+  <div class="in-game-dial" id="inGameDial">
+    <div class="in-game-dial-lbl">In context</div>
+    <div id="inGameDialLines"></div>
+  </div>
+
+  <div class="keyboard" id="keyboard"></div>
+
+  <button class="dash-btn" onclick="openDashboard()">&#9643;&ensp;My Progress Dashboard</button>
+</main>
+
+<!-- LOGIN GATE -->
+<div class="login-gate" id="loginGate">
+  <div class="login-card">
+    <div class="login-card-title">Vox Velocity</div>
+    <div class="login-card-sub">Enter to begin</div>
+    <div class="field-group">
+      <label>Your Name</label>
+      <input id="nameInput" type="text" placeholder="Enter your name&hellip;" maxlength="60" autocomplete="off"/>
+    </div>
+    <div class="field-group">
+      <label>Department</label>
+      <select id="deptSelect">
+        <option value="">-- Select Department --</option>
+        <option value="Cyber Security">Cyber Security</option>
+        <option value="EIE">EIE</option>
+        <option value="CSE-1">CSE-1</option><option value="CSE-2">CSE-2</option><option value="CSE-3">CSE-3</option>
+        <option value="Mechanical Engineering">Mechanical Engineering</option>
+        <option value="ECE-1">ECE-1</option><option value="ECE-2">ECE-2</option><option value="ECE-3">ECE-3</option>
+        <option value="AI DS-1">AI DS-1</option><option value="AI DS-2">AI DS-2</option>
+        <option value="Agri and Civil">Agri and Civil</option>
+        <option value="EEE">EEE</option>
+        <option value="Medical Electronics">Medical Electronics</option>
+        <option value="IT-1">IT-1</option><option value="IT-2">IT-2</option>
+      </select>
+    </div>
+    <button class="btn-gold" onclick="handleLogin()">Enter &#8594;</button>
+    <div id="dupSection" style="display:none;margin-top:18px;">
+      <div style="font-size:11px;color:var(--gold);opacity:.6;margin-bottom:10px;text-align:center;font-family:'DM Mono',monospace;letter-spacing:.1em;">MULTIPLE STUDENTS FOUND &mdash; CHOOSE YOURS</div>
+      <div id="dupList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- GAME OVERLAY -->
+<div class="overlay" id="overlay">
+  <div class="msg-card">
+    <span class="msg-icon" id="msgIcon"></span>
+    <div class="msg-title" id="msgTitle"></div>
+    <div class="msg-idiom" id="msgIdiom"></div>
+    <div class="msg-time"  id="msgTime"></div>
+    <div class="msg-section-lbl" id="msgDialLbl" style="display:none;">In context</div>
+    <div id="msgDialogueWrap" style="display:none;"><div class="msg-dialogue" id="msgDialogue"></div></div>
+    <div class="msg-log" id="msgLog"></div>
+    <button class="btn-gold" onclick="newGame()">Next Idiom</button>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div class="dash-overlay" id="dashOverlay">
+  <div class="dash-inner">
+    <div class="dash-header">
+      <div>
+        <div class="dash-title">My Progress</div>
+        <div class="dash-subtitle" id="dashSubtitle"></div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button class="dash-play-random" onclick="playRandom()">&#9654; Random</button>
+        <button class="dash-close" id="dashCloseBtn" onclick="closeDashboard()">&#10005;</button>
+      </div>
+    </div>
+    <div id="dashContent"></div>
+  </div>
+</div>
+
+<!-- HELP -->
+<div class="help-overlay" id="helpOverlay">
+  <div class="help-card">
+    <div class="help-title">How to Play</div>
+    <div class="help-sub">Vox Velocity &mdash; Quick Guide</div>
+    <button class="help-close" onclick="closeHelp()">&#10005;</button>
+    <div class="help-section">
+      <div class="help-section-title">The Goal</div>
+      <div class="help-row"><span class="help-icon">&#128161;</span><span class="help-text">A <strong>definition</strong> is shown. Guess the English idiom that matches it &mdash; one letter at a time.</span></div>
+      <div class="help-row"><span class="help-icon">&#9200;</span><span class="help-text">You start with <strong>3 minutes</strong>. Solve as many idioms as you can before time runs out.</span></div>
+    </div>
+    <div class="help-divider"></div>
+    <div class="help-section">
+      <div class="help-section-title">Tapping Letters</div>
+      <div class="help-row"><span class="help-icon">&#9989;</span><span class="help-text"><strong>Correct guess</strong> &mdash; the letter appears. You earn time back and a gem bonus.</span></div>
+      <div class="help-row"><span class="help-icon">&#10060;</span><span class="help-text"><strong>Wrong guess</strong> &mdash; time is deducted. More wrong guesses in a row costs more time.</span></div>
+    </div>
+    <div class="help-divider"></div>
+    <div class="help-section">
+      <div class="help-section-title">Streaks &amp; Gems &#128142;</div>
+      <div class="help-row"><span class="help-icon">&#128293;</span><span class="help-text"><strong>Correct run</strong> &mdash; each consecutive correct guess earns more time and gems.</span></div>
+      <div class="help-row"><span class="help-icon">&#128148;</span><span class="help-text"><strong>Wrong run</strong> &mdash; each consecutive wrong guess costs more time and gems.</span></div>
+    </div>
+    <div class="help-divider"></div>
+    <div class="help-section">
+      <div class="help-section-title">Clues</div>
+      <div class="help-row"><span class="help-icon">&#127991;</span><span class="help-text">The <strong>theme</strong> gives a hint about the type of idiom.</span></div>
+      <div class="help-row"><span class="help-icon">&#128218;</span><span class="help-text">The <strong>definition</strong> tells you what the idiom means.</span></div>
+    </div>
+    <div class="help-divider"></div>
+    <div class="help-section">
+      <div class="help-section-title">Dashboard</div>
+      <div class="help-row"><span class="help-icon">&#9643;</span><span class="help-text">Tap any idiom card to play it. Tap <strong>&#9654; Random</strong> for a surprise pick.</span></div>
+    </div>
+    <div class="help-tip">Each idiom is saved to your profile. Good luck! &#127942;</div>
+  </div>
+</div>
+
+<script type="module">
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm";
+
+const supabase = createClient(
+  "https://yellow-lab-4999.andrewveda.workers.dev",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoZXpzc29jenZwYmt0ZWZmY2d6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI4NTk1ODUsImV4cCI6MjA3ODQzNTU4NX0.2ZlqXnZxv0opkhynAT7OlK4S-xPygcc7ETUyTXRfGHE"
+);
+
+const EDGE_URL = "https://yellow-lab-4999.andrewveda.workers.dev/functions/v1/logQuest";
+
+const idioms = [
+  { id:1000, phrase:"bite the bullet", theme:"Courage",
+    hint:"To endure a painful or difficult situation stoically.",
+    dialogue:[
+      {s:"Harry",    t:"I hate going to Madam Pomfrey. She always makes me drink disgusting potions."},
+      {s:"Hermione", t:"You just have to bite the bullet, Harry. The sooner you go, the sooner you feel better."},
+      {s:"Harry",    t:"Fine. I'll go after Defence Against the Dark Arts."} ]},
+  { id:1001, phrase:"barking up the wrong tree", theme:"Mistakes",
+    hint:"To pursue a mistaken or misguided course of action.",
+    dialogue:[
+      {s:"Ron",      t:"I'm sure it was Draco who hexed my bag."},
+      {s:"Hermione", t:"Ron, you're barking up the wrong tree. Draco was in Potions all morning."},
+      {s:"Ron",      t:"Then who was it?"} ]},
+  { id:1002, phrase:"beat around the bush", theme:"Communication",
+    hint:"To avoid coming to the main point; to be deliberately vague.",
+    dialogue:[
+      {s:"Harry",    t:"Dumbledore, did I do something wrong in the task?"},
+      {s:"Dumbledore",t:"Well, there are many ways to approach such a challenge, and one might say—"},
+      {s:"Harry",    t:"Please don't beat around the bush. Just tell me."},
+      {s:"Dumbledore",t:"You were reckless. But also brave."} ]},
+  { id:1003, phrase:"bite off more than you can chew", theme:"Ambition",
+    hint:"To take on a task that is too big or difficult to manage.",
+    dialogue:[
+      {s:"Hermione", t:"I've signed up for eleven subjects this term."},
+      {s:"Ron",      t:"Eleven?! Hermione, you've bitten off more than you can chew."},
+      {s:"Hermione", t:"You might be right. I may have to drop a few of them."} ]},
+  { id:1004, phrase:"burn the midnight oil", theme:"Hard Work",
+    hint:"To work or study late into the night.",
+    dialogue:[
+      {s:"Ron",      t:"You look terrible. Did you sleep at all?"},
+      {s:"Hermione", t:"Not really. I was burning the midnight oil revising for the Transfiguration exam."},
+      {s:"Ron",      t:"Is it finished?"},
+      {s:"Hermione", t:"Both essays and all the revision notes. Yes."} ]},
+  { id:1005, phrase:"cut corners", theme:"Shortcuts",
+    hint:"To do something the quick or easy way, sacrificing quality.",
+    dialogue:[
+      {s:"Snape",    t:"This potion is completely wrong. Why is it orange?"},
+      {s:"Neville",  t:"I... I may have skipped the stirring stage."},
+      {s:"Snape",    t:"You cut corners, Longbottom. That is why your cauldron is about to melt."} ]},
+  { id:1006, phrase:"hit the nail on the head", theme:"Accuracy",
+    hint:"To describe exactly what is causing a situation or problem.",
+    dialogue:[
+      {s:"Lupin",    t:"Why do you think students fear the Boggart most?"},
+      {s:"Harry",    t:"Because it becomes whatever you're most afraid of — it's personal."},
+      {s:"Lupin",    t:"You've hit the nail on the head. That is precisely what makes it so powerful."} ]},
+  { id:1007, phrase:"let the cat out of the bag", theme:"Secrets",
+    hint:"To accidentally reveal a secret or surprise.",
+    dialogue:[
+      {s:"Ron",      t:"You told Ginny about the surprise Quidditch practice?!"},
+      {s:"Fred",     t:"I didn't mean to! She asked what we were doing and I let the cat out of the bag."},
+      {s:"Ron",      t:"So much for the element of surprise."} ]},
+  { id:1008, phrase:"a blessing in disguise", theme:"Fortune",
+    hint:"Something that seems bad at first but turns out to be good.",
+    dialogue:[
+      {s:"Harry",    t:"I can't believe I missed the Quidditch tryouts."},
+      {s:"Ginny",    t:"It was a blessing in disguise. The pitch was hit by a rogue Bludger. Three people got hurt."},
+      {s:"Harry",    t:"Wow. I had no idea."} ]},
+  { id:1009, phrase:"piece of cake", theme:"Ease",
+    hint:"Something that is very easy to do.",
+    dialogue:[
+      {s:"Ron",      t:"Are you nervous about the Charms practical?"},
+      {s:"Hermione", t:"Not at all. We've practised Accio fifty times. It's a piece of cake."},
+      {s:"Ron",      t:"Easy for you to say."} ]},
+  { id:1010, phrase:"once in a blue moon", theme:"Rarity",
+    hint:"Something that happens very rarely.",
+    dialogue:[
+      {s:"Mrs Weasley", t:"Does Percy visit?"},
+      {s:"Ron",         t:"Once in a blue moon. He's always busy at the Ministry."},
+      {s:"Mrs Weasley", t:"I do wish he'd come home more often."} ]},
+  { id:1011, phrase:"under the weather", theme:"Health",
+    hint:"To feel slightly ill or unwell.",
+    dialogue:[
+      {s:"Madam Pomfrey", t:"You look peaky. Are you all right?"},
+      {s:"Neville",       t:"I'm a little under the weather. I think I ate something off at the feast."},
+      {s:"Madam Pomfrey", t:"Lie down. I'll bring you a Pepperup Potion."} ]},
+  { id:1012, phrase:"kill two birds with one stone", theme:"Efficiency",
+    hint:"To accomplish two things with a single action.",
+    dialogue:[
+      {s:"Harry",    t:"I need to visit Hagrid and return this book to the library."},
+      {s:"Harry",    t:"I need to return this book to the library and visit Hagrid — both are in the same direction."},
+      {s:"Hermione", t:"Perfect. Kill two birds with one stone."},
+      {s:"Harry",    t:"Exactly what I was thinking."} ]},
+  { id:1013, phrase:"add fuel to the fire", theme:"Conflict",
+    hint:"To make a bad or tense situation even worse.",
+    dialogue:[
+      {s:"Ginny",    t:"Ron and Harry were already rowing, and then Fred made a joke about it."},
+      {s:"Hermione", t:"That just added fuel to the fire. They didn't speak for two days after."},
+      {s:"Ginny",    t:"Fred never knows when to stop."} ]},
+  { id:1014, phrase:"miss the boat", theme:"Opportunity",
+    hint:"To miss an opportunity, often by being too slow.",
+    dialogue:[
+      {s:"Seamus",   t:"I kept meaning to sign up for the Duelling Club."},
+      {s:"Dean",     t:"The list closed yesterday. You've missed the boat."},
+      {s:"Seamus",   t:"I should've just signed up on the first day."} ]},
+  { id:1015, phrase:"spill the beans", theme:"Secrets",
+    hint:"To reveal secret or confidential information, usually unintentionally.",
+    dialogue:[
+      {s:"Harry",    t:"Who told Umbridge about the DA meetings?"},
+      {s:"Hermione", t:"Marietta spilled the beans. That's why her face is covered in spots now."},
+      {s:"Harry",    t:"We trusted her."} ]},
+  { id:1016, phrase:"the ball is in your court", theme:"Decision",
+    hint:"It is up to you to take the next step or make the next decision.",
+    dialogue:[
+      {s:"Dumbledore", t:"I have given Harry all the information I can. He knows what must be done."},
+      {s:"McGonagall", t:"And if he chooses not to act?"},
+      {s:"Dumbledore", t:"Then that is his choice. The ball is in his court now."} ]},
+  { id:1017, phrase:"break a leg", theme:"Theatre",
+    hint:"A way to wish someone good luck, especially before a performance.",
+    dialogue:[
+      {s:"Ron",      t:"I'm absolutely terrified. The whole school is going to watch us play."},
+      {s:"Harry",    t:"You've trained harder than anyone. Break a leg out there."},
+      {s:"Ron",      t:"Thanks. I needed that."} ]},
+  { id:1018, phrase:"cost an arm and a leg", theme:"Money",
+    hint:"To be extremely expensive.",
+    dialogue:[
+      {s:"Ron",      t:"Did you see the price of those Omnioculars?"},
+      {s:"Harry",    t:"Ten Galleons each! They cost an arm and a leg."},
+      {s:"Ron",      t:"I'll just borrow yours."} ]},
+  { id:1019, phrase:"get out of hand", theme:"Control",
+    hint:"To become impossible to control or manage.",
+    dialogue:[
+      {s:"McGonagall", t:"The pranks in the corridor have completely gotten out of hand."},
+      {s:"Filch",      t:"I've been saying so for weeks, Professor."},
+      {s:"McGonagall", t:"Double detentions for the next culprits. No exceptions."} ]},
+  { id:1020, phrase:"hit the sack", theme:"Sleep",
+    hint:"To go to bed and sleep.",
+    dialogue:[
+      {s:"Hermione", t:"It's nearly two in the morning. Why are you still in the common room?"},
+      {s:"Ron",      t:"Just one more game of chess."},
+      {s:"Hermione", t:"Hit the sack, Ron. We have Potions at eight."} ]},
+  { id:1021, phrase:"put all your eggs in one basket", theme:"Risk",
+    hint:"To rely entirely on one plan, person, or source — a risky strategy.",
+    dialogue:[
+      {s:"Lupin",    t:"You've spent all year studying only Defensive spells?"},
+      {s:"Hermione", t:"Harry, you only revised Stunning spells before the duel."},
+      {s:"Harry",    t:"It's the most useful one!"},
+      {s:"Hermione", t:"Don't put all your eggs in one basket. You need Shielding charms, Disarming — all of it."} ]},
+  { id:1022, phrase:"speak of the devil", theme:"Coincidence",
+    hint:"Said when someone appears just after you were talking about them.",
+    dialogue:[
+      {s:"Ron",      t:"I was just wondering where Malfoy had got to—"},
+      {s:"Harry",    t:"Speak of the devil. Here he comes down the corridor."},
+      {s:"Draco",    t:"What are you two staring at?"} ]},
+  { id:1023, phrase:"sit on the fence", theme:"Indecision",
+    hint:"To avoid committing to a side or opinion in a debate.",
+    dialogue:[
+      {s:"Harry",    t:"Whose side is Slughorn on, really?"},
+      {s:"Hermione", t:"He's been sitting on the fence ever since Voldemort returned."},
+      {s:"Harry",    t:"That's not good enough. We need to know."} ]},
+  { id:1024, phrase:"the best of both worlds", theme:"Balance",
+    hint:"To enjoy two different advantages at the same time.",
+    dialogue:[
+      {s:"Hermione", t:"Being Muggle-born means I understand both worlds completely."},
+      {s:"Luna",     t:"You really do get the best of both worlds, don't you?"},
+      {s:"Hermione", t:"I suppose I do. I'd never thought of it that way."} ]},
+  { id:1025, phrase:"no pain no gain", theme:"Effort",
+    hint:"Hard work and effort are necessary to achieve success.",
+    dialogue:[
+      {s:"Oliver Wood", t:"Your arms will be sore from all that catching practice."},
+      {s:"Harry",       t:"They already are."},
+      {s:"Oliver Wood", t:"No pain, no gain, Potter. That's how you become the best Seeker in the school."} ]},
+  { id:1026, phrase:"go back to the drawing board", theme:"Planning",
+    hint:"To start over from the beginning after a plan fails.",
+    dialogue:[
+      {s:"Fred",     t:"The Portable Swamp flooded the wrong corridor entirely."},
+      {s:"George",   t:"We need to go back to the drawing board on the timing charm."},
+      {s:"Fred",     t:"Back to the lab tonight, then."} ]},
+  { id:1027, phrase:"hang in there", theme:"Resilience",
+    hint:"To persist and keep going despite difficulty.",
+    dialogue:[
+      {s:"Neville",  t:"I've failed Potions twice. Snape hates me. I don't see the point."},
+      {s:"Harry",    t:"Hang in there, Neville. You're brilliant at Herbology. That matters just as much."},
+      {s:"Neville",  t:"You really think so?"},
+      {s:"Harry",    t:"I know so."} ]},
+  { id:1028, phrase:"read between the lines", theme:"Insight",
+    hint:"To find a hidden or implied meaning that is not directly stated.",
+    dialogue:[
+      {s:"Harry",    t:"Dumbledore's letter just said 'be careful'. That's all."},
+      {s:"Hermione", t:"Read between the lines, Harry. He's warning you without saying it directly."},
+      {s:"Harry",    t:"So the danger is real. I thought so."} ]},
+  { id:1029, phrase:"steal someone's thunder", theme:"Rivalry",
+    hint:"To take attention or credit away from someone else's moment.",
+    dialogue:[
+      {s:"Ginny",    t:"I was about to tell everyone I made the team, but then Harry walked in and the whole room went mad."},
+      {s:"Hermione", t:"He completely stole your thunder. I'm sorry."},
+      {s:"Ginny",    t:"It's fine. I'm used to it."} ]},
+  { id:1030, phrase:"wrap your head around it", theme:"Comprehension",
+    hint:"To come to understand something complex or difficult.",
+    dialogue:[
+      {s:"Ron",      t:"I've read the chapter on Time-Turners three times and I still can't wrap my head around it."},
+      {s:"Hermione", t:"Time travel is genuinely paradoxical. Even experts find it confusing."},
+      {s:"Ron",      t:"That makes me feel slightly better."} ]},
+  { id:1031, phrase:"on the fence", theme:"Indecision",
+    hint:"To be undecided or uncommitted about something.",
+    dialogue:[
+      {s:"Fred",     t:"Are you joining the Order or not?"},
+      {s:"Percy",    t:"I'm still on the fence. The Ministry says one thing and you lot say another."},
+      {s:"Fred",     t:"There's no time to be on the fence anymore, Percy."} ]},
+  { id:1032, phrase:"shoot for the stars", theme:"Ambition",
+    hint:"To set very high goals and aim for great achievements.",
+    dialogue:[
+      {s:"Hermione", t:"Do you really think you can top every subject this year?"},
+      {s:"Harry",    t:"Why not? You always say we should shoot for the stars."},
+      {s:"Hermione", t:"I do. Just be ready for the effort it takes."} ]},
+  { id:1033, phrase:"over the moon", theme:"Happiness",
+    hint:"Extremely happy or delighted.",
+    dialogue:[
+      {s:"Ron",      t:"I made the Quidditch team!"},
+      {s:"Harry",    t:"That's brilliant! You must be over the moon."},
+      {s:"Ron",      t:"I really am."} ]},
+  { id:1034, phrase:"reach for the stars", theme:"Ambition",
+    hint:"To try to achieve something very difficult.",
+    dialogue:[
+      {s:"Dumbledore", t:"Greatness comes to those who dare."},
+      {s:"Harry",      t:"So we should reach for the stars?"},
+      {s:"Dumbledore", t:"Always."} ]},
+  { id:1035, phrase:"written in the stars", theme:"Fate",
+    hint:"Something that is destined or meant to happen.",
+    dialogue:[
+      {s:"Luna",  t:"I always felt you would win."},
+      {s:"Harry", t:"You really think so?"},
+      {s:"Luna",  t:"Some things are written in the stars."} ]},
+  { id:1036, phrase:"starstruck", theme:"Admiration",
+    hint:"Fascinated or greatly impressed by someone famous.",
+    dialogue:[
+      {s:"Ron",   t:"I can't believe I just met Viktor Krum."},
+      {s:"Harry", t:"You're completely starstruck."},
+      {s:"Ron",   t:"Can you blame me?"} ]},
+  { id:1037, phrase:"throw in the towel", theme:"Giving Up",
+    hint:"To admit defeat and stop trying.",
+    dialogue:[
+      {s:"Ron",      t:"I've tried this spell ten times. It's not working."},
+      {s:"Hermione", t:"Don't throw in the towel yet. Try adjusting your wand movement."},
+      {s:"Ron",      t:"Alright… one more attempt."} ]},
+  { id:1038, phrase:"out of this world", theme:"Excellence",
+    hint:"Extremely impressive or amazing.",
+    dialogue:[
+      {s:"Harry", t:"How was the feast?"},
+      {s:"Ron",   t:"Out of this world. I've never eaten so much."},
+      {s:"Harry", t:"I should've come earlier."} ]},
+  { id:1039, phrase:"under the same sky", theme:"Connection",
+    hint:"Sharing a common experience despite distance.",
+    dialogue:[
+      {s:"Harry",    t:"Even when we're apart, it feels like we're still together."},
+      {s:"Hermione", t:"That's because we're under the same sky."},
+      {s:"Harry",    t:"I like that thought."} ]},
+  { id:1040, phrase:"reach for the moon", theme:"Ambition",
+    hint:"To aim for something very high or ambitious.",
+    dialogue:[
+      {s:"Ron",   t:"What if I fail?"},
+      {s:"Harry", t:"Then at least you tried to reach for the moon."},
+      {s:"Ron",   t:"That's true."} ]},
+  { id:1041, phrase:"lost in space", theme:"Confusion",
+    hint:"To be completely confused or unaware of what is happening.",
+    dialogue:[
+      {s:"Hermione", t:"Did you understand Snape's explanation?"},
+      {s:"Ron",      t:"Not at all. I was completely lost in space."},
+      {s:"Hermione", t:"I'll explain it later."} ]},
+];
+
+const TOTAL_SECS    = 180;
+const CIRCUMFERENCE = 2 * Math.PI * 38;
+function penaltySecs(n) { return 15 + (n - 1) * 2; }
+function bonusSecs(n)   { return n; }
+
+let playerName = "", playerDept = "", userData = null;
+
+function loadSavedPlayer() {
+  playerName = localStorage.getItem("userName") || localStorage.getItem("questPlayerName") || localStorage.getItem("idiomPlayerName") || "";
+  playerDept = localStorage.getItem("userDept")  || localStorage.getItem("questPlayerDept")  || "";
+}
+
+function savePlayer(name, dept) {
+  playerName = name;
+  playerDept = dept;
+  localStorage.setItem("userName",          playerName);
+  localStorage.setItem("questPlayerName",   playerName);
+  localStorage.setItem("idiomPlayerName",   playerName);
+  localStorage.setItem("userDept",          playerDept);
+  localStorage.setItem("questPlayerDept",   playerDept);
+}
+
+function showPlayerPill() {
+  const pill = document.getElementById("playerPill");
+  document.getElementById("playerPillName").textContent = playerName;
+  document.getElementById("playerPillDept").textContent = playerDept ? "\u00B7 " + playerDept : "";
+  pill.style.display = "inline-flex";
+}
+
+window.openLogin = function () {
+  document.getElementById("nameInput").value  = playerName;
+  document.getElementById("deptSelect").value = playerDept;
+  document.getElementById("dupSection").style.display = "none";
+  document.getElementById("loginGate").classList.add("show");
+};
+
+function closeLogin() { document.getElementById("loginGate").classList.remove("show"); }
+
+window.handleLogin = async function () {
+  const rawName = document.getElementById("nameInput").value.trim();
+  const dept    = document.getElementById("deptSelect").value;
+  if (!rawName) { alert("Please enter your name!"); return; }
+  try {
+    const { data, error } = await supabase.from("report_card_view").select("name, department, quests_completed, quest_list");
+    if (error) throw error;
+    const matches = (data || []).filter(u => u.name && u.name.trim().toLowerCase() === rawName.trim().toLowerCase());
+    if (matches.length === 0) {
+      if (!dept) { alert('Please select your department!'); return; }
+      savePlayer(rawName, dept); closeLogin(); showPlayerPill(); return;
+    }
+    if (matches.length === 1) {
+      savePlayer(matches[0].name, dept || matches[0].department || "");
+      userData = matches[0]; closeLogin(); showPlayerPill(); return;
+    }
+    showDupPicker(matches, dept);
+  } catch (err) {
+    console.warn("Supabase lookup failed, proceeding offline:", err);
+    if (!dept) { alert("Please select your department!"); return; }
+    savePlayer(rawName, dept); closeLogin(); showPlayerPill();
+  }
+};
+
+function showDupPicker(matches, dept) {
+  const sec  = document.getElementById("dupSection");
+  const list = document.getElementById("dupList");
+  list.innerHTML = "";
+  matches.forEach(match => {
+    const btn = document.createElement("button");
+    btn.className = "dup-btn";
+    btn.innerHTML = '<div class="dup-name">' + match.name + '</div><div class="dup-meta">' + (match.department || "No department") + " \u00B7 " + (match.quests_completed ?? 0) + " quests</div>";
+    btn.onclick = () => {
+      savePlayer(match.name, dept || match.department || "");
+      userData = match; closeLogin(); showPlayerPill();
+      sec.style.display = "none";
+    };
+    list.appendChild(btn);
+  });
+  sec.style.display = "block";
+}
+
+document.getElementById("nameInput").addEventListener("keydown", e => { if (e.key === "Enter") window.handleLogin(); });
+
+let currentIdiom, guessed;
+let consecutiveCorrect = 0, consecutiveWrong = 0;
+let gameStarted = false;
+let gemCount = 0;
+let usedIndices = [];
+let timeLeft, timerInterval, gameOver;
+let roundStart;
+
+const KB_ROWS = ['QWERTYUIOP'.split(''), 'ASDFGHJKL'.split(''), 'ZXCVBNM'.split('')];
+
+function buildKeyboard() {
+  const kb = document.getElementById('keyboard');
+  kb.innerHTML = '';
+  KB_ROWS.forEach(row => {
+    const div = document.createElement('div'); div.className = 'kb-row';
+    row.forEach(letter => {
+      const btn = document.createElement('button');
+      btn.className = 'kb-key'; btn.textContent = letter; btn.id = 'key-' + letter;
+      btn.onclick = () => guess(letter);
+      div.appendChild(btn);
+    });
+    kb.appendChild(div);
+  });
+}
+
+function startTimer() {
+  clearInterval(timerInterval);
+  timerInterval = setInterval(() => {
+    if (gameOver) return;
+    timeLeft--;
+    if (timeLeft <= 0) { timeLeft = 0; updateTimerUI(); endGame(false); return; }
+    updateTimerUI();
+  }, 1000);
+}
+
+function updateTimerUI() {
+  const mins = Math.floor(timeLeft / 60), secs = timeLeft % 60;
+  const disp = document.getElementById('timerDisplay');
+  disp.textContent = mins + ':' + secs.toString().padStart(2,'0');
+  disp.className   = 'timer-display' + (timeLeft <= 30 ? ' urgent' : '');
+  const ring = document.getElementById('ringProgress');
+  ring.style.strokeDashoffset = CIRCUMFERENCE * (1 - timeLeft / TOTAL_SECS);
+  ring.style.stroke = timeLeft <= 30 ? '#c43030' : timeLeft <= 60 ? '#d4813a' : 'var(--gold)';
+}
+
+function adjustTime(delta, type) {
+  timeLeft = Math.min(TOTAL_SECS, Math.max(0, timeLeft + delta));
+  updateTimerUI();
+  const card = document.getElementById('timerCard');
+  card.classList.remove('penalty','bonus'); void card.offsetWidth;
+  card.classList.add(type === 'bonus' ? 'bonus' : 'penalty');
+  const label = (delta > 0 ? '+' : '') + delta + 's';
+  const cls   = delta > 0 ? 'correct' : 'wrong';
+  const toast = document.getElementById('deltaToast');
+  toast.textContent = label; toast.className = 'delta-toast ' + cls;
+  void toast.offsetWidth; toast.classList.add('animate');
+  setTimeout(() => toast.classList.remove('animate'), 1000);
+  const big = document.getElementById('bigToast');
+  big.textContent = label; big.className = 'big-toast ' + cls;
+  void big.offsetWidth; big.classList.add('pop');
+  setTimeout(() => { big.className = 'big-toast'; }, 1100);
+}
+
+window.newGame = function () {
+  hideOverlay(); clearInterval(timerInterval); gameOver = false;
+  gameStarted = true;
+  if (usedIndices.length >= idioms.length) usedIndices = [];
+  let idx;
+  do { idx = Math.floor(Math.random() * idioms.length); } while (usedIndices.includes(idx));
+  usedIndices.push(idx);
+  currentIdiom = idioms[idx];
+  guessed = new Set();
+  consecutiveCorrect = consecutiveWrong = 0;
+  timeLeft   = TOTAL_SECS;
+  roundStart = Date.now();
+  document.querySelectorAll('.kb-key').forEach(k => { k.className = 'kb-key'; k.disabled = false; });
+  document.getElementById('wrongLetters').innerHTML    = '';
+  document.getElementById('hintText').textContent      = currentIdiom.theme;
+  document.getElementById('correctStreak').textContent = '0';
+  document.getElementById('wrongStreak').textContent   = '0';
+  document.getElementById('gemCount').textContent      = gemCount;
+  document.getElementById('msgLog').textContent        = '';
+  document.getElementById('msgDialogue').innerHTML     = '';
+  const dl = document.getElementById('msgDialLbl'); if (dl) dl.style.display = 'none';
+  const dw = document.getElementById('msgDialogueWrap'); if (dw) dw.style.display = 'none';
+  const inDial = document.getElementById('inGameDial');
+  if (inDial) inDial.classList.remove('show');
+  document.querySelectorAll('.letter-char').forEach(ch => ch.classList.remove('win-bounce'));
+  document.querySelectorAll('.word-group').forEach(g => g.classList.remove('win-glow'));
+  document.getElementById('gameDefinition').textContent = currentIdiom.hint;
+  updateTimerUI(); renderWord(); startTimer();
+};
+
+function guess(letter) {
+  letter = letter.toUpperCase();
+  if (guessed.has(letter) || gameOver) return;
+  guessed.add(letter);
+  const btn = document.getElementById('key-' + letter);
+  if (currentIdiom.phrase.toUpperCase().includes(letter)) {
+    consecutiveWrong = 0; consecutiveCorrect++;
+    gemCount += consecutiveCorrect;
+    if (btn) { btn.className = 'kb-key correct'; btn.disabled = true; }
+    playCorrect();
+    adjustTime(bonusSecs(consecutiveCorrect), 'bonus');
+    document.getElementById('correctStreak').textContent = consecutiveCorrect;
+    document.getElementById('wrongStreak').textContent   = '0';
+    updateGemDisplay(); renderWord(); updateDialogueSlots();
+    if (checkWin()) { endGame(true); return; }
+  } else {
+    consecutiveCorrect = 0; consecutiveWrong++;
+    gemCount = Math.max(0, gemCount - consecutiveWrong);
+    if (btn) { btn.className = 'kb-key wrong'; btn.disabled = true; }
+    playWrong();
+    adjustTime(-penaltySecs(consecutiveWrong), 'penalty');
+    document.getElementById('wrongStreak').textContent   = consecutiveWrong;
+    document.getElementById('correctStreak').textContent = '0';
+    updateGemDisplay(); updateWrongLetters(letter);
+    const wa = document.getElementById('wordArea');
+    wa.classList.remove('shake'); void wa.offsetWidth; wa.classList.add('shake');
+    if (timeLeft <= 0) { endGame(false); return; }
+  }
+}
+
+function updateGemDisplay() {
+  const el = document.getElementById('gemCount');
+  if (!el) return;
+  el.textContent = gemCount;
+  el.classList.remove('gem-pop'); void el.offsetWidth; el.classList.add('gem-pop');
+  setTimeout(() => el.classList.remove('gem-pop'), 400);
+}
+
+function renderWord() {
+  const area = document.getElementById('wordArea'); area.innerHTML = '';
+  currentIdiom.phrase.split(' ').forEach(word => {
+    const grp = document.createElement('div'); grp.className = 'word-group';
+    word.split('').forEach(ch => {
+      const slot = document.createElement('div'); slot.className = 'letter-slot';
+      const char = document.createElement('div'); char.className = 'letter-char';
+      const isLetter = /[a-z]/i.test(ch);
+      if (!isLetter || guessed.has(ch.toUpperCase())) {
+        char.textContent = ch.toUpperCase();
+        if (isLetter) char.classList.add('revealed');
+      }
+      const line = document.createElement('div'); line.className = 'letter-line';
+      if (!isLetter) line.style.opacity = '0';
+      slot.appendChild(char); slot.appendChild(line); grp.appendChild(slot);
+    });
+    area.appendChild(grp);
+  });
+}
+
+function checkWin() {
+  return currentIdiom.phrase.split('').every(ch => !/[a-z]/i.test(ch) || guessed.has(ch.toUpperCase()));
+}
+
+function updateDialogueSlots() {
+  const phrase = currentIdiom.phrase.toLowerCase();
+  phrase.split('').forEach((ch) => {
+    if (ch === ' ') return;
+    if (guessed.has(ch.toUpperCase())) {
+      document.querySelectorAll('.gdial-slot[data-char="' + ch + '"]').forEach(slot => {
+        const letter = slot.querySelector('.gdial-letter');
+        if (letter) letter.classList.remove('hidden');
+      });
+    }
+  });
+}
+
+function updateWrongLetters(letter) {
+  const el = document.getElementById('wrongLetters');
+  if (!el.querySelector('.wrong-label')) {
+    const lbl = document.createElement('span'); lbl.className = 'wrong-label'; lbl.textContent = 'Missed:'; el.appendChild(lbl);
+  }
+  const span = document.createElement('span'); span.textContent = letter + ' '; el.appendChild(span);
+}
+
+function animateWinLetters() {
+  document.querySelectorAll('.letter-char').forEach((ch, i) => {
+    setTimeout(() => ch.classList.add('win-bounce'), i * 60);
+  });
+  document.querySelectorAll('.word-group').forEach((g, i) => {
+    setTimeout(() => g.classList.add('win-glow'), i * 80);
+  });
+}
+
+function buildInGameDialogue() {
+  const dial    = document.getElementById('inGameDial');
+  const lines_c = document.getElementById('inGameDialLines');
+  if (!dial || !lines_c) return;
+  lines_c.innerHTML = '';
+  const lines   = currentIdiom.dialogue || [];
+  const phrase  = currentIdiom.phrase;
+  const escaped = phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  lines.forEach(line => {
+    const text   = line.t || '';
+    const bolded = text.replace(new RegExp(escaped, 'gi'), '<em>$&</em>');
+    const row    = document.createElement('div');
+    row.className = 'in-game-dial-line';
+    row.innerHTML = '<span class="in-game-dial-speaker">' + line.s + '</span><span class="in-game-dial-text">' + bolded + '</span>';
+    lines_c.appendChild(row);
+  });
+  dial.classList.remove('show'); void dial.offsetWidth; dial.classList.add('show');
+}
+
+function countGuesses() {
+  const letters = new Set(currentIdiom.phrase.toUpperCase().replace(/[^A-Z]/g,'').split(''));
+  let c = 0, w = 0;
+  guessed.forEach(g => { if (letters.has(g)) c++; else w++; });
+  return { correct: c, wrong: w };
+}
+
+function endGame(won) {
+  gameOver = true; clearInterval(timerInterval);
+  const timeSpent = Math.round((Date.now() - roundStart) / 1000);
+  const { correct, wrong } = countGuesses();
+  if (won) {
+    updateDialogueSlots(); animateWinLetters(); playWin();
+    setTimeout(() => {
+      buildInGameDialogue();
+      document.querySelectorAll('.kb-key').forEach(k => { k.disabled = true; });
+    }, 1800);
+    setTimeout(() => {
+      document.getElementById('msgIcon').textContent   = '\uD83C\uDFC6';
+      document.getElementById('msgTitle').textContent  = 'Splendid!';
+      document.getElementById('msgTime').innerHTML     = 'You earned \uD83D\uDC8E <strong>' + gemCount + '</strong> gems';
+      document.getElementById('msgIdiom').textContent  = '\u201C' + currentIdiom.phrase + '\u201D';
+      buildOverlayDialogue();
+      const wrap = document.getElementById('msgDialogueWrap');
+      const lbl  = document.getElementById('msgDialLbl');
+      if (wrap) wrap.style.display = 'block';
+      if (lbl)  lbl.style.display  = 'block';
+      if (playerName) {
+        document.getElementById('msgLog').textContent = 'Saving Quest ' + currentIdiom.id + '\u2026';
+        logToSupabase({ student_name: playerName, department: playerDept, correct, wrong, time_spent: timeSpent, quest_id: 'Quest ' + currentIdiom.id });
+      } else {
+        document.getElementById('msgLog').textContent = 'Sign in to save scores';
+      }
+      showOverlay();
+    }, 3600);
+  } else {
+    guessed = new Set(currentIdiom.phrase.toUpperCase().replace(/[^A-Z]/g,'').split(''));
+    renderWord(); updateDialogueSlots();
+    document.getElementById('msgIcon').textContent   = '\u23F3';
+    document.getElementById('msgTitle').textContent  = 'Time\u2019s Up!';
+    document.getElementById('msgTime').innerHTML     = '';
+    document.getElementById('msgIdiom').textContent  = '\u201C' + currentIdiom.phrase + '\u201D';
+    buildOverlayDialogue();
+    const wrap = document.getElementById('msgDialogueWrap');
+    const lbl  = document.getElementById('msgDialLbl');
+    if (wrap) wrap.style.display = 'block';
+    if (lbl)  lbl.style.display = 'block';
+    if (playerName) {
+      document.getElementById('msgLog').textContent = 'Saving Quest ' + currentIdiom.id + '\u2026';
+      logToSupabase({ student_name: playerName, department: playerDept, correct, wrong, time_spent: timeSpent, quest_id: 'Quest ' + currentIdiom.id });
+    } else {
+      document.getElementById('msgLog').textContent = 'Sign in to save scores';
+    }
+    showOverlay();
+  }
+}
+
+function buildOverlayDialogue() {
+  const container = document.getElementById('msgDialogue');
+  const lbl       = document.getElementById('msgDialLbl');
+  if (!container) return;
+  container.innerHTML = '';
+  const lines  = currentIdiom.dialogue || [];
+  const phrase = currentIdiom.phrase;
+  if (!lines.length) { if (lbl) lbl.style.display = 'none'; return; }
+  if (lbl) lbl.style.display = 'block';
+  const escaped = phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  lines.forEach(line => {
+    const text    = line.t || '';
+    const bolded  = text.replace(new RegExp(escaped, 'gi'), '<em>$&</em>');
+    const row     = document.createElement('div');
+    row.className = 'msg-dial-line';
+    row.innerHTML = '<span class="msg-dial-speaker">' + line.s + '</span><span class="msg-dial-text">' + bolded + '</span>';
+    container.appendChild(row);
+  });
+}
+
+async function logToSupabase(payload) {
+  try {
+    const res = await fetch(EDGE_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    document.getElementById('msgLog').textContent = res.ok ? '\u2713 Quest ' + currentIdiom.id + ' saved' : 'Could not save score';
+  } catch {
+    document.getElementById('msgLog').textContent = 'Could not save score';
+  }
+}
+
+function showOverlay() { document.getElementById('overlay').classList.add('show'); }
+function hideOverlay()  { document.getElementById('overlay').classList.remove('show'); }
+
+window.openDashboard = async function () {
+  document.getElementById('dashOverlay').classList.add('show');
+  const closeBtn = document.getElementById('dashCloseBtn');
+  if (closeBtn) closeBtn.style.display = gameStarted ? 'flex' : 'none';
+  const content  = document.getElementById('dashContent');
+  const subtitle = document.getElementById('dashSubtitle');
+  subtitle.textContent = playerName ? playerName + (playerDept ? ' \u00B7 ' + playerDept : '') : '';
+  if (!playerName) {
+    content.innerHTML = '<div class="dash-error">Sign in with your name first to see your progress.</div>';
+    return;
+  }
+  content.innerHTML = '<div class="dash-spinner"><div class="spinner-ring"></div></div>';
+  let attempted = new Set();
+  try {
+    const { data, error } = await supabase.from("report_card_view").select("quest_list").ilike("name", playerName);
+    if (!error && data && data.length > 0) {
+      data.forEach(row => {
+        (row.quest_list || '').split(',').forEach(item => {
+          const m = item.trim().match(/Quest\s+(\d+)/i);
+          if (m) attempted.add(Number(m[1]));
+        });
+      });
+    }
+  } catch { }
+  const solved   = idioms.filter(i => attempted.has(i.id));
+  const unsolved = idioms.filter(i => !attempted.has(i.id));
+  const pct      = Math.round((solved.length / idioms.length) * 100);
+  let html = '';
+  html += '<div class="dash-stats"><div class="dash-stat"><div class="dash-stat-val">' + solved.length + '</div><div class="dash-stat-lbl">Attempted</div></div><div class="dash-stat"><div class="dash-stat-val">' + unsolved.length + '</div><div class="dash-stat-lbl">Remaining</div></div><div class="dash-stat"><div class="dash-stat-val">' + pct + '%</div><div class="dash-stat-lbl">Complete</div></div></div>';
+  html += '<div class="progress-wrap"><div class="progress-label"><span>Overall Progress</span><span>' + solved.length + ' / ' + idioms.length + '</span></div><div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%"></div></div></div>';
+  if (unsolved.length > 0) {
+    html += '<div class="section-lbl">Yet to attempt — ' + unsolved.length + '</div><div class="idiom-grid">';
+    unsolved.forEach(i => { html += buildIdiomCard(i, false); });
+    html += '</div>';
+  } else {
+    html += '<div class="all-done">\u2728 All idioms attempted! Remarkable.</div>';
+  }
+  if (solved.length > 0) {
+    html += '<div class="section-lbl">Attempted — ' + solved.length + '</div><div class="idiom-grid">';
+    solved.forEach(i => { html += buildIdiomCard(i, true); });
+    html += '</div>';
+  }
+  content.innerHTML = html;
+  requestAnimationFrame(() => setTimeout(() => {
+    const fill = document.getElementById('progressFill');
+    if (fill) fill.style.width = pct + '%';
+  }, 60));
+};
+
+window.playSpecificIdiom = function (idiomId) {
+  const idiom = idioms.find(i => i.id === idiomId);
+  if (!idiom) return;
+  gameStarted = true; closeDashboard();
+  clearInterval(timerInterval); gameOver = false;
+  currentIdiom = idiom;
+  const idx = idioms.indexOf(idiom);
+  if (!usedIndices.includes(idx)) usedIndices.push(idx);
+  guessed = new Set();
+  consecutiveCorrect = consecutiveWrong = 0;
+  timeLeft = TOTAL_SECS; roundStart = Date.now();
+  document.querySelectorAll('.kb-key').forEach(k => { k.className = 'kb-key'; k.disabled = false; });
+  document.getElementById('wrongLetters').innerHTML    = '';
+  document.getElementById('hintText').textContent      = currentIdiom.theme;
+  document.getElementById('correctStreak').textContent = '0';
+  document.getElementById('wrongStreak').textContent   = '0';
+  document.getElementById('gemCount').textContent      = gemCount;
+  document.getElementById('msgLog').textContent        = '';
+  document.getElementById('msgDialogue').innerHTML     = '';
+  const dl = document.getElementById('msgDialLbl'); if (dl) dl.style.display = 'none';
+  const dw = document.getElementById('msgDialogueWrap'); if (dw) dw.style.display = 'none';
+  const inDial = document.getElementById('inGameDial');
+  if (inDial) inDial.classList.remove('show');
+  document.querySelectorAll('.letter-char').forEach(ch => ch.classList.remove('win-bounce'));
+  document.querySelectorAll('.word-group').forEach(g => g.classList.remove('win-glow'));
+  document.getElementById('gameDefinition').textContent = currentIdiom.hint;
+  hideOverlay(); updateTimerUI(); renderWord(); startTimer();
+};
+
+function buildIdiomCard(idiom, solved) {
+  const statusIcon = solved ? '\u2713' : '\u25CB';
+  const solvedClass = solved ? ' solved' : '';
+  const playHint = solved ? '<div class="idiom-play-hint">\u21BA Play again</div>' : '<div class="idiom-play-hint">\u25B6 Play this</div>';
+  return '<div class="idiom-card' + solvedClass + ' idiom-playable" onclick="playSpecificIdiom(' + idiom.id + ')">'
+    + '<div class="idiom-top"><div class="idiom-status">' + statusIcon + '</div><div class="idiom-info"><div class="idiom-meaning">' + idiom.hint + '</div><div class="idiom-theme">' + idiom.theme + '</div></div><div class="idiom-qid">Q' + idiom.id + '</div></div>'
+    + playHint + '</div>';
+}
+
+window.closeDashboard = function () {
+  if (!gameStarted) return;
+  document.getElementById('dashOverlay').classList.remove('show');
+};
+
+window.playRandom = function () {
+  gameStarted = true;
+  document.getElementById('dashOverlay').classList.remove('show');
+  newGame();
+};
+
+document.addEventListener('keydown', e => {
+  if (document.getElementById('dashOverlay').classList.contains('show')) return;
+  if (document.getElementById('overlay').classList.contains('show'))     return;
+  if (document.getElementById('loginGate').classList.contains('show'))   return;
+  if (/^[a-zA-Z]$/.test(e.key)) guess(e.key.toUpperCase());
+});
+
+window.openHelp  = function () { document.getElementById('helpOverlay').classList.add('show'); };
+window.closeHelp = function () { document.getElementById('helpOverlay').classList.remove('show'); };
+document.getElementById('helpOverlay').addEventListener('click', function(e) { if (e.target === this) closeHelp(); });
+
+const SOUND_KEY = 'idiomDashMuted';
+let isMuted = localStorage.getItem(SOUND_KEY) === 'true';
+let audioCtx = null;
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+function playTone(freq, type, dur, vol) {
+  if (isMuted) return;
+  try {
+    const ctx = getAudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, ctx.currentTime);
+    gain.gain.setValueAtTime(vol, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+    osc.start(ctx.currentTime); osc.stop(ctx.currentTime + dur);
+  } catch(e) {}
+}
+function playCorrect() {
+  playTone(659, 'sine', 0.12, 0.28);
+  setTimeout(() => playTone(784, 'sine', 0.14, 0.26), 80);
+  setTimeout(() => playTone(1047, 'sine', 0.22, 0.22), 165);
+  setTimeout(() => playTone(2093, 'triangle', 0.1, 0.08), 165);
+}
+function playWrong() { playTone(180, 'sawtooth', 0.2, 0.15); }
+function playWin() { [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => playTone(f, 'sine', 0.28, 0.2), i * 90)); }
+function applyMute(muted) {
+  isMuted = muted;
+  localStorage.setItem(SOUND_KEY, String(muted));
+  const btn = document.getElementById('muteBtn');
+  if (btn) btn.textContent = muted ? '\uD83D\uDD07' : '\uD83D\uDD0A';
+}
+window.toggleMute = function() { applyMute(!isMuted); };
+applyMute(isMuted);
+
+const THEME_KEY = 'idiomDashTheme';
+function applyTheme(t) {
+  document.documentElement.classList.toggle('light', t === 'light');
+  const btn = document.getElementById('themeToggle');
+  if (btn) btn.textContent = t === 'light' ? '\uD83C\uDF19' : '\u2600\uFE0F';
+}
+window.toggleTheme = function () {
+  const next = document.documentElement.classList.contains('light') ? 'dark' : 'light';
+  localStorage.setItem(THEME_KEY, next);
+  applyTheme(next);
+};
+applyTheme(localStorage.getItem(THEME_KEY) || 'dark');
+
+loadSavedPlayer();
+buildKeyboard();
+
+if (!playerName) {
+  document.getElementById('loginGate').classList.add('show');
+} else {
+  showPlayerPill();
+  openDashboard();
+}
+</script>
+</body>
+</html>

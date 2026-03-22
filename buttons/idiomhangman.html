@@ -749,6 +749,37 @@ let gemCount = 0;
 let usedIndices = [];
 let timeLeft, timerInterval, gameOver;
 let roundStart;
+let completedIds = new Set(); // idiom ids already solved by the player
+let completedIdsFetched = false;
+
+async function fetchCompletedIds() {
+  if (!playerName || completedIdsFetched) return;
+  try {
+    const { data, error } = await supabase.from("report_card_view").select("quest_list").ilike("name", playerName);
+    if (!error && data) {
+      data.forEach(row => {
+        (row.quest_list || '').split(',').forEach(item => {
+          const m = item.trim().match(/Quest\s+(\d+)/i);
+          if (m) completedIds.add(Number(m[1]));
+        });
+      });
+    }
+    completedIdsFetched = true;
+  } catch { completedIdsFetched = true; }
+}
+
+function pickNextIdiom() {
+  // Prefer uncompleted idioms not yet used this session
+  let pool = idioms.filter(i => !completedIds.has(i.id) && !usedIndices.includes(idioms.indexOf(i)));
+  // Fall back to any uncompleted idiom
+  if (!pool.length) pool = idioms.filter(i => !completedIds.has(i.id));
+  // Fall back to all idioms if everything is completed
+  if (!pool.length) { usedIndices = []; pool = idioms; }
+  const chosen = pool[Math.floor(Math.random() * pool.length)];
+  const idx = idioms.indexOf(chosen);
+  if (!usedIndices.includes(idx)) usedIndices.push(idx);
+  return chosen;
+}
 
 const KB_ROWS = ['QWERTYUIOP'.split(''), 'ASDFGHJKL'.split(''), 'ZXCVBNM'.split('')];
 
@@ -805,14 +836,11 @@ function adjustTime(delta, type) {
   setTimeout(() => { big.className = 'big-toast'; }, 1100);
 }
 
-window.newGame = function () {
+window.newGame = async function () {
   hideOverlay(); clearInterval(timerInterval); gameOver = false;
   gameStarted = true;
-  if (usedIndices.length >= idioms.length) usedIndices = [];
-  let idx;
-  do { idx = Math.floor(Math.random() * idioms.length); } while (usedIndices.includes(idx));
-  usedIndices.push(idx);
-  currentIdiom = idioms[idx];
+  await fetchCompletedIds();
+  currentIdiom = pickNextIdiom();
   guessed = new Set();
   consecutiveCorrect = consecutiveWrong = 0;
   timeLeft   = TOTAL_SECS;
@@ -979,6 +1007,7 @@ function endGame(won) {
       } else {
         document.getElementById('msgLog').textContent = 'Sign in to save scores';
       }
+      completedIds.add(currentIdiom.id);
       showOverlay();
     }, 3600);
   } else {

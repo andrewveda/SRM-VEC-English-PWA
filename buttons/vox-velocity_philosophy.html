@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Cogito</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --gold:#C9A84C;--gold-light:#E8C97A;--gold-dim:rgba(201,168,76,0.12);
+    --bg-body:#1a1208;--dark-mid:#2d2010;--dark-warm:#3d2e12;
+    --surface:rgba(201,168,76,0.05);--surface2:rgba(201,168,76,0.09);
+    --card-bg:linear-gradient(160deg,#3d2e12,#1a1208);--text-main:#F9F3E3;
+    --danger:#8B2020;--danger-light:#c43030;--border:rgba(201,168,76,0.22);
+    --key-bg:rgba(201,168,76,0.07);--key-border:rgba(201,168,76,0.35);--key-color:#E8C97A;
+    --key-correct-bg:rgba(45,90,39,0.35);--key-correct-border:rgba(100,180,80,0.45);--key-correct-color:rgba(130,220,100,0.9);
+    --key-wrong-bg:rgba(100,20,20,0.35);--key-wrong-border:rgba(150,40,40,0.35);--key-wrong-color:rgba(180,80,80,0.5);
+    --def-bg:rgba(201,168,76,0.04);--def-border:rgba(201,168,76,0.18);
+    --wrong-color:rgba(200,70,70,0.85);--pattern-op:0.025;
+  }
+  html.light{
+    --gold:#9a6e00;--gold-light:#b88a00;--gold-dim:rgba(154,110,0,0.14);
+    --bg-body:#faf4e8;--dark-mid:#f0e8d0;--dark-warm:#e8dcc0;
+    --surface:rgba(154,110,0,0.06);--surface2:rgba(154,110,0,0.10);
+    --card-bg:linear-gradient(160deg,#ede0c0,#faf4e8);--text-main:#3a2800;
+    --danger:#9a1a1a;--danger-light:#c43030;--border:rgba(154,110,0,0.28);
+    --key-bg:rgba(154,110,0,0.08);--key-border:rgba(154,110,0,0.38);--key-color:#6b4800;
+    --key-correct-bg:rgba(30,80,25,0.18);--key-correct-border:rgba(60,160,50,0.5);--key-correct-color:#1a5c14;
+    --key-wrong-bg:rgba(120,20,20,0.12);--key-wrong-border:rgba(160,40,40,0.4);--key-wrong-color:#8b2020;
+    --def-bg:rgba(154,110,0,0.06);--def-border:rgba(154,110,0,0.22);
+    --wrong-color:rgba(160,40,40,0.85);--pattern-op:0.045;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;background:var(--bg-body);font-family:'Cormorant Garamond',serif;color:var(--text-main);overflow:hidden;transition:background .3s,color .3s;}
+  body{height:100dvh;display:flex;flex-direction:column;overflow:hidden;position:relative;}
+  body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opacity:var(--pattern-op);
+    background-image:repeating-linear-gradient(45deg,transparent,transparent 35px,var(--gold) 35px,var(--gold) 36px),
+    repeating-linear-gradient(-45deg,transparent,transparent 35px,var(--gold) 35px,var(--gold) 36px);}
+
+  header{text-align:center;padding:4px 12px 3px;border-bottom:1px solid var(--border);flex-shrink:0;position:relative;z-index:1;display:flex;align-items:center;justify-content:center;}
+  h1{font-family:'Playfair Display',serif;font-size:clamp(13px,3.8vw,17px);font-weight:400;letter-spacing:.12em;color:var(--gold-light);}
+  .left-btns,.right-btns{position:absolute;top:50%;transform:translateY(-50%);display:flex;gap:3px;align-items:center;z-index:2;}
+  .left-btns{left:6px;}.right-btns{right:6px;}
+  .icon-btn{font-size:13px;cursor:pointer;line-height:1;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:2px 7px;color:var(--gold);transition:background .2s,transform .15s;user-select:none;}
+  .icon-btn:active{transform:scale(.88);}
+  .player-pill{display:inline-flex;align-items:center;gap:4px;margin-top:1px;padding:1px 7px;border:1px solid var(--border);border-radius:20px;font-size:9px;color:var(--gold);letter-spacing:.07em;cursor:pointer;font-family:'DM Mono',monospace;}
+  .player-pill .pip{width:5px;height:5px;border-radius:50%;background:var(--gold);flex-shrink:0;}
+  .player-dept{font-size:7px;opacity:.5;margin-left:1px;}
+
+  main{flex:1;display:flex;flex-direction:column;padding:4px 10px 5px;max-width:480px;margin:0 auto;width:100%;overflow:hidden;position:relative;z-index:1;gap:4px;justify-content:space-evenly;}
+
+  /* Timer — compact horizontal strip */
+  .timer-strip{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:5px 10px;flex-shrink:0;position:relative;overflow:hidden;}
+  .timer-ring-wrap{position:relative;width:52px;height:52px;flex-shrink:0;}
+  .timer-ring-wrap svg{transform:rotate(-90deg);width:52px;height:52px;}
+  .ring-track{fill:none;stroke:rgba(201,168,76,.12);stroke-width:4;}
+  .ring-progress{fill:none;stroke:var(--gold);stroke-width:4;stroke-linecap:round;transition:stroke-dashoffset 1s linear,stroke .4s ease;filter:drop-shadow(0 0 3px rgba(201,168,76,.35));}
+  .timer-center{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;}
+  .timer-display{font-family:'Playfair Display',serif;font-size:15px;font-weight:700;color:var(--gold-light);line-height:1;}
+  .timer-display.urgent{color:var(--danger-light);}
+  .gem-row{display:flex;align-items:center;justify-content:space-between;flex:1;gap:4px;}
+  .gem-badge{display:flex;align-items:center;gap:3px;}
+  .gem-icon{font-size:10px;line-height:1;}
+  .gem-val{font-family:'Playfair Display',serif;font-size:14px;line-height:1;}
+  .gem-val.correct-color{color:#4caf50;}.gem-val.wrong-color{color:#d96060;}
+  .gem-lbl{font-size:6px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);opacity:.45;font-family:'DM Mono',monospace;}
+  .gem-total{display:flex;flex-direction:column;align-items:center;gap:1px;}
+  .gem-total-icon{font-size:13px;line-height:1;}
+  .gem-total-val{font-family:'Playfair Display',serif;font-size:16px;font-weight:700;color:var(--gold-light);line-height:1;}
+  .delta-toast{position:absolute;top:3px;right:7px;font-family:'Playfair Display',serif;font-size:11px;font-weight:700;opacity:0;pointer-events:none;}
+  .delta-toast.correct{color:#4caf50;}.delta-toast.wrong{color:#d96060;}
+  .delta-toast.animate{animation:toastPop 1s ease forwards;}
+  @keyframes toastPop{0%{opacity:0;transform:translateY(0)}15%{opacity:1;transform:translateY(-3px)}70%{opacity:1;transform:translateY(-8px)}100%{opacity:0;transform:translateY(-14px)}}
+  .big-toast{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:500;pointer-events:none;font-family:'Playfair Display',serif;font-size:clamp(48px,15vw,76px);font-weight:700;opacity:0;text-align:center;}
+  .big-toast.correct{color:#4caf50;text-shadow:0 0 40px rgba(76,175,80,.5);}
+  .big-toast.wrong{color:#d96060;text-shadow:0 0 40px rgba(217,96,96,.5);}
+  .big-toast.pop{animation:bigToastPop 1.1s cubic-bezier(.22,1,.36,1) forwards;}
+  @keyframes bigToastPop{0%{opacity:0;transform:translate(-50%,-50%) scale(.6);}20%{opacity:1;transform:translate(-50%,-50%) scale(1.08);}45%{opacity:1;transform:translate(-50%,-50%) scale(1);}75%{opacity:1;transform:translate(-50%,-55%);}100%{opacity:0;transform:translate(-50%,-65%);}}
+
+  /* Author line — single compact row */
+  .author-line{display:flex;align-items:center;justify-content:center;gap:7px;flex-shrink:0;}
+  .author-label{font-family:'DM Mono',monospace;font-size:7px;letter-spacing:.25em;text-transform:uppercase;color:var(--gold);opacity:.4;}
+  .author-name{font-family:'Playfair Display',serif;font-size:clamp(13px,3.5vw,16px);font-weight:700;color:var(--gold-light);letter-spacing:.05em;text-shadow:0 0 12px rgba(201,168,76,.25);}
+
+  /* Question box — bigger, more prominent */
+  .question-box{background:var(--def-bg);border:1px solid var(--def-border);border-radius:8px;padding:8px 12px;flex-shrink:0;}
+  .question-label{font-size:7px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);opacity:.35;font-family:'DM Mono',monospace;margin-bottom:3px;}
+  .question-text{font-family:'Cormorant Garamond',serif;font-size:clamp(15px,4vw,18px);font-style:italic;color:var(--text-main);line-height:1.4;opacity:.92;}
+
+  /* Word area — bigger letters */
+  .word-area{display:flex;flex-wrap:wrap;justify-content:center;gap:4px 5px;padding:1px 0;min-height:56px;align-items:center;flex-shrink:0;}
+  .word-group{display:flex;gap:3px;align-items:flex-end;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:4px 6px 4px;position:relative;}
+  .word-group+.word-group::before{content:'\B7';position:absolute;left:-5px;top:50%;transform:translateY(-50%);color:var(--gold);opacity:.4;font-size:11px;line-height:1;pointer-events:none;}
+  .letter-slot{display:flex;flex-direction:column;align-items:center;gap:1px;}
+  .letter-char{font-family:'Playfair Display',serif;font-size:clamp(19px,5vw,25px);font-weight:700;color:var(--gold-light);height:28px;display:flex;align-items:center;justify-content:center;text-shadow:0 0 8px rgba(201,168,76,.3);min-width:14px;text-align:center;}
+  .letter-char.revealed{animation:revealLetter .4s ease forwards;}
+  @keyframes revealLetter{0%{transform:translateY(-6px);opacity:0}60%{transform:translateY(2px)}100%{transform:translateY(0);opacity:1}}
+  .letter-line{width:100%;min-width:14px;height:1px;background:var(--gold);opacity:.4;border-radius:1px;}
+
+  .wrong-letters{text-align:center;font-family:'Playfair Display',serif;font-size:13px;letter-spacing:.1em;color:var(--wrong-color);min-height:16px;flex-shrink:0;line-height:1;}
+  .wrong-label{font-family:'DM Mono',monospace;font-size:8px;letter-spacing:.15em;text-transform:uppercase;color:var(--wrong-color);opacity:.6;margin-right:4px;}
+
+  .keyboard{display:flex;flex-direction:column;gap:4px;flex-shrink:0;}
+  .kb-row{display:flex;justify-content:center;gap:4px;width:100%;}
+  .kb-key{flex:1;min-width:0;height:40px;border-radius:6px;border:1px solid var(--key-border);background:var(--key-bg);color:var(--key-color);font-family:'Playfair Display',serif;font-size:clamp(12px,3.2vw,15px);font-weight:700;cursor:pointer;transition:background .12s,transform .1s;position:relative;}
+  .kb-key::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,.06) 0%,transparent 100%);border-radius:6px;pointer-events:none;}
+  .kb-key:active{transform:scale(.9);}
+  .kb-key.correct{background:var(--key-correct-bg);border-color:var(--key-correct-border);color:var(--key-correct-color);cursor:not-allowed;}
+  .kb-key.wrong{background:var(--key-wrong-bg);border-color:var(--key-wrong-border);color:var(--key-wrong-color);cursor:not-allowed;}
+
+  .dash-btn{display:flex;align-items:center;justify-content:center;gap:5px;padding:4px 10px;background:var(--surface);border:1px solid var(--border);border-radius:7px;color:var(--gold);font-family:'DM Mono',monospace;font-size:8px;letter-spacing:.1em;cursor:pointer;text-transform:uppercase;flex-shrink:0;}
+
+  /* Overlay */
+  .overlay{display:none;position:fixed;inset:0;background:rgba(10,8,3,.9);z-index:100;justify-content:center;align-items:center;padding:20px;backdrop-filter:blur(6px);}
+  html.light .overlay{background:rgba(250,244,232,.92);}
+  .overlay.show{display:flex;}
+  .msg-card{background:var(--card-bg);border:1px solid var(--gold);border-radius:14px;padding:18px 16px;text-align:center;max-width:340px;width:100%;box-shadow:0 0 40px rgba(201,168,76,.12);animation:cardIn .4s cubic-bezier(.34,1.56,.64,1) forwards;overflow-y:auto;max-height:88dvh;}
+  @keyframes cardIn{from{transform:scale(.8) translateY(14px);opacity:0}to{transform:scale(1);opacity:1}}
+  .msg-icon{font-size:32px;margin-bottom:5px;display:block;}
+  .msg-title{font-family:'Playfair Display',serif;font-size:19px;font-weight:400;color:var(--gold-light);margin-bottom:3px;}
+  .msg-author{font-family:'DM Mono',monospace;font-size:8px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);opacity:.55;margin-bottom:3px;}
+  .msg-quote{font-family:'Playfair Display',serif;font-style:italic;font-size:13px;color:var(--text-main);margin-bottom:4px;line-height:1.4;opacity:.85;}
+  .msg-gems{font-family:'Playfair Display',serif;font-size:12px;color:var(--gold);opacity:.6;margin-bottom:8px;}
+  .msg-gems strong{color:var(--gold-light);opacity:1;}
+  .msg-log{font-size:8px;color:var(--gold);opacity:.35;margin-bottom:10px;min-height:10px;font-family:'DM Mono',monospace;letter-spacing:.06em;}
+
+  /* Contemplation box */
+  .contemplate-box{background:var(--def-bg);border:1px solid var(--def-border);border-radius:9px;padding:10px 12px;margin-bottom:12px;text-align:left;}
+  .contemplate-label{font-size:7px;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);opacity:.4;font-family:'DM Mono',monospace;margin-bottom:4px;}
+  .contemplate-text{font-family:'Cormorant Garamond',serif;font-size:15px;font-style:italic;color:var(--text-main);opacity:.88;line-height:1.5;}
+
+  /* Dashboard */
+  .dash-overlay{display:none;position:fixed;inset:0;background:var(--bg-body);z-index:150;overflow-y:auto;padding:12px 12px 28px;}
+  .dash-overlay.show{display:block;}
+  .dash-inner{max-width:480px;margin:0 auto;}
+  .dash-header{display:flex;align-items:center;justify-content:space-between;padding:10px 0 9px;border-bottom:1px solid var(--border);margin-bottom:10px;}
+  .dash-title{font-family:'Playfair Display',serif;font-size:17px;font-weight:400;color:var(--gold-light);}
+  .dash-subtitle{font-size:8px;color:var(--gold);opacity:.5;letter-spacing:.13em;margin-top:2px;font-family:'DM Mono',monospace;}
+  .dash-close{background:none;border:1px solid var(--border);border-radius:50%;width:28px;height:28px;color:var(--gold);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+  .dash-play-random{background:linear-gradient(135deg,var(--gold),#a07828);color:#1a1208;border:none;border-radius:7px;padding:6px 13px;font-family:'DM Mono',monospace;font-size:9px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;}
+  .dash-stats{display:flex;gap:6px;margin-bottom:10px;}
+  .dash-stat{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 6px;text-align:center;}
+  .dash-stat-val{font-family:'Playfair Display',serif;font-size:19px;color:var(--gold-light);line-height:1;}
+  .dash-stat-lbl{font-size:7px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);opacity:.5;margin-top:2px;font-family:'DM Mono',monospace;}
+  .progress-wrap{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 11px;margin-bottom:10px;}
+  .progress-label{font-size:8px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);opacity:.5;margin-bottom:5px;display:flex;justify-content:space-between;font-family:'DM Mono',monospace;}
+  .progress-track{height:5px;background:var(--surface2);border-radius:3px;overflow:hidden;}
+  .progress-fill{height:100%;background:linear-gradient(90deg,var(--gold),var(--gold-light));border-radius:3px;transition:width .8s ease;}
+  .section-lbl{font-size:8px;letter-spacing:.25em;text-transform:uppercase;color:var(--gold);opacity:.38;margin-bottom:6px;padding-left:2px;font-family:'DM Mono',monospace;}
+  .idiom-grid{display:flex;flex-direction:column;gap:6px;margin-bottom:12px;}
+  .idiom-card{background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:9px 11px;transition:border-color .2s;}
+  .idiom-card.solved{border-color:rgba(100,180,80,.3);background:rgba(45,90,39,.08);}
+  .idiom-playable{cursor:pointer;transition:border-color .2s,transform .15s;}
+  .idiom-playable:hover{border-color:var(--gold);transform:translateY(-1px);}
+  .idiom-play-hint{font-size:7px;font-family:'DM Mono',monospace;color:var(--gold);opacity:.38;letter-spacing:.11em;text-align:right;margin-top:3px;}
+  .idiom-top{display:flex;align-items:flex-start;gap:7px;}
+  .idiom-status{font-size:12px;flex-shrink:0;width:16px;margin-top:1px;}
+  .idiom-info{flex:1;min-width:0;}
+  .idiom-qid{font-size:7px;color:var(--gold);opacity:.26;flex-shrink:0;font-family:'DM Mono',monospace;margin-top:1px;}
+  .idiom-meaning{font-family:'Cormorant Garamond',serif;font-size:12px;font-style:italic;color:var(--gold-light);line-height:1.3;}
+  .idiom-card:not(.solved) .idiom-meaning{color:var(--gold);opacity:.6;}
+  .idiom-theme{font-size:7px;letter-spacing:.13em;text-transform:uppercase;color:var(--gold);opacity:.36;margin-top:2px;font-family:'DM Mono',monospace;}
+  .dash-spinner{display:flex;justify-content:center;padding:24px 0;}
+  .spinner-ring{width:30px;height:30px;border-radius:50%;border:3px solid var(--surface2);border-top-color:var(--gold);animation:spin .8s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .dash-error{text-align:center;color:var(--danger-light);font-size:11px;padding:18px;font-style:italic;}
+  .all-done{text-align:center;padding:10px 0;font-family:'Playfair Display',serif;font-size:13px;color:var(--gold-light);}
+
+  /* Login */
+  .login-gate{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:200;justify-content:center;align-items:center;padding:20px;backdrop-filter:blur(8px);}
+  .login-gate.show{display:flex;}
+  .login-card{background:var(--card-bg);border:1px solid var(--border);border-radius:16px;padding:22px 18px;width:100%;max-width:320px;position:relative;overflow:hidden;}
+  .login-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--danger),var(--gold),var(--danger));}
+  .login-card-title{font-family:'Playfair Display',serif;font-size:19px;font-weight:400;color:var(--gold-light);text-align:center;margin-bottom:2px;}
+  .login-card-sub{font-size:8px;letter-spacing:.24em;text-transform:uppercase;color:var(--gold);opacity:.42;text-align:center;margin-bottom:16px;font-family:'DM Mono',monospace;}
+  .field-group{margin-bottom:10px;}
+  .field-group label{display:block;font-size:7px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);opacity:.5;margin-bottom:4px;font-family:'DM Mono',monospace;}
+  .field-group input,.field-group select{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 11px;font-family:'Cormorant Garamond',serif;font-size:14px;color:var(--text-main);outline:none;transition:border-color .2s;-webkit-appearance:none;appearance:none;}
+  .field-group input::placeholder{color:var(--gold);opacity:.3;}
+  .field-group input:focus,.field-group select:focus{border-color:var(--gold);box-shadow:0 0 0 2px var(--gold-dim);}
+  .field-group select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23c9a84c' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 11px center;padding-right:30px;cursor:pointer;}
+  .field-group select option{background:var(--dark-mid);color:var(--text-main);}
+  .btn-gold{background:linear-gradient(135deg,var(--gold),#a07828);color:#1a1208;border:none;border-radius:8px;padding:10px 26px;font-family:'DM Mono',monospace;font-size:11px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;width:100%;margin-top:3px;}
+  .dup-btn{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 11px;text-align:left;cursor:pointer;margin-bottom:6px;}
+  .dup-btn:hover{border-color:var(--gold);background:var(--surface2);}
+  .dup-name{font-family:'Playfair Display',serif;font-size:13px;color:var(--text-main);}
+  .dup-meta{font-size:7px;letter-spacing:.13em;color:var(--gold);opacity:.55;margin-top:2px;font-family:'DM Mono',monospace;}
+
+  /* Help */
+  .help-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:300;justify-content:center;align-items:center;padding:20px;backdrop-filter:blur(8px);}
+  html.light .help-overlay{background:rgba(250,244,232,.9);}
+  .help-overlay.show{display:flex;}
+  .help-card{background:var(--card-bg);border:1px solid var(--gold);border-radius:13px;padding:16px 14px;width:100%;max-width:340px;position:relative;overflow:hidden;max-height:84dvh;overflow-y:auto;}
+  .help-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--gold),var(--gold-light),var(--gold));}
+  .help-title{font-family:'Playfair Display',serif;font-size:16px;font-weight:400;color:var(--gold-light);text-align:center;margin-bottom:2px;}
+  .help-sub{font-size:7px;letter-spacing:.24em;text-transform:uppercase;color:var(--gold);opacity:.4;text-align:center;font-family:'DM Mono',monospace;margin-bottom:12px;}
+  .help-close{position:absolute;top:10px;right:10px;background:none;border:1px solid var(--border);border-radius:50%;width:24px;height:24px;color:var(--gold);font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+  .help-row{display:flex;gap:8px;align-items:flex-start;margin-bottom:6px;}
+  .help-icon{font-size:14px;flex-shrink:0;width:22px;text-align:center;margin-top:1px;}
+  .help-text{font-family:'Cormorant Garamond',serif;font-size:13px;color:var(--text-main);line-height:1.4;opacity:.88;}
+  .help-text strong{color:var(--gold-light);font-weight:700;font-style:normal;}
+  .help-divider{height:1px;background:var(--border);margin:9px 0;opacity:.4;}
+  .help-tip{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:6px 9px;font-family:'Cormorant Garamond',serif;font-size:12px;font-style:italic;color:var(--text-main);opacity:.72;text-align:center;line-height:1.3;}
+
+  @keyframes gemPop{0%{transform:scale(1)}50%{transform:scale(1.35) rotate(8deg)}100%{transform:scale(1)}}
+  .gem-pop{animation:gemPop .4s ease;}
+  @keyframes wrongShake{0%,100%{transform:translateX(0)}20%{transform:translateX(-5px)}60%{transform:translateX(5px)}80%{transform:translateX(-3px)}}
+  .shake{animation:wrongShake .35s ease;}
+  @keyframes winBounce{0%{transform:translateY(0) scale(1)}30%{transform:translateY(-8px) scale(1.15)}55%{transform:translateY(2px) scale(0.96)}75%{transform:translateY(-3px) scale(1.05)}100%{transform:translateY(0) scale(1)}}
+  .letter-char.win-bounce{animation:winBounce .5s ease forwards;}
+  .word-group.win-glow{border-color:var(--gold)!important;box-shadow:0 0 10px rgba(201,168,76,.45);}
+  @keyframes timerFlash{0%,100%{background:var(--surface)}40%{background:rgba(139,32,32,.22)}}
+  .timer-strip.penalty{animation:timerFlash .5s ease;}
+  @keyframes timerBonus{0%,100%{background:var(--surface)}40%{background:rgba(45,90,39,.25)}}
+  .timer-strip.bonus{animation:timerBonus .5s ease;}
+</style>
+</head>
+<body>
+<div class="big-toast" id="bigToast"></div>
+<header>
+  <div style="display:flex;flex-direction:column;align-items:center;gap:1px;">
+    <h1>Cogito</h1>
+    <div class="player-pill" id="playerPill" onclick="openLogin()" style="display:none;">
+      <span class="pip"></span><span id="playerPillName"></span><span class="player-dept" id="playerPillDept"></span>
+    </div>
+  </div>
+  <div class="left-btns">
+    <button class="icon-btn" onclick="openDashboard()">&#127968;</button>
+    <button class="icon-btn" onclick="openHelp()">&#9432;</button>
+  </div>
+  <div class="right-btns">
+    <button class="icon-btn" id="muteBtn" onclick="toggleMute()">&#128266;</button>
+    <button class="icon-btn" id="themeToggle" onclick="toggleTheme()">&#9728;&#65039;</button>
+  </div>
+</header>
+
+<main>
+  <div class="timer-strip" id="timerCard">
+    <div class="delta-toast" id="deltaToast"></div>
+    <div class="timer-ring-wrap">
+      <svg viewBox="0 0 52 52" xmlns="http://www.w3.org/2000/svg">
+        <circle class="ring-track" cx="26" cy="26" r="21"/>
+        <circle class="ring-progress" id="ringProgress" cx="26" cy="26" r="21" stroke-dasharray="131.9" stroke-dashoffset="0"/>
+      </svg>
+      <div class="timer-center"><div class="timer-display" id="timerDisplay">3:00</div></div>
+    </div>
+    <div class="gem-row">
+      <div class="gem-badge"><span class="gem-icon">&#9989;</span><span class="gem-val correct-color" id="correctStreak">0</span><span class="gem-lbl">Run</span></div>
+      <div class="gem-total"><span class="gem-total-icon">&#128142;</span><span class="gem-total-val" id="gemCount">0</span></div>
+      <div class="gem-badge"><span class="gem-lbl">Run</span><span class="gem-val wrong-color" id="wrongStreak">0</span><span class="gem-icon">&#10060;</span></div>
+    </div>
+  </div>
+
+  <div class="author-line">
+    <span class="author-label">Author</span>
+    <span class="author-name" id="philName"></span>
+  </div>
+
+  <div class="question-box">
+    <div class="question-label">Question</div>
+    <div class="question-text" id="questionText"></div>
+  </div>
+
+  <div class="word-area" id="wordArea"></div>
+  <div class="wrong-letters" id="wrongLetters"></div>
+  <div class="keyboard" id="keyboard"></div>
+  <button class="dash-btn" onclick="openDashboard()">&#9643;&ensp;My Progress</button>
+</main>
+
+<!-- LOGIN -->
+<div class="login-gate" id="loginGate">
+  <div class="login-card">
+    <div class="login-card-title">Cogito</div>
+    <div class="login-card-sub">Philosophy Quotes</div>
+    <div class="field-group"><label>Your Name</label><input id="nameInput" type="text" placeholder="Enter your name&hellip;" maxlength="60" autocomplete="off"/></div>
+    <div class="field-group">
+      <label>Department</label>
+      <select id="deptSelect">
+        <option value="">-- Select Department --</option>
+        <option>Cyber Security</option><option>EIE</option>
+        <option>CSE-1</option><option>CSE-2</option><option>CSE-3</option>
+        <option>Mechanical Engineering</option>
+        <option>ECE-1</option><option>ECE-2</option><option>ECE-3</option>
+        <option>AI DS-1</option><option>AI DS-2</option>
+        <option>Agri and Civil</option><option>EEE</option>
+        <option>Medical Electronics</option>
+        <option>IT-1</option><option>IT-2</option>
+      </select>
+    </div>
+    <button class="btn-gold" onclick="handleLogin()">Enter &#8594;</button>
+    <div id="dupSection" style="display:none;margin-top:14px;">
+      <div style="font-size:9px;color:var(--gold);opacity:.55;margin-bottom:7px;text-align:center;font-family:'DM Mono',monospace;letter-spacing:.1em;">MULTIPLE STUDENTS FOUND — CHOOSE YOURS</div>
+      <div id="dupList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- OVERLAY -->
+<div class="overlay" id="overlay">
+  <div class="msg-card">
+    <span class="msg-icon" id="msgIcon"></span>
+    <div class="msg-title" id="msgTitle"></div>
+    <div class="msg-author" id="msgAuthor"></div>
+    <div class="msg-quote" id="msgQuote"></div>
+    <div class="msg-gems" id="msgGems"></div>
+    <div class="contemplate-box" id="contemplateBox" style="display:none;">
+      <div class="contemplate-label">Food for Thought</div>
+      <div class="contemplate-text" id="contemplateText"></div>
+    </div>
+    <div class="msg-log" id="msgLog"></div>
+    <button class="btn-gold" onclick="newGame()">Next Quote</button>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div class="dash-overlay" id="dashOverlay">
+  <div class="dash-inner">
+    <div class="dash-header">
+      <div><div class="dash-title">My Progress</div><div class="dash-subtitle" id="dashSubtitle"></div></div>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <button class="dash-play-random" onclick="playRandom()">&#9654; Random</button>
+        <button class="dash-close" id="dashCloseBtn" onclick="closeDashboard()">&#10005;</button>
+      </div>
+    </div>
+    <div id="dashContent"></div>
+  </div>
+</div>
+
+<!-- HELP -->
+<div class="help-overlay" id="helpOverlay">
+  <div class="help-card">
+    <div class="help-title">How to Play</div>
+    <div class="help-sub">Cogito &mdash; Quick Guide</div>
+    <button class="help-close" onclick="closeHelp()">&#10005;</button>
+    <div class="help-row"><span class="help-icon">&#128218;</span><span class="help-text">A <strong>question</strong> hints at a famous philosophical quote. Guess it letter by letter.</span></div>
+    <div class="help-row"><span class="help-icon">&#128161;</span><span class="help-text">The <strong>author's name</strong> is shown as a clue.</span></div>
+    <div class="help-divider"></div>
+    <div class="help-row"><span class="help-icon">&#9989;</span><span class="help-text"><strong>Correct</strong> — letter reveals, earn time and gems.</span></div>
+    <div class="help-row"><span class="help-icon">&#10060;</span><span class="help-text"><strong>Wrong</strong> — lose time. Streaks cost more.</span></div>
+    <div class="help-divider"></div>
+    <div class="help-tip">After each quote, reflect on the food for thought — wisdom applied to today. &#129488;</div>
+  </div>
+</div>
+
+<script type="module">
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm";
+const supabase = createClient(
+  "https://yellow-lab-4999.andrewveda.workers.dev",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoZXpzc29jenZwYmt0ZWZmY2d6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI4NTk1ODUsImV4cCI6MjA3ODQzNTU4NX0.2ZlqXnZxv0opkhynAT7OlK4S-xPygcc7ETUyTXRfGHE"
+);
+const EDGE_URL = "https://yellow-lab-4999.andrewveda.workers.dev/functions/v1/logQuest";
+
+const quotes = [
+  {id:4000,phrase:"i think therefore i am",theme:"René Descartes",
+   hint:"What one truth did Descartes find impossible to doubt, even when doubting everything else?",
+   contemplate:"In an age of misinformation and AI-generated content, how do you decide what is real? Is your own experience still the last reliable anchor?"},
+  {id:4001,phrase:"the unexamined life is not worth living",theme:"Socrates",
+   hint:"What did Socrates declare at his trial about a life lived without self-reflection?",
+   contemplate:"With social media curating your identity for an audience, when did you last examine who you actually are — versus who you perform yourself to be?"},
+  {id:4002,phrase:"man is the measure of all things",theme:"Protagoras",
+   hint:"Which Sophist placed human perception at the centre of all reality?",
+   contemplate:"If truth is relative to the individual, how do you hold a conversation — or build a society — with someone whose reality is completely different from yours?"},
+  {id:4003,phrase:"we are what we repeatedly do",theme:"Aristotle",
+   hint:"How did Aristotle describe excellence — not as a single act but as something built daily?",
+   contemplate:"Your phone knows exactly what you repeatedly do. Does that data reflect the person you want to become?"},
+  {id:4004,phrase:"know thyself",theme:"Socrates",
+   hint:"What two-word imperative at Delphi became the cornerstone of Socratic philosophy?",
+   contemplate:"Algorithms now know your habits, fears and desires better than most friends do. Does that count as knowing yourself — or is self-knowledge something only you can do?"},
+  {id:4005,phrase:"god is dead",theme:"Friedrich Nietzsche",
+   hint:"What declaration did Nietzsche make about the collapse of European moral foundations?",
+   contemplate:"If traditional moral authorities have lost their grip, what fills the vacuum for your generation — and who or what sets the standard now?"},
+  {id:4006,phrase:"hell is other people",theme:"Jean-Paul Sartre",
+   hint:"What conclusion does Sartre reach about the source of our deepest torment in No Exit?",
+   contemplate:"You carry your social reputation in your pocket at all times. Is the constant awareness of how others see you closer to freedom or to Sartre's hell?"},
+  {id:4007,phrase:"to be is to be perceived",theme:"George Berkeley",
+   hint:"What idealist principle did Berkeley propose about objects and the minds observing them?",
+   contemplate:"Does an experience fully exist if you don't post it? Berkeley asked this about trees in forests — today it's about concerts, meals and milestones."},
+  {id:4008,phrase:"i am not an athenian or a greek but a citizen of the world",theme:"Socrates",
+   hint:"What cosmopolitan claim did Socrates make to reject narrow civic loyalty?",
+   contemplate:"At a time of rising nationalism, what does it actually mean to be a global citizen — and does it require giving something up?"},
+  {id:4009,phrase:"the life of man is solitary poor nasty brutish and short",theme:"Thomas Hobbes",
+   hint:"How did Hobbes describe human existence without a social contract?",
+   contemplate:"Global institutions are under strain and trust in governments is at historic lows. How close are we, really, to the state Hobbes was warning about?"},
+  {id:4010,phrase:"existence precedes essence",theme:"Jean-Paul Sartre",
+   hint:"What existentialist claim argues that humans define themselves through choices rather than a fixed nature?",
+   contemplate:"If you define yourself through your choices, what does it say about you that so many of those choices are now shaped by recommendation engines?"},
+  {id:4011,phrase:"the only true wisdom is in knowing you know nothing",theme:"Socrates",
+   hint:"What paradox did Socrates arrive at about the nature of genuine wisdom?",
+   contemplate:"You have instant access to more information than any previous generation. Has that made you wiser — or just more confidently wrong?"},
+  {id:4012,phrase:"one cannot step into the same river twice",theme:"Heraclitus",
+   hint:"What image did Heraclitus use to express that nothing ever remains the same?",
+   contemplate:"The internet remembers everything — old tweets, old photos, old mistakes. If you are constantly changing, is it fair to be held to a permanent record of who you were?"},
+  {id:4013,phrase:"happiness is the highest good",theme:"Aristotle",
+   hint:"What did Aristotle identify as the ultimate aim of all human action?",
+   contemplate:"Whole industries are built to sell you happiness. Is what they're selling actually what Aristotle meant — or is something important being lost in translation?"},
+  {id:4014,phrase:"the function of prayer is not to influence god but to change the nature of the one who prays",theme:"Søren Kierkegaard",
+   hint:"What did Kierkegaard argue about the true purpose of prayer?",
+   contemplate:"We increasingly outsource reflection to apps, coaches and therapists. What practices, if any, do you use to change yourself from the inside?"},
+  {id:4015,phrase:"to do as one wishes is not freedom",theme:"Jean-Jacques Rousseau",
+   hint:"What distinction did Rousseau draw between impulse and genuine liberty?",
+   contemplate:"You can watch anything, buy anything, say anything online at any hour. Is that freedom — or is it just a very comfortable cage?"},
+  {id:4016,phrase:"two things fill me with wonder the starry sky above and the moral law within",theme:"Immanuel Kant",
+   hint:"What two sources of awe did Kant identify — one cosmic, one conscientious?",
+   contemplate:"Light pollution means fewer people see a genuinely dark sky. Moral numbness means fewer people feel a sharp sense of right and wrong. Are we losing both of Kant's wonders at once?"},
+  {id:4017,phrase:"the greatest happiness of the greatest number is the foundation of morals and legislation",theme:"Jeremy Bentham",
+   hint:"What utilitarian principle did Bentham establish for judging laws and ethics?",
+   contemplate:"Social platforms optimise for maximum engagement across the greatest number of users. Is that utilitarianism in practice — and if so, are you happy with the outcome?"},
+  {id:4018,phrase:"an eye for an eye makes the whole world blind",theme:"Mahatma Gandhi",
+   hint:"What did Gandhi argue about the logic of retributive justice?",
+   contemplate:"Online pile-ons feel like justice in the moment. But when everyone is cancelling everyone, who is left to see?"},
+  {id:4019,phrase:"the philosophers have only interpreted the world the point is to change it",theme:"Karl Marx",
+   hint:"What charge did Marx level at thinkers who understood society but refused to transform it?",
+   contemplate:"You are the most educated, most connected generation in history. Are you changing the world — or mostly interpreting it through a screen?"},
+  {id:4020,phrase:"in the beginning was the word",theme:"Gospel of John",
+   hint:"What opening statement places language and reason at the very origin of existence?",
+   contemplate:"We now generate words by the billion using AI. If language is sacred — the origin of meaning itself — what happens when it becomes infinitely cheap?"},
+  {id:4021,phrase:"courage is knowing what not to fear",theme:"Plato",
+   hint:"How did Plato reframe courage as wisdom about which things deserve our concern?",
+   contemplate:"The news cycle is engineered to make everything feel threatening. What in your life genuinely deserves your fear — and what are you afraid of that you shouldn't be?"},
+  {id:4022,phrase:"justice is giving each their due",theme:"Plato",
+   hint:"How did Plato define justice in The Republic as proportion and function?",
+   contemplate:"Algorithms decide what content reaches you and what opportunities you see. Is that system giving you what you are due — or something else entirely?"},
+  {id:4023,phrase:"the measure of intelligence is the ability to change",theme:"Albert Einstein",
+   hint:"What did Einstein suggest is the truest test of a mind?",
+   contemplate:"We live in an era of identity politics where changing your position is called a flip-flop. Has the social cost of changing your mind become too high?"},
+  {id:4024,phrase:"that which does not kill us makes us stronger",theme:"Friedrich Nietzsche",
+   hint:"What did Nietzsche claim about the potential of adversity?",
+   contemplate:"A generation raised on trigger warnings and safe spaces — is that protecting people from unnecessary harm, or shielding them from the difficulty that builds resilience?"},
+  {id:4025,phrase:"to live is to suffer to survive is to find meaning in the suffering",theme:"Friedrich Nietzsche",
+   hint:"What did Nietzsche observe about pain, purpose and the capacity to endure?",
+   contemplate:"Mental health struggles are at record highs among young people. Is the problem too much suffering — or too little help finding meaning in it?"},
+  {id:4026,phrase:"a wise man speaks because he has something to say a fool because he has to say something",theme:"Plato",
+   hint:"What distinction did Plato draw between wisdom and foolishness in speech?",
+   contemplate:"Posting daily is expected. Silence reads as absence. How do you know, honestly, whether you are speaking because you have something to say?"},
+  {id:4027,phrase:"in the middle of difficulty lies opportunity",theme:"Albert Einstein",
+   hint:"What counterintuitive insight did Einstein offer about obstacles?",
+   contemplate:"Climate change, inequality, AI disruption — your generation inherited every major difficulty. What opportunity do you actually see inside the hardest one?"},
+  {id:4028,phrase:"imagination is more important than knowledge",theme:"Albert Einstein",
+   hint:"What did Einstein argue about creative thinking versus the possession of facts?",
+   contemplate:"AI can now pass exams, write essays and solve problems faster than most humans. If knowledge can be outsourced, is imagination the last competitive edge — and are you developing it?"},
+  {id:4029,phrase:"the secret of happiness is freedom and the secret of freedom is courage",theme:"Thucydides",
+   hint:"What chain of dependencies did Thucydides identify linking joy to liberty and liberty to bravery?",
+   contemplate:"What is the most courageous thing you could do right now in your own life — and what would it cost you in comfort or approval?"},
+  {id:4030,phrase:"man is by nature a political animal",theme:"Aristotle",
+   hint:"What did Aristotle argue about human sociability and participation in community?",
+   contemplate:"Voter turnout among young people is consistently the lowest. If politics is our nature, what has gone so wrong that so many are opting out?"},
+  {id:4031,phrase:"the death of one man is a tragedy the death of millions is a statistic",theme:"Joseph Stalin",
+   hint:"What observation about moral psychology notes that empathy shrinks as numbers grow?",
+   contemplate:"You scroll past reports of mass casualties without blinking but stop for a single compelling story. Is empathy a moral failing — or just how human attention works?"},
+  {id:4032,phrase:"the owl of minerva spreads its wings only with the falling of the dusk",theme:"Georg Hegel",
+   hint:"What metaphor did Hegel use to argue that philosophy only understands a period after it ends?",
+   contemplate:"We are living through a technological revolution right now. What do you think we will only understand about this moment once it is over?"},
+  {id:4033,phrase:"what is rational is actual and what is actual is rational",theme:"Georg Hegel",
+   hint:"What equivalence did Hegel assert between reason and the existing world?",
+   contemplate:"If the world as it is reflects rationality, then poverty, war and ecological collapse are rational. Is that a reason to accept things — or the most urgent argument for changing them?"},
+  {id:4034,phrase:"the beautiful is the symbol of the morally good",theme:"Immanuel Kant",
+   hint:"What connection did Kant draw between aesthetic experience and moral nature?",
+   contemplate:"Beauty is now filtered, curated and ranked. If aesthetic experience points toward moral goodness, what does the industrialisation of beauty do to us morally?"},
+  {id:4035,phrase:"faith is the great cop-out",theme:"Richard Dawkins",
+   hint:"What did Dawkins argue about religious faith and the avoidance of evidence?",
+   contemplate:"Many people place blind faith in technology, markets or charismatic leaders rather than religion. Is faith in science or progress really so different — and is it any safer?"},
+  {id:4036,phrase:"the greatest obstacle to discovery is not ignorance but the illusion of knowledge",theme:"Daniel Boorstin",
+   hint:"What did Boorstin argue was more dangerous than not knowing?",
+   contemplate:"A confident Google search or a quick ChatGPT answer can feel like understanding. When did you last sit with a question long enough to genuinely not know the answer?"},
+  {id:4037,phrase:"he who has a why to live can bear almost any how",theme:"Friedrich Nietzsche",
+   hint:"What did Nietzsche propose about the relationship between purpose and endurance?",
+   contemplate:"What is your why right now? Not the CV answer — the real one. And is it strong enough to carry you through what comes next?"},
+  {id:4038,phrase:"the mind is everything what you think you become",theme:"Buddha",
+   hint:"What did the Buddha teach about the relationship between thought and identity?",
+   contemplate:"Your feed is a constant stream of thoughts placed in your mind by strangers and algorithms. Who is actually doing your thinking?"},
+  {id:4039,phrase:"peace comes from within do not seek it without",theme:"Buddha",
+   hint:"What did the Buddha counsel about where contentment can actually be found?",
+   contemplate:"You can book a holiday, upgrade your phone, earn more money. When did you last look for peace in a direction that cost nothing and required only stillness?"},
+];
+
+const TOTAL_SECS=180, CIRCUMFERENCE=2*Math.PI*21;
+function penaltySecs(n){return 12+(n-1)*2;}
+function bonusSecs(n){return n;}
+
+let playerName='',playerDept='',userData=null;
+function loadSavedPlayer(){
+  playerName=localStorage.getItem('userName')||localStorage.getItem('questPlayerName')||'';
+  playerDept=localStorage.getItem('userDept')||localStorage.getItem('questPlayerDept')||'';
+}
+function savePlayer(name,dept){
+  playerName=name;playerDept=dept;
+  ['userName','questPlayerName','idiomPlayerName'].forEach(k=>localStorage.setItem(k,name));
+  ['userDept','questPlayerDept'].forEach(k=>localStorage.setItem(k,dept));
+}
+function showPlayerPill(){
+  const pill=document.getElementById('playerPill');
+  document.getElementById('playerPillName').textContent=playerName;
+  document.getElementById('playerPillDept').textContent=playerDept?'\u00B7 '+playerDept:'';
+  pill.style.display='inline-flex';
+}
+window.openLogin=function(){
+  document.getElementById('nameInput').value=playerName;
+  document.getElementById('deptSelect').value=playerDept;
+  document.getElementById('dupSection').style.display='none';
+  document.getElementById('loginGate').classList.add('show');
+};
+function closeLogin(){document.getElementById('loginGate').classList.remove('show');}
+window.handleLogin=async function(){
+  const rawName=document.getElementById('nameInput').value.trim();
+  const dept=document.getElementById('deptSelect').value;
+  if(!rawName){alert('Please enter your name!');return;}
+  try{
+    const{data,error}=await supabase.from('report_card_view').select('name,department,quests_completed,quest_list');
+    if(error)throw error;
+    const matches=(data||[]).filter(u=>u.name&&u.name.trim().toLowerCase()===rawName.trim().toLowerCase());
+    if(matches.length===0){if(!dept){alert('Please select your department!');return;}savePlayer(rawName,dept);closeLogin();showPlayerPill();return;}
+    if(matches.length===1){savePlayer(matches[0].name,dept||matches[0].department||'');userData=matches[0];closeLogin();showPlayerPill();return;}
+    showDupPicker(matches,dept);
+  }catch{if(!dept){alert('Please select your department!');return;}savePlayer(rawName,dept);closeLogin();showPlayerPill();}
+};
+function showDupPicker(matches,dept){
+  const sec=document.getElementById('dupSection'),list=document.getElementById('dupList');
+  list.innerHTML='';
+  matches.forEach(match=>{
+    const btn=document.createElement('button');btn.className='dup-btn';
+    btn.innerHTML='<div class="dup-name">'+match.name+'</div><div class="dup-meta">'+(match.department||'No department')+' \u00B7 '+(match.quests_completed??0)+' quests</div>';
+    btn.onclick=()=>{savePlayer(match.name,dept||match.department||'');userData=match;closeLogin();showPlayerPill();sec.style.display='none';};
+    list.appendChild(btn);
+  });
+  sec.style.display='block';
+}
+document.getElementById('nameInput').addEventListener('keydown',e=>{if(e.key==='Enter')window.handleLogin();});
+
+let currentQ,guessed,consCorrect=0,consWrong=0,gameStarted=false,gemCount=0,usedIndices=[];
+let timeLeft,timerInterval,gameOver,roundStart;
+let completedIds=new Set(),completedIdsFetched=false;
+
+async function fetchCompletedIds(){
+  if(!playerName||completedIdsFetched)return;
+  try{
+    const{data,error}=await supabase.from('report_card_view').select('quest_list').ilike('name',playerName);
+    if(!error&&data){data.forEach(row=>{(row.quest_list||'').split(',').forEach(item=>{const m=item.trim().match(/Quest\s+(\d+)/i);if(m)completedIds.add(Number(m[1]));});});}
+    completedIdsFetched=true;
+  }catch{completedIdsFetched=true;}
+}
+function pickNext(){
+  let pool=quotes.filter(i=>!completedIds.has(i.id)&&!usedIndices.includes(quotes.indexOf(i)));
+  if(!pool.length)pool=quotes.filter(i=>!completedIds.has(i.id));
+  if(!pool.length){usedIndices=[];pool=quotes;}
+  const chosen=pool[Math.floor(Math.random()*pool.length)];
+  const idx=quotes.indexOf(chosen);
+  if(!usedIndices.includes(idx))usedIndices.push(idx);
+  return chosen;
+}
+
+const KB_ROWS=['QWERTYUIOP'.split(''),'ASDFGHJKL'.split(''),'ZXCVBNM'.split('')];
+function buildKeyboard(){
+  const kb=document.getElementById('keyboard');kb.innerHTML='';
+  KB_ROWS.forEach(row=>{
+    const div=document.createElement('div');div.className='kb-row';
+    row.forEach(letter=>{
+      const btn=document.createElement('button');
+      btn.className='kb-key';btn.textContent=letter;btn.id='key-'+letter;
+      btn.onclick=()=>guess(letter);div.appendChild(btn);
+    });
+    kb.appendChild(div);
+  });
+}
+function startTimer(){
+  clearInterval(timerInterval);
+  timerInterval=setInterval(()=>{
+    if(gameOver)return;
+    timeLeft--;
+    if(timeLeft<=0){timeLeft=0;updateTimerUI();endGame(false);return;}
+    updateTimerUI();
+  },1000);
+}
+function updateTimerUI(){
+  const mins=Math.floor(timeLeft/60),secs=timeLeft%60;
+  const disp=document.getElementById('timerDisplay');
+  disp.textContent=mins+':'+secs.toString().padStart(2,'0');
+  disp.className='timer-display'+(timeLeft<=30?' urgent':'');
+  const ring=document.getElementById('ringProgress');
+  ring.style.strokeDashoffset=CIRCUMFERENCE*(1-timeLeft/TOTAL_SECS);
+  ring.style.stroke=timeLeft<=30?'#c43030':timeLeft<=60?'#d4813a':'var(--gold)';
+}
+function adjustTime(delta,type){
+  timeLeft=Math.min(TOTAL_SECS,Math.max(0,timeLeft+delta));
+  updateTimerUI();
+  const card=document.getElementById('timerCard');
+  card.classList.remove('penalty','bonus');void card.offsetWidth;
+  card.classList.add(type==='bonus'?'bonus':'penalty');
+  const label=(delta>0?'+':'')+delta+'s',cls=delta>0?'correct':'wrong';
+  const toast=document.getElementById('deltaToast');
+  toast.textContent=label;toast.className='delta-toast '+cls;
+  void toast.offsetWidth;toast.classList.add('animate');
+  setTimeout(()=>toast.classList.remove('animate'),1000);
+  const big=document.getElementById('bigToast');
+  big.textContent=label;big.className='big-toast '+cls;
+  void big.offsetWidth;big.classList.add('pop');
+  setTimeout(()=>{big.className='big-toast';},1100);
+}
+
+window.newGame=async function(){
+  hideOverlay();clearInterval(timerInterval);gameOver=false;gameStarted=true;
+  await fetchCompletedIds();
+  currentQ=pickNext();
+  guessed=new Set();consCorrect=consWrong=0;
+  timeLeft=TOTAL_SECS;roundStart=Date.now();
+  document.querySelectorAll('.kb-key').forEach(k=>{k.className='kb-key';k.disabled=false;});
+  document.getElementById('wrongLetters').innerHTML='';
+  document.getElementById('philName').textContent=currentQ.theme;
+  document.getElementById('questionText').textContent=currentQ.hint;
+  document.getElementById('correctStreak').textContent='0';
+  document.getElementById('wrongStreak').textContent='0';
+  document.getElementById('gemCount').textContent=gemCount;
+  document.getElementById('msgLog').textContent='';
+  document.querySelectorAll('.letter-char').forEach(ch=>ch.classList.remove('win-bounce'));
+  document.querySelectorAll('.word-group').forEach(g=>g.classList.remove('win-glow'));
+  updateTimerUI();renderWord();startTimer();
+};
+
+function guess(letter){
+  letter=letter.toUpperCase();
+  if(guessed.has(letter)||gameOver)return;
+  guessed.add(letter);
+  const btn=document.getElementById('key-'+letter);
+  if(currentQ.phrase.toUpperCase().includes(letter)){
+    consWrong=0;consCorrect++;gemCount+=consCorrect;
+    if(btn){btn.className='kb-key correct';btn.disabled=true;}
+    playCorrect();adjustTime(bonusSecs(consCorrect),'bonus');
+    document.getElementById('correctStreak').textContent=consCorrect;
+    document.getElementById('wrongStreak').textContent='0';
+    updateGemDisplay();renderWord();
+    if(checkWin()){endGame(true);return;}
+  }else{
+    consCorrect=0;consWrong++;gemCount=Math.max(0,gemCount-consWrong);
+    if(btn){btn.className='kb-key wrong';btn.disabled=true;}
+    playWrong();adjustTime(-penaltySecs(consWrong),'penalty');
+    document.getElementById('wrongStreak').textContent=consWrong;
+    document.getElementById('correctStreak').textContent='0';
+    updateGemDisplay();updateWrongLetters(letter);
+    const wa=document.getElementById('wordArea');
+    wa.classList.remove('shake');void wa.offsetWidth;wa.classList.add('shake');
+    if(timeLeft<=0){endGame(false);return;}
+  }
+}
+function updateGemDisplay(){
+  const el=document.getElementById('gemCount');if(!el)return;
+  el.textContent=gemCount;
+  el.classList.remove('gem-pop');void el.offsetWidth;el.classList.add('gem-pop');
+  setTimeout(()=>el.classList.remove('gem-pop'),400);
+}
+function renderWord(){
+  const area=document.getElementById('wordArea');area.innerHTML='';
+  currentQ.phrase.split(' ').forEach(word=>{
+    const grp=document.createElement('div');grp.className='word-group';
+    word.split('').forEach(ch=>{
+      const slot=document.createElement('div');slot.className='letter-slot';
+      const char=document.createElement('div');char.className='letter-char';
+      const isLetter=/[a-z]/i.test(ch);
+      if(!isLetter||guessed.has(ch.toUpperCase())){char.textContent=ch.toUpperCase();if(isLetter)char.classList.add('revealed');}
+      const line=document.createElement('div');line.className='letter-line';
+      if(!isLetter)line.style.opacity='0';
+      slot.appendChild(char);slot.appendChild(line);grp.appendChild(slot);
+    });
+    area.appendChild(grp);
+  });
+}
+function checkWin(){
+  return currentQ.phrase.split('').every(ch=>!/[a-z]/i.test(ch)||guessed.has(ch.toUpperCase()));
+}
+function updateWrongLetters(letter){
+  const el=document.getElementById('wrongLetters');
+  if(!el.querySelector('.wrong-label')){const lbl=document.createElement('span');lbl.className='wrong-label';lbl.textContent='Missed:';el.appendChild(lbl);}
+  const span=document.createElement('span');span.textContent=letter+' ';el.appendChild(span);
+}
+function animateWinLetters(){
+  document.querySelectorAll('.letter-char').forEach((ch,i)=>setTimeout(()=>ch.classList.add('win-bounce'),i*40));
+  document.querySelectorAll('.word-group').forEach((g,i)=>setTimeout(()=>g.classList.add('win-glow'),i*50));
+}
+function countGuesses(){
+  const letters=new Set(currentQ.phrase.toUpperCase().replace(/[^A-Z]/g,'').split(''));
+  let c=0,w=0;guessed.forEach(g=>{if(letters.has(g))c++;else w++;});
+  return{correct:c,wrong:w};
+}
+function endGame(won){
+  gameOver=true;clearInterval(timerInterval);
+  const timeSpent=Math.round((Date.now()-roundStart)/1000);
+  const{correct,wrong}=countGuesses();
+  if(!won){guessed=new Set(currentQ.phrase.toUpperCase().replace(/[^A-Z]/g,'').split(''));renderWord();}
+  else{animateWinLetters();playWin();}
+  setTimeout(()=>{
+    document.getElementById('msgIcon').textContent=won?'\uD83C\uDFC6':'\u23F3';
+    document.getElementById('msgTitle').textContent=won?'Splendid!':'Time\u2019s Up!';
+    document.getElementById('msgAuthor').textContent='\u2014 '+currentQ.theme;
+    document.getElementById('msgQuote').textContent='\u201C'+currentQ.phrase+'\u201D';
+    document.getElementById('msgGems').innerHTML=won?'You earned \uD83D\uDC8E <strong>'+gemCount+'</strong> gems':'';
+    const cb=document.getElementById('contemplateBox');
+    document.getElementById('contemplateText').textContent=currentQ.contemplate;
+    cb.style.display='block';
+    if(playerName){
+      document.getElementById('msgLog').textContent='Saving Quest '+currentQ.id+'\u2026';
+      logToSupabase({student_name:playerName,department:playerDept,correct,wrong,time_spent:timeSpent,quest_id:'Quest '+currentQ.id});
+    }else{document.getElementById('msgLog').textContent='Sign in to save scores';}
+    if(won)completedIds.add(currentQ.id);
+    showOverlay();
+  },won?1800:0);
+}
+async function logToSupabase(payload){
+  try{
+    const res=await fetch(EDGE_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    document.getElementById('msgLog').textContent=res.ok?'\u2713 Quest '+currentQ.id+' saved':'Could not save score';
+  }catch{document.getElementById('msgLog').textContent='Could not save score';}
+}
+function showOverlay(){document.getElementById('overlay').classList.add('show');}
+function hideOverlay(){document.getElementById('overlay').classList.remove('show');}
+
+window.openDashboard=async function(){
+  document.getElementById('dashOverlay').classList.add('show');
+  const closeBtn=document.getElementById('dashCloseBtn');
+  if(closeBtn)closeBtn.style.display=gameStarted?'flex':'none';
+  const content=document.getElementById('dashContent');
+  document.getElementById('dashSubtitle').textContent=playerName?playerName+(playerDept?' \u00B7 '+playerDept:''):'';
+  if(!playerName){content.innerHTML='<div class="dash-error">Sign in first to see your progress.</div>';return;}
+  content.innerHTML='<div class="dash-spinner"><div class="spinner-ring"></div></div>';
+  let attempted=new Set();
+  try{
+    const{data,error}=await supabase.from('report_card_view').select('quest_list').ilike('name',playerName);
+    if(!error&&data){data.forEach(row=>{(row.quest_list||'').split(',').forEach(item=>{const m=item.trim().match(/Quest\s+(\d+)/i);if(m)attempted.add(Number(m[1]));});});}
+  }catch{}
+  const solved=quotes.filter(i=>attempted.has(i.id)),unsolved=quotes.filter(i=>!attempted.has(i.id));
+  const pct=Math.round((solved.length/quotes.length)*100);
+  let html='<div class="dash-stats"><div class="dash-stat"><div class="dash-stat-val">'+solved.length+'</div><div class="dash-stat-lbl">Attempted</div></div><div class="dash-stat"><div class="dash-stat-val">'+unsolved.length+'</div><div class="dash-stat-lbl">Remaining</div></div><div class="dash-stat"><div class="dash-stat-val">'+pct+'%</div><div class="dash-stat-lbl">Complete</div></div></div>';
+  html+='<div class="progress-wrap"><div class="progress-label"><span>Overall Progress</span><span>'+solved.length+' / '+quotes.length+'</span></div><div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%"></div></div></div>';
+  if(unsolved.length>0){html+='<div class="section-lbl">Yet to attempt \u2014 '+unsolved.length+'</div><div class="idiom-grid">';unsolved.forEach(i=>{html+=buildCard(i,false);});html+='</div>';}
+  else{html+='<div class="all-done">\u2728 All quotes attempted!</div>';}
+  if(solved.length>0){html+='<div class="section-lbl">Attempted \u2014 '+solved.length+'</div><div class="idiom-grid">';solved.forEach(i=>{html+=buildCard(i,true);});html+='</div>';}
+  content.innerHTML=html;
+  requestAnimationFrame(()=>setTimeout(()=>{const fill=document.getElementById('progressFill');if(fill)fill.style.width=pct+'%';},60));
+};
+window.playSpecificIdiom=function(id){
+  const q=quotes.find(i=>i.id===id);if(!q)return;
+  gameStarted=true;closeDashboard();
+  clearInterval(timerInterval);gameOver=false;currentQ=q;
+  const idx=quotes.indexOf(q);if(!usedIndices.includes(idx))usedIndices.push(idx);
+  guessed=new Set();consCorrect=consWrong=0;
+  timeLeft=TOTAL_SECS;roundStart=Date.now();
+  document.querySelectorAll('.kb-key').forEach(k=>{k.className='kb-key';k.disabled=false;});
+  document.getElementById('wrongLetters').innerHTML='';
+  document.getElementById('philName').textContent=currentQ.theme;
+  document.getElementById('questionText').textContent=currentQ.hint;
+  document.getElementById('correctStreak').textContent='0';
+  document.getElementById('wrongStreak').textContent='0';
+  document.getElementById('gemCount').textContent=gemCount;
+  document.getElementById('msgLog').textContent='';
+  document.querySelectorAll('.letter-char').forEach(ch=>ch.classList.remove('win-bounce'));
+  document.querySelectorAll('.word-group').forEach(g=>g.classList.remove('win-glow'));
+  hideOverlay();updateTimerUI();renderWord();startTimer();
+};
+function buildCard(item,solved){
+  const icon=solved?'\u2713':'\u25CB',cls=solved?' solved':'';
+  const hint=solved?'<div class="idiom-play-hint">\u21BA Play again</div>':'<div class="idiom-play-hint">\u25B6 Play this</div>';
+  return '<div class="idiom-card'+cls+' idiom-playable" onclick="playSpecificIdiom('+item.id+')">'
+    +'<div class="idiom-top"><div class="idiom-status">'+icon+'</div><div class="idiom-info"><div class="idiom-meaning">'+item.hint.substring(0,72)+'&hellip;</div><div class="idiom-theme">'+item.theme+'</div></div><div class="idiom-qid">Q'+item.id+'</div></div>'
+    +hint+'</div>';
+}
+window.closeDashboard=function(){if(!gameStarted)return;document.getElementById('dashOverlay').classList.remove('show');};
+window.playRandom=function(){gameStarted=true;document.getElementById('dashOverlay').classList.remove('show');newGame();};
+
+document.addEventListener('keydown',e=>{
+  if(document.getElementById('dashOverlay').classList.contains('show'))return;
+  if(document.getElementById('overlay').classList.contains('show'))return;
+  if(document.getElementById('loginGate').classList.contains('show'))return;
+  if(/^[a-zA-Z]$/.test(e.key))guess(e.key.toUpperCase());
+});
+
+window.openHelp=function(){document.getElementById('helpOverlay').classList.add('show');};
+window.closeHelp=function(){document.getElementById('helpOverlay').classList.remove('show');};
+document.getElementById('helpOverlay').addEventListener('click',function(e){if(e.target===this)closeHelp();});
+
+const SOUND_KEY='cogitoMuted';
+let isMuted=localStorage.getItem(SOUND_KEY)==='true',audioCtx=null;
+function getAudioCtx(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();return audioCtx;}
+function playTone(freq,type,dur,vol){
+  if(isMuted)return;
+  try{const ctx=getAudioCtx(),osc=ctx.createOscillator(),gain=ctx.createGain();
+    osc.connect(gain);gain.connect(ctx.destination);osc.type=type;
+    osc.frequency.setValueAtTime(freq,ctx.currentTime);
+    gain.gain.setValueAtTime(vol,ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+dur);
+    osc.start(ctx.currentTime);osc.stop(ctx.currentTime+dur);}catch(e){}
+}
+function playCorrect(){playTone(659,'sine',.12,.28);setTimeout(()=>playTone(784,'sine',.14,.26),80);setTimeout(()=>playTone(1047,'sine',.22,.22),165);setTimeout(()=>playTone(2093,'triangle',.1,.08),165);}
+function playWrong(){playTone(180,'sawtooth',.2,.15);}
+function playWin(){[523,659,784,1047].forEach((f,i)=>setTimeout(()=>playTone(f,'sine',.28,.2),i*90));}
+function applyMute(m){isMuted=m;localStorage.setItem(SOUND_KEY,String(m));const btn=document.getElementById('muteBtn');if(btn)btn.textContent=m?'\uD83D\uDD07':'\uD83D\uDD0A';}
+window.toggleMute=function(){applyMute(!isMuted);};
+applyMute(isMuted);
+
+const THEME_KEY='cogitoTheme';
+function applyTheme(t){document.documentElement.classList.toggle('light',t==='light');const btn=document.getElementById('themeToggle');if(btn)btn.textContent=t==='light'?'\uD83C\uDF19':'\u2600\uFE0F';}
+window.toggleTheme=function(){const next=document.documentElement.classList.contains('light')?'dark':'light';localStorage.setItem(THEME_KEY,next);applyTheme(next);};
+applyTheme(localStorage.getItem(THEME_KEY)||'dark');
+
+loadSavedPlayer();buildKeyboard();
+if(!playerName){document.getElementById('loginGate').classList.add('show');}
+else{showPlayerPill();openDashboard();}
+</script>
+</body>
+</html>

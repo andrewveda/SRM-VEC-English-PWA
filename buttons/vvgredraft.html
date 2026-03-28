@@ -616,23 +616,7 @@ let timeLeft, timerInterval, gameOver, roundStart;
 let completedIds = new Set(), completedIdsFetched = false;
 
 // ── MASTERY ───────────────────────────────────────────────────────
-let masteredIds = new Set(), masteredFetched = false;
-
-async function fetchMasteredIds() {
-  if (!playerName || masteredFetched) return;
-  try {
-    const { data, error } = await supabase.from('report_card_view').select('quest_list').ilike('name', playerName);
-    if (!error && data) {
-      data.forEach(row => {
-        (row.quest_list || '').split(',').forEach(item => {
-          const m = item.trim().match(/[Vv]elocity\s+(\d+)/i);
-          if (m) masteredIds.add(Number(m[1]));
-        });
-      });
-    }
-    masteredFetched = true;
-  } catch { masteredFetched = true; }
-}
+let masteredIds = new Set();
 
 async function logMastery(wordId) {
   if (!playerName) return false;
@@ -894,19 +878,22 @@ window.openDashboard = async function () {
   if (!playerName) { content.innerHTML = '<div class="dash-error">Sign in with your name first to see your progress.</div>'; return; }
   content.innerHTML = '<div class="dash-spinner"><div class="spinner-ring"></div></div>';
 
-  // Fetch both quest completions and mastery in parallel
+  // Always fetch fresh from Supabase — reset in-memory sets so we reflect server truth
   let attempted = new Set();
+  masteredIds = new Set();
   try {
     const { data, error } = await supabase.from('report_card_view').select('quest_list').ilike('name', playerName);
     if (!error && data) {
       data.forEach(row => {
         (row.quest_list||'').split(',').forEach(item => {
-          const mq = item.trim().match(/Quest\s+(\d+)/i); if(mq) attempted.add(Number(mq[1]));
-          const mv = item.trim().match(/[Vv]elocity\s+(\d+)/i); if(mv) masteredIds.add(Number(mv[1]));
+          const mq = item.trim().match(/Quest\s+(\d+)/i);   if(mq) attempted.add(Number(mq[1]));
+          const mv = item.trim().match(/velocity\s+(\d+)/i); if(mv) masteredIds.add(Number(mv[1]));
         });
       });
     }
-    masteredFetched = true; completedIdsFetched = true;
+    // Keep completedIds in sync for the game's pickNext logic
+    completedIds = new Set(attempted);
+    completedIdsFetched = true;
   } catch {}
 
   const solved = words.filter(i => attempted.has(i.id)), unsolved = words.filter(i => !attempted.has(i.id));

@@ -228,11 +228,6 @@
   .gf-chip{padding:4px 12px;border-radius:20px;border:1px solid var(--border);background:var(--surface);color:var(--gold);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:border-color .2s,background .2s;}
   .gf-chip.active{border-color:var(--gold);background:var(--gold-dim);color:var(--gold-light);}
   .gf-chip.mastered-chip.active{border-color:var(--mastered-border);background:var(--mastered-bg);color:var(--mastered-color);}
-  .glossary-mastery-banner{background:var(--mastered-bg);border:1px solid var(--mastered-border);border-radius:10px;padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;gap:10px;}
-  .mastery-banner-icon{font-size:22px;flex-shrink:0;}
-  .mastery-banner-info{flex:1;min-width:0;}
-  .mastery-banner-count{font-family:'Playfair Display',serif;font-size:16px;color:var(--mastered-color);line-height:1;}
-  .mastery-banner-label{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--mastered-color);opacity:.6;margin-top:2px;}
   .glossary-grid{display:flex;flex-direction:column;gap:10px;}
   .dash-section-divider{height:1px;background:var(--border);margin:18px 0 16px;opacity:.5;}
   .dash-tabs{display:flex;gap:0;margin-bottom:16px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:3px;flex-shrink:0;}
@@ -254,9 +249,6 @@
   .gloss-dial-text{font-family:'Cormorant Garamond',serif;font-size:13px;color:var(--text-main);line-height:1.4;flex:1;opacity:.85;}
   .gloss-dial-text em{color:var(--gold-light);font-style:normal;font-weight:700;}
   .gloss-actions{display:flex;gap:8px;align-items:center;}
-  .gloss-play-btn{display:flex;align-items:center;gap:5px;padding:6px 12px;background:var(--surface);border:1px solid var(--border);border-radius:7px;color:var(--gold);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:background .2s,border-color .2s;}
-  .gloss-play-btn:hover{border-color:var(--gold);background:var(--gold-dim);}
-  .gloss-play-btn:active{transform:scale(.95);}
   .mastery-btn{display:flex;align-items:center;gap:5px;padding:6px 14px;border-radius:7px;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:background .2s,border-color .2s,transform .15s;border:1px solid var(--border);background:var(--surface);color:var(--gold);}
   .mastery-btn:hover{border-color:var(--mastered-border);background:var(--mastered-bg);color:var(--mastered-color);}
   .mastery-btn.is-mastered{border-color:var(--mastered-border);background:var(--mastered-bg);color:var(--mastered-color);}
@@ -881,7 +873,7 @@ async function logToSupabase(payload) {
 function showOverlay() { document.getElementById('overlay').classList.add('show'); }
 function hideOverlay()  { document.getElementById('overlay').classList.remove('show'); }
 
-let dashTab = 'glossary'; // persists across opens
+let dashTab = 'glossary';
 
 window.switchDashTab = function(tab) {
   dashTab = tab;
@@ -899,7 +891,6 @@ window.openDashboard = async function () {
   const content = document.getElementById('dashContent');
   document.getElementById('dashSubtitle').textContent = playerName ? playerName + (playerDept ? ' \u00B7 ' + playerDept : '') : '';
 
-  // Restore active tab UI state
   document.getElementById('tab-glossary').classList.toggle('active', dashTab === 'glossary');
   document.getElementById('tab-progress').classList.toggle('active', dashTab === 'progress');
   document.getElementById('dashTitle').textContent = dashTab === 'glossary' ? 'Vox Velocity' : 'My Progress';
@@ -907,7 +898,6 @@ window.openDashboard = async function () {
   if (!playerName) { content.innerHTML = '<div class="dash-error">Sign in with your name first to see your progress.</div>'; return; }
   content.innerHTML = '<div class="dash-spinner"><div class="spinner-ring"></div></div>';
 
-  // Always fetch fresh from Supabase — reset in-memory sets so we reflect server truth
   let attempted = new Set();
   masteredIds = new Set();
   try {
@@ -928,8 +918,13 @@ window.openDashboard = async function () {
   const pct = Math.round((solved.length / words.length) * 100);
 
   // ── GLOSSARY PANEL ────────────────────────────────────────
+  // CHANGED: show the same 3-stat block as My Progress instead of the mastery banner
   let glossHtml = '';
-  glossHtml += '<div class="glossary-mastery-banner"><span class="mastery-banner-icon">&#10024;</span><div class="mastery-banner-info"><div class="mastery-banner-count" id="masteryCount">' + masteredIds.size + ' / ' + words.length + '</div><div class="mastery-banner-label">Words mastered</div></div></div>';
+  glossHtml += '<div class="dash-stats">'
+    + '<div class="dash-stat"><div class="dash-stat-val">' + solved.length + '</div><div class="dash-stat-lbl">Attempted</div></div>'
+    + '<div class="dash-stat"><div class="dash-stat-val">' + unsolved.length + '</div><div class="dash-stat-lbl">Remaining</div></div>'
+    + '<div class="dash-stat"><div class="dash-stat-val">' + pct + '%</div><div class="dash-stat-lbl">Complete</div></div>'
+    + '</div>';
   glossHtml += '<input class="glossary-search" id="glossarySearch" type="text" placeholder="Search words or definitions\u2026" oninput="filterGlossary()"/>';
   glossHtml += '<div class="glossary-filter-row">';
   glossHtml += '<div class="gf-chip active" data-filter="all" onclick="setGlossaryFilter(\'all\',this)">All</div>';
@@ -950,7 +945,6 @@ window.openDashboard = async function () {
     '<div id="dash-panel-glossary" style="display:' + (dashTab === 'glossary' ? '' : 'none') + '">' + glossHtml + '</div>' +
     '<div id="dash-panel-progress" style="display:' + (dashTab === 'progress' ? '' : 'none') + '">' + progHtml + '</div>';
 
-  // Render glossary cards
   glossaryFilter = 'all'; glossarySearchTerm = '';
   renderGlossary();
 
@@ -988,11 +982,10 @@ function buildCard(item, solved) {
 window.closeDashboard = function () { if (!gameStarted) return; document.getElementById('dashOverlay').classList.remove('show'); };
 window.playRandom = function () { gameStarted = true; document.getElementById('dashOverlay').classList.remove('show'); newGame(); };
 
-// ── GLOSSARY (embedded in dashboard) ─────────────────────────────
+// ── GLOSSARY ─────────────────────────────────────────────────────
 let glossaryFilter = 'all';
 let glossarySearchTerm = '';
 
-// openGlossary/closeGlossary now just delegate to dashboard
 window.openGlossary = function () { openDashboard(); };
 window.closeGlossary = function () { closeDashboard(); };
 
@@ -1012,8 +1005,6 @@ window.filterGlossary = function () {
 function renderGlossary() {
   const grid = document.getElementById('glossaryGrid');
   if (!grid) return;
-  const masteryCount = document.getElementById('masteryCount');
-  if (masteryCount) masteryCount.textContent = masteredIds.size + ' / ' + words.length;
 
   let filtered = words.filter(w => {
     if (glossaryFilter === 'mastered' && !masteredIds.has(w.id)) return false;
@@ -1052,6 +1043,7 @@ function buildGlossCard(word) {
   const masteryBtnClass = 'mastery-btn' + (isMastered ? ' is-mastered' : '');
   const masteryBtnLabel = isMastered ? '&#10024; Mastered' : 'Mark as mastered';
 
+  // CHANGED: "Practice" button removed from gloss-actions
   card.innerHTML = `
     <div class="gloss-card-head">
       <div class="gloss-word">${word.phrase}</div>
@@ -1061,7 +1053,6 @@ function buildGlossCard(word) {
     ${dialLines ? `<div class="gloss-dialogue"><div class="gloss-dial-lbl">In context</div>${dialLines}</div>` : ''}
     <div class="gloss-actions">
       <button class="gloss-speak-btn" id="speak-btn-${word.id}" onclick="speakWord(${word.id}, this)" title="Listen (British English)">&#128264;</button>
-      <button class="gloss-play-btn" onclick="glossaryPlayWord(${word.id})">&#9654; Practice</button>
       <button class="${masteryBtnClass}" id="mastery-btn-${word.id}" onclick="toggleMastery(${word.id}, this)">
         <span class="mastery-spinner"></span>
         <span class="mastery-btn-text">${masteryBtnLabel}</span>
@@ -1072,11 +1063,6 @@ function buildGlossCard(word) {
   return card;
 }
 
-window.glossaryPlayWord = function(id) {
-  closeDashboard();
-  window.playSpecificIdiom(id);
-};
-
 window.toggleMastery = async function(wordId, btn) {
   if (!playerName) {
     alert('Please sign in first to track your mastery!');
@@ -1084,8 +1070,6 @@ window.toggleMastery = async function(wordId, btn) {
   }
 
   const alreadyMastered = masteredIds.has(wordId);
-
-  // Optimistic UI update
   btn.classList.add('loading');
   btn.disabled = true;
 
@@ -1096,7 +1080,6 @@ window.toggleMastery = async function(wordId, btn) {
 
     if (ok) {
       masteredIds.add(wordId);
-
       btn.classList.add('is-mastered');
       btn.querySelector('.mastery-btn-text').innerHTML = '&#10024; Mastered';
 
@@ -1105,7 +1088,6 @@ window.toggleMastery = async function(wordId, btn) {
         card.classList.add('mastered', 'just-mastered');
         const wordEl = card.querySelector('.gloss-word');
         if (wordEl) wordEl.style.color = 'var(--mastered-color)';
-        // Add the learnt status label if not present
         const actions = card.querySelector('.gloss-actions');
         if (actions && !actions.querySelector('.gloss-mastery-status')) {
           const lbl = document.createElement('span');
@@ -1116,16 +1098,15 @@ window.toggleMastery = async function(wordId, btn) {
         setTimeout(() => card.classList.remove('just-mastered'), 700);
       }
 
-      // Update mastery count
-      const mc = document.getElementById('masteryCount');
-      if (mc) mc.textContent = masteredIds.size + ' / ' + words.length;
+      // Update the stat cards live
+      const statVals = document.querySelectorAll('#dash-panel-glossary .dash-stat-val');
+      // No change needed for attempt stats — mastery is separate tracking
     } else {
       btn.classList.remove('loading');
       btn.disabled = false;
       alert('Could not save. Please check your connection.');
     }
   }
-  // We don't support un-mastering (once learnt, always learnt)
 };
 
 // ── SPEECH (British English TTS) ─────────────────────────────────
@@ -1133,13 +1114,11 @@ let currentSpeakBtn = null;
 
 function getBritishVoice() {
   const voices = window.speechSynthesis.getVoices();
-  // Prefer en-GB voices; rank by known British voice names
   const preferred = ['Google UK English Female','Google UK English Male','Microsoft Hazel','Microsoft George','Daniel'];
   for (const name of preferred) {
     const v = voices.find(v => v.name.includes(name));
     if (v) return v;
   }
-  // Fallback: any en-GB
   return voices.find(v => v.lang === 'en-GB') || voices.find(v => v.lang.startsWith('en')) || null;
 }
 
@@ -1147,7 +1126,6 @@ window.speakWord = function(wordId, btn) {
   const synth = window.speechSynthesis;
   if (!synth) { alert('Text-to-speech is not supported in this browser.'); return; }
 
-  // If already speaking this word, stop it
   if (currentSpeakBtn === btn && synth.speaking) {
     synth.cancel();
     btn.classList.remove('speaking');
@@ -1162,7 +1140,6 @@ window.speakWord = function(wordId, btn) {
   const word = words.find(w => w.id === wordId);
   if (!word) return;
 
-  // Build the full speech text: word, then definition, then each dialogue line
   const dialogueText = (word.dialogue || []).map(line => line.s + ' says: ' + line.t).join('. ');
   const fullText = word.phrase + '. ' + word.hint + '. ' + (dialogueText ? 'Example in context. ' + dialogueText : '');
 
@@ -1171,7 +1148,6 @@ window.speakWord = function(wordId, btn) {
   utter.rate = 0.92;
   utter.pitch = 1.0;
 
-  // Set voice — voices may not be loaded yet
   const setVoiceAndSpeak = () => {
     const voice = getBritishVoice();
     if (voice) utter.voice = voice;
@@ -1185,7 +1161,6 @@ window.speakWord = function(wordId, btn) {
     setVoiceAndSpeak();
   } else {
     synth.onvoiceschanged = () => { synth.onvoiceschanged = null; setVoiceAndSpeak(); };
-    // Also try immediately in case the event already fired
     setTimeout(setVoiceAndSpeak, 200);
   }
 

@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vox Velocity</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Mono:wght@400;500&family=Cormorant+Garamond:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --gold:#C9A84C;--gold-light:#E8C97A;--bg:#1a1208;--surface:rgba(201,168,76,0.06);
+    --surface2:rgba(201,168,76,0.12);--card:linear-gradient(160deg,#2e2010,#1a1208);
+    --text:#F9F3E3;--text-dim:rgba(249,243,227,0.5);--border:rgba(201,168,76,0.2);
+    --danger:#8B2020;--gold-dim:rgba(201,168,76,0.12);--pattern-op:0.02;
+  }
+  html.light{
+    --gold:#9a6e00;--gold-light:#b88a00;--bg:#faf4e8;--surface:rgba(154,110,0,0.06);
+    --surface2:rgba(154,110,0,0.12);--card:linear-gradient(160deg,#ede0c0,#faf4e8);
+    --text:#3a2800;--text-dim:rgba(58,40,0,0.5);--border:rgba(154,110,0,0.25);
+    --danger:#9a1a1a;--gold-dim:rgba(154,110,0,0.14);--pattern-op:0.035;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Cormorant Garamond',serif;transition:background .3s,color .3s;}
+  body{min-height:100dvh;display:flex;flex-direction:column;position:relative;}
+  body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opacity:var(--pattern-op);
+    background-image:repeating-linear-gradient(45deg,transparent,transparent 35px,var(--gold) 35px,var(--gold) 36px),
+    repeating-linear-gradient(-45deg,transparent,transparent 35px,var(--gold) 35px,var(--gold) 36px);}
+
+  .top-bar{display:flex;justify-content:space-between;align-items:center;padding:10px 14px 0;flex-shrink:0;position:relative;z-index:1;}
+  .theme-toggle{font-size:14px;cursor:pointer;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:3px 9px;color:var(--gold);}
+  .theme-toggle:active{transform:scale(.88);}
+  .player-pill{display:inline-flex;align-items:center;gap:6px;padding:3px 11px;border:1px solid var(--border);border-radius:20px;font-size:10px;color:var(--gold);letter-spacing:.08em;cursor:pointer;font-family:'DM Mono',monospace;background:var(--surface);}
+  .pip{width:6px;height:6px;border-radius:50%;background:var(--gold);flex-shrink:0;}
+  .pip.loading{animation:pipPulse 1s ease infinite;}
+  @keyframes pipPulse{0%,100%{opacity:1}50%{opacity:.15}}
+  .player-dept{font-size:8px;opacity:.5;}
+  .sign-in-btn{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:4px 12px;cursor:pointer;}
+
+  .site-header{text-align:center;padding:8px 0 6px;flex-shrink:0;position:relative;z-index:1;}
+  .site-eyebrow{font-family:'DM Mono',monospace;font-size:8px;letter-spacing:.35em;text-transform:uppercase;color:var(--gold);opacity:.4;margin-bottom:4px;}
+  .site-title{font-family:'Playfair Display',serif;font-size:clamp(22px,6vw,32px);font-weight:400;letter-spacing:.08em;color:var(--gold-light);line-height:1;}
+  .site-divider{width:36px;height:1px;background:var(--gold);opacity:.3;margin:6px auto 0;}
+
+  .cards{position:relative;z-index:1;padding:8px 12px 16px;display:flex;flex-direction:column;gap:10px;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+
+  .game-card{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;text-decoration:none;color:inherit;display:flex;flex-direction:column;flex-shrink:0;transition:border-color .2s;}
+  .game-card:hover{border-color:var(--gold);}
+  .game-card:active{opacity:.92;}
+
+  .stats-row{display:flex;border-bottom:1px solid var(--border);background:rgba(201,168,76,.04);}
+  .stat{flex:1;padding:8px 6px 7px;text-align:center;position:relative;}
+  .stat+.stat::before{content:'';position:absolute;left:0;top:18%;height:64%;width:1px;background:var(--border);}
+  .stat-num{font-family:'Playfair Display',serif;font-size:clamp(20px,5vw,26px);font-weight:700;color:var(--gold-light);line-height:1;text-shadow:0 0 12px rgba(201,168,76,.3);}
+  .stat-num.green{color:#66bb6a;}
+  .stat-num.skel{display:inline-block;width:38px;height:24px;background:var(--surface2);border-radius:5px;animation:sk 1.2s ease infinite;vertical-align:middle;}
+  @keyframes sk{0%,100%{opacity:.3}50%{opacity:.8}}
+  .stat-lbl{font-family:'DM Mono',monospace;font-size:7px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);opacity:.4;margin-top:2px;}
+
+  .prog-wrap{padding:5px 12px 0;background:rgba(201,168,76,.03);}
+  .prog-track{height:3px;background:var(--surface2);border-radius:2px;overflow:hidden;margin-bottom:6px;}
+  .prog-fill{height:100%;background:linear-gradient(90deg,var(--gold),var(--gold-light));border-radius:2px;width:0%;transition:width 1.1s ease;}
+  .prog-fill.complete{background:linear-gradient(90deg,#4caf50,#81c784);}
+  .prog-skel{height:3px;background:var(--surface2);border-radius:2px;margin-bottom:6px;animation:sk 1.2s ease infinite;}
+
+  .card-body{padding:8px 12px 10px;display:flex;align-items:center;justify-content:space-between;gap:8px;}
+  .card-left{flex:1;min-width:0;}
+  .card-icon{font-size:18px;line-height:1;margin-bottom:3px;display:block;}
+  .card-title{font-family:'Playfair Display',serif;font-size:15px;font-weight:400;color:var(--gold-light);letter-spacing:.04em;line-height:1.1;}
+  .card-tagline{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:12px;color:var(--text);opacity:.6;line-height:1.3;margin-top:2px;}
+  .card-right{display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0;}
+  .cta-btn{display:inline-flex;align-items:center;gap:5px;background:linear-gradient(135deg,var(--gold),#a07828);color:#1a1208;border:none;border-radius:7px;padding:7px 14px;font-family:'DM Mono',monospace;font-size:10px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;white-space:nowrap;}
+  .quest-range{font-family:'DM Mono',monospace;font-size:8px;color:var(--gold);opacity:.4;letter-spacing:.07em;}
+  .new-badge{font-family:'DM Mono',monospace;font-size:7px;letter-spacing:.15em;text-transform:uppercase;color:rgba(130,210,90,.9);border:1px solid rgba(100,180,80,.4);border-radius:20px;padding:2px 7px;white-space:nowrap;align-self:flex-start;}
+
+  .dir-footer{text-align:center;font-family:'DM Mono',monospace;font-size:8px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);opacity:.25;padding:8px 0 10px;flex-shrink:0;position:relative;z-index:1;}
+
+  .modal-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:200;justify-content:center;align-items:center;padding:20px;backdrop-filter:blur(8px);}
+  html.light .modal-backdrop{background:rgba(250,244,232,.9);}
+  .modal-backdrop.show{display:flex;}
+  .modal-card{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:24px 20px;width:100%;max-width:340px;position:relative;overflow:hidden;animation:cardIn .3s cubic-bezier(.34,1.56,.64,1);}
+  @keyframes cardIn{from{transform:scale(.88) translateY(12px);opacity:0}to{transform:scale(1);opacity:1}}
+  .modal-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--danger),var(--gold),var(--danger));}
+  .modal-title{font-family:'Playfair Display',serif;font-size:19px;font-weight:400;color:var(--gold-light);text-align:center;margin-bottom:2px;}
+  .modal-sub{font-size:9px;letter-spacing:.25em;text-transform:uppercase;color:var(--gold);opacity:.4;text-align:center;margin-bottom:18px;font-family:'DM Mono',monospace;}
+  .field-group{margin-bottom:12px;}
+  .field-group label{display:block;font-size:8px;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);opacity:.5;margin-bottom:5px;font-family:'DM Mono',monospace;}
+  .field-group input,.field-group select{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:10px 12px;font-family:'Cormorant Garamond',serif;font-size:14px;color:var(--text);outline:none;transition:border-color .2s;-webkit-appearance:none;appearance:none;}
+  .field-group input::placeholder{color:var(--gold);opacity:.3;}
+  .field-group input:focus,.field-group select:focus{border-color:var(--gold);box-shadow:0 0 0 2px var(--gold-dim);}
+  .field-group select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23c9a84c' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px;cursor:pointer;}
+  .field-group select option{background:#2d2010;color:#F9F3E3;}
+  .btn-gold{background:linear-gradient(135deg,var(--gold),#a07828);color:#1a1208;border:none;border-radius:9px;padding:11px 28px;font-family:'DM Mono',monospace;font-size:12px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;width:100%;margin-top:4px;}
+  .dup-btn{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:10px 12px;text-align:left;cursor:pointer;margin-bottom:7px;color:var(--text);}
+  .dup-btn:hover{border-color:var(--gold);background:var(--surface2);}
+  .dup-name{font-family:'Playfair Display',serif;font-size:14px;}
+  .dup-meta{font-size:8px;letter-spacing:.15em;color:var(--gold);opacity:.6;margin-top:2px;font-family:'DM Mono',monospace;}
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <div id="playerArea"><button class="sign-in-btn" onclick="openModal()">&#9654; Sign In</button></div>
+  <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()">&#9728;&#65039;</button>
+</div>
+
+<div class="site-header">
+  <div class="site-eyebrow">IELTS TOEFL GRE</div>
+  <div class="site-title">Vox Velocity</div>
+  <div class="site-divider"></div>
+</div>
+
+<div class="cards">
+
+  <!-- Words That Make You Hungry -->
+  <a class="game-card" href="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/vv_food">
+    <div class="stats-row" id="stats-food">
+      <div class="stat"><div class="stat-num skel"></div><div class="stat-lbl">Done</div></div>
+      <div class="stat"><div class="stat-num skel"></div><div class="stat-lbl">Left</div></div>
+      <div class="stat"><div class="stat-num skel"></div><div class="stat-lbl">Complete</div></div>
+    </div>
+    <div class="prog-wrap"><div class="prog-skel" id="progbar-food"></div></div>
+    <div class="card-body">
+      <div class="card-left">
+        <span class="card-icon">&#127860;</span>
+        <div class="card-title">Words That Make You Hungry</div>
+        <div class="card-tagline">Vocabulary for gluttons &amp; gourmands</div>
+      </div>
+      <div class="card-right">
+        <span class="new-badge">&#10024; New</span>
+        <button class="cta-btn">&#9654;&ensp;Play</button>
+        <span class="quest-range">Q 3061–3075</span>
+      </div>
+    </div>
+  </a>
+
+  <!-- People Are Quite Nice Actually -->
+  <a class="game-card" href="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/vv_people">
+    <div class="stats-row" id="stats-people">
+      <div class="stat"><div class="stat-num skel"></div><div class="stat-lbl">Done</div></div>
+      <div class="stat"><div class="stat-num skel"></div><div class="stat-lbl">Left</div></div>
+      <div class="stat"><div class="stat-num skel"></div><div class="stat-lbl">Complete</div></div>
+    </div>
+    <div class="prog-wrap"><div class="prog-skel" id="progbar-people"></div></div>
+    <div class="card-body">
+      <div class="card-left">
+        <span class="card-icon">&#128578;</span>
+        <div class="card-title">People Are Quite Nice Actually</div>
+        <div class="card-tagline">Words for the warm &amp; the wonderful</div>
+      </div>
+      <div class="card-right">
+        <span class="new-badge">&#10024; New</span>
+        <button class="cta-btn">&#9654;&ensp;Play</button>
+        <span class="quest-range">Q 3076–3090</span>
+      </div>
+    </div>
+  </a>
+
+  <!-- You're Not So Bad -->
+  <a class="game-card" href="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/vv_positiveidentity">
+    <div class="stats-row" id="stats-selfid">
+      <div class="stat"><div class="stat-num skel"></div><div class="stat-lbl">Done</div></div>
+      <div class="stat"><div class="stat-num skel"></div><div class="stat-lbl">Left</div></div>
+      <div class="stat"><div class="stat-num skel"></div><div class="stat-lbl">Complete</div></div>
+    </div>
+    <div class="prog-wrap"><div class="prog-skel" id="progbar-selfid"></div></div>
+    <div class="card-body">
+      <div class="card-left">
+        <span class="card-icon">&#127775;</span>
+        <div class="card-title">You're Not So Bad</div>
+        <div class="card-tagline">Words for people worth admiring</div>
+      </div>
+      <div class="card-right">
+        <span class="new-badge">&#10024; New</span>
+        <button class="cta-btn">&#9654;&ensp;Play</button>
+        <span class="quest-range">Q 3091–3105</span>
+      </div>
+    </div>
+  </a>
+
+  <!-- The Sharp Ones -->
+  <a class="game-card" href="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/vv_others">
+    <div class="stats-row" id="stats-others">
+      <div class="stat"><div class="stat-num skel"></div><div class="stat-lbl">Done</div></div>
+      <div class="stat"><div class="stat-num skel"></div><div class="stat-lbl">Left</div></div>
+      <div class="stat"><div class="stat-num skel"></div><div class="stat-lbl">Complete</div></div>
+    </div>
+    <div class="prog-wrap"><div class="prog-skel" id="progbar-others"></div></div>
+    <div class="card-body">
+      <div class="card-left">
+        <span class="card-icon">&#129504;</span>
+        <div class="card-title">The Sharp Ones</div>
+        <div class="card-tagline">For the perspicacious &amp; the sagacious</div>
+      </div>
+      <div class="card-right">
+        <span class="new-badge">&#10024; New</span>
+        <button class="cta-btn">&#9654;&ensp;Play</button>
+        <span class="quest-range">Q 3106–3120</span>
+      </div>
+    </div>
+  </a>
+
+  <!-- Life Is Sometimes Good -->
+  <a class="game-card" href="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/vv_positiveexperience">
+    <div class="stats-row" id="stats-posexp">
+      <div class="stat"><div class="stat-num skel"></div><div class="stat-lbl">Done</div></div>
+      <div class="stat"><div class="stat-num skel"></div><div class="stat-lbl">Left</div></div>
+      <div class="stat"><div class="stat-num skel"></div><div class="stat-lbl">Complete</div></div>
+    </div>
+    <div class="prog-wrap"><div class="prog-skel" id="progbar-posexp"></div></div>
+    <div class="card-body">
+      <div class="card-left">
+        <span class="card-icon">&#127774;</span>
+        <div class="card-title">Life Is Sometimes Good</div>
+        <div class="card-tagline">Words for when things go right</div>
+      </div>
+      <div class="card-right">
+        <span class="new-badge">&#10024; New</span>
+        <button class="cta-btn">&#9654;&ensp;Play</button>
+        <span class="quest-range">Q 3121–3135</span>
+      </div>
+    </div>
+  </a>
+
+  <!-- Surprisingly Funny Words -->
+  <a class="game-card" href="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/vv_droll">
+    <div class="stats-row" id="stats-droll">
+      <div class="stat"><div class="stat-num skel"></div><div class="stat-lbl">Done</div></div>
+      <div class="stat"><div class="stat-num skel"></div><div class="stat-lbl">Left</div></div>
+      <div class="stat"><div class="stat-num skel"></div><div class="stat-lbl">Complete</div></div>
+    </div>
+    <div class="prog-wrap"><div class="prog-skel" id="progbar-droll"></div></div>
+    <div class="card-body">
+      <div class="card-left">
+        <span class="card-icon">&#129315;</span>
+        <div class="card-title">Surprisingly Funny Words</div>
+        <div class="card-tagline">For when wit is the only weapon</div>
+      </div>
+      <div class="card-right">
+        <span class="new-badge">&#10024; New</span>
+        <button class="cta-btn">&#9654;&ensp;Play</button>
+        <span class="quest-range">Q 3136–3150</span>
+      </div>
+    </div>
+  </a>
+
+  <!-- Words That Sound Important -->
+  <a class="game-card" href="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/vv_pompous">
+    <div class="stats-row" id="stats-pompous">
+      <div class="stat"><div class="stat-num skel"></div><div class="stat-lbl">Done</div></div>
+      <div class="stat"><div class="stat-num skel"></div><div class="stat-lbl">Left</div></div>
+      <div class="stat"><div class="stat-num skel"></div><div class="stat-lbl">Complete</div></div>
+    </div>
+    <div class="prog-wrap"><div class="prog-skel" id="progbar-pompous"></div></div>
+    <div class="card-body">
+      <div class="card-left">
+        <span class="card-icon">&#129393;</span>
+        <div class="card-title">Words That Sound Important</div>
+        <div class="card-tagline">For sounding clever at dinner parties</div>
+      </div>
+      <div class="card-right">
+        <span class="new-badge">&#10024; New</span>
+        <button class="cta-btn">&#9654;&ensp;Play</button>
+        <span class="quest-range">Q 3166–3180</span>
+      </div>
+    </div>
+  </a>
+  <!-- English Idioms -->
+  <a class="game-card" href="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/idiomhangman">
+    <div class="stats-row" id="stats-vv">
+      <div class="stat"><div class="stat-num skel"></div><div class="stat-lbl">Done</div></div>
+      <div class="stat"><div class="stat-num skel"></div><div class="stat-lbl">Left</div></div>
+      <div class="stat"><div class="stat-num skel"></div><div class="stat-lbl">Complete</div></div>
+    </div>
+    <div class="prog-wrap"><div class="prog-skel" id="progbar-vv"></div></div>
+    <div class="card-body">
+      <div class="card-left">
+        <span class="card-icon">&#128172;</span>
+        <div class="card-title">English Idioms</div>
+        <div class="card-tagline">Guess idioms from definitions</div>
+      </div>
+      <div class="card-right">
+        <button class="cta-btn">&#9654;&ensp;Play</button>
+        <span class="quest-range">Q 1000–1041</span>
+      </div>
+    </div>
+  </a>
+
+  <!-- Latin / Foreign Phrases -->
+  <a class="game-card" href="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/vox-velocity_foreign">
+    <div class="stats-row" id="stats-verbum">
+      <div class="stat"><div class="stat-num skel"></div><div class="stat-lbl">Done</div></div>
+      <div class="stat"><div class="stat-num skel"></div><div class="stat-lbl">Left</div></div>
+      <div class="stat"><div class="stat-num skel"></div><div class="stat-lbl">Complete</div></div>
+    </div>
+    <div class="prog-wrap"><div class="prog-skel" id="progbar-verbum"></div></div>
+    <div class="card-body">
+      <div class="card-left">
+        <span class="card-icon">&#128205;</span>
+        <div class="card-title">Latin / Foreign Phrases</div>
+        <div class="card-tagline">Latin, French, German &amp; Greek</div>
+      </div>
+      <div class="card-right">
+        <span class="new-badge">&#10024; New</span>
+        <button class="cta-btn">&#9654;&ensp;Play</button>
+        <span class="quest-range">Q 2000–2041</span>
+      </div>
+    </div>
+  </a>
+
+  <!-- GRE / IELTS -->
+  <a class="game-card" href="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/vox-velocity_gre">
+    <div class="stats-row" id="stats-lexicon">
+      <div class="stat"><div class="stat-num skel"></div><div class="stat-lbl">Done</div></div>
+      <div class="stat"><div class="stat-num skel"></div><div class="stat-lbl">Left</div></div>
+      <div class="stat"><div class="stat-num skel"></div><div class="stat-lbl">Complete</div></div>
+    </div>
+    <div class="prog-wrap"><div class="prog-skel" id="progbar-lexicon"></div></div>
+    <div class="card-body">
+      <div class="card-left">
+        <span class="card-icon">&#128218;</span>
+        <div class="card-title">GRE / IELTS Vocabulary</div>
+        <div class="card-tagline">High-frequency exam words</div>
+      </div>
+      <div class="card-right">
+        <span class="new-badge">&#10024; New</span>
+        <button class="cta-btn">&#9654;&ensp;Play</button>
+        <span class="quest-range">Q 3000–3059</span>
+      </div>
+    </div>
+  </a>
+
+  <!-- Philosophy Quotes -->
+  <a class="game-card" href="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/vox-velocity_philosophy">
+    <div class="stats-row" id="stats-cogito">
+      <div class="stat"><div class="stat-num skel"></div><div class="stat-lbl">Done</div></div>
+      <div class="stat"><div class="stat-num skel"></div><div class="stat-lbl">Left</div></div>
+      <div class="stat"><div class="stat-num skel"></div><div class="stat-lbl">Complete</div></div>
+    </div>
+    <div class="prog-wrap"><div class="prog-skel" id="progbar-cogito"></div></div>
+    <div class="card-body">
+      <div class="card-left">
+        <span class="card-icon">&#128125;</span>
+        <div class="card-title">Philosophy Quotes</div>
+        <div class="card-tagline">Guess quotes from great thinkers</div>
+      </div>
+      <div class="card-right">
+        <span class="new-badge">&#10024; New</span>
+        <button class="cta-btn">&#9654;&ensp;Play</button>
+        <span class="quest-range">Q 4000–4041</span>
+      </div>
+    </div>
+  </a>
+
+
+</div>
+
+<div class="dir-footer">Vox Velocity &mdash; IELTS TOEFL GRE &mdash; &copy; 2025</div>
+
+<!-- LOGIN MODAL -->
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal-card">
+    <div class="modal-title">Vox Velocity</div>
+    <div class="modal-sub">Sign in to track your progress</div>
+    <div class="field-group"><label>Your Name</label><input id="nameInput" type="text" placeholder="Enter your name&hellip;" maxlength="60" autocomplete="off"/></div>
+    <div class="field-group">
+      <label>Department</label>
+      <select id="deptSelect">
+        <option value="">-- Select Department --</option>
+        <option>Cyber Security</option><option>EIE</option>
+        <option>CSE-1</option><option>CSE-2</option><option>CSE-3</option>
+        <option>Mechanical Engineering</option>
+        <option>ECE-1</option><option>ECE-2</option><option>ECE-3</option>
+        <option>AI DS-1</option><option>AI DS-2</option>
+        <option>Agri and Civil</option><option>EEE</option>
+        <option>Medical Electronics</option>
+        <option>IT-1</option><option>IT-2</option>
+      </select>
+    </div>
+    <button class="btn-gold" onclick="handleLogin()">Continue &#8594;</button>
+    <div id="dupSection" style="display:none;margin-top:16px;">
+      <div style="font-size:10px;color:var(--gold);opacity:.6;margin-bottom:8px;text-align:center;font-family:'DM Mono',monospace;letter-spacing:.1em;">MULTIPLE STUDENTS FOUND — CHOOSE YOURS</div>
+      <div id="dupList"></div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm";
+const supabase = createClient(
+  "https://yellow-lab-4999.andrewveda.workers.dev",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoZXpzc29jenZwYmt0ZWZmY2d6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI4NTk1ODUsImV4cCI6MjA3ODQzNTU4NX0.2ZlqXnZxv0opkhynAT7OlK4S-xPygcc7ETUyTXRfGHE"
+);
+
+const GAMES = [
+  { id:'vv',      min:1000, max:1041, total:42 },
+  { id:'verbum',  min:2000, max:2041, total:42 },
+  { id:'lexicon', min:3000, max:3059, total:60 },
+  { id:'cogito',  min:4000, max:4041, total:42 },
+  { id:'food',    min:3061, max:3075, total:15 },
+  { id:'people',  min:3076, max:3090, total:15 },
+  { id:'selfid',  min:3091, max:3105, total:15 },
+  { id:'others',  min:3106, max:3120, total:15 },
+  { id:'posexp',  min:3121, max:3135, total:15 },
+  { id:'droll',   min:3136, max:3150, total:15 },
+  { id:'pompous', min:3166, max:3180, total:15 },
+];
+
+let playerName = '', playerDept = '';
+
+function loadFromStorage() {
+  playerName = localStorage.getItem('userName') || localStorage.getItem('questPlayerName') || '';
+  playerDept = localStorage.getItem('userDept')  || localStorage.getItem('questPlayerDept') || '';
+}
+function savePlayer(name, dept) {
+  playerName = name; playerDept = dept;
+  ['userName','questPlayerName','idiomPlayerName'].forEach(k => localStorage.setItem(k, name));
+  ['userDept','questPlayerDept'].forEach(k => localStorage.setItem(k, dept));
+}
+function renderPlayerPill() {
+  const area = document.getElementById('playerArea');
+  if (playerName) {
+    area.innerHTML = '<div class="player-pill" onclick="openModal()"><span class="pip" id="playerPip"></span><span>' + playerName + '</span>' + (playerDept ? '<span class="player-dept">&middot;&nbsp;' + playerDept + '</span>' : '') + '</div>';
+  } else {
+    area.innerHTML = '<button class="sign-in-btn" onclick="openModal()">&#9654; Sign In</button>';
+  }
+}
+
+function showSkeletons() {
+  GAMES.forEach(g => {
+    const sb = document.getElementById('stats-' + g.id);
+    if (sb) sb.innerHTML = '<div class="stat"><div class="stat-num skel"></div><div class="stat-lbl">Done</div></div><div class="stat"><div class="stat-num skel"></div><div class="stat-lbl">Left</div></div><div class="stat"><div class="stat-num skel"></div><div class="stat-lbl">Complete</div></div>';
+    const pb = document.getElementById('progbar-' + g.id);
+    if (pb) { pb.className = 'prog-skel'; pb.innerHTML = ''; }
+  });
+}
+function showEmpty() {
+  GAMES.forEach(g => {
+    const sb = document.getElementById('stats-' + g.id);
+    if (sb) sb.innerHTML = '<div class="stat"><div class="stat-num" style="font-size:18px;opacity:.3;">—</div><div class="stat-lbl">Done</div></div><div class="stat"><div class="stat-num" style="font-size:18px;opacity:.3;">—</div><div class="stat-lbl">Left</div></div><div class="stat"><div class="stat-num" style="font-size:18px;opacity:.3;">—</div><div class="stat-lbl">Complete</div></div>';
+    const pb = document.getElementById('progbar-' + g.id);
+    if (pb) { pb.className = 'prog-track'; pb.innerHTML = '<div class="prog-fill" style="width:0%"></div>'; }
+  });
+}
+function renderProgress(ids) {
+  GAMES.forEach(g => {
+    const done = [...ids].filter(id => id >= g.min && id <= g.max).length;
+    const rem  = g.total - done;
+    const pct  = Math.round((done / g.total) * 100);
+    const gc   = done === g.total ? ' green' : '';
+    const sb = document.getElementById('stats-' + g.id);
+    if (sb) sb.innerHTML =
+      '<div class="stat"><div class="stat-num' + gc + '">' + done + '</div><div class="stat-lbl">Done</div></div>'
+      + '<div class="stat"><div class="stat-num">' + rem + '</div><div class="stat-lbl">Left</div></div>'
+      + '<div class="stat"><div class="stat-num' + gc + '">' + pct + '%</div><div class="stat-lbl">Complete</div></div>';
+    const pb = document.getElementById('progbar-' + g.id);
+    if (pb) {
+      pb.className = 'prog-track';
+      pb.innerHTML = '<div class="prog-fill' + (done === g.total ? ' complete' : '') + '" id="fill-' + g.id + '" style="width:0%"></div>';
+      requestAnimationFrame(() => setTimeout(() => { const f = document.getElementById('fill-' + g.id); if (f) f.style.width = pct + '%'; }, 80));
+    }
+  });
+}
+async function fetchAndRender() {
+  if (!playerName) { showEmpty(); return; }
+  const pip = document.getElementById('playerPip'); if (pip) pip.classList.add('loading');
+  showSkeletons();
+  try {
+    const { data, error } = await supabase.from('report_card_view').select('quest_list').ilike('name', playerName);
+    const ids = new Set();
+    if (!error && data) { data.forEach(row => { (row.quest_list||'').split(',').forEach(item => { const m=item.trim().match(/Quest\s+(\d+)/i); if(m) ids.add(Number(m[1])); }); }); }
+    renderProgress(ids);
+  } catch { showEmpty(); }
+  finally { const p = document.getElementById('playerPip'); if (p) p.classList.remove('loading'); }
+}
+
+window.openModal = function () {
+  document.getElementById('nameInput').value  = playerName;
+  document.getElementById('deptSelect').value = playerDept;
+  document.getElementById('dupSection').style.display = 'none';
+  document.getElementById('modalBackdrop').classList.add('show');
+};
+function closeModal() { document.getElementById('modalBackdrop').classList.remove('show'); }
+document.getElementById('modalBackdrop').addEventListener('click', e => { if (e.target === document.getElementById('modalBackdrop')) closeModal(); });
+document.getElementById('nameInput').addEventListener('keydown', e => { if (e.key === 'Enter') window.handleLogin(); });
+
+window.handleLogin = async function () {
+  const rawName = document.getElementById('nameInput').value.trim();
+  const dept    = document.getElementById('deptSelect').value;
+  if (!rawName) { alert('Please enter your name!'); return; }
+  try {
+    const { data, error } = await supabase.from('report_card_view').select('name, department, quests_completed, quest_list');
+    if (error) throw error;
+    const matches = (data||[]).filter(u => u.name && u.name.trim().toLowerCase() === rawName.trim().toLowerCase());
+    if (matches.length === 0) { if (!dept) { alert('Please select your department!'); return; } savePlayer(rawName, dept); closeModal(); renderPlayerPill(); fetchAndRender(); return; }
+    if (matches.length === 1) { savePlayer(matches[0].name, dept || matches[0].department || ''); closeModal(); renderPlayerPill(); fetchAndRender(); return; }
+    showDupPicker(matches, dept);
+  } catch { if (!dept) { alert('Please select your department!'); return; } savePlayer(rawName, dept); closeModal(); renderPlayerPill(); fetchAndRender(); }
+};
+function showDupPicker(matches, dept) {
+  const sec = document.getElementById('dupSection'), list = document.getElementById('dupList');
+  list.innerHTML = '';
+  matches.forEach(match => {
+    const btn = document.createElement('button'); btn.className = 'dup-btn';
+    btn.innerHTML = '<div class="dup-name">' + match.name + '</div><div class="dup-meta">' + (match.department||'No department') + ' &middot; ' + (match.quests_completed??0) + ' quests</div>';
+    btn.onclick = () => { savePlayer(match.name, dept||match.department||''); closeModal(); renderPlayerPill(); fetchAndRender(); sec.style.display='none'; };
+    list.appendChild(btn);
+  });
+  sec.style.display = 'block';
+}
+
+const THEME_KEY = 'langLabTheme';
+function applyTheme(t) {
+  document.documentElement.classList.toggle('light', t==='light');
+  document.getElementById('themeToggle').textContent = t==='light' ? '\uD83C\uDF19' : '\u2600\uFE0F';
+}
+window.toggleTheme = function () { const n=document.documentElement.classList.contains('light')?'dark':'light'; localStorage.setItem(THEME_KEY,n); applyTheme(n); };
+applyTheme(localStorage.getItem(THEME_KEY)||'dark');
+
+loadFromStorage(); renderPlayerPill();
+if (playerName) { fetchAndRender(); } else { showEmpty(); openModal(); }
+</script>
+</body>
+</html>

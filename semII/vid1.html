@@ -476,7 +476,8 @@
 
       <div class="stat-row">
         <div class="stat-chip"><span class="icon">⏳</span><span id="timerVal">0s</span></div>
-        <div class="stat-chip" id="watchChip"><span class="icon">🎬</span><span id="watchVal">0s watched</span></div>
+        <div class="stat-chip"><span class="icon">🎬</span><span id="watchVal">0s watched</span></div>
+        <div class="stat-chip" id="watchChip"><span class="icon">🔓</span><span id="countdownVal">—s left</span></div>
       </div>
 
       <div class="card">
@@ -526,7 +527,7 @@
       options: ["✨👽"],
       correct: 0,
       watchTarget: 1001,
-      questId: "Quest 211"
+      questId: "Quest 111"
     }
   ];
 
@@ -709,6 +710,10 @@
     nextBtn.disabled = true;
     nextBtn.innerText = `Watch ${WATCH_TARGET}s to unlock ⏳`;
     nextBtn.onclick = submitAndNext;
+    document.getElementById('watchChip').classList.remove('unlocked');
+    document.getElementById('watchVal').innerText = '0s watched';
+    document.getElementById('countdownVal').innerText = `${WATCH_TARGET}s left`;
+    updateWatchChip();
 
     clearInterval(videoWatchInterval);
     videoWatchInterval = null;
@@ -751,11 +756,14 @@
           currentVideoWatchTime++;
           totalVideoWatchTime++;
           updateWatchChip();
+          const nb = document.getElementById('nextBtn');
           if (currentVideoWatchTime >= WATCH_TARGET) {
-            const nb = document.getElementById('nextBtn');
             nb.disabled = false;
             nb.innerText = 'Next ➡️';
             document.getElementById('watchChip').classList.add('unlocked');
+          } else {
+            const rem = WATCH_TARGET - currentVideoWatchTime;
+            nb.innerText = `Watch ${rem}s more to unlock ⏳`;
           }
         }, 1000);
       }
@@ -766,8 +774,10 @@
   }
 
   function updateWatchChip() {
-    document.getElementById('watchVal').innerText =
-      `${currentVideoWatchTime}s watched`;
+    const remaining = Math.max(0, WATCH_TARGET - currentVideoWatchTime);
+    document.getElementById('watchVal').innerText = `${currentVideoWatchTime}s watched`;
+    document.getElementById('countdownVal').innerText =
+      remaining > 0 ? `${remaining}s left` : '✓ unlocked';
   }
 
   /* ═══════════════════════════════════════════════
@@ -916,9 +926,7 @@
     frame = requestAnimationFrame(draw);
   }
 
-  /* ═══════════════════════════════════════════════
-     INIT
-  ═══════════════════════════════════════════════ */
+
   window.addEventListener('DOMContentLoaded', () => {
     try {
       const n = localStorage.getItem('vfv_name');

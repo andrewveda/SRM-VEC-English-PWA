@@ -2037,7 +2037,31 @@ function showDuplicatePicker(matches) {
     };
     container.appendChild(btn);
   });
+// ➜ MERGE OPTION
+const mergeBtn = document.createElement("button");
+mergeBtn.className = "modal-btn modal-confirm";
+mergeBtn.style.marginTop = "10px";
+mergeBtn.textContent = "Merge All Records";
 
+mergeBtn.onclick = () => {
+  userData = mergeUserRecords(matches);
+  localStorage.setItem("cachedUserData", JSON.stringify(userData));
+  
+  modal.classList.remove("show");
+
+  // restore modal
+  box.innerHTML = `
+    <p id="modalMsg">Are you sure?</p>
+    <div class="modal-actions">
+      <button class="modal-btn modal-cancel" id="modalCancel">Cancel</button>
+      <button class="modal-btn modal-confirm" id="modalConfirm">Confirm</button>
+    </div>
+  `;
+  setupEventListeners();
+  updateAllUI();
+};
+
+container.appendChild(mergeBtn);
   modal.classList.add("show");
 }
 // ─── UI HELPERS ───
@@ -2141,7 +2165,51 @@ function buildStreakBar() {
     bar.appendChild(div);
   }
 }
+function mergeUserRecords(records) {
+  const merged = { ...records[0] };
 
+  merged.quests_completed = 0;
+  merged.videos_completed = 0;
+  merged.stories_completed = 0;
+  merged.total_time = 0;
+  merged.total_score = 0;
+  merged.total_correct = 0;
+  merged.total_wrong = 0;
+  merged.cryptic_completed = 0;
+  merged.wordle_completed = 0;
+  merged.vocab_completed = 0;
+
+  let questSet = new Set();
+  let videoSet = new Set();
+  let storySet = new Set();
+
+  records.forEach(r => {
+    merged.quests_completed += r.quests_completed || 0;
+    merged.videos_completed += r.videos_completed || 0;
+    merged.stories_completed += r.stories_completed || 0;
+    merged.total_time += r.total_time || 0;
+    merged.total_score += r.total_score || 0;
+    merged.total_correct += r.total_correct || 0;
+    merged.total_wrong += r.total_wrong || 0;
+    merged.cryptic_completed += r.cryptic_completed || 0;
+    merged.wordle_completed += r.wordle_completed || 0;
+    merged.vocab_completed += r.vocab_completed || 0;
+
+    parseList(r.quest_list).forEach(x => questSet.add(x));
+    parseList(r.video_list).forEach(x => videoSet.add(x));
+    parseList(r.story_list).forEach(x => storySet.add(x));
+  });
+
+  merged.quest_list = [...questSet].join(",");
+  merged.video_list = [...videoSet].join(",");
+  merged.story_list = [...storySet].join(",");
+
+  // recompute accuracy safely
+  const totalAttempts = merged.total_correct + merged.total_wrong;
+  merged.accuracy = totalAttempts ? merged.total_correct / totalAttempts : 0;
+
+  return merged;
+}
 function parseList(raw) {
   if (!raw) return [];
   return raw.split(",").map(x => x.trim().replace(/\s+/g, "").toLowerCase()).filter(Boolean);

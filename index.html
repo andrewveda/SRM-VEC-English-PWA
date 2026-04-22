@@ -1981,11 +1981,29 @@ async function fetchUserData(name) {
       userData = matches[0];
       localStorage.setItem("cachedUserData", JSON.stringify(userData));
       updateAllUI();
+} else {
+  const mode = localStorage.getItem("userIdentityMode");
 
-    } else {
-      // Multiple matches — ask user to pick
-      showDuplicatePicker(matches);
+  if (mode === "merged") {
+    userData = mergeUserRecords(matches);
+    localStorage.setItem("cachedUserData", JSON.stringify(userData));
+    updateAllUI();
+    return;
+  }
+
+  if (mode === "single") {
+    const index = parseInt(localStorage.getItem("userIdentityIndex"), 10);
+    if (!isNaN(index) && matches[index]) {
+      userData = matches[index];
+      localStorage.setItem("cachedUserData", JSON.stringify(userData));
+      updateAllUI();
+      return;
     }
+  }
+
+  // ❗ fallback → ask user
+  showDuplicatePicker(matches);
+}
 
   } catch (err) {
     console.error("Fetch error:", err);
@@ -2018,8 +2036,13 @@ function showDuplicatePicker(matches) {
         ${match.department || "No department"} · ${match.quests_completed ?? 0} quests
       </div>
     `;
-    btn.onclick = () => {
-      userData = match;
+  btn.onclick = () => {
+  userData = match;
+
+  localStorage.setItem("userIdentityMode", "single");
+  localStorage.setItem("userIdentityIndex", i);
+
+  localStorage.setItem("cachedUserData", JSON.stringify(userData));
       localStorage.setItem("cachedUserData", JSON.stringify(userData));
       // Also save department from the record so it's consistent
       if (match.department) localStorage.setItem("userDept", match.department);
@@ -2045,6 +2068,8 @@ mergeBtn.textContent = "Merge All Records";
 
 mergeBtn.onclick = () => {
   userData = mergeUserRecords(matches);
+
+  localStorage.setItem("userIdentityMode", "merged");
   localStorage.setItem("cachedUserData", JSON.stringify(userData));
   
   modal.classList.remove("show");
@@ -2328,7 +2353,14 @@ window.closeDrawer = function () {
 window.logout = function () {
   showConfirm("Are you sure you want to logout?", () => {
     syncData();
-    ["userName", "userDept", "cachedUserData", "pendingSync"]
+ [
+  "userName",
+  "userDept",
+  "cachedUserData",
+  "pendingSync",
+  "userIdentityMode",
+  "userIdentityIndex"
+]
       .forEach(k => localStorage.removeItem(k));
     window.location.reload();
   });

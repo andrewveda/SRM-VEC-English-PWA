@@ -1,266 +1,334 @@
+<!DOCTYPE html>
 <html>
 <head>
 <meta charset="UTF-8">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+
 <style>
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:var(--font-sans);color:var(--color-text-primary);background:transparent}
-  .wrap{padding:1.5rem 0;max-width:680px}
-  h1{font-size:20px;font-weight:500;margin-bottom:4px}
-  .sub{font-size:13px;color:var(--color-text-secondary);margin-bottom:1.5rem}
-  .card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1.25rem;margin-bottom:1rem}
-  .label{font-size:12px;font-weight:500;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
-  .drop{border:1.5px dashed var(--color-border-secondary);border-radius:var(--border-radius-md);padding:2rem 1rem;text-align:center;cursor:pointer;transition:background .15s}
-  .drop:hover{background:var(--color-background-secondary)}
-  .drop.active{border-color:#1D9E75;background:#E1F5EE}
-  .drop-icon{font-size:28px;margin-bottom:8px}
-  .drop p{font-size:13px;color:var(--color-text-secondary)}
-  .drop strong{color:var(--color-text-primary)}
-  #resumeInput{display:none}
-  .file-ok{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--color-background-secondary);border-radius:var(--border-radius-md);font-size:13px}
-  .file-ok .fname{font-weight:500;flex:1}
-  .file-ok .remove{cursor:pointer;color:var(--color-text-secondary);font-size:16px;line-height:1}
-  textarea{width:100%;min-height:120px;font-size:13px;font-family:var(--font-sans);color:var(--color-text-primary);background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:10px 12px;resize:vertical;outline:none}
-  textarea:focus{border-color:var(--color-border-primary)}
-  .btn{display:block;width:100%;padding:12px;font-size:15px;font-weight:500;background:var(--color-text-primary);color:var(--color-background-primary);border:none;border-radius:var(--border-radius-md);cursor:pointer;transition:opacity .15s}
-  .btn:hover{opacity:.85}
-  .btn:disabled{opacity:.4;cursor:not-allowed}
-  .results{display:none}
-  .score-ring{position:relative;width:110px;height:110px;margin:0 auto 1rem}
-  .score-ring svg{transform:rotate(-90deg)}
-  .score-val{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
-  .score-num{font-size:28px;font-weight:500}
-  .score-lbl{font-size:11px;color:var(--color-text-secondary)}
-  .grade-bar{display:flex;gap:4px;margin:12px 0}
-  .grade-seg{height:6px;border-radius:3px;flex:1}
-  .metrics{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:1rem}
-  .metric{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px 12px;text-align:center}
-  .metric-val{font-size:20px;font-weight:500}
-  .metric-lbl{font-size:11px;color:var(--color-text-secondary);margin-top:2px}
-  .section-title{font-size:14px;font-weight:500;margin:1rem 0 8px}
-  .kw-list{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:1rem}
-  .kw{font-size:12px;padding:4px 10px;border-radius:20px}
-  .kw.found{background:#E1F5EE;color:#0F6E56}
-  .kw.missing{background:#FCEBEB;color:#A32D2D}
-  .issue-list{list-style:none}
-  .issue-list li{font-size:13px;padding:6px 0;border-bottom:0.5px solid var(--color-border-tertiary);color:var(--color-text-secondary);display:flex;gap:8px}
-  .issue-list li:last-child{border:none}
-  .dot{width:6px;height:6px;border-radius:50%;margin-top:5px;flex-shrink:0}
-  .dot.warn{background:#EF9F27}
-  .dot.ok{background:#1D9E75}
-  .dot.err{background:#E24B4A}
-  .suggestion-box{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:12px 14px;font-size:13px;line-height:1.7;color:var(--color-text-secondary);white-space:pre-wrap}
-  .spinner{display:inline-block;width:16px;height:16px;border:2px solid var(--color-background-primary);border-top-color:transparent;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:8px}
-  @keyframes spin{to{transform:rotate(360deg)}}
-  .error-msg{background:#FCEBEB;color:#A32D2D;border-radius:var(--border-radius-md);padding:10px 14px;font-size:13px;margin-top:12px;display:none}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:var(--font-sans, Arial, sans-serif);
+  color:var(--color-text-primary, #222);
+  background:#fff;
+}
+.wrap{padding:1.5rem 0;max-width:680px;margin:auto}
+h1{font-size:20px;font-weight:500;margin-bottom:4px}
+.sub{font-size:13px;color:#666;margin-bottom:1.5rem}
+
+.card{
+  background:#fff;
+  border:1px solid #ddd;
+  border-radius:10px;
+  padding:1.25rem;
+  margin-bottom:1rem
+}
+
+.label{font-size:12px;color:#666;margin-bottom:8px}
+
+.drop{
+  border:1.5px dashed #aaa;
+  border-radius:8px;
+  padding:2rem 1rem;
+  text-align:center;
+  cursor:pointer;
+}
+.drop.active{border-color:#1D9E75;background:#E1F5EE}
+
+textarea{
+  width:100%;
+  min-height:120px;
+  padding:10px;
+  border-radius:8px;
+  border:1px solid #ddd;
+}
+
+.btn{
+  width:100%;
+  padding:12px;
+  background:#222;
+  color:#fff;
+  border:none;
+  border-radius:8px;
+  cursor:pointer;
+}
+.btn:disabled{opacity:.5}
+
+.error-msg{
+  background:#FCEBEB;
+  color:#A32D2D;
+  padding:10px;
+  margin-top:10px;
+  display:none;
+  border-radius:6px;
+}
+
+.file-ok{
+  display:none;
+  gap:10px;
+  padding:10px;
+  background:#f5f5f5;
+  border-radius:6px;
+  margin-top:10px;
+}
+
+.kw{padding:4px 8px;border-radius:20px;font-size:12px}
+.found{background:#E1F5EE}
+.missing{background:#FCEBEB}
 </style>
 </head>
+
 <body>
 <div class="wrap">
-  <h1>ATS Resume Scanner</h1>
-  <p class="sub">Upload your resume + paste a job description to get your ATS score</p>
 
-  <div class="card">
-    <div class="label">Resume</div>
-    <div class="drop" id="dropZone" onclick="document.getElementById('resumeInput').click()">
-      <div class="drop-icon">📄</div>
-      <p><strong>Click to upload</strong> or drag & drop</p>
-      <p>PDF or DOCX supported</p>
-    </div>
-    <input type="file" id="resumeInput" accept=".pdf,.docx">
-    <div class="file-ok" id="fileOk" style="display:none">
-      <span>📎</span>
-      <span class="fname" id="fileName"></span>
-      <span class="remove" onclick="removeFile()">✕</span>
-    </div>
+<h1>ATS Resume Scanner</h1>
+<p class="sub">Upload resume + paste job description</p>
+
+<div class="card">
+  <div class="label">Resume</div>
+  <div class="drop" id="dropZone" onclick="resumeInput.click()">
+    Click or Drop PDF/DOCX
   </div>
-
-  <div class="card">
-    <div class="label">Job Description</div>
-    <textarea id="jobDesc" placeholder="Paste the job description here..."></textarea>
-  </div>
-
-  <button class="btn" id="analyzeBtn" onclick="analyze()">Analyze Resume</button>
-  <div class="error-msg" id="errorMsg"></div>
-
-  <div class="results card" id="results" style="display:none;margin-top:1rem">
-    <div class="score-ring">
-      <svg width="110" height="110" viewBox="0 0 110 110">
-        <circle cx="55" cy="55" r="46" fill="none" stroke="var(--color-border-tertiary)" stroke-width="10"/>
-        <circle cx="55" cy="55" r="46" fill="none" stroke="#1D9E75" stroke-width="10"
-          stroke-dasharray="289" stroke-dashoffset="289" id="scoreCircle" stroke-linecap="round"/>
-      </svg>
-      <div class="score-val">
-        <span class="score-num" id="scoreNum">0</span>
-        <span class="score-lbl">ATS Score</span>
-      </div>
-    </div>
-    <div class="grade-bar" id="gradeBar">
-      <div class="grade-seg" style="background:#E24B4A"></div>
-      <div class="grade-seg" style="background:#EF9F27"></div>
-      <div class="grade-seg" style="background:#EF9F27"></div>
-      <div class="grade-seg" style="background:#1D9E75"></div>
-      <div class="grade-seg" style="background:#1D9E75"></div>
-    </div>
-    <div class="metrics">
-      <div class="metric"><div class="metric-val" id="kwMatch">-</div><div class="metric-lbl">Keyword match</div></div>
-      <div class="metric"><div class="metric-val" id="formatScore">-</div><div class="metric-lbl">Format score</div></div>
-      <div class="metric"><div class="metric-val" id="sectionScore">-</div><div class="metric-lbl">Sections found</div></div>
-    </div>
-
-    <div class="section-title">Keywords found</div>
-    <div class="kw-list" id="kwFound"></div>
-
-    <div class="section-title">Missing keywords</div>
-    <div class="kw-list" id="kwMissing"></div>
-
-    <div class="section-title">Format & structure issues</div>
-    <ul class="issue-list" id="issueList"></ul>
-
-    <div class="section-title">Top suggestions</div>
-    <div class="suggestion-box" id="suggestions"></div>
+  <input type="file" id="resumeInput" accept=".pdf,.docx" hidden>
+  <div class="file-ok" id="fileOk">
+    <span id="fileName"></span>
+    <button onclick="removeFile()">✕</button>
   </div>
 </div>
 
+<div class="card">
+  <div class="label">Job Description</div>
+  <textarea id="jobDesc"></textarea>
+</div>
+
+<button class="btn" id="analyzeBtn" onclick="analyze()">Analyze</button>
+<div class="error-msg" id="errorMsg"></div>
+
+<div class="card" id="results" style="display:none">
+  <h3>Score: <span id="scoreNum"></span></h3>
+  <p>Keyword Match: <span id="kwMatch"></span></p>
+  <p>Format Score: <span id="formatScore"></span></p>
+
+  <h4>Keywords Found</h4>
+  <div id="kwFound"></div>
+
+  <h4>Missing Keywords</h4>
+  <div id="kwMissing"></div>
+
+  <h4>Suggestions</h4>
+  <pre id="suggestions"></pre>
+</div>
+
+</div>
+
 <script>
-pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-const GEMINI_KEY = 'AIzaSyBlbsluNF35r-ROBC8YOKn7kfWbk4TtJWU';
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+const WORKER_URL = 'https://ats.andrewveda.workers.dev';
+
 let resumeText = '';
+let isProcessingFile = false;
 
 const dropZone = document.getElementById('dropZone');
 const resumeInput = document.getElementById('resumeInput');
 
-dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('active'); });
-dropZone.addEventListener('dragleave', () => dropZone.classList.remove('active'));
-dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.classList.remove('active'); handleFile(e.dataTransfer.files[0]); });
-resumeInput.addEventListener('change', e => handleFile(e.target.files[0]));
+dropZone.addEventListener('dragover', e => {
+  e.preventDefault();
+  dropZone.classList.add('active');
+});
 
-function handleFile(file) {
-  if (!file) return;
+dropZone.addEventListener('dragleave', () => {
+  dropZone.classList.remove('active');
+});
+
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('active');
+  handleFile(e.dataTransfer.files[0]);
+});
+
+resumeInput.addEventListener('change', e => {
+  handleFile(e.target.files[0]);
+});
+
+function handleFile(file){
+  if(!file) return;
+
   const ext = file.name.split('.').pop().toLowerCase();
+
+  if(ext !== 'pdf' && ext !== 'docx'){
+    showError('Only PDF/DOCX allowed');
+    return;
+  }
+
   document.getElementById('fileName').textContent = file.name;
   document.getElementById('fileOk').style.display = 'flex';
   dropZone.style.display = 'none';
-  if (ext === 'pdf') extractPDF(file);
-  else if (ext === 'docx') extractDOCX(file);
+
+  if(ext === 'pdf') extractPDF(file);
+  else extractDOCX(file);
 }
 
-function removeFile() {
+function removeFile(){
   resumeText = '';
-  document.getElementById('fileOk').style.display = 'none';
-  dropZone.style.display = 'block';
   resumeInput.value = '';
+  dropZone.style.display = 'block';
+  document.getElementById('fileOk').style.display = 'none';
 }
 
-async function extractPDF(file) {
+async function extractPDF(file){
+  isProcessingFile = true;
+
   const buf = await file.arrayBuffer();
-  const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+  const pdf = await pdfjsLib.getDocument({data:buf}).promise;
+
   let text = '';
-  for (let i = 1; i <= pdf.numPages; i++) {
+
+  for(let i=1;i<=pdf.numPages;i++){
     const page = await pdf.getPage(i);
     const content = await page.getTextContent();
-    text += content.items.map(s => s.str).join(' ') + '\n';
+
+    text += content.items
+      .map(s=>s.str)
+      .join(' ')
+      .replace(/\s+/g,' ') + '\n';
   }
+
   resumeText = text;
+  isProcessingFile = false;
 }
 
-async function extractDOCX(file) {
+async function extractDOCX(file){
+  isProcessingFile = true;
+
   const buf = await file.arrayBuffer();
-  const result = await mammoth.extractRawText({ arrayBuffer: buf });
+  const result = await mammoth.extractRawText({arrayBuffer:buf});
+
   resumeText = result.value;
+  isProcessingFile = false;
 }
 
-async function analyze() {
-  if (!resumeText) { showError('Please upload a resume first.'); return; }
+async function analyze(){
+
+  if(isProcessingFile){
+    showError('Wait for file processing');
+    return;
+  }
+
+  if(!resumeText){
+    showError('Upload resume first');
+    return;
+  }
+
   const jd = document.getElementById('jobDesc').value.trim();
-  if (!jd) { showError('Please paste a job description.'); return; }
+  if(!jd){
+    showError('Paste job description');
+    return;
+  }
+
   hideError();
 
   const btn = document.getElementById('analyzeBtn');
   btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span>Analyzing...';
+  btn.textContent = 'Analyzing...';
 
-  const prompt = `You are an expert ATS (Applicant Tracking System) analyzer. Analyze the resume against the job description.
+  const prompt = `
+Analyze resume vs job description.
 
 RESUME:
-${resumeText.slice(0, 4000)}
+${resumeText.slice(0,8000)}
 
-JOB DESCRIPTION:
-${jd.slice(0, 2000)}
+JOB:
+${jd.slice(0,3000)}
 
-Respond ONLY with a valid JSON object, no markdown, no extra text:
+Return ONLY JSON:
 {
-  "ats_score": <0-100 integer>,
-  "keyword_match_percent": <0-100 integer>,
-  "format_score": <0-100 integer>,
-  "sections_found": <count of standard sections detected like experience/education/skills/summary>,
-  "keywords_found": [<array of up to 12 matched keywords/skills>],
-  "keywords_missing": [<array of up to 12 important missing keywords>],
-  "issues": [
-    {"type": "warn|ok|err", "text": "<issue description>"}
-  ],
-  "suggestions": "<3-5 concise, actionable bullet suggestions to improve ATS score, use newlines>"
+"ats_score":0-100,
+"keyword_match_percent":0-100,
+"format_score":0-100,
+"keywords_found":[],
+"keywords_missing":[],
+"suggestions":"text"
 }`;
 
-  try {
-    const res = await fetch('https://ats.andrewveda.workers.dev')
-      
-      
-      fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+  try{
+
+    const res = await fetch(WORKER_URL,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        contents:[{parts:[{text:prompt}]}]
+      })
     });
+
     const data = await res.json();
-    let raw = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    raw = raw.replace(/```json|```/g, '').trim();
-    const r = JSON.parse(raw);
+    console.log("API:",data);
+
+    let raw =
+      data.candidates?.[0]?.content?.parts?.[0]?.text ||
+      data.text ||
+      '';
+
+    if(!raw) throw new Error('Empty API response');
+
+    raw = raw.replace(/```json|```/g,'').trim();
+
+    let r;
+
+    try{
+      r = JSON.parse(raw);
+    }catch(e){
+      console.error("BAD JSON:",raw);
+      throw new Error('Invalid JSON from API');
+    }
+
     renderResults(r);
-  } catch(e) {
-    showError('Analysis failed. Check your internet connection or API key.');
+
+  }catch(e){
+    showError(e.message);
   }
-
-  btn.disabled = false;
-  btn.innerHTML = 'Analyze Resume';
+  finally{
+    btn.disabled = false;
+    btn.textContent = 'Analyze';
+  }
 }
 
-function renderResults(r) {
+function renderResults(r){
+
   document.getElementById('results').style.display = 'block';
-  document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
 
-  const score = Math.min(100, Math.max(0, r.ats_score));
-  document.getElementById('scoreNum').textContent = score;
-  const circumference = 289;
-  const offset = circumference - (score / 100) * circumference;
-  const circle = document.getElementById('scoreCircle');
-  circle.style.strokeDashoffset = offset;
-  circle.style.stroke = score >= 75 ? '#1D9E75' : score >= 50 ? '#EF9F27' : '#E24B4A';
+  document.getElementById('scoreNum').textContent =
+    r.ats_score || 0;
 
-  document.getElementById('kwMatch').textContent = (r.keyword_match_percent || 0) + '%';
-  document.getElementById('formatScore').textContent = (r.format_score || 0) + '%';
-  document.getElementById('sectionScore').textContent = (r.sections_found || 0);
+  document.getElementById('kwMatch').textContent =
+    (r.keyword_match_percent || 0) + '%';
 
-  const kwFound = document.getElementById('kwFound');
-  kwFound.innerHTML = (r.keywords_found || []).map(k => `<span class="kw found">${k}</span>`).join('');
+  document.getElementById('formatScore').textContent =
+    (r.format_score || 0) + '%';
 
-  const kwMiss = document.getElementById('kwMissing');
-  kwMiss.innerHTML = (r.keywords_missing || []).map(k => `<span class="kw missing">${k}</span>`).join('');
+  document.getElementById('kwFound').innerHTML =
+    (r.keywords_found || [])
+    .map(k=>`<span class="kw found">${k}</span>`).join(' ');
 
-  const issueList = document.getElementById('issueList');
-  issueList.innerHTML = (r.issues || []).map(i => `<li><span class="dot ${i.type}"></span>${i.text}</li>`).join('');
+  document.getElementById('kwMissing').innerHTML =
+    (r.keywords_missing || [])
+    .map(k=>`<span class="kw missing">${k}</span>`).join(' ');
 
-  document.getElementById('suggestions').textContent = r.suggestions || '';
+  document.getElementById('suggestions').textContent =
+    r.suggestions || '';
 }
 
-function showError(msg) {
+function showError(msg){
   const el = document.getElementById('errorMsg');
   el.textContent = msg;
   el.style.display = 'block';
 }
-function hideError() {
+
+function hideError(){
   document.getElementById('errorMsg').style.display = 'none';
 }
 </script>
+
 </body>
 </html>

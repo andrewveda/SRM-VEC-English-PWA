@@ -561,14 +561,6 @@
 
 </div><!-- /wrap -->
 
-<script type="module">
-  import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-  window.supabase = createClient(
-    'https://yellow-lab-4999.andrewveda.workers.dev',
-    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoZXpzc29jenZwYmt0ZWZmY2d6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI4NTk1ODUsImV4cCI6MjA3ODQzNTU4NX0.2ZlqXnZxv0opkhynAT7OlK4S-xPygcc7ETUyTXRfGHE'
-  );
-</script>
-
 <script>
 /* ── STARS ── */
 (function(){
@@ -887,37 +879,54 @@ function manualSave() {
   if (!currentVideo || completedSet.has(currentVideo.questId)) return;
 
   const saveBtn = document.getElementById('saveBtn');
-  saveBtn.disabled    = true;
+  saveBtn.disabled = true;
   saveBtn.textContent = '⏳ Saving…';
 
-  const client = window.supabase;
-  if (!client) { saveBtn.textContent = '❌ Error'; return; }
-
-  client.from('Quests').insert([{
-    student_name:    GH.userName || GH.username,
-    department:      GH.dept,
-    github_username: GH.username,
-    github_id:       GH.id,
-    github_profile:  GH.profile,
-    auth_provider:   'github',
-    correct:         10,
-    wrong:           0,
-    time_spent:      watchTime,
-    quest_id:        currentVideo.questId
-  }]).then(({error}) => {
-    if (error) {
-      console.error('Supabase:', error);
-      saveBtn.disabled    = false;
-      saveBtn.textContent = '❌ Failed — Try Again';
-    } else {
-      completedSet.add(currentVideo.questId);
-      saveBtn.textContent   = '✅ Score Saved';
-      saveBtn.style.opacity = '.6';
-      document.getElementById('watchStatus').textContent = '✅ Score saved!';
-      renderGrid();
+  fetch('https://orange-term-57cf.andrewveda.workers.dev/save', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      student_name:    GH.userName || GH.username,
+      department:      GH.dept,
+      github_username: GH.username,
+      github_id:       GH.id,
+      github_profile:  GH.profile,
+      quest_id:        currentVideo.questId,
+      time_spent:      watchTime
+    })
+  })
+  .then(async r => {
+    if (!r.ok) {
+      const txt = await r.text();
+      throw new Error(txt || 'Save failed');
     }
+    return r.json();
+  })
+  .then(data => {
+    if (data.ok) {
+      completedSet.add(currentVideo.questId);
+
+      saveBtn.textContent = '✅ Score Saved';
+      saveBtn.style.opacity = '.6';
+
+      document.getElementById('watchStatus').textContent =
+        '✅ Score saved!';
+
+      renderGrid();
+    } else {
+      throw new Error('Save failed');
+    }
+  })
+  .catch(err => {
+    console.error(err);
+
+    saveBtn.disabled = false;
+    saveBtn.textContent = '❌ Failed — Try Again';
   });
 }
+
 window.manualSave = manualSave;
 
 function buildNextList(current) {

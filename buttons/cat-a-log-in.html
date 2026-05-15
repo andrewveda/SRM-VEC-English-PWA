@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head> 
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#faf7f2">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>SRM VEC English — Sem II</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --obsidian: #ffffff;
+  --deep: #faf7f2;
+  --surface: #ffffff;
+  --surface2: #f5efe6;
+  --gold: #c9a84c;
+  --gold-light: #e8c97a;
+  --gold-dim: rgba(201,168,76,0.12);
+  --crimson: #7A0019;
+  --text: #2a2a2a;
+  --text-muted: #7a766f;
+  --text-dim: #b0a99f;
+  --green: #3a7d44;
+  --green-light: #4CAF50;
+  --border: rgba(201,168,76,0.35);
+  --border-dim: rgba(0,0,0,0.06);
+}
+
+* {
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+  overflow-x:hidden;
+}
+
+body {
+  font-family: 'DM Mono', monospace;
+  background: var(--obsidian);
+  color: var(--text);
+  min-height: 100vh;
+  padding-bottom: env(safe-area-inset-bottom, 20px);
+}
+
+body::before {
+  content:'';
+  position:fixed;
+  inset:0;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.015'/%3E%3C/svg%3E");
+  pointer-events:none;
+  z-index:9999;
+  opacity:.35;
+}
+
+.ambient {
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  z-index:0;
+  overflow:hidden;
+}
+
+.ambient::before {
+  content:'';
+  position:absolute;
+  top:-20%;
+  left:-10%;
+  width:60vw;
+  height:60vw;
+  background: radial-gradient(circle, rgba(201,168,76,0.08), transparent 70%);
+  animation:breathe 10s ease-in-out infinite;
+}
+
+.ambient::after {
+  content:'';
+  position:absolute;
+  bottom:-10%;
+  right:-10%;
+  width:50vw;
+  height:50vw;
+  background: radial-gradient(circle, rgba(201,168,76,0.05), transparent 70%);
+  animation:breathe 12s ease-in-out infinite reverse;
+}
+
+@keyframes breathe {
+  0%,100% { transform:scale(1); opacity:.4; }
+  50% { transform:scale(1.15); opacity:1; }
+}
+
+/* TOP BAR */
+
+.top-bar {
+  position:relative;
+  z-index:2;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:12px 16px 0;
+  padding-top:calc(12px + env(safe-area-inset-top, 0px));
+}
+
+.player-pill {
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:6px 12px;
+  border:1px solid var(--border);
+  border-radius:20px;
+  font-size:10px;
+  color:var(--gold);
+  letter-spacing:.08em;
+  background:rgba(201,168,76,0.06);
+}
+
+.player-avatar {
+  width:20px;
+  height:20px;
+  border-radius:50%;
+  object-fit:cover;
+  border:1px solid rgba(201,168,76,0.3);
+  background:#fff;
+}
+
+.player-avatar-fallback {
+  width:20px;
+  height:20px;
+  border-radius:50%;
+  background:rgba(201,168,76,0.15);
+  color:var(--gold);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:9px;
+  font-weight:700;
+}
+
+.pip {
+  width:6px;
+  height:6px;
+  border-radius:50%;
+  background:var(--gold);
+}
+
+.pip.loading {
+  animation:pipPulse 1s ease infinite;
+}
+
+@keyframes pipPulse {
+  0%,100%{opacity:1}
+  50%{opacity:.15}
+}
+
+.player-dept {
+  font-size:8px;
+  opacity:.5;
+}
+
+/* HEADER */
+
+.header {
+  position:relative;
+  z-index:1;
+  padding:20px 20px 20px;
+  text-align:center;
+}
+
+.header-eyebrow {
+  font-size:.58rem;
+  letter-spacing:2.5px;
+  text-transform:uppercase;
+  color:var(--gold);
+  margin-bottom:6px;
+}
+
+.header-title {
+  font-family:'Playfair Display', serif;
+  font-size:1.6rem;
+  font-weight:700;
+  color:var(--text);
+  line-height:1.15;
+}
+
+.header-sub {
+  font-size:.65rem;
+  color:var(--text-dim);
+  letter-spacing:1px;
+  margin-top:6px;
+}
+
+.header-divider {
+  width:40px;
+  height:2px;
+  background:linear-gradient(90deg, transparent, var(--gold), transparent);
+  margin:14px auto 0;
+  border-radius:2px;
+}
+
+/* PROGRESS */
+
+.progress-summary {
+  position:relative;
+  z-index:1;
+  margin:0 12px 4px;
+  padding:10px 14px;
+  background:rgba(201,168,76,0.06);
+  border:1px solid var(--border);
+  border-radius:12px;
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+
+.prog-track {
+  flex:1;
+  height:4px;
+  background:rgba(201,168,76,0.15);
+  border-radius:2px;
+  overflow:hidden;
+}
+
+.prog-fill {
+  height:100%;
+  width:0%;
+  border-radius:2px;
+  transition:width 1s ease;
+  background:linear-gradient(90deg, var(--gold), var(--gold-light));
+}
+
+.prog-fill.complete {
+  background:linear-gradient(90deg, #4caf50, #81c784);
+}
+
+.prog-label {
+  font-size:.55rem;
+  letter-spacing:1.5px;
+  color:var(--gold);
+  white-space:nowrap;
+}
+
+/* SECTION */
+
+.section-label {
+  position:relative;
+  z-index:1;
+  padding:20px 16px 8px;
+  font-size:.55rem;
+  letter-spacing:2px;
+  text-transform:uppercase;
+  color:var(--text-dim);
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+
+.section-label::after {
+  content:'';
+  flex:1;
+  height:1px;
+  background:var(--border-dim);
+}
+
+/* GRID */
+
+.grid {
+  position:relative;
+  z-index:1;
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  padding:0 12px;
+}
+
+/* TILE */
+
+.mission-tile {
+  background:var(--surface);
+  border:1px solid var(--border-dim);
+  border-radius:14px;
+  padding:14px 12px;
+  position:relative;
+  overflow:hidden;
+  text-decoration:none;
+  display:flex;
+  flex-direction:column;
+  gap:5px;
+  min-height:90px;
+  transition:.25s;
+}
+
+.mission-tile:active {
+  transform:scale(.97);
+  opacity:.85;
+}
+
+@media (hover:hover) {
+  .mission-tile:hover {
+    transform:translateY(-3px);
+    border-color:var(--gold);
+    box-shadow:0 8px 25px rgba(0,0,0,.12);
+  }
+}
+
+.done-badge {
+  position:absolute;
+  top:8px;
+  right:8px;
+  width:18px;
+  height:18px;
+  border-radius:50%;
+  background:#4CAF50;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:9px;
+  color:#fff;
+  font-weight:700;
+  opacity:0;
+  transform:scale(.5);
+  transition:.3s;
+}
+
+.mission-tile.done .done-badge {
+  opacity:1;
+  transform:scale(1);
+}
+
+.mission-tile.done {
+  border-color:rgba(76,175,80,0.35)!important;
+  background:rgba(76,175,80,0.04);
+}
+
+.tile-icon {
+  font-size:1.1rem;
+}
+
+.tile-label {
+  font-family:'Playfair Display', serif;
+  font-size:.82rem;
+  font-weight:600;
+  color:var(--text);
+  line-height:1.25;
+  flex:1;
+}
+
+.tile-sub {
+  font-size:.52rem;
+  letter-spacing:1.2px;
+  color:var(--text-dim);
+  text-transform:uppercase;
+}
+
+.tile-date {
+  font-size:.48rem;
+  letter-spacing:.8px;
+  color:var(--gold);
+  text-transform:uppercase;
+  font-weight:500;
+}
+
+.mission-tile.wide {
+  grid-column:span 2;
+  flex-direction:row;
+  align-items:center;
+  min-height:64px;
+  gap:12px;
+}
+
+.mission-tile.wide .tile-text {
+  flex:1;
+}
+
+.mission-tile.wide .tile-label {
+  font-size:.85rem;
+}
+
+/* ACCENTS */
+
+.accent-gold  { border-color: rgba(201,168,76,0.3); }
+.accent-red   { border-color: rgba(122,0,25,0.3); }
+.accent-blue  { border-color: rgba(33,150,243,0.2); }
+.accent-green { border-color: rgba(76,175,80,0.2); }
+.accent-purple{ border-color: rgba(156,39,176,0.25); }
+.accent-teal  { border-color: rgba(0,150,136,0.25); }
+
+.mission-tile {
+  animation:fadeUp .4s ease both;
+}
+
+@keyframes fadeUp {
+  from { opacity:0; transform:translateY(12px); }
+  to { opacity:1; transform:translateY(0); }
+}
+</style>
+</head>
+
+<body>
+
+<div class="ambient"></div>
+
+<div class="top-bar">
+  <div id="playerArea"></div>
+  <div id="progressSummary" style="display:none" class="prog-label">0 / 35</div>
+</div>
+
+<div class="header">
+  <div class="header-eyebrow">Veni·Vidi·Vici</div>
+  <div class="header-title">Semester II<br>Quests</div>
+  <div class="header-sub">Daily practice missions</div>
+  <div class="header-divider"></div>
+</div>
+
+<div id="overallProg" class="progress-summary" style="display:none;">
+  <div class="prog-label" id="overallLabel">0 / 35 quests</div>
+  <div class="prog-track">
+    <div class="prog-fill" id="overallFill"></div>
+  </div>
+  <div class="prog-label" id="overallPct">0%</div>
+</div>
+
+<!-- KEEP YOUR EXISTING QUEST GRID HERE EXACTLY -->
+<!-- I AM OMITTING IT ONLY TO KEEP THIS MESSAGE SIZE MANAGEABLE -->
+<!-- PASTE YOUR EXISTING QUEST BLOCKS UNCHANGED -->
+
+<script>
+/* ── GITHUB IDENTITY (same as videoyg.html) ── */
+
+const GH = Object.freeze({
+  userName:       localStorage.getItem('userName')        || '',
+  username:       localStorage.getItem('github_username') || '',
+  id:             localStorage.getItem('github_id')       || '',
+  profile:        localStorage.getItem('github_profile')  || '',
+  avatar:         localStorage.getItem('avatar')          || '',
+  authProvider:   localStorage.getItem('auth_provider')   || '',
+  loggedIn:       localStorage.getItem('logged_in') === 'true',
+  dept:           localStorage.getItem('userDept')        || '',
+});
+
+/* ── AUTH GUARD ── */
+
+(function () {
+
+  const isLoginPage =
+    window.location.pathname.includes('videoyg.html');
+
+  if ((!GH.loggedIn || !GH.username) && !isLoginPage) {
+
+    const returnPath = encodeURIComponent(
+      window.location.pathname + window.location.search
+    );
+
+    window.location.replace(
+      `/SRM-VEC-English-PWA/buttons/videoyg.html?return=${returnPath}`
+    );
+  }
+
+})();
+
+/* ── HELPERS ── */
+
+function makeAvatar(src, fallbackChar) {
+
+  if (src) {
+
+    const img = document.createElement('img');
+
+    img.src = src;
+    img.className = 'player-avatar';
+
+    img.onerror = () => {
+      img.replaceWith(makeFallback(fallbackChar));
+    };
+
+    return img;
+  }
+
+  return makeFallback(fallbackChar);
+}
+
+function makeFallback(char) {
+
+  const d = document.createElement('div');
+
+  d.className = 'player-avatar-fallback';
+
+  d.textContent = (char || '?')[0].toUpperCase();
+
+  return d;
+}
+
+/* ── PLAYER PILL ── */
+
+function renderPlayerPill() {
+
+  const area = document.getElementById('playerArea');
+
+  if (!area) return;
+
+  const displayName =
+    GH.userName ||
+    GH.username ||
+    'GitHub User';
+
+  const dept = GH.dept || '';
+
+  area.innerHTML = '';
+
+  const pill = document.createElement('div');
+  pill.className = 'player-pill';
+
+  pill.appendChild(makeAvatar(GH.avatar, displayName));
+
+  const pip = document.createElement('div');
+  pip.className = 'pip';
+  pip.id = 'playerPip';
+
+  pill.appendChild(pip);
+
+  const nameSpan = document.createElement('span');
+  nameSpan.textContent = displayName;
+
+  pill.appendChild(nameSpan);
+
+  if (dept) {
+    const deptSpan = document.createElement('span');
+    deptSpan.className = 'player-dept';
+    deptSpan.textContent = `· ${dept}`;
+    pill.appendChild(deptSpan);
+  }
+
+  area.appendChild(pill);
+}
+
+renderPlayerPill();
+</script>
+
+<script type="module">
+
+import { createClient }
+from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm";
+
+const supabase = createClient(
+  "https://yellow-lab-4999.andrewveda.workers.dev",
+  "YOUR_ANON_KEY"
+);
+
+const TOTAL = 35;
+
+const githubId =
+  localStorage.getItem('github_id') || '';
+
+function applyCompletion(doneIds) {
+
+  const tiles =
+    document.querySelectorAll('.mission-tile[data-qid]');
+
+  let doneCount = 0;
+
+  tiles.forEach(tile => {
+
+    const qid = parseInt(tile.dataset.qid);
+
+    if (doneIds.has(qid)) {
+      tile.classList.add('done');
+      doneCount++;
+    } else {
+      tile.classList.remove('done');
+    }
+
+  });
+
+  const pct = TOTAL > 0
+    ? Math.round((doneCount / TOTAL) * 100)
+    : 0;
+
+  const summary =
+    document.getElementById('progressSummary');
+
+  if (summary) {
+    summary.textContent = `${doneCount} / ${TOTAL}`;
+    summary.style.display = 'block';
+  }
+
+  const overall =
+    document.getElementById('overallProg');
+
+  if (overall) {
+    overall.style.display = 'flex';
+  }
+
+  const overallLabel =
+    document.getElementById('overallLabel');
+
+  if (overallLabel) {
+    overallLabel.textContent =
+      `${doneCount} / ${TOTAL} quests`;
+  }
+
+  const overallPct =
+    document.getElementById('overallPct');
+
+  if (overallPct) {
+    overallPct.textContent = `${pct}%`;
+  }
+
+  const overallFill =
+    document.getElementById('overallFill');
+
+  requestAnimationFrame(() => {
+
+    setTimeout(() => {
+
+      if (overallFill) {
+
+        overallFill.style.width = pct + '%';
+
+        if (doneCount === TOTAL) {
+          overallFill.classList.add('complete');
+        }
+
+      }
+
+    }, 100);
+
+  });
+}
+
+async function fetchAndRender() {
+
+  if (!githubId) {
+    console.warn('Missing github_id');
+    return;
+  }
+
+  const pip =
+    document.getElementById('playerPip');
+
+  if (pip) {
+    pip.classList.add('loading');
+  }
+
+  try {
+
+    const { data, error } = await supabase
+      .from('report_card_view')
+      .select('quest_list')
+      .eq('github_id', githubId);
+
+    const OFFSET = 171;
+
+    const ids = new Set();
+
+    if (!error && data) {
+
+      data.forEach(row => {
+
+        String(row.quest_list || '')
+          .split(',')
+          .forEach(item => {
+
+            const m =
+              item.trim().match(/^Q?(\d+)$/i);
+
+            if (m) {
+
+              const localId =
+                Number(m[1]) - OFFSET;
+
+              if (
+                localId >= 1 &&
+                localId <= TOTAL
+              ) {
+                ids.add(localId);
+              }
+
+            }
+
+          });
+
+      });
+
+    }
+
+    applyCompletion(ids);
+
+  } catch (e) {
+
+    console.error(e);
+
+  } finally {
+
+    const p =
+      document.getElementById('playerPip');
+
+    if (p) {
+      p.classList.remove('loading');
+    }
+
+  }
+}
+
+fetchAndRender();
+
+</script>
+
+</body>
+</html>

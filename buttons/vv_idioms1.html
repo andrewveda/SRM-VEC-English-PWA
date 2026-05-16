@@ -41,9 +41,59 @@
   }
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
   html,body{height:100%;background:var(--bg-body);font-family:'Cormorant Garamond',serif;color:var(--text-main);overflow:hidden;transition:background .3s,color .3s;}
-  body{height:100dvh;display:flex;flex-direction:column;overflow:hidden;position:relative;}
-  body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opacity:var(--pattern-op);
-    background-image:repeating-linear-gradient(45deg,transparent,transparent 35px,var(--gold) 35px,var(--gold) 36px),
+ body{height:100dvh;display:flex;flex-direction:column;overflow:hidden;position:relative;}
+
+/* ── RISING WATER ───────────────────────────── */
+#waterOverlay{
+  position:fixed;
+  left:0;
+  right:0;
+  bottom:0;
+  height:0%;
+  pointer-events:none;
+  z-index:0;
+
+  background:
+    linear-gradient(
+      to top,
+      rgba(20,40,70,.92) 0%,
+      rgba(25,60,110,.82) 45%,
+      rgba(60,120,180,.45) 100%
+    );
+
+  transition:height .45s ease;
+  overflow:hidden;
+}
+
+/* subtle wave motion */
+#waterOverlay::before{
+  content:'';
+  position:absolute;
+  top:-18px;
+  left:-10%;
+  width:120%;
+  height:36px;
+
+  background:
+    radial-gradient(circle at 20px 18px,
+      rgba(255,255,255,.18) 0 8px,
+      transparent 9px),
+    radial-gradient(circle at 60px 18px,
+      rgba(255,255,255,.12) 0 8px,
+      transparent 9px);
+
+  background-size:80px 36px;
+
+  animation:waterWave 4s linear infinite;
+  opacity:.55;
+}
+
+@keyframes waterWave{
+  from{transform:translateX(0);}
+  to{transform:translateX(-80px);}
+}
+
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opacity:var(--pattern-op);  background-image:repeating-linear-gradient(45deg,transparent,transparent 35px,var(--gold) 35px,var(--gold) 36px),
     repeating-linear-gradient(-45deg,transparent,transparent 35px,var(--gold) 35px,var(--gold) 36px);transition:opacity .3s;}
   header{text-align:center;padding:8px 16px 6px;border-bottom:1px solid var(--border);flex-shrink:0;position:relative;z-index:1;display:flex;align-items:center;justify-content:center;transition:border-color .3s;}
   h1{font-family:'Playfair Display',serif;font-size:clamp(16px,4.5vw,22px);font-weight:400;letter-spacing:.12em;color:var(--gold-light);text-shadow:0 0 20px rgba(201,168,76,.25);transition:color .3s;}
@@ -75,7 +125,7 @@
   .dup-btn:hover{border-color:var(--gold);background:var(--surface2);}
   .dup-name{font-family:'Playfair Display',serif;font-size:15px;color:var(--text-main);}
   .dup-meta{font-size:9px;letter-spacing:.15em;color:var(--gold);opacity:.6;margin-top:3px;font-family:'DM Mono',monospace;}
-  main{flex:1;display:flex;flex-direction:column;padding:8px 12px 10px;gap:0;max-width:480px;margin:0 auto;width:100%;overflow:hidden;position:relative;z-index:1;justify-content:space-evenly;}
+  main{flex:1;display:flex;flex-direction:column;padding:8px 12px 10px;gap:0;max-width:480px;margin:0 auto;width:100%;overflow:hidden;position:relative;z-index:1;justify-content:space-evenly;z-index:2;}
   .timer-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 14px;display:flex;flex-direction:row;align-items:center;gap:12px;position:relative;overflow:hidden;flex-shrink:0;transition:background .3s,border-color .3s;}
   .timer-card::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent,transparent 24px,rgba(201,168,76,.018) 24px,rgba(201,168,76,.018) 25px);pointer-events:none;}
   .timer-ring-wrap{position:relative;width:88px;height:88px;flex-shrink:0;}
@@ -270,6 +320,7 @@
 </style>
 </head>
 <body>
+  <div id="waterOverlay"></div>
 <div class="big-toast" id="bigToast"></div>
 <header>
   <div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
@@ -647,6 +698,9 @@ let currentWord, guessed;
 let consecutiveCorrect = 0, consecutiveWrong = 0;
 let gameStarted = false, gemCount = 0, usedIndices = [];
 let timeLeft, timerInterval, gameOver, roundStart;
+
+/* ── WATER PRESSURE ───────────────────────── */
+let waterLevel = 0; // 0 → 100
 let completedIds = new Set(), completedIdsFetched = false;
 
 // ── MASTERY ───────────────────────────────────────────────────────
@@ -727,6 +781,23 @@ function updateTimerUI() {
   ring.style.strokeDashoffset = CIRCUMFERENCE * (1 - timeLeft / TOTAL_SECS);
   ring.style.stroke = timeLeft <= 30 ? '#c43030' : timeLeft <= 60 ? '#d4813a' : 'var(--gold)';
 }
+ function updateWaterLevel() {
+  waterLevel = Math.max(0, Math.min(100, waterLevel));
+
+  const water = document.getElementById('waterOverlay');
+
+  if (!water) return;
+
+  water.style.height = waterLevel + '%';
+
+  if (waterLevel >= 75) {
+    water.style.filter = 'brightness(.75) saturate(1.25)';
+  } else if (waterLevel >= 50) {
+    water.style.filter = 'brightness(.9)';
+  } else {
+    water.style.filter = 'none';
+  }
+}
 function adjustTime(delta, type) {
   timeLeft = Math.min(TOTAL_SECS, Math.max(0, timeLeft + delta));
   updateTimerUI();
@@ -750,6 +821,8 @@ window.newGame = async function () {
   currentWord = pickNext();
   guessed = new Set(); consecutiveCorrect = consecutiveWrong = 0;
   timeLeft = TOTAL_SECS; roundStart = Date.now();
+  waterLevel = 0;
+updateWaterLevel();
   document.querySelectorAll('.kb-key').forEach(k => { k.className = 'kb-key'; k.disabled = false; });
   document.getElementById('wrongLetters').innerHTML = '';
   document.getElementById('hintText').textContent   = currentWord.theme;
@@ -774,6 +847,9 @@ function guess(letter) {
   const btn = document.getElementById('key-' + letter);
   if (currentWord.phrase.toUpperCase().includes(letter)) {
     consecutiveWrong = 0; consecutiveCorrect++;
+    /* drain water slightly */
+waterLevel -= 4;
+updateWaterLevel();
     gemCount += consecutiveCorrect;
     if (btn) { btn.className = 'kb-key correct'; btn.disabled = true; }
     playCorrect(); adjustTime(bonusSecs(consecutiveCorrect), 'bonus');
@@ -782,7 +858,9 @@ function guess(letter) {
     updateGemDisplay(); renderWord();
     if (checkWin()) { endGame(true); return; }
   } else {
-    consecutiveCorrect = 0; consecutiveWrong++;
+    consecutiveCorrect = 0; /* rising panic */
+waterLevel += 12 + ((consecutiveWrong - 1) * 4);
+updateWaterLevel(); consecutiveWrong++;
     gemCount = Math.max(0, gemCount - consecutiveWrong);
     if (btn) { btn.className = 'kb-key wrong'; btn.disabled = true; }
     playWrong(); adjustTime(-penaltySecs(consecutiveWrong), 'penalty');
@@ -851,6 +929,9 @@ function endGame(won) {
   const timeSpent = Math.round((Date.now() - roundStart) / 1000);
   const { correct, wrong } = countGuesses();
   if (won) {
+    /* major relief after solving */
+waterLevel -= 20;
+updateWaterLevel();
     animateWinLetters(); playWin();
     setTimeout(() => { buildInGameDialogue(); document.querySelectorAll('.kb-key').forEach(k => k.disabled = true); }, 1800);
     setTimeout(() => {

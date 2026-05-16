@@ -8,12 +8,27 @@
   const githubUser =
     localStorage.getItem('github_username');
 
-  // Not authenticated
+  const githubId =
+    localStorage.getItem('github_id');
+
+  // Invalid or incomplete authentication
   if (
     loggedIn !== 'true' ||
-    !githubUser
+    !githubUser ||
+    !githubId
   ) {
 
+    // Clear broken session
+    localStorage.removeItem('logged_in');
+    localStorage.removeItem('auth_provider');
+    localStorage.removeItem('github_username');
+    localStorage.removeItem('github_id');
+    localStorage.removeItem('github_profile');
+    localStorage.removeItem('avatar');
+    localStorage.removeItem('userName');
+    localStorage.removeItem('userDept');
+
+    // Preserve return URL
     const current =
       window.location.pathname +
       window.location.search;
@@ -21,6 +36,7 @@
     const returnTo =
       encodeURIComponent(current);
 
+    // Redirect to login
     window.location.replace(
       `/SRM-VEC-English-PWA/auth.html?return=${returnTo}`
     );
@@ -28,18 +44,16 @@
     return;
   }
 
-  // Optional:
-  // expose simple global object
-
+  // Global helper object
   window.GH = {
 
     loggedIn: true,
 
     username:
-      localStorage.getItem('github_username'),
+      githubUser,
 
     githubId:
-      localStorage.getItem('github_id'),
+      githubId,
 
     profile:
       localStorage.getItem('github_profile'),
@@ -52,6 +66,7 @@
 
     dept:
       localStorage.getItem('userDept')
+
   };
 
 })();

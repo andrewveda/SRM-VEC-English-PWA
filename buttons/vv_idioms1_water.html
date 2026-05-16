@@ -695,9 +695,7 @@ function showDupPicker(matches, dept) {
 document.getElementById('nameInput').addEventListener('keydown', e => { if (e.key === 'Enter') window.handleLogin(); });
 
 let currentWord, guessed;
-let consecutiveCorrect = 0, consecutiveWrong = 0; /* drain water slightly */
-waterLevel -= 4;
-updateWaterLevel();
+let consecutiveCorrect = 0, consecutiveWrong = 0;
 let gameStarted = false, gemCount = 0, usedIndices = [];
 let timeLeft, timerInterval, gameOver, roundStart;
 
@@ -783,13 +781,15 @@ function updateTimerUI() {
   ring.style.strokeDashoffset = CIRCUMFERENCE * (1 - timeLeft / TOTAL_SECS);
   ring.style.stroke = timeLeft <= 30 ? '#c43030' : timeLeft <= 60 ? '#d4813a' : 'var(--gold)';
 }
-  function updateWaterLevel() {
+ function updateWaterLevel() {
   waterLevel = Math.max(0, Math.min(100, waterLevel));
 
   const water = document.getElementById('waterOverlay');
+
+  if (!water) return;
+
   water.style.height = waterLevel + '%';
 
-  // extra tension at high levels
   if (waterLevel >= 75) {
     water.style.filter = 'brightness(.75) saturate(1.25)';
   } else if (waterLevel >= 50) {
@@ -847,6 +847,9 @@ function guess(letter) {
   const btn = document.getElementById('key-' + letter);
   if (currentWord.phrase.toUpperCase().includes(letter)) {
     consecutiveWrong = 0; consecutiveCorrect++;
+    /* drain water slightly */
+waterLevel -= 4;
+updateWaterLevel();
     gemCount += consecutiveCorrect;
     if (btn) { btn.className = 'kb-key correct'; btn.disabled = true; }
     playCorrect(); adjustTime(bonusSecs(consecutiveCorrect), 'bonus');

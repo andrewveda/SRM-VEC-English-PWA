@@ -1,0 +1,1268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Lexicon</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --gold:#C9A84C; --gold-light:#E8C97A; --gold-pale:#F5E6B8;
+    --gold-dim:rgba(201,168,76,0.12);
+    --bg-body:#1a1208; --dark:#1a1208; --dark-mid:#2d2010; --dark-warm:#3d2e12;
+    --surface:rgba(201,168,76,0.05); --surface2:rgba(201,168,76,0.09);
+    --card-bg:linear-gradient(160deg,#3d2e12,#1a1208);
+    --text-main:#F9F3E3;
+    --danger:#8B2020; --danger-light:#c43030;
+    --border:rgba(201,168,76,0.22); --border-dim:rgba(255,255,255,0.06);
+    --key-bg:rgba(201,168,76,0.07); --key-border:rgba(201,168,76,0.35); --key-color:#E8C97A;
+    --key-correct-bg:rgba(45,90,39,0.35); --key-correct-border:rgba(100,180,80,0.45); --key-correct-color:rgba(130,220,100,0.9);
+    --key-wrong-bg:rgba(100,20,20,0.35); --key-wrong-border:rgba(150,40,40,0.35); --key-wrong-color:rgba(180,80,80,0.5);
+    --def-bg:rgba(201,168,76,0.04); --def-border:rgba(201,168,76,0.18);
+    --wrong-color:rgba(200,70,70,0.85); --pattern-op:0.025;
+    --mastered-bg:rgba(90,50,140,0.18); --mastered-border:rgba(160,100,220,0.4); --mastered-color:rgba(190,140,240,0.9);
+  }
+  html.light {
+    --gold:#9a6e00; --gold-light:#b88a00; --gold-pale:#5a3d00;
+    --gold-dim:rgba(154,110,0,0.14);
+    --bg-body:#faf4e8; --dark:#faf4e8; --dark-mid:#f0e8d0; --dark-warm:#e8dcc0;
+    --surface:rgba(154,110,0,0.06); --surface2:rgba(154,110,0,0.10);
+    --card-bg:linear-gradient(160deg,#ede0c0,#faf4e8);
+    --text-main:#3a2800;
+    --danger:#9a1a1a; --danger-light:#c43030;
+    --border:rgba(154,110,0,0.28); --border-dim:rgba(0,0,0,0.07);
+    --key-bg:rgba(154,110,0,0.08); --key-border:rgba(154,110,0,0.38); --key-color:#6b4800;
+    --key-correct-bg:rgba(30,80,25,0.18); --key-correct-border:rgba(60,160,50,0.5); --key-correct-color:#1a5c14;
+    --key-wrong-bg:rgba(120,20,20,0.12); --key-wrong-border:rgba(160,40,40,0.4); --key-wrong-color:#8b2020;
+    --def-bg:rgba(154,110,0,0.06); --def-border:rgba(154,110,0,0.22);
+    --wrong-color:rgba(160,40,40,0.85); --pattern-op:0.045;
+    --mastered-bg:rgba(90,50,140,0.10); --mastered-border:rgba(130,80,200,0.45); --mastered-color:#6a30b0;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;background:var(--bg-body);font-family:'Cormorant Garamond',serif;color:var(--text-main);overflow:hidden;transition:background .3s,color .3s;}
+  body{height:100dvh;display:flex;flex-direction:column;overflow:hidden;position:relative;}
+  body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opacity:var(--pattern-op);
+    background-image:repeating-linear-gradient(45deg,transparent,transparent 35px,var(--gold) 35px,var(--gold) 36px),
+    repeating-linear-gradient(-45deg,transparent,transparent 35px,var(--gold) 35px,var(--gold) 36px);transition:opacity .3s;}
+  header{text-align:center;padding:8px 16px 6px;border-bottom:1px solid var(--border);flex-shrink:0;position:relative;z-index:1;display:flex;align-items:center;justify-content:center;transition:border-color .3s;}
+  h1{font-family:'Playfair Display',serif;font-size:clamp(16px,4.5vw,22px);font-weight:400;letter-spacing:.12em;color:var(--gold-light);text-shadow:0 0 20px rgba(201,168,76,.25);transition:color .3s;}
+  .left-btns{position:absolute;left:10px;top:50%;transform:translateY(-50%);display:flex;gap:5px;align-items:center;z-index:2;}
+  .right-btns{position:absolute;right:10px;top:50%;transform:translateY(-50%);display:flex;gap:5px;align-items:center;z-index:2;}
+  .help-btn,.home-btn,.theme-toggle,.mute-btn{font-size:16px;cursor:pointer;line-height:1;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:4px 9px;color:var(--gold);transition:background .2s,transform .15s;user-select:none;}
+  .help-btn:hover,.home-btn:hover,.theme-toggle:hover,.mute-btn:hover{background:var(--surface2);}
+  .help-btn:active,.home-btn:active,.theme-toggle:active,.mute-btn:active{transform:scale(.88);}
+  .player-pill{display:inline-flex;align-items:center;gap:6px;margin-top:3px;padding:2px 10px;border:1px solid var(--border);border-radius:20px;font-size:11px;color:var(--gold);letter-spacing:.1em;cursor:pointer;transition:border-color .2s,color .2s;font-family:'DM Mono',monospace;}
+  .player-pill:hover{border-color:var(--gold-light);color:var(--gold-light);}
+  .player-pill .pip{width:6px;height:6px;border-radius:50%;background:var(--gold);flex-shrink:0;}
+  .player-dept{font-size:9px;color:var(--gold);opacity:.6;margin-left:2px;}
+  .login-gate{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:200;justify-content:center;align-items:center;padding:20px;backdrop-filter:blur(8px);}
+  .login-gate.show{display:flex;}
+  .login-card{background:var(--card-bg);border:1px solid var(--border);border-radius:20px;padding:28px 24px;width:100%;max-width:360px;position:relative;overflow:hidden;transition:background .3s,border-color .3s;}
+  .login-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--danger),var(--gold),var(--danger));}
+  .login-card-title{font-family:'Playfair Display',serif;font-size:22px;font-weight:400;color:var(--gold-light);text-align:center;margin-bottom:3px;}
+  .login-card-sub{font-size:10px;letter-spacing:.25em;text-transform:uppercase;color:var(--gold);opacity:.5;text-align:center;margin-bottom:22px;font-family:'DM Mono',monospace;}
+  .field-group{margin-bottom:14px;}
+  .field-group label{display:block;font-size:9px;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);opacity:.55;margin-bottom:6px;font-family:'DM Mono',monospace;}
+  .field-group input,.field-group select{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:11px 14px;font-family:'Cormorant Garamond',serif;font-size:15px;color:var(--text-main);outline:none;transition:border-color .2s;-webkit-appearance:none;appearance:none;}
+  .field-group input::placeholder{color:var(--gold);opacity:.3;}
+  .field-group input:focus,.field-group select:focus{border-color:var(--gold);box-shadow:0 0 0 3px var(--gold-dim);}
+  .field-group select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23c9a84c' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:36px;cursor:pointer;}
+  .field-group select option{background:var(--dark-mid);color:var(--text-main);}
+  .btn-gold{background:linear-gradient(135deg,var(--gold),#a07828);color:#1a1208;border:none;border-radius:10px;padding:12px 32px;font-family:'DM Mono',monospace;font-size:13px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;width:100%;box-shadow:0 4px 20px rgba(201,168,76,.25);transition:transform .15s,filter .15s;margin-top:4px;}
+  .btn-gold:hover{filter:brightness(1.08);} .btn-gold:active{transform:scale(.97);}
+  .dup-btn{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:11px 14px;text-align:left;cursor:pointer;margin-bottom:8px;transition:border-color .2s,background .2s;}
+  .dup-btn:hover{border-color:var(--gold);background:var(--surface2);}
+  .dup-name{font-family:'Playfair Display',serif;font-size:15px;color:var(--text-main);}
+  .dup-meta{font-size:9px;letter-spacing:.15em;color:var(--gold);opacity:.6;margin-top:3px;font-family:'DM Mono',monospace;}
+  main{flex:1;display:flex;flex-direction:column;padding:8px 12px 10px;gap:0;max-width:480px;margin:0 auto;width:100%;overflow:hidden;position:relative;z-index:1;justify-content:space-evenly;}
+  .timer-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 14px;display:flex;flex-direction:row;align-items:center;gap:12px;position:relative;overflow:hidden;flex-shrink:0;transition:background .3s,border-color .3s;}
+  .timer-card::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent,transparent 24px,rgba(201,168,76,.018) 24px,rgba(201,168,76,.018) 25px);pointer-events:none;}
+  .timer-ring-wrap{position:relative;width:88px;height:88px;flex-shrink:0;}
+  .timer-ring-wrap svg{transform:rotate(-90deg);width:88px;height:88px;}
+  .ring-track{fill:none;stroke:rgba(201,168,76,.12);stroke-width:6;}
+  .ring-progress{fill:none;stroke:var(--gold);stroke-width:6;stroke-linecap:round;transition:stroke-dashoffset 1s linear,stroke .4s ease;filter:drop-shadow(0 0 4px rgba(201,168,76,.4));}
+  .timer-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+  .timer-display{font-family:'Playfair Display',serif;font-size:24px;font-weight:700;color:var(--gold-light);letter-spacing:.04em;line-height:1;transition:color .4s ease;}
+  .timer-display.urgent{color:var(--danger-light);text-shadow:0 0 12px rgba(196,48,48,.5);}
+  .gem-row{display:flex;align-items:center;justify-content:space-between;flex:1;gap:6px;}
+  .gem-badge{display:flex;align-items:center;gap:4px;}
+  .gem-icon{font-size:13px;line-height:1;}
+  .gem-val{font-family:'Playfair Display',serif;font-size:18px;line-height:1;}
+  .gem-val.correct-color{color:#4caf50;} .gem-val.wrong-color{color:#d96060;}
+  .gem-lbl{font-size:8px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);opacity:.45;font-family:'DM Mono',monospace;}
+  .gem-total{display:flex;flex-direction:column;align-items:center;gap:1px;}
+  .gem-total-icon{font-size:18px;line-height:1;}
+  .gem-total-val{font-family:'Playfair Display',serif;font-size:20px;font-weight:700;color:var(--gold-light);line-height:1;text-shadow:0 0 10px rgba(201,168,76,.4);}
+  .delta-toast{position:absolute;top:6px;right:10px;font-family:'Playfair Display',serif;font-size:13px;font-weight:700;opacity:0;pointer-events:none;}
+  .delta-toast.correct{color:#4caf50;} .delta-toast.wrong{color:#d96060;}
+  .delta-toast.animate{animation:toastPop 1s ease forwards;}
+  @keyframes toastPop{0%{opacity:0;transform:translateY(0)}15%{opacity:1;transform:translateY(-3px)}70%{opacity:1;transform:translateY(-10px)}100%{opacity:0;transform:translateY(-18px)}}
+  .big-toast{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:500;pointer-events:none;font-family:'Playfair Display',serif;font-size:clamp(56px,18vw,88px);font-weight:700;letter-spacing:-.02em;line-height:1;opacity:0;text-align:center;}
+  .big-toast.correct{color:#4caf50;text-shadow:0 0 40px rgba(76,175,80,.5),0 4px 20px rgba(0,0,0,.3);}
+  .big-toast.wrong{color:#d96060;text-shadow:0 0 40px rgba(217,96,96,.5),0 4px 20px rgba(0,0,0,.3);}
+  .big-toast.pop{animation:bigToastPop 1.1s cubic-bezier(.22,1,.36,1) forwards;}
+  @keyframes bigToastPop{0%{opacity:0;transform:translate(-50%,-50%) scale(.6);}20%{opacity:1;transform:translate(-50%,-50%) scale(1.08);}45%{opacity:1;transform:translate(-50%,-50%) scale(1);}75%{opacity:1;transform:translate(-50%,-55%);}100%{opacity:0;transform:translate(-50%,-65%);}}
+  .hint-strip{text-align:center;flex-shrink:0;padding:2px 0;}
+  .hint-strip .theme-label{font-size:8px;letter-spacing:.3em;text-transform:uppercase;color:var(--gold);opacity:.5;font-family:'DM Mono',monospace;display:block;margin-bottom:2px;}
+  .hint-strip .theme-value{font-family:'Playfair Display',serif;font-size:20px;font-weight:700;letter-spacing:.08em;color:var(--gold-light);text-shadow:0 0 18px rgba(201,168,76,.35);display:block;line-height:1.1;}
+  .game-dialogue{background:var(--def-bg);border:1px solid var(--def-border);border-radius:10px;padding:10px 14px;display:flex;flex-direction:column;gap:4px;flex-shrink:0;transition:background .3s,border-color .3s;}
+  .game-dialogue-label{font-size:8px;letter-spacing:.25em;text-transform:uppercase;color:var(--gold);opacity:.4;font-family:'DM Mono',monospace;}
+  .game-definition{font-family:'Cormorant Garamond',serif;font-size:18px;font-style:italic;color:var(--text-main);line-height:1.45;text-align:center;opacity:.9;}
+  .word-area{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 8px;padding:4px 0;min-height:70px;align-items:center;flex-shrink:0;}
+  .word-group{display:flex;gap:4px;align-items:flex-end;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:6px 8px 5px;position:relative;transition:background .3s,border-color .3s;}
+  .letter-slot{display:flex;flex-direction:column;align-items:center;gap:1px;}
+  .letter-char{font-family:'Playfair Display',serif;font-size:clamp(20px,5vw,28px);font-weight:700;color:var(--gold-light);height:32px;display:flex;align-items:center;justify-content:center;text-shadow:0 0 10px rgba(201,168,76,.35);min-width:16px;text-align:center;}
+  .letter-char.revealed{animation:revealLetter .45s ease forwards;}
+  @keyframes revealLetter{0%{transform:translateY(-8px);opacity:0}60%{transform:translateY(2px)}100%{transform:translateY(0);opacity:1}}
+  .letter-line{width:100%;min-width:16px;height:1.5px;background:var(--gold);opacity:.45;border-radius:1px;}
+  .wrong-letters{text-align:center;font-family:'Playfair Display',serif;font-size:16px;letter-spacing:.15em;color:var(--wrong-color);min-height:24px;flex-shrink:0;}
+  .wrong-label{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--wrong-color);opacity:.6;margin-right:6px;}
+  .in-game-dial{display:none;background:var(--def-bg);border:1px solid var(--border);border-radius:10px;padding:10px 14px;flex-direction:column;gap:5px;flex-shrink:0;}
+  .in-game-dial.show{display:flex;animation:dialSlideIn .45s cubic-bezier(.22,1,.36,1) forwards;}
+  @keyframes dialSlideIn{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:translateY(0);}}
+  .in-game-dial-lbl{font-size:8px;letter-spacing:.25em;text-transform:uppercase;color:var(--gold);opacity:.45;font-family:'DM Mono',monospace;margin-bottom:2px;}
+  .in-game-dial-line{display:flex;gap:8px;align-items:flex-start;}
+  .in-game-dial-speaker{font-family:'DM Mono',monospace;font-size:7px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);flex-shrink:0;padding-top:3px;min-width:68px;max-width:68px;line-height:1.3;word-break:break-word;}
+  .in-game-dial-text{font-family:'Cormorant Garamond',serif;font-size:14px;color:var(--text-main);line-height:1.4;flex:1;opacity:.88;}
+  .in-game-dial-text em{color:var(--gold-light);font-style:normal;font-weight:700;}
+  .keyboard{display:flex;flex-direction:column;gap:5px;flex-shrink:0;}
+  .kb-row{display:flex;justify-content:center;gap:5px;width:100%;}
+  .kb-key{flex:1;min-width:0;height:46px;border-radius:7px;border:1px solid var(--key-border);background:var(--key-bg);color:var(--key-color);font-family:'Playfair Display',serif;font-size:clamp(13px,3.5vw,16px);font-weight:700;cursor:pointer;transition:background .12s,transform .1s;position:relative;}
+  .kb-key::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,.06) 0%,transparent 100%);border-radius:7px;pointer-events:none;}
+  .kb-key:active{transform:scale(.91);}
+  .kb-key.correct{background:var(--key-correct-bg);border-color:var(--key-correct-border);color:var(--key-correct-color);cursor:not-allowed;}
+  .kb-key.wrong{background:var(--key-wrong-bg);border-color:var(--key-wrong-border);color:var(--key-wrong-color);cursor:not-allowed;}
+  .dash-btn{display:flex;align-items:center;justify-content:center;gap:6px;padding:6px 12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--gold);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.1em;cursor:pointer;transition:background .2s,border-color .2s;text-transform:uppercase;flex-shrink:0;}
+  .dash-btn:active{background:var(--surface2);}
+  .overlay{display:none;position:fixed;inset:0;background:rgba(10,8,3,.9);z-index:100;justify-content:center;align-items:center;padding:24px;backdrop-filter:blur(6px);}
+  html.light .overlay{background:rgba(250,244,232,.92);}
+  .overlay.show{display:flex;}
+  .msg-card{background:var(--card-bg);border:1px solid var(--gold);border-radius:16px;padding:22px 20px;text-align:center;max-width:340px;width:100%;box-shadow:0 0 50px rgba(201,168,76,.15);animation:cardIn .4s cubic-bezier(.34,1.56,.64,1) forwards;overflow-y:auto;max-height:90dvh;}
+  @keyframes cardIn{from{transform:scale(.8) translateY(16px);opacity:0}to{transform:scale(1) translateY(0);opacity:1}}
+  .msg-icon{font-size:40px;margin-bottom:8px;display:block;}
+  .msg-title{font-family:'Playfair Display',serif;font-size:22px;font-weight:400;color:var(--gold-light);margin-bottom:5px;}
+  .msg-idiom{font-family:'Playfair Display',serif;font-style:italic;font-size:15px;color:var(--text-main);margin-bottom:5px;line-height:1.4;}
+  .msg-time{font-family:'Playfair Display',serif;font-size:13px;color:var(--gold);opacity:.6;margin-bottom:5px;}
+  .msg-time strong{color:var(--gold-light);opacity:1;}
+  .msg-log{font-size:10px;color:var(--gold);opacity:.4;margin-bottom:14px;min-height:14px;font-family:'DM Mono',monospace;letter-spacing:.06em;}
+  .msg-dialogue{margin:6px 0 12px;text-align:left;display:flex;flex-direction:column;gap:5px;}
+  .msg-dial-line{display:flex;gap:8px;align-items:flex-start;}
+  .msg-dial-speaker{font-family:'DM Mono',monospace;font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);flex-shrink:0;padding-top:3px;min-width:64px;max-width:64px;line-height:1.3;word-break:break-word;}
+  .msg-dial-text{font-family:'Cormorant Garamond',serif;font-size:13px;color:var(--text-main);line-height:1.45;flex:1;opacity:.88;}
+  .msg-dial-text em{color:var(--gold-light);font-style:normal;font-weight:700;}
+  .msg-section-lbl{font-size:8px;letter-spacing:.25em;text-transform:uppercase;color:var(--gold);opacity:.4;font-family:'DM Mono',monospace;margin-top:2px;margin-bottom:2px;text-align:left;}
+  .dash-overlay{display:none;position:fixed;inset:0;background:var(--bg-body);z-index:150;overflow-y:auto;padding:16px 14px 32px;}
+  .dash-overlay.show{display:block;}
+  .dash-inner{max-width:480px;margin:0 auto;}
+  .dash-header{display:flex;align-items:center;justify-content:space-between;padding:14px 0 12px;border-bottom:1px solid var(--border);margin-bottom:14px;}
+  .dash-title{font-family:'Playfair Display',serif;font-size:clamp(14px,3.8vw,20px);font-weight:400;color:var(--gold-light);}
+  .dash-title-sub{font-family:'DM Mono',monospace;font-size:8px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);opacity:.45;margin-top:2px;}
+  .dash-subtitle{font-size:10px;color:var(--gold);opacity:.5;letter-spacing:.15em;margin-top:2px;font-family:'DM Mono',monospace;}
+  .dash-close{background:none;border:1px solid var(--border);border-radius:50%;width:32px;height:32px;color:var(--gold);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+  .dash-play-random{background:linear-gradient(135deg,var(--gold),#a07828);color:#1a1208;border:none;border-radius:8px;padding:8px 16px;font-family:'DM Mono',monospace;font-size:11px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;box-shadow:0 3px 12px rgba(201,168,76,.25);transition:filter .15s,transform .15s;}
+  .dash-play-random:active{transform:scale(.96);}
+  .dash-stats{display:flex;gap:8px;margin-bottom:14px;}
+  .dash-stat{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 8px;text-align:center;}
+  .dash-stat-val{font-family:'Playfair Display',serif;font-size:22px;color:var(--gold-light);line-height:1;}
+  .dash-stat-lbl{font-size:9px;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);opacity:.5;margin-top:3px;font-family:'DM Mono',monospace;}
+  .progress-wrap{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 14px;margin-bottom:14px;}
+  .progress-label{font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);opacity:.55;margin-bottom:7px;display:flex;justify-content:space-between;font-family:'DM Mono',monospace;}
+  .progress-track{height:6px;background:var(--surface2);border-radius:3px;overflow:hidden;}
+  .progress-fill{height:100%;background:linear-gradient(90deg,var(--gold),var(--gold-light));border-radius:3px;transition:width .8s ease;}
+  .section-lbl{font-size:10px;letter-spacing:.3em;text-transform:uppercase;color:var(--gold);opacity:.45;margin-bottom:8px;padding-left:2px;font-family:'DM Mono',monospace;}
+  .idiom-grid{display:flex;flex-direction:column;gap:8px;margin-bottom:16px;}
+  .idiom-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px;transition:border-color .2s,background .3s;}
+  .idiom-card.solved{border-color:rgba(100,180,80,.3);background:rgba(45,90,39,.08);}
+  html.light .idiom-card.solved{border-color:rgba(40,140,30,.4);background:rgba(40,140,30,.07);}
+  .idiom-playable{cursor:pointer;transition:border-color .2s,transform .15s,box-shadow .15s;}
+  .idiom-playable:hover{border-color:var(--gold);transform:translateY(-1px);box-shadow:0 4px 16px rgba(201,168,76,.15);}
+  .idiom-playable:active{transform:scale(.98);}
+  .idiom-play-hint{font-size:9px;font-family:'DM Mono',monospace;color:var(--gold);opacity:.45;letter-spacing:.14em;text-align:right;margin-top:5px;}
+  .idiom-playable:hover .idiom-play-hint{opacity:.8;}
+  .idiom-top{display:flex;align-items:flex-start;gap:10px;}
+  .idiom-status{font-size:15px;flex-shrink:0;width:20px;margin-top:1px;}
+  .idiom-info{flex:1;min-width:0;}
+  .idiom-qid{font-size:9px;color:var(--gold);opacity:.3;flex-shrink:0;font-family:'DM Mono',monospace;margin-top:2px;}
+  .idiom-meaning{font-family:'Cormorant Garamond',serif;font-size:14px;font-style:italic;color:var(--gold-light);line-height:1.4;}
+  .idiom-card:not(.solved) .idiom-meaning{color:var(--gold);opacity:.6;}
+  .idiom-theme{font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);opacity:.4;margin-top:3px;font-family:'DM Mono',monospace;}
+  .dash-spinner{display:flex;justify-content:center;align-items:center;padding:32px 0;}
+  .spinner-ring{width:36px;height:36px;border-radius:50%;border:3px solid var(--surface2);border-top-color:var(--gold);animation:spin .8s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .dash-error{text-align:center;color:var(--danger-light);font-size:13px;padding:24px;font-style:italic;}
+  .all-done{text-align:center;padding:14px 0 6px;font-family:'Playfair Display',serif;font-size:15px;color:var(--gold-light);}
+  @keyframes gemPop{0%{transform:scale(1)}50%{transform:scale(1.35) rotate(8deg)}100%{transform:scale(1)}}
+  .gem-pop{animation:gemPop .4s ease;}
+  @keyframes wrongShake{0%,100%{transform:translateX(0)}20%{transform:translateX(-5px)}60%{transform:translateX(5px)}80%{transform:translateX(-3px)}}
+  .shake{animation:wrongShake .35s ease;}
+  @keyframes winBounce{0%{transform:translateY(0) scale(1)}30%{transform:translateY(-10px) scale(1.18)}55%{transform:translateY(2px) scale(0.95)}75%{transform:translateY(-4px) scale(1.06)}100%{transform:translateY(0) scale(1)}}
+  .letter-char.win-bounce{animation:winBounce .55s ease forwards;}
+  .word-group.win-glow{border-color:var(--gold) !important;box-shadow:0 0 14px rgba(201,168,76,.5);}
+  @keyframes timerFlash{0%,100%{background:var(--surface)}40%{background:rgba(139,32,32,.22)}}
+  .timer-card.penalty{animation:timerFlash .5s ease;}
+  @keyframes timerBonus{0%,100%{background:var(--surface)}40%{background:rgba(45,90,39,.25)}}
+  .timer-card.bonus{animation:timerBonus .5s ease;}
+  .help-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:300;justify-content:center;align-items:center;padding:20px;backdrop-filter:blur(8px);}
+  html.light .help-overlay{background:rgba(250,244,232,.9);}
+  .help-overlay.show{display:flex;}
+  .help-card{background:var(--card-bg);border:1px solid var(--gold);border-radius:16px;padding:22px 20px 18px;width:100%;max-width:380px;position:relative;overflow:hidden;max-height:88dvh;overflow-y:auto;}
+  .help-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--gold),var(--gold-light),var(--gold));}
+  .help-title{font-family:'Playfair Display',serif;font-size:20px;font-weight:400;color:var(--gold-light);text-align:center;margin-bottom:4px;}
+  .help-sub{font-size:9px;letter-spacing:.28em;text-transform:uppercase;color:var(--gold);opacity:.5;text-align:center;font-family:'DM Mono',monospace;margin-bottom:18px;}
+  .help-close{position:absolute;top:14px;right:14px;background:none;border:1px solid var(--border);border-radius:50%;width:28px;height:28px;color:var(--gold);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;}
+  .help-section{margin-bottom:14px;}
+  .help-section-title{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.28em;text-transform:uppercase;color:var(--gold);opacity:.6;margin-bottom:8px;}
+  .help-row{display:flex;gap:10px;align-items:flex-start;margin-bottom:8px;}
+  .help-icon{font-size:18px;flex-shrink:0;width:28px;text-align:center;margin-top:1px;}
+  .help-text{font-family:'Cormorant Garamond',serif;font-size:15px;color:var(--text-main);line-height:1.45;opacity:.9;}
+  .help-text strong{color:var(--gold-light);font-weight:700;font-style:normal;}
+  .help-divider{height:1px;background:var(--border);margin:14px 0;opacity:.5;}
+  .help-tip{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-family:'Cormorant Garamond',serif;font-size:14px;font-style:italic;color:var(--text-main);opacity:.8;text-align:center;line-height:1.4;}
+
+  /* ── GLOSSARY (embedded in dashboard) ────────────────────── */
+  .glossary-search{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 14px;font-family:'Cormorant Garamond',serif;font-size:15px;color:var(--text-main);outline:none;margin-bottom:12px;transition:border-color .2s;}
+  .glossary-search:focus{border-color:var(--gold);box-shadow:0 0 0 3px var(--gold-dim);}
+  .glossary-search::placeholder{color:var(--gold);opacity:.35;}
+  .glossary-filter-row{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;}
+  .gf-chip{padding:4px 12px;border-radius:20px;border:1px solid var(--border);background:var(--surface);color:var(--gold);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:border-color .2s,background .2s;}
+  .gf-chip.active{border-color:var(--gold);background:var(--gold-dim);color:var(--gold-light);}
+  .gf-chip.mastered-chip.active{border-color:var(--mastered-border);background:var(--mastered-bg);color:var(--mastered-color);}
+  .glossary-grid{display:flex;flex-direction:column;gap:10px;}
+  .dash-section-divider{height:1px;background:var(--border);margin:18px 0 16px;opacity:.5;}
+  .dash-tabs{display:flex;gap:0;margin-bottom:16px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:3px;flex-shrink:0;}
+  .dash-tab{flex:1;padding:8px 12px;border-radius:7px;border:none;background:none;color:var(--gold);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;transition:background .2s,color .2s;}
+  .dash-tab.active{background:linear-gradient(135deg,var(--gold),#a07828);color:#1a1208;font-weight:500;}
+  .gloss-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 16px;transition:border-color .2s,background .3s,transform .15s;position:relative;overflow:hidden;}
+  .gloss-card::before{content:'';position:absolute;top:0;left:0;width:3px;height:100%;background:var(--gold);opacity:.25;border-radius:3px 0 0 3px;transition:opacity .3s;}
+  .gloss-card.mastered{border-color:var(--mastered-border);background:var(--mastered-bg);}
+  .gloss-card.mastered::before{background:var(--mastered-color);opacity:.5;}
+  .gloss-card-head{display:flex;align-items:flex-start;gap:10px;margin-bottom:8px;}
+  .gloss-word{font-family:'Playfair Display',serif;font-size:19px;font-weight:700;color:var(--gold-light);letter-spacing:.04em;flex:1;line-height:1.2;}
+  .gloss-card.mastered .gloss-word{color:var(--mastered-color);}
+  .gloss-theme-tag{font-family:'DM Mono',monospace;font-size:8px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);opacity:.5;border:1px solid var(--border);border-radius:4px;padding:2px 7px;white-space:nowrap;flex-shrink:0;margin-top:3px;}
+  .gloss-definition{font-family:'Cormorant Garamond',serif;font-size:15px;font-style:italic;color:var(--text-main);line-height:1.5;opacity:.85;margin-bottom:8px;}
+  .gloss-dialogue{display:flex;flex-direction:column;gap:5px;margin-bottom:10px;background:var(--def-bg);border:1px solid var(--def-border);border-radius:8px;padding:8px 10px;}
+  .gloss-dial-lbl{font-family:'DM Mono',monospace;font-size:8px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);opacity:.4;margin-bottom:4px;}
+  .gloss-dial-line{display:flex;gap:8px;align-items:flex-start;}
+  .gloss-dial-speaker{font-family:'DM Mono',monospace;font-size:7px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);flex-shrink:0;padding-top:2px;min-width:60px;max-width:60px;line-height:1.3;word-break:break-word;}
+  .gloss-dial-text{font-family:'Cormorant Garamond',serif;font-size:13px;color:var(--text-main);line-height:1.4;flex:1;opacity:.85;}
+  .gloss-dial-text em{color:var(--gold-light);font-style:normal;font-weight:700;}
+  .gloss-actions{display:flex;gap:8px;align-items:center;}
+  .mastery-btn{display:flex;align-items:center;gap:5px;padding:6px 14px;border-radius:7px;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:background .2s,border-color .2s,transform .15s;border:1px solid var(--border);background:var(--surface);color:var(--gold);}
+  .mastery-btn:hover{border-color:var(--mastered-border);background:var(--mastered-bg);color:var(--mastered-color);}
+  .mastery-btn.is-mastered{border-color:var(--mastered-border);background:var(--mastered-bg);color:var(--mastered-color);}
+  .mastery-btn:active{transform:scale(.95);}
+  .mastery-btn .mastery-spinner{display:none;width:10px;height:10px;border:1.5px solid var(--mastered-color);border-top-color:transparent;border-radius:50%;animation:spin .6s linear infinite;}
+  .mastery-btn.loading .mastery-spinner{display:block;}
+  .mastery-btn.loading .mastery-btn-text{display:none;}
+  .mastery-label{display:flex;align-items:center;gap:5px;flex:1;}
+  .gloss-mastery-status{font-family:'DM Mono',monospace;font-size:8px;letter-spacing:.12em;color:var(--mastered-color);opacity:.7;margin-left:auto;display:none;}
+  .gloss-card.mastered .gloss-mastery-status{display:block;}
+  .gloss-speak-btn{display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:7px;border:1px solid var(--border);background:var(--surface);color:var(--gold);font-size:15px;cursor:pointer;transition:background .2s,border-color .2s,transform .12s;flex-shrink:0;}
+  .gloss-speak-btn:hover{border-color:var(--gold);background:var(--gold-dim);}
+  .gloss-speak-btn:active{transform:scale(.9);}
+  .gloss-speak-btn.speaking{border-color:var(--gold-light);background:var(--gold-dim);animation:speakPulse 1s ease infinite;}
+  @keyframes speakPulse{0%,100%{box-shadow:0 0 0 0 rgba(201,168,76,.4)}50%{box-shadow:0 0 0 5px rgba(201,168,76,0)}}
+  @keyframes masteredPulse{0%{box-shadow:0 0 0 0 var(--mastered-border)}70%{box-shadow:0 0 0 8px rgba(160,100,220,0)}100%{box-shadow:0 0 0 0 rgba(160,100,220,0)}}
+  .gloss-card.just-mastered{animation:masteredPulse .6s ease;}
+  .glossary-empty{text-align:center;padding:32px 0;font-family:'Playfair Display',serif;font-size:16px;color:var(--gold);opacity:.5;font-style:italic;}
+</style>
+</head>
+<body>
+<div class="big-toast" id="bigToast"></div>
+<header>
+  <div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
+    <h1>Lexicon</h1>
+    <div class="player-pill" id="playerPill" onclick="openLogin()" style="display:none;">
+      <span class="pip"></span><span id="playerPillName"></span><span class="player-dept" id="playerPillDept"></span>
+    </div>
+  </div>
+  <div class="left-btns">
+    <button class="home-btn" onclick="openDashboard()" aria-label="Dashboard">&#127968;</button>
+    <button class="help-btn" onclick="openHelp()" aria-label="Help">&#9432;</button>
+  </div>
+  <div class="right-btns">
+    <button class="mute-btn" id="muteBtn" onclick="toggleMute()">&#128266;</button>
+    <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()">&#9728;&#65039;</button>
+  </div>
+</header>
+
+<main>
+  <div class="timer-card" id="timerCard">
+    <div class="delta-toast" id="deltaToast"></div>
+    <div class="timer-ring-wrap">
+      <svg viewBox="0 0 88 88" xmlns="http://www.w3.org/2000/svg">
+        <circle class="ring-track" cx="44" cy="44" r="38"/>
+        <circle class="ring-progress" id="ringProgress" cx="44" cy="44" r="38" stroke-dasharray="238.8" stroke-dashoffset="0"/>
+      </svg>
+      <div class="timer-center"><div class="timer-display" id="timerDisplay">3:00</div></div>
+    </div>
+    <div class="gem-row">
+      <div class="gem-badge"><span class="gem-icon">&#9989;</span><span class="gem-val correct-color" id="correctStreak">0</span><span class="gem-lbl">Run</span></div>
+      <div class="gem-total"><span class="gem-total-icon">&#128142;</span><span class="gem-total-val" id="gemCount">0</span></div>
+      <div class="gem-badge"><span class="gem-lbl">Run</span><span class="gem-val wrong-color" id="wrongStreak">0</span><span class="gem-icon">&#10060;</span></div>
+    </div>
+  </div>
+
+  <div class="hint-strip">
+    <span class="theme-label">Category</span>
+    <span class="theme-value" id="hintText"></span>
+  </div>
+
+  <div class="game-dialogue">
+    <div class="game-dialogue-label">Definition</div>
+    <div class="game-definition" id="gameDefinition"></div>
+  </div>
+
+  <div class="word-area" id="wordArea"></div>
+  <div class="wrong-letters" id="wrongLetters"></div>
+
+  <div class="in-game-dial" id="inGameDial">
+    <div class="in-game-dial-lbl">In context</div>
+    <div id="inGameDialLines"></div>
+  </div>
+
+  <div class="keyboard" id="keyboard"></div>
+  <button class="dash-btn" onclick="openDashboard()">&#9643;&ensp;My Progress Dashboard</button>
+</main>
+
+<!-- LOGIN -->
+<div class="login-gate" id="loginGate">
+  <div class="login-card">
+    <div class="login-card-title">Lexicon</div>
+    <div class="login-card-sub">GRE &amp; IELTS Vocabulary</div>
+    <div class="field-group"><label>Your Name</label><input id="nameInput" type="text" placeholder="Enter your name&hellip;" maxlength="60" autocomplete="off"/></div>
+    <div class="field-group">
+      <label>Department</label>
+      <select id="deptSelect">
+        <option value="">-- Select Department --</option>
+        <option>Cyber Security</option><option>EIE</option>
+        <option>CSE-1</option><option>CSE-2</option><option>CSE-3</option>
+        <option>Mechanical Engineering</option>
+        <option>ECE-1</option><option>ECE-2</option><option>ECE-3</option>
+        <option>AI DS-1</option><option>AI DS-2</option>
+        <option>Agri and Civil</option><option>EEE</option>
+        <option>Medical Electronics</option>
+        <option>IT-1</option><option>IT-2</option>
+      </select>
+    </div>
+    <button class="btn-gold" onclick="handleLogin()">Enter &#8594;</button>
+    <div id="dupSection" style="display:none;margin-top:18px;">
+      <div style="font-size:11px;color:var(--gold);opacity:.6;margin-bottom:10px;text-align:center;font-family:'DM Mono',monospace;letter-spacing:.1em;">MULTIPLE STUDENTS FOUND — CHOOSE YOURS</div>
+      <div id="dupList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- OVERLAY -->
+<div class="overlay" id="overlay">
+  <div class="msg-card">
+    <span class="msg-icon" id="msgIcon"></span>
+    <div class="msg-title" id="msgTitle"></div>
+    <div class="msg-idiom" id="msgIdiom"></div>
+    <div class="msg-time" id="msgTime"></div>
+    <div class="msg-section-lbl" id="msgDialLbl" style="display:none;">In context</div>
+    <div id="msgDialogueWrap" style="display:none;"><div class="msg-dialogue" id="msgDialogue"></div></div>
+    <div class="msg-log" id="msgLog"></div>
+    <button class="btn-gold" onclick="newGame()">Next Word</button>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div class="dash-overlay" id="dashOverlay">
+  <div class="dash-inner">
+    <div class="dash-header">
+      <div>
+        <div class="dash-title" id="dashTitle">Vox Velocity</div>
+        <div class="dash-title-sub"><span style="color:var(--gold-light);opacity:1;font-size:9px;letter-spacing:.22em;">IELTS &amp; GRE</span> &nbsp;Vocabulary Builder</div>
+        <div class="dash-subtitle" id="dashSubtitle"></div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button class="dash-play-random" onclick="playRandom()">&#9654; Start</button>
+        <button class="help-btn" onclick="toggleTheme()" id="dashThemeToggle" style="font-size:15px;padding:5px 9px;">&#9728;&#65039;</button>
+        <button class="dash-close" id="dashCloseBtn" onclick="closeDashboard()">&#10005;</button>
+      </div>
+    </div>
+    <div class="dash-tabs">
+      <button class="dash-tab active" id="tab-glossary" onclick="switchDashTab('glossary')">&#128218; Glossary</button>
+      <button class="dash-tab" id="tab-progress" onclick="switchDashTab('progress')">&#9643; My Progress</button>
+    </div>
+    <div id="dashContent"></div>
+  </div>
+</div>
+
+
+<!-- HELP -->
+<div class="help-overlay" id="helpOverlay">
+  <div class="help-card">
+    <div class="help-title">How to Play</div>
+    <div class="help-sub">Lexicon &mdash; Quick Guide</div>
+    <button class="help-close" onclick="closeHelp()">&#10005;</button>
+    <div class="help-section">
+      <div class="help-section-title">The Goal</div>
+      <div class="help-row"><span class="help-icon">&#128218;</span><span class="help-text">A <strong>definition</strong> is shown. Guess the GRE or IELTS word that matches it — one letter at a time.</span></div>
+      <div class="help-row"><span class="help-icon">&#9200;</span><span class="help-text">You have <strong>3 minutes</strong>. Solve as many words as you can before time runs out.</span></div>
+    </div>
+    <div class="help-divider"></div>
+    <div class="help-section">
+      <div class="help-section-title">Clues</div>
+      <div class="help-row"><span class="help-icon">&#127991;</span><span class="help-text">The <strong>category</strong> tells you the semantic group of the word.</span></div>
+      <div class="help-row"><span class="help-icon">&#128218;</span><span class="help-text">The <strong>definition</strong> gives you the precise meaning.</span></div>
+    </div>
+    <div class="help-divider"></div>
+    <div class="help-section">
+      <div class="help-section-title">Scoring</div>
+      <div class="help-row"><span class="help-icon">&#9989;</span><span class="help-text"><strong>Correct guess</strong> — earn time and gems. Streaks multiply rewards.</span></div>
+      <div class="help-row"><span class="help-icon">&#10060;</span><span class="help-text"><strong>Wrong guess</strong> — lose time. Consecutive wrong guesses cost more.</span></div>
+    </div>
+    <div class="help-divider"></div>
+    <div class="help-section">
+      <div class="help-section-title">Glossary &amp; Mastery</div>
+      <div class="help-row"><span class="help-icon">&#128218;</span><span class="help-text">Open the <strong>Glossary</strong> (book icon) to browse all words with definitions and example dialogues.</span></div>
+      <div class="help-row"><span class="help-icon">&#10024;</span><span class="help-text">Mark a word as <strong>Mastered</strong> when you know it cold. It's saved to your profile and counts as complete.</span></div>
+    </div>
+    <div class="help-tip">Every word saved to your profile. Build your vocabulary! &#127942;</div>
+  </div>
+</div>
+
+<script type="module">
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm";
+const supabase = createClient(
+  "https://yellow-lab-4999.andrewveda.workers.dev",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoZXpzc29jenZwYmt0ZWZmY2d6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI4NTk1ODUsImV4cCI6MjA3ODQzNTU4NX0.2ZlqXnZxv0opkhynAT7OlK4S-xPygcc7ETUyTXRfGHE"
+);
+const EDGE_URL = "https://yellow-lab-4999.andrewveda.workers.dev/functions/v1/logQuest";
+
+// ── WORD DATA ─────────────────────────────────────────────────────
+const words = [
+  {
+    "id": 5075,
+    "phrase": "light a fire under someone",
+    "theme": "Motivation",
+    "hint": "To make someone feel motivated and energetic.",
+    "dialogue": [
+      { "s": "Speaker", "t": "My mentor's speech suddenly made me want to work harder." },
+      { "s": "Listener", "t": "Sounds like it really lit a fire under you." }
+    ]
+  },
+  {
+    "id": 5076,
+    "phrase": "get the ball rolling",
+    "theme": "Motivation",
+    "hint": "To start something actively and energetically.",
+    "dialogue": [
+      { "s": "Speaker", "t": "I've been postponing my project for weeks." },
+      { "s": "Listener", "t": "Just get the ball rolling and momentum will follow." }
+    ]
+  },
+  {
+    "id": 5077,
+    "phrase": "fuel the fire",
+    "theme": "Motivation",
+    "hint": "To increase enthusiasm, ambition, or determination.",
+    "dialogue": [
+      { "s": "Speaker", "t": "Winning that small competition made me even more ambitious." },
+      { "s": "Listener", "t": "Success can really fuel the fire." }
+    ]
+  },
+  {
+    "id": 5078,
+    "phrase": "find one's spark",
+    "theme": "Motivation",
+    "hint": "To rediscover excitement or inspiration.",
+    "dialogue": [
+      { "s": "Speaker", "t": "I finally enjoyed studying again after changing my routine." },
+      { "s": "Listener", "t": "Looks like you've found your spark again." }
+    ]
+  },
+  {
+    "id": 5079,
+    "phrase": "stay fired up",
+    "theme": "Motivation",
+    "hint": "To remain enthusiastic and energetic.",
+    "dialogue": [
+      { "s": "Speaker", "t": "I'm worried my motivation will disappear after a few days." },
+      { "s": "Listener", "t": "Set small goals to stay fired up." }
+    ]
+  },
+  {
+    "id": 5080,
+    "phrase": "keep the flame alive",
+    "theme": "Motivation",
+    "hint": "To continue feeling passionate or motivated.",
+    "dialogue": [
+      { "s": "Speaker", "t": "It's hard to stay excited during long semesters." },
+      { "s": "Listener", "t": "You just need to keep the flame alive." }
+    ]
+  },
+  {
+    "id": 5081,
+    "phrase": "get a second wind",
+    "theme": "Motivation",
+    "hint": "To suddenly regain energy after feeling tired.",
+    "dialogue": [
+      { "s": "Speaker", "t": "I was exhausted earlier, but now I'm productive again." },
+      { "s": "Listener", "t": "You've clearly got a second wind." }
+    ]
+  },
+  {
+    "id": 5082,
+    "phrase": "raise the bar",
+    "theme": "Motivation",
+    "hint": "To increase standards or expectations.",
+    "dialogue": [
+      { "s": "Speaker", "t": "This year I want to do better than just passing exams." },
+      { "s": "Listener", "t": "Good — it's time to raise the bar." }
+    ]
+  },
+  {
+    "id": 5083,
+    "phrase": "dream big",
+    "theme": "Motivation",
+    "hint": "To have ambitious goals and aspirations.",
+    "dialogue": [
+      { "s": "Speaker", "t": "I want to build something people around the world will use." },
+      { "s": "Listener", "t": "Never stop dreaming big." }
+    ]
+  },
+  {
+    "id": 5084,
+    "phrase": "go for it",
+    "theme": "Motivation",
+    "hint": "To act boldly without hesitation.",
+    "dialogue": [
+      { "s": "Speaker", "t": "I'm thinking about applying for the international internship." },
+      { "s": "Listener", "t": "Go for it — opportunities don't wait forever." }
+    ]
+  },
+  {
+    "id": 5085,
+    "phrase": "push the limits",
+    "theme": "Motivation",
+    "hint": "To challenge oneself beyond normal boundaries.",
+    "dialogue": [
+      { "s": "Speaker", "t": "I've started taking on more difficult coding challenges." },
+      { "s": "Listener", "t": "That's how you push the limits and grow." }
+    ]
+  },
+  {
+    "id": 5086,
+    "phrase": "keep one's chin up",
+    "theme": "Motivation",
+    "hint": "To stay positive during difficult times.",
+    "dialogue": [
+      { "s": "Speaker", "t": "I didn't get selected for the final round." },
+      { "s": "Listener", "t": "Keep your chin up — this isn't the end." }
+    ]
+  },
+  {
+    "id": 5087,
+    "phrase": "bounce back",
+    "theme": "Motivation",
+    "hint": "To recover quickly after failure or disappointment.",
+    "dialogue": [
+      { "s": "Speaker", "t": "I failed the test badly last month." },
+      { "s": "Listener", "t": "What matters is how you bounce back now." }
+    ]
+  },
+  {
+    "id": 5088,
+    "phrase": "reach for the stars",
+    "theme": "Motivation",
+    "hint": "To aim for very high goals.",
+    "dialogue": [
+      { "s": "Speaker", "t": "Sometimes my goals feel unrealistically huge." },
+      { "s": "Listener", "t": "You should still reach for the stars." }
+    ]
+  },
+  {
+    "id": 5089,
+    "phrase": "keep moving forward",
+    "theme": "Motivation",
+    "hint": "To continue progressing despite setbacks.",
+    "dialogue": [
+      { "s": "Speaker", "t": "Everything feels slower than I expected." },
+      { "s": "Listener", "t": "Progress is progress — just keep moving forward." }
+    ]
+  }
+];
+
+const TOTAL_SECS    = 180;
+const CIRCUMFERENCE = 2 * Math.PI * 38;
+function penaltySecs(n) { return 15 + (n - 1) * 2; }
+function bonusSecs(n)   { return n; }
+
+let playerName = '', playerDept = '', userData = null;
+
+function loadSavedPlayer() {
+  playerName = localStorage.getItem('userName') || localStorage.getItem('questPlayerName') || '';
+  playerDept = localStorage.getItem('userDept')  || localStorage.getItem('questPlayerDept') || '';
+}
+function savePlayer(name, dept) {
+  playerName = name; playerDept = dept;
+  ['userName','questPlayerName','idiomPlayerName'].forEach(k => localStorage.setItem(k, name));
+  ['userDept','questPlayerDept'].forEach(k => localStorage.setItem(k, dept));
+}
+function showPlayerPill() {
+  const pill = document.getElementById('playerPill');
+  document.getElementById('playerPillName').textContent = playerName;
+  document.getElementById('playerPillDept').textContent = playerDept ? '\u00B7 ' + playerDept : '';
+  pill.style.display = 'inline-flex';
+}
+window.openLogin = function () {
+  document.getElementById('nameInput').value  = playerName;
+  document.getElementById('deptSelect').value = playerDept;
+  document.getElementById('dupSection').style.display = 'none';
+  document.getElementById('loginGate').classList.add('show');
+};
+function closeLogin() { document.getElementById('loginGate').classList.remove('show'); }
+window.handleLogin = async function () {
+  const rawName = document.getElementById('nameInput').value.trim();
+  const dept    = document.getElementById('deptSelect').value;
+  if (!rawName) { alert('Please enter your name!'); return; }
+  try {
+    const { data, error } = await supabase.from('report_card_view').select('name, department, quests_completed, quest_list');
+    if (error) throw error;
+    const matches = (data || []).filter(u => u.name && u.name.trim().toLowerCase() === rawName.trim().toLowerCase());
+    if (matches.length === 0) { if (!dept) { alert('Please select your department!'); return; } savePlayer(rawName, dept); closeLogin(); showPlayerPill(); return; }
+    if (matches.length === 1) { savePlayer(matches[0].name, dept || matches[0].department || ''); userData = matches[0]; closeLogin(); showPlayerPill(); return; }
+    showDupPicker(matches, dept);
+  } catch { if (!dept) { alert('Please select your department!'); return; } savePlayer(rawName, dept); closeLogin(); showPlayerPill(); }
+};
+function showDupPicker(matches, dept) {
+  const sec = document.getElementById('dupSection'), list = document.getElementById('dupList');
+  list.innerHTML = '';
+  matches.forEach(match => {
+    const btn = document.createElement('button'); btn.className = 'dup-btn';
+    btn.innerHTML = '<div class="dup-name">' + match.name + '</div><div class="dup-meta">' + (match.department || 'No department') + ' \u00B7 ' + (match.quests_completed ?? 0) + ' quests</div>';
+    btn.onclick = () => { savePlayer(match.name, dept || match.department || ''); userData = match; closeLogin(); showPlayerPill(); sec.style.display = 'none'; };
+    list.appendChild(btn);
+  });
+  sec.style.display = 'block';
+}
+document.getElementById('nameInput').addEventListener('keydown', e => { if (e.key === 'Enter') window.handleLogin(); });
+
+let currentWord, guessed;
+let consecutiveCorrect = 0, consecutiveWrong = 0;
+let gameStarted = false, gemCount = 0, usedIndices = [];
+let timeLeft, timerInterval, gameOver, roundStart;
+let completedIds = new Set(), completedIdsFetched = false;
+
+// ── MASTERY ───────────────────────────────────────────────────────
+let masteredIds = new Set();
+
+async function logMastery(wordId) {
+  if (!playerName) return false;
+  try {
+    const res = await fetch(EDGE_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        student_name: playerName,
+        department: playerDept,
+        correct: 0,
+        wrong: 0,
+        time_spent: 0,
+        quest_id: 'velocity ' + wordId
+      })
+    });
+    return res.ok;
+  } catch { return false; }
+}
+
+async function fetchCompletedIds() {
+  if (!playerName || completedIdsFetched) return;
+  try {
+    const { data, error } = await supabase.from('report_card_view').select('quest_list').ilike('name', playerName);
+    if (!error && data) {
+      data.forEach(row => {
+        (row.quest_list || '').split(',').forEach(item => {
+          const m = item.trim().match(/Quest\s+(\d+)/i);
+          if (m) completedIds.add(Number(m[1]));
+        });
+      });
+    }
+    completedIdsFetched = true;
+  } catch { completedIdsFetched = true; }
+}
+function pickNext() {
+  let pool = words.filter(i => !completedIds.has(i.id) && !usedIndices.includes(words.indexOf(i)));
+  if (!pool.length) pool = words.filter(i => !completedIds.has(i.id));
+  if (!pool.length) { usedIndices = []; pool = words; }
+  const chosen = pool[Math.floor(Math.random() * pool.length)];
+  const idx = words.indexOf(chosen);
+  if (!usedIndices.includes(idx)) usedIndices.push(idx);
+  return chosen;
+}
+
+const KB_ROWS = ['QWERTYUIOP'.split(''), 'ASDFGHJKL'.split(''), 'ZXCVBNM'.split('')];
+function buildKeyboard() {
+  const kb = document.getElementById('keyboard'); kb.innerHTML = '';
+  KB_ROWS.forEach(row => {
+    const div = document.createElement('div'); div.className = 'kb-row';
+    row.forEach(letter => {
+      const btn = document.createElement('button');
+      btn.className = 'kb-key'; btn.textContent = letter; btn.id = 'key-' + letter;
+      btn.onclick = () => guess(letter); div.appendChild(btn);
+    });
+    kb.appendChild(div);
+  });
+}
+function startTimer() {
+  clearInterval(timerInterval);
+  timerInterval = setInterval(() => {
+    if (gameOver) return;
+    timeLeft--;
+    if (timeLeft <= 0) { timeLeft = 0; updateTimerUI(); endGame(false); return; }
+    updateTimerUI();
+  }, 1000);
+}
+function updateTimerUI() {
+  const mins = Math.floor(timeLeft / 60), secs = timeLeft % 60;
+  const disp = document.getElementById('timerDisplay');
+  disp.textContent = mins + ':' + secs.toString().padStart(2, '0');
+  disp.className   = 'timer-display' + (timeLeft <= 30 ? ' urgent' : '');
+  const ring = document.getElementById('ringProgress');
+  ring.style.strokeDashoffset = CIRCUMFERENCE * (1 - timeLeft / TOTAL_SECS);
+  ring.style.stroke = timeLeft <= 30 ? '#c43030' : timeLeft <= 60 ? '#d4813a' : 'var(--gold)';
+}
+function adjustTime(delta, type) {
+  timeLeft = Math.min(TOTAL_SECS, Math.max(0, timeLeft + delta));
+  updateTimerUI();
+  const card = document.getElementById('timerCard');
+  card.classList.remove('penalty', 'bonus'); void card.offsetWidth;
+  card.classList.add(type === 'bonus' ? 'bonus' : 'penalty');
+  const label = (delta > 0 ? '+' : '') + delta + 's', cls = delta > 0 ? 'correct' : 'wrong';
+  const toast = document.getElementById('deltaToast');
+  toast.textContent = label; toast.className = 'delta-toast ' + cls;
+  void toast.offsetWidth; toast.classList.add('animate');
+  setTimeout(() => toast.classList.remove('animate'), 1000);
+  const big = document.getElementById('bigToast');
+  big.textContent = label; big.className = 'big-toast ' + cls;
+  void big.offsetWidth; big.classList.add('pop');
+  setTimeout(() => { big.className = 'big-toast'; }, 1100);
+}
+
+window.newGame = async function () {
+  hideOverlay(); clearInterval(timerInterval); gameOver = false; gameStarted = true;
+  await fetchCompletedIds();
+  currentWord = pickNext();
+  guessed = new Set(); consecutiveCorrect = consecutiveWrong = 0;
+  timeLeft = TOTAL_SECS; roundStart = Date.now();
+  document.querySelectorAll('.kb-key').forEach(k => { k.className = 'kb-key'; k.disabled = false; });
+  document.getElementById('wrongLetters').innerHTML = '';
+  document.getElementById('hintText').textContent   = currentWord.theme;
+  document.getElementById('correctStreak').textContent = '0';
+  document.getElementById('wrongStreak').textContent   = '0';
+  document.getElementById('gemCount').textContent      = gemCount;
+  document.getElementById('msgLog').textContent        = '';
+  document.getElementById('msgDialogue').innerHTML     = '';
+  const dl = document.getElementById('msgDialLbl'); if (dl) dl.style.display = 'none';
+  const dw = document.getElementById('msgDialogueWrap'); if (dw) dw.style.display = 'none';
+  const inDial = document.getElementById('inGameDial'); if (inDial) inDial.classList.remove('show');
+  document.querySelectorAll('.letter-char').forEach(ch => ch.classList.remove('win-bounce'));
+  document.querySelectorAll('.word-group').forEach(g => g.classList.remove('win-glow'));
+  document.getElementById('gameDefinition').textContent = currentWord.hint;
+  updateTimerUI(); renderWord(); startTimer();
+};
+
+function guess(letter) {
+  letter = letter.toUpperCase();
+  if (guessed.has(letter) || gameOver) return;
+  guessed.add(letter);
+  const btn = document.getElementById('key-' + letter);
+  if (currentWord.phrase.toUpperCase().includes(letter)) {
+    consecutiveWrong = 0; consecutiveCorrect++;
+    gemCount += consecutiveCorrect;
+    if (btn) { btn.className = 'kb-key correct'; btn.disabled = true; }
+    playCorrect(); adjustTime(bonusSecs(consecutiveCorrect), 'bonus');
+    document.getElementById('correctStreak').textContent = consecutiveCorrect;
+    document.getElementById('wrongStreak').textContent   = '0';
+    updateGemDisplay(); renderWord();
+    if (checkWin()) { endGame(true); return; }
+  } else {
+    consecutiveCorrect = 0; consecutiveWrong++;
+    gemCount = Math.max(0, gemCount - consecutiveWrong);
+    if (btn) { btn.className = 'kb-key wrong'; btn.disabled = true; }
+    playWrong(); adjustTime(-penaltySecs(consecutiveWrong), 'penalty');
+    document.getElementById('wrongStreak').textContent   = consecutiveWrong;
+    document.getElementById('correctStreak').textContent = '0';
+    updateGemDisplay(); updateWrongLetters(letter);
+    const wa = document.getElementById('wordArea');
+    wa.classList.remove('shake'); void wa.offsetWidth; wa.classList.add('shake');
+    if (timeLeft <= 0) { endGame(false); return; }
+  }
+}
+function updateGemDisplay() {
+  const el = document.getElementById('gemCount'); if (!el) return;
+  el.textContent = gemCount;
+  el.classList.remove('gem-pop'); void el.offsetWidth; el.classList.add('gem-pop');
+  setTimeout(() => el.classList.remove('gem-pop'), 400);
+}
+function renderWord() {
+  const area = document.getElementById('wordArea'); area.innerHTML = '';
+  currentWord.phrase.split(' ').forEach(word => {
+    const grp = document.createElement('div'); grp.className = 'word-group';
+    word.split('').forEach(ch => {
+      const slot = document.createElement('div'); slot.className = 'letter-slot';
+      const char = document.createElement('div'); char.className = 'letter-char';
+      const isLetter = /[a-z]/i.test(ch);
+      if (!isLetter || guessed.has(ch.toUpperCase())) { char.textContent = ch.toUpperCase(); if (isLetter) char.classList.add('revealed'); }
+      const line = document.createElement('div'); line.className = 'letter-line';
+      if (!isLetter) line.style.opacity = '0';
+      slot.appendChild(char); slot.appendChild(line); grp.appendChild(slot);
+    });
+    area.appendChild(grp);
+  });
+}
+function checkWin() {
+  return currentWord.phrase.split('').every(ch => !/[a-z]/i.test(ch) || guessed.has(ch.toUpperCase()));
+}
+function updateWrongLetters(letter) {
+  const el = document.getElementById('wrongLetters');
+  if (!el.querySelector('.wrong-label')) { const lbl = document.createElement('span'); lbl.className = 'wrong-label'; lbl.textContent = 'Missed:'; el.appendChild(lbl); }
+  const span = document.createElement('span'); span.textContent = letter + ' '; el.appendChild(span);
+}
+function animateWinLetters() {
+  document.querySelectorAll('.letter-char').forEach((ch, i) => setTimeout(() => ch.classList.add('win-bounce'), i * 60));
+  document.querySelectorAll('.word-group').forEach((g, i) => setTimeout(() => g.classList.add('win-glow'), i * 80));
+}
+function buildInGameDialogue() {
+  const dial = document.getElementById('inGameDial'), lc = document.getElementById('inGameDialLines');
+  if (!dial || !lc) return; lc.innerHTML = '';
+  const escaped = currentWord.phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  (currentWord.dialogue || []).forEach(line => {
+    const bolded = (line.t || '').replace(new RegExp(escaped, 'gi'), '<em>$&</em>');
+    const row = document.createElement('div'); row.className = 'in-game-dial-line';
+    row.innerHTML = '<span class="in-game-dial-speaker">' + line.s + '</span><span class="in-game-dial-text">' + bolded + '</span>';
+    lc.appendChild(row);
+  });
+  dial.classList.remove('show'); void dial.offsetWidth; dial.classList.add('show');
+}
+function countGuesses() {
+  const letters = new Set(currentWord.phrase.toUpperCase().replace(/[^A-Z]/g,'').split(''));
+  let c = 0, w = 0;
+  guessed.forEach(g => { if (letters.has(g)) c++; else w++; });
+  return { correct: c, wrong: w };
+}
+function endGame(won) {
+  gameOver = true; clearInterval(timerInterval);
+  const timeSpent = Math.round((Date.now() - roundStart) / 1000);
+  const { correct, wrong } = countGuesses();
+  if (won) {
+    animateWinLetters(); playWin();
+    setTimeout(() => { buildInGameDialogue(); document.querySelectorAll('.kb-key').forEach(k => k.disabled = true); }, 1800);
+    setTimeout(() => {
+      document.getElementById('msgIcon').textContent  = '\uD83C\uDFC6';
+      document.getElementById('msgTitle').textContent = 'Splendid!';
+      document.getElementById('msgTime').innerHTML    = 'You earned \uD83D\uDC8E <strong>' + gemCount + '</strong> gems';
+      document.getElementById('msgIdiom').textContent = '\u201C' + currentWord.phrase + '\u201D';
+      buildOverlayDialogue();
+      const wrap = document.getElementById('msgDialogueWrap'), lbl = document.getElementById('msgDialLbl');
+      if (wrap) wrap.style.display = 'block'; if (lbl) lbl.style.display = 'block';
+      if (playerName) { document.getElementById('msgLog').textContent = 'Saving Quest ' + currentWord.id + '\u2026'; logToSupabase({student_name:playerName,department:playerDept,correct,wrong,time_spent:timeSpent,quest_id:'Quest '+currentWord.id}); }
+      else { document.getElementById('msgLog').textContent = 'Sign in to save scores'; }
+       completedIds.add(currentWord.id); 
+      if (completedIds.size >= words.length && playerName) {
+  logToSupabase({
+    student_name: playerName,
+    department: playerDept,
+    correct: 0,
+    wrong: 0,
+    time_spent: 0,
+    quest_id: 'Quest 220'
+  });
+}
+  showOverlay();
+
+    }, 3600);
+  } else {
+    guessed = new Set(currentWord.phrase.toUpperCase().replace(/[^A-Z]/g,'').split(''));
+    renderWord();
+    document.getElementById('msgIcon').textContent  = '\u23F3';
+    document.getElementById('msgTitle').textContent = 'Time\u2019s Up!';
+    document.getElementById('msgTime').innerHTML    = '';
+    document.getElementById('msgIdiom').textContent = '\u201C' + currentWord.phrase + '\u201D';
+    buildOverlayDialogue();
+    const wrap = document.getElementById('msgDialogueWrap'), lbl = document.getElementById('msgDialLbl');
+    if (wrap) wrap.style.display = 'block'; if (lbl) lbl.style.display = 'block';
+    if (playerName) { document.getElementById('msgLog').textContent = 'Saving Quest ' + currentWord.id + '\u2026'; logToSupabase({student_name:playerName,department:playerDept,correct,wrong,time_spent:timeSpent,quest_id:'Vox '+currentWord.id}); }
+    else { document.getElementById('msgLog').textContent = 'Sign in to save scores'; }
+    showOverlay();
+  }
+}
+function buildOverlayDialogue() {
+  const container = document.getElementById('msgDialogue'), lbl = document.getElementById('msgDialLbl');
+  if (!container) return; container.innerHTML = '';
+  const lines = currentWord.dialogue || [];
+  if (!lines.length) { if (lbl) lbl.style.display = 'none'; return; }
+  if (lbl) lbl.style.display = 'block';
+  const escaped = currentWord.phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  lines.forEach(line => {
+    const bolded = (line.t || '').replace(new RegExp(escaped, 'gi'), '<em>$&</em>');
+    const row = document.createElement('div'); row.className = 'msg-dial-line';
+    row.innerHTML = '<span class="msg-dial-speaker">' + line.s + '</span><span class="msg-dial-text">' + bolded + '</span>';
+    container.appendChild(row);
+  });
+}
+async function logToSupabase(payload) {
+  try {
+    const res = await fetch(EDGE_URL, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    document.getElementById('msgLog').textContent = res.ok ? '\u2713 Quest ' + currentWord.id + ' saved' : 'Could not save score';
+  } catch { document.getElementById('msgLog').textContent = 'Could not save score'; }
+}
+function showOverlay() { document.getElementById('overlay').classList.add('show'); }
+function hideOverlay()  { document.getElementById('overlay').classList.remove('show'); }
+
+let dashTab = 'glossary';
+
+window.switchDashTab = function(tab) {
+  dashTab = tab;
+  document.getElementById('tab-glossary').classList.toggle('active', tab === 'glossary');
+  document.getElementById('tab-progress').classList.toggle('active', tab === 'progress');
+  document.getElementById('dash-panel-glossary').style.display = tab === 'glossary' ? '' : 'none';
+  document.getElementById('dash-panel-progress').style.display = tab === 'progress' ? '' : 'none';
+  document.getElementById('dashTitle').textContent = tab === 'glossary' ? 'Vox Velocity' : 'My Progress';
+};
+
+window.openDashboard = async function () {
+  document.getElementById('dashOverlay').classList.add('show');
+  const closeBtn = document.getElementById('dashCloseBtn');
+  if (closeBtn) closeBtn.style.display = gameStarted ? 'flex' : 'none';
+  const content = document.getElementById('dashContent');
+  document.getElementById('dashSubtitle').textContent = playerName ? playerName + (playerDept ? ' \u00B7 ' + playerDept : '') : '';
+
+  document.getElementById('tab-glossary').classList.toggle('active', dashTab === 'glossary');
+  document.getElementById('tab-progress').classList.toggle('active', dashTab === 'progress');
+  document.getElementById('dashTitle').textContent = dashTab === 'glossary' ? 'Vox Velocity' : 'My Progress';
+
+  if (!playerName) { content.innerHTML = '<div class="dash-error">Sign in with your name first to see your progress.</div>'; return; }
+  content.innerHTML = '<div class="dash-spinner"><div class="spinner-ring"></div></div>';
+
+  let attempted = new Set();
+  masteredIds = new Set();
+  try {
+    const { data, error } = await supabase.from('report_card_view').select('quest_list').ilike('name', playerName);
+    if (!error && data) {
+      data.forEach(row => {
+        (row.quest_list||'').split(',').forEach(item => {
+          const mq = item.trim().match(/Quest\s+(\d+)/i);   if(mq) attempted.add(Number(mq[1]));
+          const mv = item.trim().match(/velocity\s+(\d+)/i); if(mv) masteredIds.add(Number(mv[1]));
+        });
+      });
+    }
+    completedIds = new Set(attempted);
+    completedIdsFetched = true;
+  } catch {}
+
+  const solved = words.filter(i => attempted.has(i.id)), unsolved = words.filter(i => !attempted.has(i.id));
+  const pct = Math.round((solved.length / words.length) * 100);
+
+  // ── GLOSSARY PANEL ────────────────────────────────────────
+  // CHANGED: show the same 3-stat block as My Progress instead of the mastery banner
+  let glossHtml = '';
+  glossHtml += '<div class="dash-stats">'
+    + '<div class="dash-stat"><div class="dash-stat-val">' + solved.length + '</div><div class="dash-stat-lbl">Attempted</div></div>'
+    + '<div class="dash-stat"><div class="dash-stat-val">' + unsolved.length + '</div><div class="dash-stat-lbl">Remaining</div></div>'
+    + '<div class="dash-stat"><div class="dash-stat-val">' + pct + '%</div><div class="dash-stat-lbl">Complete</div></div>'
+    + '</div>';
+  glossHtml += '<input class="glossary-search" id="glossarySearch" type="text" placeholder="Search words or definitions\u2026" oninput="filterGlossary()"/>';
+  glossHtml += '<div class="glossary-filter-row">';
+  glossHtml += '<div class="gf-chip active" data-filter="all" onclick="setGlossaryFilter(\'all\',this)">All</div>';
+  glossHtml += '<div class="gf-chip mastered-chip" data-filter="mastered" onclick="setGlossaryFilter(\'mastered\',this)">&#10024; Mastered</div>';
+  glossHtml += '<div class="gf-chip" data-filter="unmastered" onclick="setGlossaryFilter(\'unmastered\',this)">Yet to master</div>';
+  glossHtml += '</div>';
+  glossHtml += '<div class="glossary-grid" id="glossaryGrid"></div>';
+
+  // ── PROGRESS PANEL ────────────────────────────────────────
+  let progHtml = '';
+  progHtml += '<div class="dash-stats"><div class="dash-stat"><div class="dash-stat-val">' + solved.length + '</div><div class="dash-stat-lbl">Attempted</div></div><div class="dash-stat"><div class="dash-stat-val">' + unsolved.length + '</div><div class="dash-stat-lbl">Remaining</div></div><div class="dash-stat"><div class="dash-stat-val">' + pct + '%</div><div class="dash-stat-lbl">Complete</div></div></div>';
+  progHtml += '<div class="progress-wrap"><div class="progress-label"><span>Overall Progress</span><span>' + solved.length + ' / ' + words.length + '</span></div><div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%"></div></div></div>';
+  if (unsolved.length > 0) { progHtml += '<div class="section-lbl">Yet to attempt \u2014 ' + unsolved.length + '</div><div class="idiom-grid">'; unsolved.forEach(i => { progHtml += buildCard(i, false); }); progHtml += '</div>'; }
+  else { progHtml += '<div class="all-done">\u2728 All words attempted! Remarkable.</div>'; }
+  if (solved.length > 0) { progHtml += '<div class="section-lbl">Attempted \u2014 ' + solved.length + '</div><div class="idiom-grid">'; solved.forEach(i => { progHtml += buildCard(i, true); }); progHtml += '</div>'; }
+
+  content.innerHTML =
+    '<div id="dash-panel-glossary" style="display:' + (dashTab === 'glossary' ? '' : 'none') + '">' + glossHtml + '</div>' +
+    '<div id="dash-panel-progress" style="display:' + (dashTab === 'progress' ? '' : 'none') + '">' + progHtml + '</div>';
+
+  glossaryFilter = 'all'; glossarySearchTerm = '';
+  renderGlossary();
+
+  requestAnimationFrame(() => setTimeout(() => { const fill = document.getElementById('progressFill'); if (fill) fill.style.width = pct + '%'; }, 60));
+};
+window.playSpecificIdiom = function (id) {
+  const word = words.find(i => i.id === id); if (!word) return;
+  gameStarted = true; closeDashboard();
+  clearInterval(timerInterval); gameOver = false; currentWord = word;
+  const idx = words.indexOf(word); if (!usedIndices.includes(idx)) usedIndices.push(idx);
+  guessed = new Set(); consecutiveCorrect = consecutiveWrong = 0;
+  timeLeft = TOTAL_SECS; roundStart = Date.now();
+  document.querySelectorAll('.kb-key').forEach(k => { k.className = 'kb-key'; k.disabled = false; });
+  document.getElementById('wrongLetters').innerHTML = '';
+  document.getElementById('hintText').textContent   = currentWord.theme;
+  document.getElementById('correctStreak').textContent = '0';
+  document.getElementById('wrongStreak').textContent   = '0';
+  document.getElementById('gemCount').textContent      = gemCount;
+  document.getElementById('msgLog').textContent = ''; document.getElementById('msgDialogue').innerHTML = '';
+  const dl = document.getElementById('msgDialLbl'); if (dl) dl.style.display = 'none';
+  const dw = document.getElementById('msgDialogueWrap'); if (dw) dw.style.display = 'none';
+  const inDial = document.getElementById('inGameDial'); if (inDial) inDial.classList.remove('show');
+  document.querySelectorAll('.letter-char').forEach(ch => ch.classList.remove('win-bounce'));
+  document.querySelectorAll('.word-group').forEach(g => g.classList.remove('win-glow'));
+  document.getElementById('gameDefinition').textContent = currentWord.hint;
+  hideOverlay(); updateTimerUI(); renderWord(); startTimer();
+};
+function buildCard(item, solved) {
+  const icon = solved ? '\u2713' : '\u25CB', cls = solved ? ' solved' : '';
+  const hint = solved ? '<div class="idiom-play-hint">\u21BA Play again</div>' : '<div class="idiom-play-hint">\u25B6 Play this</div>';
+  return '<div class="idiom-card' + cls + ' idiom-playable" onclick="playSpecificIdiom(' + item.id + ')">'
+    + '<div class="idiom-top"><div class="idiom-status">' + icon + '</div><div class="idiom-info"><div class="idiom-meaning">' + item.hint + '</div><div class="idiom-theme">' + item.theme + '</div></div><div class="idiom-qid">Q' + item.id + '</div></div>'
+    + hint + '</div>';
+}
+window.closeDashboard = function () { if (!gameStarted) return; document.getElementById('dashOverlay').classList.remove('show'); };
+window.playRandom = function () { gameStarted = true; document.getElementById('dashOverlay').classList.remove('show'); newGame(); };
+
+// ── GLOSSARY ─────────────────────────────────────────────────────
+let glossaryFilter = 'all';
+let glossarySearchTerm = '';
+
+window.openGlossary = function () { openDashboard(); };
+window.closeGlossary = function () { closeDashboard(); };
+
+window.setGlossaryFilter = function(filter, el) {
+  glossaryFilter = filter;
+  document.querySelectorAll('.gf-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  renderGlossary();
+};
+
+window.filterGlossary = function () {
+  glossarySearchTerm = (document.getElementById('glossarySearch') || {}).value || '';
+  glossarySearchTerm = glossarySearchTerm.toLowerCase().trim();
+  renderGlossary();
+};
+
+function renderGlossary() {
+  const grid = document.getElementById('glossaryGrid');
+  if (!grid) return;
+
+  let filtered = words.filter(w => {
+    if (glossaryFilter === 'mastered' && !masteredIds.has(w.id)) return false;
+    if (glossaryFilter === 'unmastered' && masteredIds.has(w.id)) return false;
+    if (glossarySearchTerm) {
+      const haystack = (w.phrase + ' ' + w.hint + ' ' + w.theme).toLowerCase();
+      if (!haystack.includes(glossarySearchTerm)) return false;
+    }
+    return true;
+  });
+
+  if (!filtered.length) {
+    grid.innerHTML = '<div class="glossary-empty">No words match your search.</div>';
+    return;
+  }
+
+  grid.innerHTML = '';
+  filtered.forEach(word => {
+    const card = buildGlossCard(word);
+    grid.appendChild(card);
+  });
+}
+
+function buildGlossCard(word) {
+  const isMastered = masteredIds.has(word.id);
+  const card = document.createElement('div');
+  card.className = 'gloss-card' + (isMastered ? ' mastered' : '');
+  card.id = 'gloss-card-' + word.id;
+
+  const escaped = word.phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const dialLines = (word.dialogue || []).map(line => {
+    const bolded = line.t.replace(new RegExp(escaped, 'gi'), '<em>$&</em>');
+    return '<div class="gloss-dial-line"><span class="gloss-dial-speaker">' + line.s + '</span><span class="gloss-dial-text">' + bolded + '</span></div>';
+  }).join('');
+
+  const masteryBtnClass = 'mastery-btn' + (isMastered ? ' is-mastered' : '');
+  const masteryBtnLabel = isMastered ? '&#10024; Mastered' : 'Mark as mastered';
+
+  // CHANGED: "Practice" button removed from gloss-actions
+  card.innerHTML = `
+    <div class="gloss-card-head">
+      <div class="gloss-word">${word.phrase}</div>
+      <div class="gloss-theme-tag">${word.theme}</div>
+    </div>
+    <div class="gloss-definition">${word.hint}</div>
+    ${dialLines ? `<div class="gloss-dialogue"><div class="gloss-dial-lbl">In context</div>${dialLines}</div>` : ''}
+    <div class="gloss-actions">
+      <button class="gloss-speak-btn" id="speak-btn-${word.id}" onclick="speakWord(${word.id}, this)" title="Listen (British English)">&#128264;</button>
+      <button class="${masteryBtnClass}" id="mastery-btn-${word.id}" onclick="toggleMastery(${word.id}, this)">
+        <span class="mastery-spinner"></span>
+        <span class="mastery-btn-text">${masteryBtnLabel}</span>
+      </button>
+      ${isMastered ? '<span class="gloss-mastery-status">&#10004; Learnt</span>' : ''}
+    </div>`;
+
+  return card;
+}
+
+window.toggleMastery = async function(wordId, btn) {
+  if (!playerName) {
+    alert('Please sign in first to track your mastery!');
+    return;
+  }
+
+  const alreadyMastered = masteredIds.has(wordId);
+  btn.classList.add('loading');
+  btn.disabled = true;
+
+  if (!alreadyMastered) {
+    const ok = await logMastery(wordId);
+    btn.classList.remove('loading');
+    btn.disabled = false;
+
+    if (ok) {
+      masteredIds.add(wordId);
+      btn.classList.add('is-mastered');
+      btn.querySelector('.mastery-btn-text').innerHTML = '&#10024; Mastered';
+
+      const card = document.getElementById('gloss-card-' + wordId);
+      if (card) {
+        card.classList.add('mastered', 'just-mastered');
+        const wordEl = card.querySelector('.gloss-word');
+        if (wordEl) wordEl.style.color = 'var(--mastered-color)';
+        const actions = card.querySelector('.gloss-actions');
+        if (actions && !actions.querySelector('.gloss-mastery-status')) {
+          const lbl = document.createElement('span');
+          lbl.className = 'gloss-mastery-status';
+          lbl.innerHTML = '&#10004; Learnt';
+          actions.appendChild(lbl);
+        }
+        setTimeout(() => card.classList.remove('just-mastered'), 700);
+      }
+
+      // Update the stat cards live
+      const statVals = document.querySelectorAll('#dash-panel-glossary .dash-stat-val');
+      // No change needed for attempt stats — mastery is separate tracking
+    } else {
+      btn.classList.remove('loading');
+      btn.disabled = false;
+      alert('Could not save. Please check your connection.');
+    }
+  }
+};
+
+// ── SPEECH (British English TTS) ─────────────────────────────────
+let currentSpeakBtn = null;
+
+function getBritishVoice() {
+  const voices = window.speechSynthesis.getVoices();
+  const preferred = ['Google UK English Female','Google UK English Male','Microsoft Hazel','Microsoft George','Daniel'];
+  for (const name of preferred) {
+    const v = voices.find(v => v.name.includes(name));
+    if (v) return v;
+  }
+  return voices.find(v => v.lang === 'en-GB') || voices.find(v => v.lang.startsWith('en')) || null;
+}
+
+window.speakWord = function(wordId, btn) {
+  const synth = window.speechSynthesis;
+  if (!synth) { alert('Text-to-speech is not supported in this browser.'); return; }
+
+  if (currentSpeakBtn === btn && synth.speaking) {
+    synth.cancel();
+    btn.classList.remove('speaking');
+    btn.textContent = '\uD83D\uDD64';
+    currentSpeakBtn = null;
+    return;
+  }
+
+  synth.cancel();
+  if (currentSpeakBtn) { currentSpeakBtn.classList.remove('speaking'); currentSpeakBtn.textContent = '\uD83D\uDD64'; }
+
+  const word = words.find(w => w.id === wordId);
+  if (!word) return;
+
+  const dialogueText = (word.dialogue || []).map(line => line.s + ' says: ' + line.t).join('. ');
+  const fullText = word.phrase + '. ' + word.hint + '. ' + (dialogueText ? 'Example in context. ' + dialogueText : '');
+
+  const utter = new SpeechSynthesisUtterance(fullText);
+  utter.lang = 'en-GB';
+  utter.rate = 0.92;
+  utter.pitch = 1.0;
+
+  const setVoiceAndSpeak = () => {
+    const voice = getBritishVoice();
+    if (voice) utter.voice = voice;
+    btn.classList.add('speaking');
+    btn.textContent = '\uD83D\uDD0A';
+    currentSpeakBtn = btn;
+    synth.speak(utter);
+  };
+
+  if (synth.getVoices().length > 0) {
+    setVoiceAndSpeak();
+  } else {
+    synth.onvoiceschanged = () => { synth.onvoiceschanged = null; setVoiceAndSpeak(); };
+    setTimeout(setVoiceAndSpeak, 200);
+  }
+
+  utter.onend = () => {
+    btn.classList.remove('speaking');
+    btn.textContent = '\uD83D\uDD64';
+    if (currentSpeakBtn === btn) currentSpeakBtn = null;
+  };
+  utter.onerror = () => {
+    btn.classList.remove('speaking');
+    btn.textContent = '\uD83D\uDD64';
+    if (currentSpeakBtn === btn) currentSpeakBtn = null;
+  };
+};
+
+document.addEventListener('keydown', e => {
+  if (document.getElementById('dashOverlay').classList.contains('show')) return;
+  if (document.getElementById('overlay').classList.contains('show'))     return;
+  if (document.getElementById('loginGate').classList.contains('show'))   return;
+  if (/^[a-zA-Z]$/.test(e.key)) guess(e.key.toUpperCase());
+});
+
+window.openHelp  = function () { document.getElementById('helpOverlay').classList.add('show'); };
+window.closeHelp = function () { document.getElementById('helpOverlay').classList.remove('show'); };
+document.getElementById('helpOverlay').addEventListener('click', function(e) { if (e.target === this) closeHelp(); });
+
+const SOUND_KEY = 'lexiconMuted';
+let isMuted = localStorage.getItem(SOUND_KEY) === 'true', audioCtx = null;
+function getAudioCtx() { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); return audioCtx; }
+function playTone(freq, type, dur, vol) {
+  if (isMuted) return;
+  try {
+    const ctx = getAudioCtx(), osc = ctx.createOscillator(), gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type = type; osc.frequency.setValueAtTime(freq, ctx.currentTime);
+    gain.gain.setValueAtTime(vol, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+    osc.start(ctx.currentTime); osc.stop(ctx.currentTime + dur);
+  } catch(e) {}
+}
+function playCorrect() { playTone(659,'sine',.12,.28); setTimeout(()=>playTone(784,'sine',.14,.26),80); setTimeout(()=>playTone(1047,'sine',.22,.22),165); setTimeout(()=>playTone(2093,'triangle',.1,.08),165); }
+function playWrong()   { playTone(180,'sawtooth',.2,.15); }
+function playWin()     { [523,659,784,1047].forEach((f,i)=>setTimeout(()=>playTone(f,'sine',.28,.2),i*90)); }
+function applyMute(m)  { isMuted=m; localStorage.setItem(SOUND_KEY,String(m)); const btn=document.getElementById('muteBtn'); if(btn) btn.textContent=m?'\uD83D\uDD07':'\uD83D\uDD0A'; }
+window.toggleMute = function() { applyMute(!isMuted); };
+applyMute(isMuted);
+
+const THEME_KEY = 'lexiconTheme';
+function applyTheme(t) {
+  document.documentElement.classList.toggle('light', t==='light');
+  const icon = t==='light' ? '\uD83C\uDF19' : '\u2600\uFE0F';
+  const btn = document.getElementById('themeToggle'); if(btn) btn.textContent = icon;
+  const dbtn = document.getElementById('dashThemeToggle'); if(dbtn) dbtn.textContent = icon;
+}
+window.toggleTheme = function () { const next=document.documentElement.classList.contains('light')?'dark':'light'; localStorage.setItem(THEME_KEY,next); applyTheme(next); };
+applyTheme(localStorage.getItem(THEME_KEY)||'dark');
+
+loadSavedPlayer(); buildKeyboard();
+if (!playerName) { document.getElementById('loginGate').classList.add('show'); }
+else { showPlayerPill(); openDashboard(); }
+</script>
+</body>
+</html>

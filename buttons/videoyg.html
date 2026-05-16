@@ -6,6 +6,7 @@
   <title>V for Video 🌌</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;800&family=Syne:wght@400;600;700&display=swap">
+<script src="/SRM-VEC-English-PWA/auth-guard.js"></script>
   <script src="https://www.youtube.com/iframe_api"></script>
   <style>
     :root {
@@ -573,19 +574,7 @@
     c.appendChild(s);
   }
 })();
-
-/* ── GITHUB IDENTITY (single source of truth) ── */
-const GH = {
-  userName:       localStorage.getItem('userName')        || '',
-  username:       localStorage.getItem('github_username') || '',
-  id:             localStorage.getItem('github_id')       || '',
-  profile:        localStorage.getItem('github_profile')  || '',
-  avatar:         localStorage.getItem('avatar')          || '',
-  authProvider:   localStorage.getItem('auth_provider')   || '',
-  loggedIn:       localStorage.getItem('logged_in') === 'true',
-  dept:           localStorage.getItem('vfv_dept')        || '',
-};
-
+ 
 const menuBtn      = document.getElementById('menuBtn');
 const menuDropdown = document.getElementById('menuDropdown');
 menuBtn.addEventListener('click', () => {
@@ -630,7 +619,7 @@ function extractId(url) {
 
 /* ── POPULATE IDENTITY UI ── */
 function populateIdentity() {
-  const displayName = GH.userName || GH.username || 'GitHub User';
+  const displayName = GH.name || GH.username || 'GitHub User';  
   const handle      = GH.username ? `@${GH.username}` : '';
 
   // Login card
@@ -887,15 +876,15 @@ function manualSave() {
     headers: {
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify({
-      student_name:    GH.userName || GH.username,
-      department:      GH.dept,
-      github_username: GH.username,
-      github_id:       GH.id,
-      github_profile:  GH.profile,
-      quest_id:        currentVideo.questId,
-      time_spent:      watchTime
-    })
+   body: JSON.stringify({
+  student_name:    GH.name || GH.username,   // GH.name not GH.userName
+  department:      GH.dept,
+  github_username: GH.username,
+  github_id:       GH.githubId,              // GH.githubId not GH.id
+  github_profile:  GH.profile,
+  quest_id:        currentVideo.questId,
+  time_spent:      watchTime
+})
   })
   .then(async r => {
     if (!r.ok) {
@@ -958,7 +947,10 @@ document.getElementById('backBtn').onclick = () => {
 
 /* ── INIT ── */
 (function init() {
-  // Auth guard already ran at top; if we're here, user is authenticated
+  GH.dept =
+    localStorage.getItem('vfv_dept') ||
+    localStorage.getItem('userDept') ||
+    '';
   populateIdentity();
 })();
 </script>

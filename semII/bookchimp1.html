@@ -186,6 +186,11 @@ body {
   box-shadow: 0 0 0 3px rgba(200,146,42,0.25);
   transform: scale(1.2);
 }
+.chapter-dot.active.retry {
+  background: var(--crimson);
+  border-color: var(--crimson);
+  box-shadow: 0 0 0 3px rgba(139,26,26,0.25);
+}
 .chapter-of {
   font-family: 'IM Fell English', serif;
   font-size: 0.78rem;
@@ -1133,7 +1138,9 @@ let isMuted = false;
 let revealedKPs = new Set();
 let summaryNext = null;    // what to do after summary
 let wrongQuestionSets = []; // sets to retry
-let pendingQueue = [];     // queue of sets to show
+let pendingQueue = [];     // queue of sets to show — each entry: {idx, isRetry}
+let sessionStep = 0;       // which step we're on (1-based, across retries)
+let sessionTotal = 0;      // total steps planned (grows when retries queued)
 
 /* ═══════════════ AUDIO ═══════════════ */
 const SFX_CORRECT = new Audio('https://assets.mixkit.co/active_storage/sfx/2018/2018-preview.mp3');
@@ -1176,7 +1183,9 @@ function beginQuiz() {
   if (!d) { showToast('Please select your department', false); return; }
   playerName = n; playerDept = d;
   localStorage.setItem('chimqName', n); localStorage.setItem('chimqDept', d);
-  pendingQueue = quizData.map((_, i) => i); // indices 0..9
+  pendingQueue = quizData.map((_, i) => ({ idx: i, isRetry: false }));
+  sessionTotal = pendingQueue.length;
+  sessionStep = 0;
   current = 0; correctCount = 0; totalWrong = 0; gemsCount = 0;
   wrongQuestionSets = [];
   startTime = Date.now();
@@ -1197,39 +1206,53 @@ function buildChapterDots() {
   el.innerHTML = '';
   quizData.forEach((_, i) => {
     const d = document.createElement('div');
-    d.className = 'chapter-dot' + (i < current ? ' done' : i === current ? ' active' : '');
+    d.className = 'chapter-dot';
     d.id = `dot-${i}`;
     el.appendChild(d);
   });
   const span = document.createElement('span');
   span.className = 'chapter-of';
-  span.textContent = `${current + 1} of ${quizData.length}`;
+  span.textContent = `1 of ${sessionTotal}`;
   span.id = 'chapterOf';
   el.appendChild(span);
 }
 
-function updateDots() {
+function updateDots(isRetry) {
   quizData.forEach((_, i) => {
     const d = document.getElementById(`dot-${i}`);
     if (!d) return;
-    d.className = 'chapter-dot' + (i < current ? ' done' : i === current ? ' active' : '');
+    if (i === current) {
+      d.className = 'chapter-dot active' + (isRetry ? ' retry' : '');
+    } else if (i < current) {
+      d.className = 'chapter-dot done';
+    } else {
+      d.className = 'chapter-dot';
+    }
   });
   const of = document.getElementById('chapterOf');
-  if (of) of.textContent = `${Math.min(current+1, quizData.length)} of ${quizData.length}`;
+  if (of) of.textContent = `${sessionStep} of ${sessionTotal}`;
 }
 
 /* ═══════════════ LOAD QUESTION SET ═══════════════ */
 function loadQuestionSet() {
   if (pendingQueue.length === 0) { showScore(); return; }
-  current = pendingQueue[0];
+  const entry = pendingQueue[0];
+  current = entry.idx;
+  const isRetry = entry.isRetry;
+  sessionStep++;
+
   selectedChip = null;
   filledSlots = {};
   wrongSlots = {};
   revealedKPs = new Set();
 
-  document.getElementById('pageLabel').textContent = `Chapter ${current + 1}`;
+  // Page label: show step / total, and flag retries clearly
+  const chapterLabel = isRetry
+    ? `Chapter ${current + 1} · ↩ Retry  (${sessionStep} of ${sessionTotal})`
+    : `Chapter ${current + 1}  (${sessionStep} of ${sessionTotal})`;
+  document.getElementById('pageLabel').textContent = chapterLabel;
   document.getElementById('gemsDisplay').textContent = `💎 ${gemsCount}`;
-  updateDots();
+  updateDots(isRetry);
 
   const data = quizData[current];
   const shuffled = [...data.answers].sort(() => Math.random() - 0.5);
@@ -1435,13 +1458,13 @@ function updateKPCounter(total) {
 }
 
 function proceedFromSummary() {
-  // Pop current from queue
   pendingQueue.shift();
 
   if (pendingQueue.length === 0) {
-    // Check if there are wrong sets to retry
     if (wrongQuestionSets.length > 0) {
-      pendingQueue = [...wrongQuestionSets];
+      const retries = wrongQuestionSets.map(idx => ({ idx, isRetry: true }));
+      pendingQueue = retries;
+      sessionTotal += retries.length;
       wrongQuestionSets = [];
       show('quizScreen');
       loadQuestionSet();
@@ -1561,7 +1584,9 @@ function goNextQuest() { window.location.href = 'https://andrewveda.github.io/SR
 function resetQuiz() {
   correctCount = 0; totalWrong = 0; gemsCount = 0;
   wrongQuestionSets = [];
-  pendingQueue = quizData.map((_, i) => i);
+  pendingQueue = quizData.map((_, i) => ({ idx: i, isRetry: false }));
+  sessionTotal = pendingQueue.length;
+  sessionStep = 0;
   filledSlots = {}; wrongSlots = {}; selectedChip = null;
   startTime = Date.now();
   show('quizScreen');

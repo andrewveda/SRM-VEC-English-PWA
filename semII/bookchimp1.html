@@ -1,0 +1,1624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>The Chimp Paradox — Book Insights</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,900;1,400;1,700&family=Crimson+Text:ital,wght@0,400;0,600;1,400;1,600&family=IM+Fell+English:ital@0;1&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+<style>
+:root {
+  --parchment: #f5ead6;
+  --parchment-dark: #e8d5b0;
+  --parchment-deeper: #d4b896;
+  --ink: #1c1007;
+  --ink-soft: #3d2b1f;
+  --ink-muted: #7a6050;
+  --ink-faint: #b09070;
+  --crimson: #8b1a1a;
+  --crimson-soft: #a52a2a;
+  --gold: #c8922a;
+  --gold-light: #e8b44a;
+  --gold-faint: rgba(200,146,42,0.15);
+  --green-correct: #2d5a27;
+  --green-soft: #4a8a42;
+  --leather: #5c3317;
+  --page-shadow: 0 8px 40px rgba(28,16,7,0.25);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Crimson Text', Georgia, serif;
+  background: #2c1a0a;
+  background-image:
+    radial-gradient(ellipse at 30% 20%, rgba(100,60,20,0.4) 0%, transparent 60%),
+    radial-gradient(ellipse at 70% 80%, rgba(80,40,10,0.5) 0%, transparent 50%),
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.03) 2px,
+      rgba(0,0,0,0.03) 4px
+    );
+  min-height: 100vh;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 24px 16px 60px;
+}
+
+/* ═══════════════════════════════
+   BOOK WRAPPER
+═══════════════════════════════ */
+.book-wrapper {
+  width: 100%;
+  max-width: 680px;
+  position: relative;
+}
+
+/* Book spine effect */
+.book-wrapper::before {
+  content: '';
+  position: absolute;
+  left: -8px; top: 4px;
+  width: 8px; height: calc(100% - 8px);
+  background: linear-gradient(to right, #3d1f08, #6b3a18, #5c3317);
+  border-radius: 2px 0 0 2px;
+  box-shadow: -3px 4px 12px rgba(0,0,0,0.6);
+}
+
+.book-page {
+  background: var(--parchment);
+  background-image:
+    url("data:image/svg+xml,%3Csvg width='300' height='300' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E"),
+    linear-gradient(to bottom, #f8eed8 0%, #f2e4c8 30%, #f5e9d0 70%, #ede0bc 100%);
+  border-radius: 0 4px 4px 0;
+  box-shadow: var(--page-shadow), inset -1px 0 0 rgba(0,0,0,0.08);
+  padding: 40px 36px 48px;
+  position: relative;
+  min-height: 80vh;
+  border-left: 4px solid var(--parchment-deeper);
+}
+
+/* Page lines */
+.book-page::after {
+  content: '';
+  position: absolute;
+  left: 56px; right: 0; top: 0; bottom: 0;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0px,
+    transparent 31px,
+    rgba(180,140,90,0.12) 32px
+  );
+  pointer-events: none;
+  border-radius: 0 4px 4px 0;
+}
+
+/* Margin line */
+.book-page::before {
+  content: '';
+  position: absolute;
+  left: 52px; top: 0; bottom: 0; width: 1px;
+  background: rgba(180,100,60,0.2);
+  pointer-events: none;
+}
+
+/* ═══════════════════════════════
+   PAGE HEADER / CHAPTER LABEL
+═══════════════════════════════ */
+.chapter-label {
+  font-family: 'IM Fell English', Georgia, serif;
+  font-size: 0.72rem;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  text-align: center;
+  margin-bottom: 6px;
+  opacity: 0.8;
+}
+
+.book-title-block {
+  text-align: center;
+  border-top: 1px solid var(--parchment-deeper);
+  border-bottom: 1px solid var(--parchment-deeper);
+  padding: 18px 0 14px;
+  margin-bottom: 28px;
+  position: relative;
+}
+.book-title-block::before,
+.book-title-block::after {
+  content: '❧';
+  position: absolute;
+  font-size: 1.1rem;
+  color: var(--gold);
+  top: 50%; transform: translateY(-50%);
+}
+.book-title-block::before { left: 0; }
+.book-title-block::after  { right: 0; }
+
+.book-main-title {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1.7rem;
+  font-weight: 900;
+  color: var(--ink);
+  line-height: 1.1;
+  letter-spacing: 0.5px;
+}
+
+.book-subtitle {
+  font-family: 'IM Fell English', Georgia, serif;
+  font-style: italic;
+  font-size: 0.95rem;
+  color: var(--crimson);
+  margin-top: 5px;
+}
+
+/* ═══════════════════════════════
+   PROGRESS — CHAPTER MARKERS
+═══════════════════════════════ */
+.chapter-progress {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 24px;
+  justify-content: center;
+}
+.chapter-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  border: 1.5px solid var(--ink-muted);
+  background: transparent;
+  transition: all 0.35s ease;
+}
+.chapter-dot.done {
+  background: var(--crimson);
+  border-color: var(--crimson);
+}
+.chapter-dot.active {
+  background: var(--gold);
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(200,146,42,0.25);
+  transform: scale(1.2);
+}
+.chapter-of {
+  font-family: 'IM Fell English', serif;
+  font-size: 0.78rem;
+  color: var(--ink-muted);
+  font-style: italic;
+  margin-left: 4px;
+}
+
+/* Decorative divider */
+.ornament {
+  text-align: center;
+  color: var(--gold);
+  font-size: 1.1rem;
+  letter-spacing: 8px;
+  margin: 18px 0;
+  opacity: 0.7;
+}
+
+/* ═══════════════════════════════
+   NAME FORM SCREEN
+═══════════════════════════════ */
+#nameScreen {
+  text-align: center;
+}
+
+.epigraph {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-style: italic;
+  font-size: 1.05rem;
+  color: var(--ink-soft);
+  line-height: 1.65;
+  border-left: 3px solid var(--gold);
+  padding: 14px 20px;
+  margin: 0 auto 28px;
+  text-align: left;
+  max-width: 480px;
+  background: rgba(200,146,42,0.06);
+  border-radius: 0 6px 6px 0;
+}
+.epigraph-attr {
+  display: block;
+  margin-top: 8px;
+  font-size: 0.82rem;
+  font-style: normal;
+  color: var(--ink-muted);
+  font-family: 'IM Fell English', serif;
+}
+
+.field-label {
+  font-family: 'IM Fell English', serif;
+  font-size: 0.88rem;
+  color: var(--ink-soft);
+  text-align: left;
+  margin-bottom: 6px;
+  display: block;
+  font-style: italic;
+}
+
+.book-input {
+  width: 100%;
+  padding: 11px 16px;
+  font-family: 'Crimson Text', serif;
+  font-size: 1.05rem;
+  color: var(--ink);
+  background: rgba(255,255,255,0.6);
+  border: 1px solid var(--parchment-deeper);
+  border-radius: 3px;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  margin-bottom: 16px;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.06);
+}
+.book-input:focus {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(200,146,42,0.12), inset 0 1px 3px rgba(0,0,0,0.06);
+}
+.book-input option { color: #333; }
+
+.begin-btn {
+  width: 100%;
+  padding: 14px;
+  font-family: 'Playfair Display', serif;
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: var(--parchment);
+  background: linear-gradient(135deg, var(--leather), #3d1a08);
+  border: 1px solid rgba(255,200,120,0.25);
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.25s;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,200,120,0.15);
+  margin-top: 8px;
+}
+.begin-btn:hover {
+  background: linear-gradient(135deg, #6b3010, #4a2010);
+  box-shadow: 0 6px 24px rgba(0,0,0,0.4);
+  transform: translateY(-1px);
+}
+
+/* ═══════════════════════════════
+   QUIZ SCREEN
+═══════════════════════════════ */
+#quizScreen { display: none; }
+
+.page-num-strip {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  font-family: 'IM Fell English', serif;
+  font-size: 0.8rem;
+  font-style: italic;
+  color: var(--ink-muted);
+}
+
+.gems-display {
+  font-family: 'Playfair Display', serif;
+  font-size: 0.9rem;
+  color: var(--gold);
+  font-weight: 700;
+}
+
+/* Question block */
+.question-block {
+  margin-bottom: 28px;
+}
+
+.question-lead {
+  font-family: 'IM Fell English', serif;
+  font-size: 0.78rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--crimson);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.question-lead::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: rgba(139,26,26,0.2);
+}
+
+.question-sentence {
+  font-family: 'Crimson Text', serif;
+  font-size: 1.08rem;
+  line-height: 1.7;
+  color: var(--ink-soft);
+  margin-bottom: 14px;
+  padding: 12px 16px;
+  background: rgba(255,255,255,0.35);
+  border-radius: 3px;
+  border-left: 3px solid var(--parchment-deeper);
+  position: relative;
+}
+
+.blank-slot {
+  display: inline-block;
+  min-width: 100px;
+  border-bottom: 2px dashed var(--ink-muted);
+  color: var(--ink-muted);
+  font-style: italic;
+  font-size: 0.9em;
+  vertical-align: middle;
+  padding: 0 4px;
+  text-align: center;
+  transition: all 0.25s;
+  cursor: pointer;
+}
+.blank-slot.filled-correct {
+  border-bottom: 2px solid var(--green-correct);
+  color: var(--green-correct);
+  font-weight: 600;
+  font-style: normal;
+  background: rgba(45,90,39,0.08);
+  border-radius: 3px;
+  padding: 1px 6px;
+}
+.blank-slot.filled-wrong {
+  border-bottom: 2px solid var(--crimson);
+  color: var(--crimson);
+  border-radius: 3px;
+  animation: inkShake 0.45s ease;
+}
+@keyframes inkShake {
+  0%,100% { transform: translateX(0); }
+  25% { transform: translateX(-6px); }
+  75% { transform: translateX(6px); }
+}
+
+.blank-slot.waiting-answer {
+  border-bottom-color: var(--gold);
+  color: var(--gold);
+}
+
+/* Word options as inline chips */
+.word-bank {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.word-chip {
+  font-family: 'Playfair Display', serif;
+  font-size: 0.92rem;
+  font-weight: 600;
+  padding: 6px 16px;
+  background: rgba(255,255,255,0.5);
+  border: 1.5px solid var(--parchment-deeper);
+  border-radius: 2px;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: var(--ink-soft);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  user-select: none;
+  position: relative;
+}
+.word-chip::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: 2px;
+  background: linear-gradient(135deg, var(--gold-light), var(--gold));
+  opacity: 0;
+  transition: opacity 0.15s;
+  z-index: -1;
+}
+.word-chip:hover {
+  border-color: var(--gold);
+  color: var(--ink);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(200,146,42,0.2);
+}
+.word-chip.selected {
+  background: linear-gradient(135deg, var(--gold-light), var(--gold));
+  border-color: var(--gold);
+  color: var(--ink);
+  box-shadow: 0 2px 8px rgba(200,146,42,0.4);
+  transform: translateY(-1px);
+}
+.word-chip.used-correct {
+  opacity: 0.3;
+  cursor: not-allowed;
+  transform: none;
+  pointer-events: none;
+  text-decoration: line-through;
+}
+.word-chip.flash-wrong {
+  animation: chipFlash 0.5s ease;
+}
+@keyframes chipFlash {
+  0%,100% { background: rgba(255,255,255,0.5); }
+  50% { background: rgba(139,26,26,0.15); border-color: var(--crimson); color: var(--crimson); }
+}
+
+/* Correction shown inline */
+.inline-correction {
+  font-size: 0.8em;
+  color: var(--crimson);
+  font-style: italic;
+  margin-top: 3px;
+  display: block;
+  font-family: 'IM Fell English', serif;
+}
+
+/* ═══════════════════════════════
+   MOTIVATION TOAST
+═══════════════════════════════ */
+.toast {
+  position: fixed;
+  bottom: 20px; left: 50%;
+  transform: translateX(-50%) translateY(80px);
+  background: var(--ink);
+  color: var(--parchment);
+  font-family: 'Playfair Display', serif;
+  font-size: 0.95rem;
+  font-style: italic;
+  padding: 12px 24px;
+  border-radius: 3px;
+  max-width: 480px;
+  width: calc(100% - 40px);
+  text-align: center;
+  z-index: 9999;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+  border: 1px solid rgba(200,146,42,0.3);
+  transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1), opacity 0.3s;
+  opacity: 0;
+  pointer-events: none;
+}
+.toast.show {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+.toast.correct-toast { border-color: rgba(45,90,39,0.5); }
+.toast.wrong-toast   { border-color: rgba(139,26,26,0.5); }
+
+/* ═══════════════════════════════
+   SUMMARY / INTERLUDE PAGE
+═══════════════════════════════ */
+#summaryScreen { display: none; }
+
+.interlude-header {
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+.interlude-ornament {
+  font-size: 2rem;
+  color: var(--gold);
+  line-height: 1;
+}
+
+.interlude-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.4rem;
+  font-weight: 700;
+  font-style: italic;
+  color: var(--ink);
+  margin-top: 8px;
+}
+
+.interlude-byline {
+  font-family: 'IM Fell English', serif;
+  font-size: 0.82rem;
+  color: var(--ink-muted);
+  margin-top: 4px;
+  font-style: italic;
+}
+
+/* Key Point Cards — hidden until tapped */
+.key-point-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+.key-point-card {
+  position: relative;
+  border-radius: 3px;
+  overflow: hidden;
+  cursor: pointer;
+  min-height: 72px;
+  transition: box-shadow 0.2s;
+  -webkit-tap-highlight-color: transparent;
+}
+.key-point-card:hover:not(.revealed-kp) {
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+}
+
+/* Cover */
+.kp-cover {
+  position: absolute; inset: 0; z-index: 2;
+  background: linear-gradient(135deg, var(--ink) 0%, #2c1a0a 100%);
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  border: 1px solid rgba(200,146,42,0.2);
+  border-radius: 3px;
+  transition: transform 0.45s cubic-bezier(0.4,0,0.2,1), opacity 0.1s;
+  transform-origin: top;
+}
+.kp-cover.unveiling {
+  animation: kpUnveil 0.5s cubic-bezier(0.4,0,0.2,1) forwards;
+}
+@keyframes kpUnveil {
+  0%   { transform: scaleY(1); opacity: 1; }
+  100% { transform: scaleY(0); opacity: 0; }
+}
+
+.kp-cover-num {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.1rem;
+  font-style: italic;
+  color: rgba(200,146,42,0.6);
+}
+.kp-cover-tap {
+  font-family: 'IM Fell English', serif;
+  font-size: 0.8rem;
+  color: rgba(245,234,214,0.45);
+  font-style: italic;
+  display: flex; align-items: center; gap: 5px;
+}
+.kp-cover-shimmer {
+  position: absolute; inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.03), transparent);
+  animation: shimKP 2.5s ease-in-out infinite;
+}
+@keyframes shimKP {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(200%); }
+}
+
+/* Content */
+.kp-content {
+  padding: 16px 20px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.4), rgba(245,234,214,0.6));
+  border: 1px solid var(--parchment-deeper);
+  border-radius: 3px;
+  opacity: 0;
+  transition: opacity 0.3s ease 0.2s;
+}
+.key-point-card.revealed-kp .kp-content {
+  opacity: 1;
+}
+
+.kp-number {
+  font-family: 'Playfair Display', serif;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--crimson);
+  margin-bottom: 6px;
+  display: flex; align-items: center; gap: 8px;
+}
+.kp-number::after {
+  content: '';
+  flex: 1; height: 1px;
+  background: rgba(139,26,26,0.2);
+}
+
+.kp-text {
+  font-family: 'Crimson Text', serif;
+  font-size: 1.02rem;
+  line-height: 1.6;
+  color: var(--ink-soft);
+}
+
+.kp-speak-btn {
+  background: none;
+  border: 1px solid var(--parchment-deeper);
+  border-radius: 2px;
+  padding: 3px 10px;
+  font-family: 'IM Fell English', serif;
+  font-size: 0.75rem;
+  color: var(--ink-muted);
+  cursor: pointer;
+  margin-top: 8px;
+  transition: all 0.2s;
+  font-style: italic;
+}
+.kp-speak-btn:hover, .kp-speak-btn.speaking {
+  background: var(--gold-faint);
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+.reveal-counter-kp {
+  text-align: center;
+  font-family: 'IM Fell English', serif;
+  font-size: 0.82rem;
+  font-style: italic;
+  color: var(--ink-muted);
+  margin-bottom: 18px;
+}
+
+/* Next chapter button */
+.next-chapter-btn {
+  width: 100%;
+  padding: 14px;
+  font-family: 'Playfair Display', serif;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--parchment);
+  background: linear-gradient(135deg, var(--leather), #3d1a08);
+  border: 1px solid rgba(200,146,42,0.25);
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.25s;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  opacity: 0.45;
+  pointer-events: none;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.next-chapter-btn.ready {
+  opacity: 1;
+  pointer-events: all;
+  animation: btnGlow 2.5s ease-in-out infinite;
+}
+.next-chapter-btn.ready:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 24px rgba(0,0,0,0.45);
+}
+@keyframes btnGlow {
+  0%,100% { box-shadow: 0 4px 16px rgba(0,0,0,0.3); }
+  50% { box-shadow: 0 4px 24px rgba(200,146,42,0.35); }
+}
+
+/* ═══════════════════════════════
+   SCORE SCREEN
+═══════════════════════════════ */
+#scoreScreen { display: none; text-align: center; }
+
+.score-seal {
+  width: 100px; height: 100px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--gold-light), var(--gold));
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 20px;
+  font-size: 2.4rem;
+  box-shadow: 0 4px 20px rgba(200,146,42,0.5), 0 0 0 4px rgba(200,146,42,0.15);
+  animation: sealReveal 0.7s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes sealReveal {
+  from { transform: scale(0) rotate(-20deg); opacity: 0; }
+  to   { transform: scale(1) rotate(0); opacity: 1; }
+}
+
+.score-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.8rem;
+  font-weight: 900;
+  color: var(--ink);
+}
+
+.score-sub {
+  font-family: 'IM Fell English', serif;
+  font-style: italic;
+  color: var(--crimson);
+  margin-bottom: 24px;
+  font-size: 1rem;
+}
+
+.score-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.score-stat-box {
+  background: rgba(255,255,255,0.4);
+  border: 1px solid var(--parchment-deeper);
+  border-radius: 3px;
+  padding: 16px 12px;
+  text-align: center;
+}
+.score-stat-val {
+  font-family: 'Playfair Display', serif;
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--ink);
+}
+.score-stat-val.val-green { color: var(--green-correct); }
+.score-stat-val.val-red   { color: var(--crimson); }
+.score-stat-val.val-gold  { color: var(--gold); }
+
+.score-stat-label {
+  font-family: 'IM Fell English', serif;
+  font-size: 0.75rem;
+  font-style: italic;
+  color: var(--ink-muted);
+  margin-top: 4px;
+}
+
+.score-perf-msg {
+  font-family: 'Playfair Display', serif;
+  font-style: italic;
+  font-size: 1.05rem;
+  color: var(--ink-soft);
+  padding: 14px 20px;
+  background: rgba(200,146,42,0.08);
+  border: 1px solid rgba(200,146,42,0.2);
+  border-radius: 3px;
+  margin-bottom: 24px;
+  line-height: 1.6;
+}
+
+.score-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.action-btn {
+  padding: 13px;
+  font-family: 'Playfair Display', serif;
+  font-size: 0.95rem;
+  font-weight: 700;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid;
+}
+.action-primary {
+  background: linear-gradient(135deg, var(--leather), #3d1a08);
+  color: var(--parchment);
+  border-color: rgba(200,146,42,0.3);
+  box-shadow: 0 4px 14px rgba(0,0,0,0.3);
+}
+.action-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(0,0,0,0.4); }
+.action-secondary {
+  background: transparent;
+  color: var(--ink-muted);
+  border-color: var(--parchment-deeper);
+}
+.action-secondary:hover { background: rgba(255,255,255,0.4); color: var(--ink-soft); }
+
+/* Accuracy ring */
+.accuracy-wrap {
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 20px;
+}
+.accuracy-ring-svg { transform: rotate(-90deg); }
+.accuracy-track { fill: none; stroke: rgba(0,0,0,0.08); stroke-width: 8; }
+.accuracy-fill  {
+  fill: none; stroke-width: 8; stroke-linecap: round;
+  stroke-dasharray: 314;
+  stroke-dashoffset: 314;
+  transition: stroke-dashoffset 1.4s cubic-bezier(0.25,1,0.3,1);
+}
+.accuracy-center {
+  position: absolute;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+}
+.accuracy-pct {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+.accuracy-lbl {
+  font-family: 'IM Fell English', serif;
+  font-size: 0.68rem;
+  font-style: italic;
+  color: var(--ink-muted);
+  letter-spacing: 1px;
+}
+
+/* ═══════════════════════════════
+   ANIMATIONS
+═══════════════════════════════ */
+.page-enter {
+  animation: pageEnter 0.5s ease both;
+}
+@keyframes pageEnter {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 600px) {
+  body { padding: 0 0 50px; }
+  .book-wrapper::before { display: none; }
+  .book-page { border-radius: 0; border-left: none; min-height: 100dvh; padding: 28px 20px 40px; }
+  .book-main-title { font-size: 1.4rem; }
+}
+
+/* Mute button */
+.mute-btn {
+  background: none;
+  border: 1px solid var(--parchment-deeper);
+  border-radius: 2px;
+  padding: 3px 8px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  color: var(--ink-muted);
+  font-family: 'IM Fell English', serif;
+  font-style: italic;
+  transition: all 0.2s;
+}
+.mute-btn:hover { border-color: var(--gold); color: var(--gold); }
+</style>
+</head>
+<body>
+
+<div class="book-wrapper">
+<div class="book-page" id="bookPage">
+
+  <!-- ══ NAME SCREEN ══ -->
+  <div id="nameScreen" class="page-enter">
+    <div class="chapter-label">SRM Valliammai Engineering College — Dept. of English</div>
+    <div class="book-title-block">
+      <div class="book-main-title">The Chimp Paradox</div>
+      <div class="book-subtitle">A Quest Through Prof. Steve Peters' Insights</div>
+    </div>
+
+    <div class="epigraph">
+      "The most important conversations you'll ever have are the ones you'll have with yourself — but first, know which voice is speaking."
+      <span class="epigraph-attr">— Prof. Steve Peters, <em>The Chimp Paradox</em></span>
+    </div>
+
+    <div class="ornament">· · ✦ · ·</div>
+
+    <div style="max-width:380px;margin:0 auto;">
+      <label class="field-label">Your name, dear reader</label>
+      <input class="book-input" type="text" id="nameInput" placeholder="Enter your name…"/>
+
+      <label class="field-label">Your department</label>
+      <select class="book-input" id="deptInput">
+        <option value="">— Select Department —</option>
+        <option>Cyber Security</option><option>EIE</option>
+        <option>CSE-1</option><option>CSE-2</option><option>CSE-3</option>
+        <option>Mechanical Engineering</option>
+        <option>ECE-1</option><option>ECE-2</option><option>ECE-3</option>
+        <option>AI DS-1</option><option>AI DS-2</option>
+        <option>Agri and Civil</option><option>EEE</option>
+        <option>Medical Electronics</option>
+        <option>IT-1</option><option>IT-2</option>
+      </select>
+
+      <button class="begin-btn" onclick="beginQuiz()">📖 Open the Book</button>
+    </div>
+  </div>
+
+  <!-- ══ QUIZ SCREEN ══ -->
+  <div id="quizScreen">
+    <div class="page-num-strip">
+      <span id="pageLabel" style="font-style:italic">Chapter 1</span>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <button class="mute-btn" id="muteBtn" onclick="toggleMute()">🔊 Sound</button>
+        <span class="gems-display" id="gemsDisplay">💎 0</span>
+      </div>
+    </div>
+
+    <div class="chapter-progress" id="chapterProgress"></div>
+
+    <div class="ornament">· · · · ·</div>
+
+    <div id="questionArea"></div>
+  </div>
+
+  <!-- ══ SUMMARY / INTERLUDE SCREEN ══ -->
+  <div id="summaryScreen">
+    <div class="interlude-header page-enter">
+      <div class="interlude-ornament">❧</div>
+      <div class="interlude-title" id="summaryTitle">Pause & Reflect</div>
+      <div class="interlude-byline">Tap each insight to uncover it</div>
+    </div>
+
+    <div class="reveal-counter-kp" id="kpCounter">0 of 3 insights revealed</div>
+    <div class="key-point-cards" id="keyPointCards"></div>
+
+    <button class="next-chapter-btn" id="nextChapterBtn" onclick="proceedFromSummary()">
+      Turn the Page →
+    </button>
+  </div>
+
+  <!-- ══ SCORE SCREEN ══ -->
+  <div id="scoreScreen">
+    <div class="chapter-label" style="margin-bottom:20px;">Book Complete</div>
+
+    <div class="score-seal" id="scoreSeal">🏆</div>
+
+    <div class="score-title">Quest Completed!</div>
+    <div class="score-sub" id="scoreSub">Well read, well done</div>
+
+    <div class="ornament">· ✦ ·</div>
+
+    <div class="accuracy-wrap" style="position:relative;">
+      <svg class="accuracy-ring-svg" width="120" height="120" viewBox="0 0 120 120">
+        <circle class="accuracy-track" cx="60" cy="60" r="50"/>
+        <circle class="accuracy-fill" id="accuracyFill" cx="60" cy="60" r="50" stroke="#c8922a"/>
+      </svg>
+      <div class="accuracy-center">
+        <div class="accuracy-pct" id="accuracyPct">0%</div>
+        <div class="accuracy-lbl">Accuracy</div>
+      </div>
+    </div>
+
+    <div class="score-stats">
+      <div class="score-stat-box">
+        <div class="score-stat-val val-green" id="statCorrect">0</div>
+        <div class="score-stat-label">Correct</div>
+      </div>
+      <div class="score-stat-box">
+        <div class="score-stat-val val-red" id="statWrong">0</div>
+        <div class="score-stat-label">Wrong attempts</div>
+      </div>
+      <div class="score-stat-box">
+        <div class="score-stat-val val-gold" id="statGems">0</div>
+        <div class="score-stat-label">Gems earned</div>
+      </div>
+      <div class="score-stat-box">
+        <div class="score-stat-val" id="statTime">0s</div>
+        <div class="score-stat-label">Time taken</div>
+      </div>
+    </div>
+
+    <div class="score-perf-msg" id="perfMsg"></div>
+
+    <div class="score-actions">
+      <button class="action-btn action-primary" onclick="goNextQuest()">🚀 Next Quest</button>
+      <button class="action-btn action-secondary" onclick="downloadReport()">📄 Download Report</button>
+      <button class="action-btn action-secondary" onclick="resetQuiz()">↩ Read Again</button>
+    </div>
+  </div>
+
+</div><!-- /.book-page -->
+</div><!-- /.book-wrapper -->
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+/* ═══════════════ DATA ═══════════════ */
+const quizData = [
+  {
+    questionItems: [
+      { word: "Apart from the Chimp and the Human, the mind also has a 'Computer' that stores habits and beliefs, so many of my daily actions run on ___ without conscious thinking.", answer: "autopilot" },
+      { word: "The Computer stores repeated behaviors over time, which means what I practice regularly becomes ___.", answer: "automatic" },
+      { word: "To improve my behavior long-term, I focus on training my ___ with positive habits.", answer: "computer" }
+    ],
+    answers: ["autopilot", "automatic", "computer", "impulse", "emotion", "override"],
+    keyPoints: [
+      "The 'Computer' brain stores your habits and runs them automatically — like autopilot on a plane.",
+      "Whatever you repeat consistently becomes automatic. Practice shapes the computer's programming.",
+      "To change behavior long-term, work on the Computer — install better habits through repetition."
+    ]
+  },
+  {
+    questionItems: [
+      { word: "Since most of my actions are driven by stored patterns, changing behavior requires changing my daily ___.", answer: "habits" },
+      { word: "Instead of relying only on willpower, I install good routines so that right actions become ___.", answer: "default" },
+      { word: "Over time, consistent repetition turns conscious effort into ___.", answer: "programming" }
+    ],
+    answers: ["habits", "default", "programming", "mindset", "culture", "response"],
+    keyPoints: [
+      "Behavior change is really about changing daily habits — the raw material your Computer runs on.",
+      "Good routines make the right action the default, removing the need for willpower every time.",
+      "Repetition is the language the Computer understands — effort becomes programming over time."
+    ]
+  },
+  {
+    questionItems: [
+      { word: "The Chimp needs to express emotions safely, so instead of suppressing feelings, I allow myself to ___ them in a controlled way.", answer: "vent" },
+      { word: "If I bottle up emotions, they build pressure and may eventually ___.", answer: "explode" },
+      { word: "Healthy expression of feelings helps me return to ___ thinking faster.", answer: "calm" }
+    ],
+    answers: ["vent", "explode", "calm", "process", "suppress", "redirect"],
+    keyPoints: [
+      "Your Chimp needs to express emotions — safe venting prevents a damaging explosion later.",
+      "Bottled emotions accumulate pressure. Give the Chimp a controlled outlet before it erupts.",
+      "Once the Chimp vents, calm thinking returns faster. Expression is the reset button."
+    ]
+  },
+  {
+    questionItems: [
+      { word: "Not every thought is a fact, so I train myself to separate truth from ___.", answer: "opinion" },
+      { word: "By questioning my thoughts, I avoid treating emotional reactions as ___.", answer: "truth" },
+      { word: "This helps me respond based on evidence instead of ___.", answer: "assumptions" }
+    ],
+    answers: ["opinion", "truth", "assumptions", "logic", "reaction", "instinct"],
+    keyPoints: [
+      "The Chimp presents opinions as facts. Train yourself to pause and distinguish the two.",
+      "Emotional reactions feel real but are not necessarily true — question before accepting.",
+      "Evidence-based responses beat assumption-driven reactions. This is the Human brain at work."
+    ]
+  },
+  {
+    questionItems: [
+      { word: "Some emotional reactions come from past experiences, so my Chimp may respond to old threats instead of the ___ situation.", answer: "current" },
+      { word: "By recognizing past influences, I prevent them from controlling my present ___.", answer: "behavior" },
+      { word: "Understanding my history helps me respond more ___ instead of reacting automatically.", answer: "rationally" }
+    ],
+    answers: ["current", "behavior", "rationally", "consciously", "clearly", "swiftly"],
+    keyPoints: [
+      "Your Chimp often reacts to echoes of the past, not the present moment — know the difference.",
+      "Recognizing past influences gives you the power to stop them hijacking current behavior.",
+      "Self-awareness of your history is the key to responding rationally instead of reacting automatically."
+    ]
+  },
+  {
+    questionItems: [
+      { word: "The Social Chimp compares me with others, leading to jealousy or insecurity, so I avoid unnecessary ___.", answer: "comparison" },
+      { word: "When I focus too much on others, my emotional reactions increase, so I redirect attention to my own ___.", answer: "goals" },
+      { word: "Managing social emotions helps me maintain inner ___.", answer: "balance" }
+    ],
+    answers: ["comparison", "goals", "balance", "rivalry", "judgment", "approval"],
+    keyPoints: [
+      "The Social Chimp loves comparison — and it almost always breeds jealousy or low confidence.",
+      "Redirecting focus from others to your own goals is how you reclaim emotional stability.",
+      "Inner balance comes from managing social emotions, not from winning every comparison."
+    ]
+  },
+  {
+    questionItems: [
+      { word: "The Computer stores both helpful and harmful beliefs, so I actively replace negative patterns with ___ ones.", answer: "positive" },
+      { word: "By repeating healthy thoughts and actions, I gradually install better ___.", answer: "patterns" },
+      { word: "Over time, these patterns guide my behavior automatically, improving my ___.", answer: "results" }
+    ],
+    answers: ["positive", "patterns", "results", "instincts", "reflexes", "outputs"],
+    keyPoints: [
+      "Your Computer stores both good and bad beliefs — and you can deliberately overwrite the bad.",
+      "Healthy thoughts and actions, repeated consistently, install new patterns in the Computer.",
+      "Better patterns mean better automatic behavior — your results improve without constant effort."
+    ]
+  },
+  {
+    questionItems: [
+      { word: "When I feel overwhelmed, I take time to process emotions instead of reacting instantly, which helps me regain ___.", answer: "clarity" },
+      { word: "Giving my Chimp time to settle prevents impulsive ___.", answer: "actions" },
+      { word: "This allows my Human brain to take over and respond more ___.", answer: "wisely" }
+    ],
+    answers: ["clarity", "actions", "wisely", "calmly", "quickly", "focus"],
+    keyPoints: [
+      "Pausing when overwhelmed gives your emotions time to process — clarity follows the storm.",
+      "A settled Chimp means fewer impulsive actions that you later regret.",
+      "Once the Chimp is calm, your rational Human brain can take the wheel and steer wisely."
+    ]
+  },
+  {
+    questionItems: [
+      { word: "By building strong habits in my Computer, I reduce the need for constant ___.", answer: "decision-making" },
+      { word: "Good systems make correct behavior easier and more ___.", answer: "consistent" },
+      { word: "Over time, this turns discipline into a natural part of my ___.", answer: "life" }
+    ],
+    answers: ["decision-making", "consistent", "life", "character", "schedule", "identity"],
+    keyPoints: [
+      "Strong habits reduce decision fatigue — the Computer handles what used to drain your willpower.",
+      "Good systems make the right behavior the easy behavior, building consistency without effort.",
+      "When discipline becomes a habit, it's no longer discipline — it's simply who you are."
+    ]
+  },
+  {
+    questionItems: [
+      { word: "Managing the mind is not about eliminating the Chimp, but about balancing emotion with ___.", answer: "logic" },
+      { word: "By understanding all parts of my mind, I improve my ability to ___ situations effectively.", answer: "handle" },
+      { word: "In the long run, self-control comes from training both my reactions and my ___.", answer: "habits" }
+    ],
+    answers: ["logic", "handle", "habits", "reason", "navigate", "responses"],
+    keyPoints: [
+      "The goal is never to destroy the Chimp — it's to balance emotion with logic, not suppress one.",
+      "Understanding all three parts of your mind (Chimp, Human, Computer) improves how you handle life.",
+      "Lasting self-control requires training both your moment-to-moment reactions and your long-term habits."
+    ]
+  }
+];
+
+/* ═══════════════ STATE ═══════════════ */
+let playerName = '', playerDept = '';
+let current = 0;           // current question set index
+let correctCount = 0;
+let totalWrong = 0;
+let gemsCount = 0;
+let startTime;
+let selectedChip = null;   // currently selected word chip
+let filledSlots = {};      // {slotIdx: answer}
+let wrongSlots = {};       // {slotIdx: true} — slots with wrong attempts
+let isMuted = false;
+let revealedKPs = new Set();
+let summaryNext = null;    // what to do after summary
+let wrongQuestionSets = []; // sets to retry
+let pendingQueue = [];     // queue of sets to show
+
+/* ═══════════════ AUDIO ═══════════════ */
+const SFX_CORRECT = new Audio('https://assets.mixkit.co/active_storage/sfx/2018/2018-preview.mp3');
+const SFX_WRONG   = new Audio('https://assets.mixkit.co/active_storage/sfx/2955/2955-preview.mp3');
+SFX_CORRECT.volume = 0.4; SFX_WRONG.volume = 0.3;
+SFX_CORRECT.load(); SFX_WRONG.load();
+
+function toggleMute() {
+  isMuted = !isMuted;
+  document.getElementById('muteBtn').textContent = isMuted ? '🔇 Muted' : '🔊 Sound';
+}
+function playSFX(sfx) {
+  if (isMuted) return;
+  try { sfx.currentTime = 0; sfx.play().catch(()=>{}); } catch(e){}
+}
+
+function speak(text, btn) {
+  if (isMuted || !window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = 'en-US'; u.rate = 0.88; u.pitch = 1;
+  if (btn) {
+    btn.classList.add('speaking');
+    u.onend = u.onerror = () => btn.classList.remove('speaking');
+  }
+  window.speechSynthesis.speak(u);
+}
+
+/* ═══════════════ INIT ═══════════════ */
+window.addEventListener('load', () => {
+  const n = localStorage.getItem('chimqName'), d = localStorage.getItem('chimqDept');
+  if (n) document.getElementById('nameInput').value = n;
+  if (d) document.getElementById('deptInput').value = d;
+});
+
+function beginQuiz() {
+  const n = document.getElementById('nameInput').value.trim();
+  const d = document.getElementById('deptInput').value;
+  if (!n) { showToast('Please enter your name to begin', false); return; }
+  if (!d) { showToast('Please select your department', false); return; }
+  playerName = n; playerDept = d;
+  localStorage.setItem('chimqName', n); localStorage.setItem('chimqDept', d);
+  pendingQueue = quizData.map((_, i) => i); // indices 0..9
+  current = 0; correctCount = 0; totalWrong = 0; gemsCount = 0;
+  wrongQuestionSets = [];
+  startTime = Date.now();
+  document.getElementById('nameScreen').style.display = 'none';
+  show('quizScreen');
+  buildChapterDots();
+  loadQuestionSet();
+}
+
+function show(id) {
+  ['nameScreen','quizScreen','summaryScreen','scoreScreen'].forEach(s => {
+    document.getElementById(s).style.display = s === id ? '' : 'none';
+  });
+}
+
+/* ═══════════════ CHAPTER DOTS ═══════════════ */
+function buildChapterDots() {
+  const el = document.getElementById('chapterProgress');
+  el.innerHTML = '';
+  quizData.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'chapter-dot' + (i < current ? ' done' : i === current ? ' active' : '');
+    d.id = `dot-${i}`;
+    el.appendChild(d);
+  });
+  const span = document.createElement('span');
+  span.className = 'chapter-of';
+  span.textContent = `${current + 1} of ${quizData.length}`;
+  span.id = 'chapterOf';
+  el.appendChild(span);
+}
+
+function updateDots() {
+  quizData.forEach((_, i) => {
+    const d = document.getElementById(`dot-${i}`);
+    if (!d) return;
+    d.className = 'chapter-dot' + (i < current ? ' done' : i === current ? ' active' : '');
+  });
+  const of = document.getElementById('chapterOf');
+  if (of) of.textContent = `${Math.min(current+1, quizData.length)} of ${quizData.length}`;
+}
+
+/* ═══════════════ LOAD QUESTION SET ═══════════════ */
+function loadQuestionSet() {
+  if (pendingQueue.length === 0) { showScore(); return; }
+  current = pendingQueue[0];
+  selectedChip = null;
+  filledSlots = {};
+  wrongSlots = {};
+  revealedKPs = new Set();
+
+  document.getElementById('pageLabel').textContent = `Chapter ${current + 1}`;
+  document.getElementById('gemsDisplay').textContent = `💎 ${gemsCount}`;
+  updateDots();
+
+  const data = quizData[current];
+  const shuffled = [...data.answers].sort(() => Math.random() - 0.5);
+  const area = document.getElementById('questionArea');
+
+  area.innerHTML = `
+    <div class="word-bank" id="wordBank"></div>
+    <div class="question-block" id="questionBlock"></div>
+  `;
+
+  // Word bank
+  const bank = document.getElementById('wordBank');
+  shuffled.forEach(word => {
+    const chip = document.createElement('div');
+    chip.className = 'word-chip';
+    chip.textContent = word;
+    chip.dataset.word = word;
+    chip.onclick = () => selectChip(chip);
+    bank.appendChild(chip);
+  });
+
+  // Question sentences with blank slots
+  const block = document.getElementById('questionBlock');
+  data.questionItems.forEach((item, idx) => {
+    const div = document.createElement('div');
+    div.className = 'question-sentence';
+
+    // Replace ___ with a clickable slot
+    const parts = item.word.split('___');
+    const span0 = document.createElement('span');
+    span0.textContent = parts[0];
+    const slot = document.createElement('span');
+    slot.className = 'blank-slot';
+    slot.textContent = 'tap to fill';
+    slot.dataset.idx = idx;
+    slot.dataset.answer = item.answer;
+    slot.onclick = () => placeWord(slot);
+    const span1 = document.createElement('span');
+    span1.textContent = parts[1] || '';
+
+    div.appendChild(span0);
+    div.appendChild(slot);
+    div.appendChild(span1);
+
+    // Question lead
+    const lead = document.createElement('div');
+    lead.className = 'question-lead';
+    lead.textContent = `Insight ${idx + 1}`;
+
+    const wrap = document.createElement('div');
+    wrap.appendChild(lead);
+    wrap.appendChild(div);
+    block.appendChild(wrap);
+  });
+
+  // Animate in
+  area.classList.remove('page-enter');
+  void area.offsetWidth;
+  area.classList.add('page-enter');
+}
+
+/* ═══════════════ CHIP SELECTION ═══════════════ */
+function selectChip(chip) {
+  if (chip.classList.contains('used-correct')) return;
+  if (selectedChip) selectedChip.classList.remove('selected');
+  if (selectedChip === chip) { selectedChip = null; return; }
+  selectedChip = chip;
+  chip.classList.add('selected');
+}
+
+/* ═══════════════ PLACE WORD ═══════════════ */
+function placeWord(slot) {
+  if (!selectedChip) {
+    // Highlight unfilled state
+    slot.classList.add('waiting-answer');
+    setTimeout(() => slot.classList.remove('waiting-answer'), 800);
+    return;
+  }
+  if (slot.classList.contains('filled-correct')) return;
+
+  const idx = parseInt(slot.dataset.idx);
+  const correct = slot.dataset.answer;
+  const chosen = selectedChip.dataset.word;
+
+  if (chosen === correct) {
+    // ✅ Correct
+    slot.textContent = chosen;
+    slot.classList.remove('waiting-answer');
+    slot.classList.add('filled-correct');
+    slot.style.cursor = 'default';
+    filledSlots[idx] = chosen;
+    selectedChip.classList.remove('selected');
+    selectedChip.classList.add('used-correct');
+    selectedChip = null;
+    correctCount++;
+    gemsCount++;
+    document.getElementById('gemsDisplay').textContent = `💎 ${gemsCount}`;
+    playSFX(SFX_CORRECT);
+    triggerConfetti();
+    showToast(rightMsg(), true);
+
+    // Check if all slots filled
+    const total = quizData[current].questionItems.length;
+    if (Object.keys(filledSlots).length === total) {
+      setTimeout(() => showSummary(), 900);
+    }
+  } else {
+    // ❌ Wrong — show immediately
+    slot.classList.add('filled-wrong');
+    selectedChip.classList.remove('selected');
+    selectedChip.classList.add('flash-wrong');
+    setTimeout(() => {
+      selectedChip && selectedChip.classList.remove('flash-wrong');
+      slot.classList.remove('filled-wrong');
+      slot.textContent = 'tap to fill';
+    }, 600);
+    selectedChip = null;
+    totalWrong++;
+    gemsCount--;
+    document.getElementById('gemsDisplay').textContent = `💎 ${gemsCount}`;
+    playSFX(SFX_WRONG);
+    showToast(wrongMsg(), false);
+
+    // Mark this set for retry if not already
+    if (!wrongQuestionSets.includes(current)) wrongQuestionSets.push(current);
+  }
+}
+
+/* ═══════════════ SUMMARY / INTERLUDE ═══════════════ */
+function showSummary() {
+  show('summaryScreen');
+  const data = quizData[current];
+  revealedKPs = new Set();
+
+  document.getElementById('summaryTitle').textContent = `Pause & Reflect — Chapter ${current + 1}`;
+  document.getElementById('kpCounter').textContent = `0 of ${data.keyPoints.length} insights revealed`;
+  document.getElementById('nextChapterBtn').className = 'next-chapter-btn';
+
+  const container = document.getElementById('keyPointCards');
+  container.innerHTML = '';
+  container.classList.remove('page-enter');
+  void container.offsetWidth;
+  container.classList.add('page-enter');
+
+  data.keyPoints.forEach((kp, i) => {
+    const card = document.createElement('div');
+    card.className = 'key-point-card';
+    card.id = `kp-${i}`;
+    card.innerHTML = `
+      <div class="kp-cover" id="kp-cover-${i}">
+        <div class="kp-cover-shimmer"></div>
+        <div class="kp-cover-num">Insight ${i + 1}</div>
+        <div class="kp-cover-tap">👉 <span>Tap to reveal</span></div>
+      </div>
+      <div class="kp-content">
+        <div class="kp-number">Key Insight ${i + 1}</div>
+        <div class="kp-text">${kp}</div>
+        <button class="kp-speak-btn" id="kp-speak-${i}" onclick="event.stopPropagation(); speakKP('${kp.replace(/'/g,"\\'")}', this)">🔊 Hear it aloud</button>
+      </div>
+    `;
+    card.onclick = () => revealKP(i, card, kp);
+    container.appendChild(card);
+  });
+
+  updateKPCounter(data.keyPoints.length);
+}
+
+function revealKP(i, card, text) {
+  if (revealedKPs.has(i)) return;
+  const cover = document.getElementById(`kp-cover-${i}`);
+  cover.classList.add('unveiling');
+  setTimeout(() => {
+    card.classList.add('revealed-kp');
+    cover.style.display = 'none';
+    // Auto-speak when revealed
+    const btn = document.getElementById(`kp-speak-${i}`);
+    speak(text, btn);
+  }, 460);
+
+  revealedKPs.add(i);
+  const total = quizData[current].keyPoints.length;
+  updateKPCounter(total);
+
+  if (revealedKPs.size === total) {
+    const btn = document.getElementById('nextChapterBtn');
+    btn.classList.add('ready');
+    btn.textContent = pendingQueue.length > 1 ? 'Turn the Page →' : '📖 Finish the Book';
+  }
+}
+
+function speakKP(text, btn) {
+  speak(text, btn);
+}
+
+function updateKPCounter(total) {
+  const el = document.getElementById('kpCounter');
+  const done = revealedKPs.size;
+  if (done === total) {
+    el.textContent = `✅ All ${total} insights revealed — ready to continue`;
+  } else {
+    el.textContent = `${done} of ${total} insights revealed`;
+  }
+}
+
+function proceedFromSummary() {
+  // Pop current from queue
+  pendingQueue.shift();
+
+  if (pendingQueue.length === 0) {
+    // Check if there are wrong sets to retry
+    if (wrongQuestionSets.length > 0) {
+      pendingQueue = [...wrongQuestionSets];
+      wrongQuestionSets = [];
+      show('quizScreen');
+      loadQuestionSet();
+    } else {
+      showScore();
+    }
+  } else {
+    show('quizScreen');
+    loadQuestionSet();
+  }
+}
+
+/* ═══════════════ SCORE ═══════════════ */
+function showScore() {
+  show('scoreScreen');
+  triggerMegaConfetti();
+
+  const elapsed = Math.floor((Date.now() - startTime) / 1000);
+  const mins = Math.floor(elapsed / 60), secs = elapsed % 60;
+  const timeStr = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+  const total = correctCount + Math.abs(totalWrong);
+  const acc = total === 0 ? 0 : Math.round((correctCount / total) * 100);
+
+  document.getElementById('statCorrect').textContent = correctCount;
+  document.getElementById('statWrong').textContent = Math.abs(totalWrong);
+  document.getElementById('statGems').textContent = gemsCount;
+  document.getElementById('statTime').textContent = timeStr;
+
+  const seal = document.getElementById('scoreSeal');
+  seal.textContent = acc >= 85 ? '🏆' : acc >= 60 ? '🌟' : '📖';
+
+  const perfMsgs = {
+    high: `Outstanding, ${playerName}! You've absorbed these insights with the dedication of a true scholar.`,
+    mid:  `Well done, ${playerName}. The Chimp is learning to cooperate — keep practising these insights.`,
+    low:  `Every page turned is progress, ${playerName}. Return and read again; mastery rewards patience.`
+  };
+  document.getElementById('perfMsg').textContent =
+    acc >= 80 ? perfMsgs.high : acc >= 55 ? perfMsgs.mid : perfMsgs.low;
+
+  document.getElementById('scoreSub').textContent = `${acc}% mastery · ${quizData.length} chapters`;
+
+  // Animate accuracy ring
+  const fill = document.getElementById('accuracyFill');
+  const pctEl = document.getElementById('accuracyPct');
+  fill.style.stroke = acc >= 80 ? '#2d5a27' : acc >= 55 ? '#c8922a' : '#8b1a1a';
+  setTimeout(() => {
+    fill.style.strokeDashoffset = 314 * (1 - acc / 100);
+    let n = 0;
+    const step = setInterval(() => {
+      n = Math.min(n + 2, acc);
+      pctEl.textContent = n + '%';
+      if (n >= acc) clearInterval(step);
+    }, 20);
+  }, 200);
+
+  // Log to server
+  sendLog({ student_name: playerName, department: playerDept, correct: correctCount, wrong: Math.abs(totalWrong), time_spent: elapsed, quest_id: 'ChimpParadox-Quest256' });
+}
+
+async function sendLog(payload) {
+  try {
+    await fetch('https://yellow-lab-4999.andrewveda.workers.dev/functions/v1/logQuest', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+  } catch(e) {}
+}
+
+/* ═══════════════ CONFETTI ═══════════════ */
+function triggerConfetti() {
+  confetti({ particleCount: 60, spread: 60, origin: { y: 0.6 },
+    colors: ['#c8922a', '#e8b44a', '#8b1a1a', '#f5ead6', '#2d5a27'] });
+}
+function triggerMegaConfetti() {
+  const end = Date.now() + 2500;
+  const colors = ['#c8922a','#e8b44a','#8b1a1a','#f5ead6','#2d5a27','#5c3317'];
+  (function frame() {
+    confetti({ particleCount: 3, angle: 60, spread: 55, origin: {x:0}, colors });
+    confetti({ particleCount: 3, angle: 120, spread: 55, origin: {x:1}, colors });
+    if (Date.now() < end) requestAnimationFrame(frame);
+  })();
+}
+
+/* ═══════════════ TOAST ═══════════════ */
+let toastTimer;
+function showToast(msg, correct) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + (correct ? 'correct-toast' : 'wrong-toast');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.className = 'toast'; }, 2800);
+}
+
+/* ═══════════════ MOTIVATION ═══════════════ */
+const RIGHT = [
+  "Splendid! {name} grasps another insight.",
+  "Well read, {name}! The pages yield their secrets.",
+  "{name} proves that careful reading rewards the diligent.",
+  "Excellent! {name}'s Human brain is firmly in control.",
+  "The book approves, {name} — keep turning the pages!",
+  "{name}'s understanding deepens with every correct answer.",
+];
+const WRONG = [
+  "Every error is a footnote to wisdom, {name}. Try again.",
+  "The Chimp stumbles — but the Human learns, {name}.",
+  "Even scholars misread. Return to the text, {name}.",
+  "Failure is just the first draft, {name}. Revise and retry.",
+  "The wise reader re-reads, {name}. You're almost there.",
+];
+function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+function rightMsg() { return pick(RIGHT).replace(/{name}/g, playerName); }
+function wrongMsg() { return pick(WRONG).replace(/{name}/g, playerName); }
+
+/* ═══════════════ NAV ═══════════════ */
+function goNextQuest() { window.location.href = 'https://andrewveda.github.io/SRM-VEC-English-PWA/semII/73'; }
+
+function resetQuiz() {
+  correctCount = 0; totalWrong = 0; gemsCount = 0;
+  wrongQuestionSets = [];
+  pendingQueue = quizData.map((_, i) => i);
+  filledSlots = {}; wrongSlots = {}; selectedChip = null;
+  startTime = Date.now();
+  show('quizScreen');
+  buildChapterDots();
+  loadQuestionSet();
+}
+
+/* ═══════════════ PDF REPORT ═══════════════ */
+function downloadReport() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  const elapsed = Math.floor((Date.now() - startTime) / 1000);
+  const reportDate = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+  const acc = Math.round((correctCount / (correctCount + Math.abs(totalWrong) || 1)) * 100);
+
+  doc.setFillColor(28,16,7); doc.rect(0,0,210,40,'F');
+  doc.setTextColor(245,234,214); doc.setFont('times','bold'); doc.setFontSize(16);
+  doc.text('SRM VALLIAMMAI ENGINEERING COLLEGE', 105, 14, {align:'center'});
+  doc.setFontSize(11); doc.setFont('times','italic'); doc.setTextColor(200,146,42);
+  doc.text('The Chimp Paradox — Quest Performance Report', 105, 28, {align:'center'});
+
+  doc.setTextColor(0,0,0); doc.setFontSize(10); doc.setFont('times','normal');
+  doc.autoTable({
+    startY: 48,
+    body: [['Student Name', playerName],['Department', playerDept],['Quest ID','ChimpParadox-Quest256'],['Date',reportDate],['Accuracy',acc+'%']],
+    theme:'plain', styles:{fontSize:10,font:'times',cellPadding:3},
+    columnStyles:{0:{fontStyle:'bold',cellWidth:55,textColor:[70,70,70]},1:{cellWidth:125}},
+    margin:{left:20,right:20}
+  });
+
+  let y = doc.lastAutoTable.finalY + 8;
+  doc.autoTable({
+    startY: y,
+    head:[['Metric','Value']],
+    body:[['Correct Answers',correctCount],['Wrong Attempts',Math.abs(totalWrong)],['Gems Earned',gemsCount],['Time Taken',`${Math.floor(elapsed/60)}m ${elapsed%60}s`]],
+    theme:'grid', styles:{fontSize:10,font:'times',cellPadding:3},
+    headStyles:{fillColor:[28,16,7],textColor:[245,234,214]},
+    margin:{left:20,right:20}
+  });
+
+  y = doc.lastAutoTable.finalY + 10;
+  doc.setFont('times','bold'); doc.setFontSize(12); doc.text('Key Insights Covered', 20, y); y += 6;
+  quizData.forEach((set, i) => {
+    if (y > 250) { doc.addPage(); y = 20; }
+    doc.setFont('times','bold'); doc.setFontSize(10); doc.setTextColor(28,16,7);
+    doc.text(`Chapter ${i+1}`, 20, y); y += 5;
+    doc.setFont('times','normal'); doc.setTextColor(60,40,20);
+    set.keyPoints.forEach((kp, j) => {
+      const lines = doc.splitTextToSize(`${j+1}. ${kp}`, 165);
+      doc.text(lines, 25, y); y += lines.length * 5 + 2;
+    });
+    y += 4;
+  });
+
+  doc.save(`${playerName.replace(/[^a-zA-Z0-9]/g,'_')}_ChimpParadox_Report.pdf`);
+}
+</script>
+</body>
+</html>

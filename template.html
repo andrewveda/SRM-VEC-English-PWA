@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Veni Vidi Vici — Skill Nexus</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700&family=Rajdhani:wght@400;500;700&display=swap" rel="stylesheet">
+
+<style>
+
+:root{
+  --bg:#05070d;
+  --bg2:#0b1020;
+  --panel:#101728;
+  --line:#25314d;
+  --gold:#d4b06a;
+  --cyan:#69e0ff;
+  --violet:#a178ff;
+  --green:#72ff9f;
+  --red:#ff5470;
+  --text:#eef3ff;
+  --muted:#7d8aa8;
+}
+
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+}
+
+body{
+  overflow:hidden;
+  background:
+    radial-gradient(circle at top left, rgba(105,224,255,0.08), transparent 30%),
+    radial-gradient(circle at bottom right, rgba(161,120,255,0.08), transparent 30%),
+    linear-gradient(to bottom, var(--bg), var(--bg2));
+  color:var(--text);
+  font-family:'Rajdhani', sans-serif;
+  height:100vh;
+}
+
+/* ===============================
+   STARFIELD
+================================= */
+
+.stars{
+  position:fixed;
+  inset:0;
+  overflow:hidden;
+  pointer-events:none;
+}
+
+.star{
+  position:absolute;
+  width:2px;
+  height:2px;
+  background:white;
+  border-radius:50%;
+  opacity:.5;
+  animation: twinkle 3s infinite ease-in-out;
+}
+
+@keyframes twinkle{
+  0%,100%{opacity:.2;}
+  50%{opacity:1;}
+}
+
+/* ===============================
+   TOP HUD
+================================= */
+
+.topbar{
+  position:fixed;
+  top:0;
+  left:0;
+  right:0;
+  z-index:1000;
+
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+
+  padding:14px 18px;
+
+  background:rgba(5,7,13,.75);
+  backdrop-filter:blur(16px);
+
+  border-bottom:1px solid rgba(255,255,255,.05);
+}
+
+.brand{
+  display:flex;
+  flex-direction:column;
+}
+
+.brand small{
+  color:var(--cyan);
+  letter-spacing:3px;
+  font-size:.6rem;
+  text-transform:uppercase;
+}
+
+.brand h1{
+  font-family:'Orbitron', sans-serif;
+  font-size:1rem;
+  letter-spacing:2px;
+  color:white;
+}
+
+.stats{
+  display:flex;
+  gap:12px;
+}
+
+.stat{
+  background:rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.08);
+  padding:8px 10px;
+  border-radius:10px;
+  min-width:75px;
+  text-align:center;
+}
+
+.stat-value{
+  color:var(--cyan);
+  font-weight:700;
+  font-size:1rem;
+}
+
+.stat-label{
+  font-size:.58rem;
+  letter-spacing:2px;
+  color:var(--muted);
+  text-transform:uppercase;
+}
+
+/* ===============================
+   VIEWPORT
+================================= */
+
+.viewport{
+  width:100vw;
+  height:100vh;
+  overflow:hidden;
+  position:relative;
+  cursor:grab;
+}
+
+.viewport:active{
+  cursor:grabbing;
+}
+
+.world{
+  position:absolute;
+  width:2400px;
+  height:1800px;
+  transform-origin:top left;
+}
+
+/* ===============================
+   CONNECTIONS
+================================= */
+
+svg.connections{
+  position:absolute;
+  inset:0;
+  overflow:visible;
+}
+
+.connection{
+  stroke:#26334d;
+  stroke-width:3;
+  fill:none;
+  opacity:.7;
+}
+
+.connection.active{
+  stroke:var(--cyan);
+  filter:drop-shadow(0 0 6px var(--cyan));
+}
+
+/* ===============================
+   NODE
+================================= */
+
+.node{
+  position:absolute;
+  width:130px;
+  height:130px;
+  border-radius:50%;
+
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+
+  text-align:center;
+
+  transition:.35s;
+
+  user-select:none;
+
+  border:2px solid rgba(255,255,255,.08);
+
+  background:
+    radial-gradient(circle at top, rgba(255,255,255,.1), transparent 65%),
+    rgba(16,23,40,.9);
+
+  backdrop-filter:blur(12px);
+
+  box-shadow:
+    inset 0 0 20px rgba(255,255,255,.04),
+    0 0 30px rgba(0,0,0,.5);
+}
+
+.node:hover{
+  transform:scale(1.08);
+}
+
+.node-icon{
+  font-size:2rem;
+  margin-bottom:8px;
+}
+
+.node-title{
+  font-weight:700;
+  font-size:.95rem;
+  letter-spacing:1px;
+}
+
+.node-sub{
+  font-size:.6rem;
+  letter-spacing:2px;
+  color:var(--muted);
+  text-transform:uppercase;
+  margin-top:3px;
+}
+
+.node.locked{
+  opacity:.28;
+  filter:grayscale(1);
+}
+
+.node.locked::after{
+  content:"🔒";
+  position:absolute;
+  top:8px;
+  right:8px;
+  font-size:.9rem;
+}
+
+.node.unlocked{
+  border-color:var(--cyan);
+  box-shadow:
+    0 0 25px rgba(105,224,255,.25),
+    inset 0 0 30px rgba(105,224,255,.08);
+}
+
+.node.completed{
+  border-color:var(--gold);
+  box-shadow:
+    0 0 35px rgba(212,176,106,.35),
+    inset 0 0 40px rgba(212,176,106,.08);
+}
+
+.node.completed::before{
+  content:"";
+  position:absolute;
+  inset:-10px;
+  border-radius:50%;
+  border:1px solid rgba(212,176,106,.25);
+  animation:pulse 2s infinite;
+}
+
+@keyframes pulse{
+  0%{
+    transform:scale(1);
+    opacity:1;
+  }
+  100%{
+    transform:scale(1.25);
+    opacity:0;
+  }
+}
+
+/* ===============================
+   CORE NODE
+================================= */
+
+.core{
+  width:170px;
+  height:170px;
+
+  border:2px solid var(--gold);
+
+  background:
+    radial-gradient(circle at top, rgba(255,255,255,.16), transparent 60%),
+    linear-gradient(to bottom, #1d1826, #0f1424);
+
+  box-shadow:
+    0 0 60px rgba(212,176,106,.25),
+    inset 0 0 40px rgba(212,176,106,.08);
+}
+
+.core .node-icon{
+  font-size:3rem;
+}
+
+.core .node-title{
+  font-size:1.1rem;
+  font-family:'Orbitron', sans-serif;
+}
+
+.core .node-sub{
+  color:var(--gold);
+}
+
+/* ===============================
+   INFO PANEL
+================================= */
+
+.info{
+  position:fixed;
+  bottom:18px;
+  left:18px;
+
+  width:290px;
+
+  background:rgba(10,15,28,.92);
+  border:1px solid rgba(255,255,255,.08);
+
+  border-radius:20px;
+
+  padding:18px;
+
+  backdrop-filter:blur(18px);
+
+  z-index:1000;
+}
+
+.info h2{
+  font-family:'Orbitron', sans-serif;
+  font-size:.95rem;
+  margin-bottom:10px;
+  color:var(--cyan);
+}
+
+.info p{
+  color:var(--muted);
+  line-height:1.5;
+  font-size:.9rem;
+}
+
+.tip{
+  margin-top:14px;
+  font-size:.72rem;
+  letter-spacing:1px;
+  color:var(--gold);
+}
+
+/* ===============================
+   MOBILE
+================================= */
+
+@media(max-width:700px){
+
+  .stats{
+    gap:6px;
+  }
+
+  .stat{
+    min-width:58px;
+    padding:6px;
+  }
+
+  .stat-value{
+    font-size:.8rem;
+  }
+
+  .info{
+    width:calc(100vw - 36px);
+  }
+
+}
+
+</style>
+</head>
+<body>
+
+<div class="stars" id="stars"></div>
+
+<div class="topbar">
+
+  <div class="brand">
+    <small>Quest Network</small>
+    <h1>VENI VIDI VICI</h1>
+  </div>
+
+  <div class="stats">
+
+    <div class="stat">
+      <div class="stat-value" id="unlockedCount">1</div>
+      <div class="stat-label">Unlocked</div>
+    </div>
+
+    <div class="stat">
+      <div class="stat-value" id="completedCount">0</div>
+      <div class="stat-label">Completed</div>
+    </div>
+
+    <div class="stat">
+      <div class="stat-value">14%</div>
+      <div class="stat-label">Mastery</div>
+    </div>
+
+  </div>
+
+</div>
+
+<div class="viewport" id="viewport">
+
+  <div class="world" id="world">
+
+    <!-- CONNECTIONS -->
+    <svg class="connections" width="2400" height="1800">
+
+      <line class="connection active" x1="1200" y1="900" x2="850" y2="520"/>
+      <line class="connection active" x1="1200" y1="900" x2="1550" y2="520"/>
+      <line class="connection active" x1="1200" y1="900" x2="720" y2="980"/>
+      <line class="connection active" x1="1200" y1="900" x2="1680" y2="980"/>
+
+      <line class="connection" x1="850" y1="520" x2="520" y2="300"/>
+      <line class="connection" x1="850" y1="520" x2="980" y2="200"/>
+
+      <line class="connection" x1="1550" y1="520" x2="1880" y2="320"/>
+      <line class="connection" x1="1550" y1="520" x2="1420" y2="180"/>
+
+      <line class="connection" x1="720" y1="980" x2="420" y2="1250"/>
+      <line class="connection" x1="1680" y1="980" x2="1980" y2="1260"/>
+
+    </svg>
+
+    <!-- CORE -->
+    <div class="node core unlocked"
+      style="left:1115px; top:815px;"
+      data-title="Andrew Veda"
+      data-desc="The central nexus. Philosophy, language, cryptics, strategy, aesthetics, and exploration converge here.">
+
+      <div class="node-icon">♛</div>
+      <div class="node-title">Andrew Veda</div>
+      <div class="node-sub">Central Nexus</div>
+
+    </div>
+
+    <!-- FIRST LAYER -->
+    <div class="node unlocked"
+      style="left:785px; top:455px;"
+      data-unlocks="cryptic,vocab"
+      data-title="Quest Directory"
+      data-desc="The master archive of missions, challenges, and intellectual expeditions.">
+
+      <div class="node-icon">🔥</div>
+      <div class="node-title">Quest</div>
+      <div class="node-sub">Mission Hub</div>
+
+    </div>
+
+    <div class="node unlocked"
+      style="left:1485px; top:455px;"
+      data-unlocks="stories,quotes"
+      data-title="Video Quests"
+      data-desc="Songs, ideas, cinema, philosophy, and visual learning merged into one stream.">
+
+      <div class="node-icon">🎥</div>
+      <div class="node-title">Video</div>
+      <div class="node-sub">Ideas Stream</div>
+
+    </div>
+
+    <div class="node unlocked"
+      style="left:655px; top:915px;"
+      data-unlocks="wordle"
+      data-title="Chess"
+      data-desc="Strategic thinking, pattern recognition, sacrifice, initiative, foresight.">
+
+      <div class="node-icon">♟️</div>
+      <div class="node-title">Chess</div>
+      <div class="node-sub">Strategy</div>
+
+    </div>
+
+    <div class="node unlocked"
+      style="left:1615px; top:915px;"
+      data-unlocks="forum"
+      data-title="Blossom"
+      data-desc="Language growth. Beautiful words planted into memory.">
+
+      <div class="node-icon">🌱</div>
+      <div class="node-title">Blossom</div>
+      <div class="node-sub">Growth</div>
+
+    </div>
+
+    <!-- SECOND LAYER -->
+    <div class="node locked"
+      id="cryptic"
+      style="left:455px; top:235px;"
+      data-title="Cryptic"
+      data-desc="A detective chamber of hidden meanings, deception, inference, and elegant wordplay.">
+
+      <div class="node-icon">🔍</div>
+      <div class="node-title">Cryptic</div>
+      <div class="node-sub">221B</div>
+
+    </div>
+
+    <div class="node locked"
+      id="vocab"
+      style="left:915px; top:135px;"
+      data-title="Vocabulary"
+      data-desc="An ever-expanding codex of precision, nuance, elegance, and linguistic power.">
+
+      <div class="node-icon">📚</div>
+      <div class="node-title">Vocabulary</div>
+      <div class="node-sub">Lexicon</div>
+
+    </div>
+
+    <div class="node locked"
+      id="stories"
+      style="left:1355px; top:115px;"
+      data-title="Vault of Voices"
+      data-desc="Narratives, perspectives, imagination, and emotional architecture.">
+
+      <div class="node-icon">📖</div>
+      <div class="node-title">Stories</div>
+      <div class="node-sub">Voices</div>
+
+    </div>
+
+    <div class="node locked"
+      id="quotes"
+      style="left:1815px; top:255px;"
+      data-title="Quote a Day"
+      data-desc="Fragments of wisdom extracted from philosophy, literature, science, and cinema.">
+
+      <div class="node-icon">💬</div>
+      <div class="node-title">Quotes</div>
+      <div class="node-sub">Thought</div>
+
+    </div>
+
+    <div class="node locked"
+      id="wordle"
+      style="left:355px; top:1185px;"
+      data-title="Wordle Blitz"
+      data-desc="Thinking fast and slow under pressure. Language as reflex.">
+
+      <div class="node-icon">🟩</div>
+      <div class="node-title">Wordle</div>
+      <div class="node-sub">Speed</div>
+
+    </div>
+
+    <div class="node locked"
+      id="forum"
+      style="left:1915px; top:1195px;"
+      data-title="Vox Forum"
+      data-desc="Infinite drafting. Discussion. Reflection. Collaborative thought.">
+
+      <div class="node-icon">♾️</div>
+      <div class="node-title">Forum</div>
+      <div class="node-sub">∞ Draft</div>
+
+    </div>
+
+  </div>
+</div>
+
+<div class="info">
+  <h2 id="infoTitle">Skill Nexus</h2>
+  <p id="infoDesc">
+    Drag across the universe. Click unlocked nodes to complete them and reveal new pathways.
+  </p>
+
+  <div class="tip">
+    CLICK • DRAG • UNLOCK • ASCEND
+  </div>
+</div>
+
+<script>
+
+/* ===============================
+   STARFIELD
+================================= */
+
+const stars = document.getElementById('stars');
+
+for(let i=0;i<180;i++){
+
+  const s = document.createElement('div');
+  s.className='star';
+
+  s.style.left=Math.random()*100+'vw';
+  s.style.top=Math.random()*100+'vh';
+
+  s.style.opacity=Math.random();
+
+  s.style.animationDuration=
+    2 + Math.random()*4 + 's';
+
+  stars.appendChild(s);
+
+}
+
+/* ===============================
+   DRAGGING
+================================= */
+
+const viewport = document.getElementById('viewport');
+const world = document.getElementById('world');
+
+let isDragging=false;
+let startX,startY;
+let currentX=-800;
+let currentY=-550;
+
+world.style.transform=`translate(${currentX}px, ${currentY}px)`;
+
+viewport.addEventListener('mousedown',e=>{
+  isDragging=true;
+  startX=e.clientX-currentX;
+  startY=e.clientY-currentY;
+});
+
+window.addEventListener('mouseup',()=>{
+  isDragging=false;
+});
+
+window.addEventListener('mousemove',e=>{
+
+  if(!isDragging) return;
+
+  currentX=e.clientX-startX;
+  currentY=e.clientY-startY;
+
+  world.style.transform=
+    `translate(${currentX}px, ${currentY}px)`;
+
+});
+
+/* touch */
+
+viewport.addEventListener('touchstart',e=>{
+
+  isDragging=true;
+
+  startX=e.touches[0].clientX-currentX;
+  startY=e.touches[0].clientY-currentY;
+
+});
+
+window.addEventListener('touchend',()=>{
+  isDragging=false;
+});
+
+window.addEventListener('touchmove',e=>{
+
+  if(!isDragging) return;
+
+  currentX=e.touches[0].clientX-startX;
+  currentY=e.touches[0].clientY-startY;
+
+  world.style.transform=
+    `translate(${currentX}px, ${currentY}px)`;
+
+});
+
+/* ===============================
+   NODE SYSTEM
+================================= */
+
+const infoTitle=document.getElementById('infoTitle');
+const infoDesc=document.getElementById('infoDesc');
+
+const unlockedCount=document.getElementById('unlockedCount');
+const completedCount=document.getElementById('completedCount');
+
+let completed=0;
+
+document.querySelectorAll('.node').forEach(node=>{
+
+  node.addEventListener('mouseenter',()=>{
+
+    infoTitle.textContent=node.dataset.title;
+    infoDesc.textContent=node.dataset.desc;
+
+  });
+
+  node.addEventListener('click',()=>{
+
+    if(node.classList.contains('locked')) return;
+
+    if(!node.classList.contains('completed')){
+
+      node.classList.add('completed');
+      completed++;
+
+      completedCount.textContent=completed;
+
+      const unlocks=node.dataset.unlocks;
+
+      if(unlocks){
+
+        unlocks.split(',').forEach(id=>{
+
+          const target=document.getElementById(id);
+
+          if(target){
+
+            target.classList.remove('locked');
+            target.classList.add('unlocked');
+
+          }
+
+        });
+
+      }
+
+      updateCounts();
+
+    }
+
+  });
+
+});
+
+function updateCounts(){
+
+  const unlocked=
+    document.querySelectorAll('.node.unlocked, .node.completed').length;
+
+  unlockedCount.textContent=unlocked;
+
+}
+
+/* ===============================
+   AUTO CENTER INTRO
+================================= */
+
+setTimeout(()=>{
+
+  world.style.transition='transform 2s ease';
+
+  world.style.transform=
+    `translate(${currentX}px, ${currentY}px) scale(1)`;
+
+},200);
+
+</script>
+
+</body>
+</html>

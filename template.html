@@ -1,765 +1,751 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Veni Vidi Vici — Skill Nexus</title>
-
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#060402">
+<title>Veni Vidi Vici</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700&family=Rajdhani:wght@400;500;700&display=swap" rel="stylesheet">
-
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Cinzel+Decorative:wght@400&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <style>
+/* ═══════════════════════════
+   TOKENS
+═══════════════════════════ */
+:root {
+  --void:     #060402;
+  --deep:     #0d0a06;
+  --surface:  #131008;
+  --lift:     #1c1810;
+  --lift2:    #242018;
 
-:root{
-  --bg:#05070d;
-  --bg2:#0b1020;
-  --panel:#101728;
-  --line:#25314d;
-  --gold:#d4b06a;
-  --cyan:#69e0ff;
-  --violet:#a178ff;
-  --green:#72ff9f;
-  --red:#ff5470;
-  --text:#eef3ff;
-  --muted:#7d8aa8;
+  --gold:     #c8963c;
+  --gold-hi:  #f0c060;
+  --gold-lo:  rgba(200,150,60,0.10);
+  --gold-edge:rgba(200,150,60,0.30);
+
+  --ice:      #7ab8d4;
+  --ice-lo:   rgba(122,184,212,0.12);
+  --ice-edge: rgba(122,184,212,0.35);
+
+  --done:     #4a7c3f;
+  --done-hi:  #7ec86a;
+  --done-lo:  rgba(74,124,63,0.12);
+
+  --lock:     rgba(255,255,255,0.18);
+  --lock-bg:  rgba(255,255,255,0.03);
+
+  --text:     #e0d0a8;
+  --text-mid: #8a7a58;
+  --text-dim: #3e3420;
+
+  --t1: #c8963c; /* tier I  — gold   */
+  --t2: #7ab8d4; /* tier II — ice    */
+  --t3: #9070c0; /* tier III— violet */
 }
 
-*{
-  margin:0;
-  padding:0;
-  box-sizing:border-box;
-}
-
+/* ═══════════════════════════
+   RESET
+═══════════════════════════ */
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;overscroll-behavior:none;}
 body{
-  overflow:hidden;
-  background:
-    radial-gradient(circle at top left, rgba(105,224,255,0.08), transparent 30%),
-    radial-gradient(circle at bottom right, rgba(161,120,255,0.08), transparent 30%),
-    linear-gradient(to bottom, var(--bg), var(--bg2));
+  font-family:'Cinzel',serif;
+  background:var(--void);
   color:var(--text);
-  font-family:'Rajdhani', sans-serif;
-  height:100vh;
+  overflow:hidden; /* single screen */
+  -webkit-font-smoothing:antialiased;
+  -webkit-tap-highlight-color:transparent;
+  user-select:none;
+}
+a{text-decoration:none;color:inherit;}
+button{font-family:inherit;cursor:pointer;border:none;background:none;}
+
+/* ═══════════════════════════
+   STONE WALL TEXTURE
+═══════════════════════════ */
+body::before{
+  content:'';
+  position:fixed;inset:0;
+  background-image:
+    repeating-linear-gradient(0deg,transparent,transparent 47px,rgba(0,0,0,0.18) 47px,rgba(0,0,0,0.18) 48px),
+    repeating-linear-gradient(90deg,transparent,transparent 95px,rgba(0,0,0,0.07) 95px,rgba(0,0,0,0.07) 96px);
+  pointer-events:none;z-index:0;
+}
+/* vignette */
+body::after{
+  content:'';
+  position:fixed;inset:0;
+  background:radial-gradient(ellipse at 50% 50%,transparent 30%,rgba(0,0,0,0.55) 100%);
+  pointer-events:none;z-index:0;
 }
 
-/* ===============================
-   STARFIELD
-================================= */
+/* ═══════════════════════════
+   TORCHLIGHT
+═══════════════════════════ */
+.torch-l,.torch-r{
+  position:fixed;pointer-events:none;z-index:1;
+  will-change:opacity,transform;
+}
+.torch-l{
+  top:0;left:-20%;width:55vw;height:100vh;
+  background:radial-gradient(ellipse at 15% 40%,rgba(210,100,28,0.09),transparent 60%);
+  animation:fl1 5s ease-in-out infinite;
+}
+.torch-r{
+  top:0;right:-20%;width:55vw;height:100vh;
+  background:radial-gradient(ellipse at 85% 45%,rgba(190,130,35,0.07),transparent 60%);
+  animation:fl2 6.5s ease-in-out infinite;
+}
+@keyframes fl1{0%,100%{opacity:.7;transform:scale(1)}45%{opacity:1;transform:scale(1.05)}70%{opacity:.55;transform:scale(.97)}}
+@keyframes fl2{0%,100%{opacity:.8}40%{opacity:.5}65%{opacity:1}}
 
-.stars{
-  position:fixed;
-  inset:0;
-  overflow:hidden;
+/* ═══════════════════════════
+   SHELL — full viewport
+═══════════════════════════ */
+.shell{
+  position:relative;z-index:2;
+  height:100vh;
+  height:100dvh;
+  display:flex;flex-direction:column;
+  max-width:430px;margin:0 auto;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+
+/* ═══════════════════════════
+   TOPBAR
+═══════════════════════════ */
+.topbar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:8px 14px 7px;
+  background:rgba(6,4,2,0.94);
+  border-bottom:1px solid var(--gold-edge);
+  flex-shrink:0;
+  position:relative;
+}
+.topbar::after{
+  content:'';position:absolute;bottom:-2px;left:0;right:0;
+  height:1px;
+  background:linear-gradient(90deg,transparent,var(--gold),transparent);
+  opacity:.4;
+}
+.brand{
+  display:flex;flex-direction:column;gap:0px;
+}
+.brand-eye{
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.42rem;letter-spacing:2.5px;
+  color:var(--gold);text-transform:uppercase;opacity:.75;
+}
+.brand-name{
+  font-family:'Cinzel Decorative',serif;
+  font-size:0.82rem;font-weight:400;
+  color:var(--text);letter-spacing:.5px;line-height:1.1;
+}
+.topbar-r{display:flex;align-items:center;gap:6px;}
+
+/* compact stats */
+.hud{
+  display:flex;gap:7px;
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.5rem;color:var(--text-mid);
+  background:var(--surface);
+  border:1px solid var(--gold-edge);
+  padding:4px 8px;
+  cursor:pointer;min-height:32px;align-items:center;
+}
+.hud:active{border-color:var(--gold);}
+.hv{color:var(--gold-hi);}
+
+/* sigil */
+.sigil{
+  width:32px;height:32px;
+  border:1px solid var(--gold-edge);
+  background:var(--gold-lo);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;
+  clip-path:polygon(7px 0%,calc(100% - 7px) 0%,100% 7px,100% calc(100% - 7px),calc(100% - 7px) 100%,7px 100%,0% calc(100% - 7px),0% 7px);
+}
+.sigil:active{background:var(--gold-edge);}
+.sigil-txt{font-size:0.65rem;font-weight:700;color:var(--gold-hi);}
+
+/* ═══════════════════════════
+   IDENT — compressed 1 line
+═══════════════════════════ */
+.ident{
+  display:flex;align-items:baseline;justify-content:center;
+  gap:10px;
+  padding:5px 14px 4px;
+  flex-shrink:0;
+  border-bottom:1px solid rgba(200,150,60,0.1);
+}
+.ident-name{
+  font-size:clamp(0.95rem,4.5vw,1.15rem);
+  font-weight:700;color:var(--text);
+  letter-spacing:2px;line-height:1;
+  text-shadow:0 0 20px rgba(200,150,60,.25);
+}
+.ident-sep{color:var(--text-dim);font-size:0.6rem;}
+.ident-dept{
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.48rem;letter-spacing:3px;
+  color:var(--gold);text-transform:uppercase;
+}
+
+/* ═══════════════════════════
+   PROGRESS RIBBON
+═══════════════════════════ */
+.ribbon{
+  display:flex;align-items:center;
+  gap:8px;
+  padding:5px 14px;
+  background:var(--deep);
+  border-bottom:1px solid var(--gold-edge);
+  flex-shrink:0;
+  cursor:pointer;
+  transition:background .2s;
+  position:relative;overflow:hidden;
+}
+.ribbon:active{background:var(--surface);}
+/* shimmer */
+.ribbon::after{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse at 20% 50%,rgba(200,150,60,.07),transparent 60%);
+  animation:ribShimmer 7s ease-in-out infinite;
   pointer-events:none;
 }
+@keyframes ribShimmer{0%,100%{transform:translateX(0)}50%{transform:translateX(10%)}}
 
-.star{
-  position:absolute;
-  width:2px;
-  height:2px;
-  background:white;
-  border-radius:50%;
-  opacity:.5;
-  animation: twinkle 3s infinite ease-in-out;
+.rib-cal{
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.46rem;letter-spacing:2px;
+  color:var(--gold);text-transform:uppercase;
+  white-space:nowrap;flex-shrink:0;
+}
+.rib-stats{
+  display:flex;gap:8px;flex:1;overflow:hidden;
+}
+.rib-stat{
+  display:flex;flex-direction:column;align-items:center;
+  flex-shrink:0;
+}
+.rib-val{
+  font-size:0.72rem;font-weight:600;color:var(--gold-hi);line-height:1;
+}
+.rib-lbl{
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.36rem;letter-spacing:1px;
+  color:var(--text-dim);text-transform:uppercase;
+}
+.rib-sep{width:1px;background:var(--gold-edge);flex-shrink:0;align-self:stretch;margin:1px 0;}
+
+/* streak dots */
+.streak{
+  display:flex;gap:2px;flex-shrink:0;
+}
+.sd{
+  width:5px;height:5px;border-radius:1px;
+  background:var(--lift);flex-shrink:0;
+}
+.sd.done{background:var(--gold);}
+.sd.miss{background:rgba(160,50,30,.5);}
+.sd.now{background:var(--ice);box-shadow:0 0 4px var(--ice);}
+
+.rib-open{
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.44rem;letter-spacing:1.5px;
+  color:var(--gold);opacity:.6;flex-shrink:0;
 }
 
-@keyframes twinkle{
-  0%,100%{opacity:.2;}
-  50%{opacity:1;}
-}
-
-/* ===============================
-   TOP HUD
-================================= */
-
-.topbar{
-  position:fixed;
-  top:0;
-  left:0;
-  right:0;
-  z-index:1000;
-
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-
-  padding:14px 18px;
-
-  background:rgba(5,7,13,.75);
-  backdrop-filter:blur(16px);
-
-  border-bottom:1px solid rgba(255,255,255,.05);
-}
-
-.brand{
-  display:flex;
-  flex-direction:column;
-}
-
-.brand small{
-  color:var(--cyan);
-  letter-spacing:3px;
-  font-size:.6rem;
-  text-transform:uppercase;
-}
-
-.brand h1{
-  font-family:'Orbitron', sans-serif;
-  font-size:1rem;
-  letter-spacing:2px;
-  color:white;
-}
-
-.stats{
-  display:flex;
-  gap:12px;
-}
-
-.stat{
-  background:rgba(255,255,255,.04);
-  border:1px solid rgba(255,255,255,.08);
-  padding:8px 10px;
-  border-radius:10px;
-  min-width:75px;
-  text-align:center;
-}
-
-.stat-value{
-  color:var(--cyan);
-  font-weight:700;
-  font-size:1rem;
-}
-
-.stat-label{
-  font-size:.58rem;
-  letter-spacing:2px;
-  color:var(--muted);
-  text-transform:uppercase;
-}
-
-/* ===============================
-   VIEWPORT
-================================= */
-
-.viewport{
-  width:100vw;
-  height:100vh;
+/* ═══════════════════════════
+   MISSION LIST — fills space
+═══════════════════════════ */
+.missions{
+  flex:1;
   overflow:hidden;
+  display:flex;flex-direction:column;
+  padding:0 10px;
+  gap:0;
+  /* distribute rows evenly */
+  justify-content:space-evenly;
+}
+
+/* ── TIER HEADER ── */
+.tier-head{
+  display:flex;align-items:center;gap:6px;
+  padding:2px 4px 0;
+  flex-shrink:0;
+}
+.tier-label{
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.4rem;letter-spacing:3px;
+  text-transform:uppercase;white-space:nowrap;
+}
+.tier-line{flex:1;height:1px;}
+.tier-gem{
+  width:4px;height:4px;
+  border:1px solid;
+  transform:rotate(45deg);flex-shrink:0;
+}
+
+.tier-I  .tier-label{color:var(--t1);}
+.tier-I  .tier-line{background:linear-gradient(90deg,rgba(200,150,60,.3),transparent);}
+.tier-I  .tier-gem{border-color:rgba(200,150,60,.4);}
+.tier-II .tier-label{color:var(--t2);}
+.tier-II .tier-line{background:linear-gradient(90deg,rgba(122,184,212,.3),transparent);}
+.tier-II .tier-gem{border-color:rgba(122,184,212,.4);}
+.tier-III .tier-label{color:var(--t3);}
+.tier-III .tier-line{background:linear-gradient(90deg,rgba(144,112,192,.3),transparent);}
+.tier-III .tier-gem{border-color:rgba(144,112,192,.4);}
+
+/* ── MISSION ROW ── */
+.mrow{
+  display:flex;align-items:center;
+  padding:0 4px;
+  gap:8px;
+  border-radius:1px;
+  text-decoration:none;color:inherit;
+  transition:background .18s;
+  min-height:0;
+  flex:1;
+  max-height:38px;
   position:relative;
-  cursor:grab;
+  overflow:hidden;
 }
-
-.viewport:active{
-  cursor:grabbing;
+.mrow::before{
+  content:'';
+  position:absolute;left:0;top:20%;bottom:20%;
+  width:2px;
+  background:var(--row-accent,var(--gold));
+  opacity:0;
+  transition:opacity .2s;
 }
+.mrow:active,.mrow:hover{background:var(--lift);}
+.mrow:active::before,.mrow:hover::before{opacity:1;}
 
-.world{
-  position:absolute;
-  width:2400px;
-  height:1800px;
-  transform-origin:top left;
+/* status dot */
+.mrow-dot{
+  width:7px;height:7px;border-radius:50%;
+  border:1px solid var(--row-accent,var(--text-dim));
+  flex-shrink:0;
+  background:transparent;
+  transition:all .2s;
+  position:relative;
 }
-
-/* ===============================
-   CONNECTIONS
-================================= */
-
-svg.connections{
-  position:absolute;
-  inset:0;
-  overflow:visible;
+/* done state */
+.mrow.done .mrow-dot{
+  background:var(--done);
+  border-color:var(--done-hi);
 }
-
-.connection{
-  stroke:#26334d;
-  stroke-width:3;
-  fill:none;
-  opacity:.7;
-}
-
-.connection.active{
-  stroke:var(--cyan);
-  filter:drop-shadow(0 0 6px var(--cyan));
-}
-
-/* ===============================
-   NODE
-================================= */
-
-.node{
-  position:absolute;
-  width:130px;
-  height:130px;
+.mrow.done .mrow-dot::after{
+  content:'';
+  position:absolute;inset:1.5px;
   border-radius:50%;
+  background:var(--done-hi);
+  opacity:.6;
+}
+/* active/today state */
+.mrow.active .mrow-dot{
+  background:var(--ice-lo);
+  border-color:var(--ice);
+  box-shadow:0 0 6px rgba(122,184,212,.7);
+  animation:activePulse 2s ease-in-out infinite;
+}
+@keyframes activePulse{0%,100%{box-shadow:0 0 4px rgba(122,184,212,.5)}50%{box-shadow:0 0 10px rgba(122,184,212,.9)}}
 
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:center;
-
-  text-align:center;
-
-  transition:.35s;
-
-  user-select:none;
-
-  border:2px solid rgba(255,255,255,.08);
-
-  background:
-    radial-gradient(circle at top, rgba(255,255,255,.1), transparent 65%),
-    rgba(16,23,40,.9);
-
-  backdrop-filter:blur(12px);
-
-  box-shadow:
-    inset 0 0 20px rgba(255,255,255,.04),
-    0 0 30px rgba(0,0,0,.5);
+/* locked state */
+.mrow.locked{
+  opacity:.3;
+  pointer-events:none;
+}
+.mrow.locked .mrow-dot{
+  background:transparent;
+  border-color:var(--text-dim);
 }
 
-.node:hover{
-  transform:scale(1.08);
+/* mission name */
+.mrow-name{
+  flex:1;
+  font-size:clamp(0.6rem,3vw,0.72rem);
+  font-weight:600;
+  letter-spacing:.5px;
+  color:var(--text);
+  line-height:1;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  transition:color .2s;
 }
+.mrow.done .mrow-name{color:var(--text-mid);}
+.mrow.active .mrow-name{color:var(--ice);}
+.mrow.locked .mrow-name{color:var(--text-dim);}
 
-.node-icon{
-  font-size:2rem;
-  margin-bottom:8px;
-}
-
-.node-title{
-  font-weight:700;
-  font-size:.95rem;
-  letter-spacing:1px;
-}
-
-.node-sub{
-  font-size:.6rem;
-  letter-spacing:2px;
-  color:var(--muted);
+/* tag — small right-side label */
+.mrow-tag{
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.38rem;letter-spacing:1.2px;
   text-transform:uppercase;
-  margin-top:3px;
+  flex-shrink:0;
+  transition:opacity .2s;
+}
+.mrow.done .mrow-tag{color:var(--done-hi);opacity:.7;}
+.mrow.active .mrow-tag{color:var(--ice);opacity:.8;}
+.mrow.locked .mrow-tag{color:var(--text-dim);}
+.mrow:not(.done):not(.active):not(.locked) .mrow-tag{color:var(--text-dim);}
+
+/* check glyph for done */
+.mrow-check{
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.55rem;
+  color:var(--done-hi);
+  flex-shrink:0;
+  opacity:.8;
+}
+/* lock glyph */
+.mrow-lock{
+  font-size:0.5rem;
+  color:var(--text-dim);
+  flex-shrink:0;
+}
+/* active arrow */
+.mrow-arrow{
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.55rem;
+  color:var(--ice);
+  flex-shrink:0;
+  animation:arrowSlide 1.5s ease-in-out infinite;
+}
+@keyframes arrowSlide{0%,100%{transform:translateX(0);opacity:.7}50%{transform:translateX(2px);opacity:1}}
+
+/* thin divider between rows */
+.mrow+.mrow{
+  border-top:1px solid rgba(255,255,255,0.03);
+}
+.tier-head+.mrow,.tier-head{
+  border-top:none;
 }
 
-.node.locked{
-  opacity:.28;
-  filter:grayscale(1);
+/* ── TIER ACCENT COLOURS ── */
+/* tier I */
+.t1{--row-accent:var(--t1);}
+/* tier II */
+.t2{--row-accent:var(--t2);}
+/* tier III */
+.t3{--row-accent:var(--t3);}
+
+/* ═══════════════════════════
+   QUOTE FOOTER
+═══════════════════════════ */
+.quote-footer{
+  padding:5px 14px calc(5px + env(safe-area-inset-bottom,0px));
+  border-top:1px solid rgba(200,150,60,.12);
+  background:rgba(6,4,2,.9);
+  flex-shrink:0;
+  display:flex;align-items:baseline;gap:6px;
+  overflow:hidden;
+}
+.quote-mark{
+  font-family:'Cinzel Decorative',serif;
+  font-size:1rem;color:var(--gold);
+  opacity:.3;line-height:.8;flex-shrink:0;
+}
+.quote-text{
+  font-style:italic;
+  font-size:clamp(0.5rem,2.5vw,0.62rem);
+  color:var(--text-mid);
+  line-height:1.4;
+  transition:opacity .5s;
+  overflow:hidden;
+  display:-webkit-box;
+  -webkit-line-clamp:2;
+  -webkit-box-orient:vertical;
+}
+.quote-attr{
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.4rem;letter-spacing:1.5px;
+  color:var(--gold);text-transform:uppercase;
+  white-space:nowrap;flex-shrink:0;
 }
 
-.node.locked::after{
-  content:"🔒";
-  position:absolute;
-  top:8px;
-  right:8px;
-  font-size:.9rem;
-}
+/* ═══════════════════════════
+   ENTRANCE
+═══════════════════════════ */
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.topbar{animation:fadeIn .35s ease both .05s;}
+.ident{animation:fadeIn .35s ease both .1s;}
+.ribbon{animation:fadeIn .35s ease both .13s;}
+.mrow,.tier-head{animation:fadeIn .3s ease both;}
+.tier-head:nth-child(1){animation-delay:.16s}
+.mrow:nth-child(2){animation-delay:.18s}
+.mrow:nth-child(3){animation-delay:.20s}
+.mrow:nth-child(4){animation-delay:.22s}
+.mrow:nth-child(5){animation-delay:.24s}
+.mrow:nth-child(6){animation-delay:.26s}
+.mrow:nth-child(7){animation-delay:.28s}
+.tier-head:nth-child(8){animation-delay:.29s}
+.mrow:nth-child(9){animation-delay:.31s}
+.mrow:nth-child(10){animation-delay:.33s}
+.mrow:nth-child(11){animation-delay:.35s}
+.mrow:nth-child(12){animation-delay:.37s}
+.mrow:nth-child(13){animation-delay:.39s}
+.mrow:nth-child(14){animation-delay:.41s}
+.mrow:nth-child(15){animation-delay:.42s}
+.tier-head:nth-child(16){animation-delay:.43s}
+.mrow:nth-child(17){animation-delay:.45s}
+.mrow:nth-child(18){animation-delay:.47s}
+.mrow:nth-child(19){animation-delay:.49s}
+.mrow:nth-child(20){animation-delay:.51s}
+.quote-footer{animation:fadeIn .3s ease both .52s;}
 
-.node.unlocked{
-  border-color:var(--cyan);
-  box-shadow:
-    0 0 25px rgba(105,224,255,.25),
-    inset 0 0 30px rgba(105,224,255,.08);
-}
-
-.node.completed{
-  border-color:var(--gold);
-  box-shadow:
-    0 0 35px rgba(212,176,106,.35),
-    inset 0 0 40px rgba(212,176,106,.08);
-}
-
-.node.completed::before{
-  content:"";
-  position:absolute;
-  inset:-10px;
-  border-radius:50%;
-  border:1px solid rgba(212,176,106,.25);
-  animation:pulse 2s infinite;
-}
-
-@keyframes pulse{
-  0%{
-    transform:scale(1);
-    opacity:1;
-  }
-  100%{
-    transform:scale(1.25);
-    opacity:0;
-  }
-}
-
-/* ===============================
-   CORE NODE
-================================= */
-
-.core{
-  width:170px;
-  height:170px;
-
-  border:2px solid var(--gold);
-
-  background:
-    radial-gradient(circle at top, rgba(255,255,255,.16), transparent 60%),
-    linear-gradient(to bottom, #1d1826, #0f1424);
-
-  box-shadow:
-    0 0 60px rgba(212,176,106,.25),
-    inset 0 0 40px rgba(212,176,106,.08);
-}
-
-.core .node-icon{
-  font-size:3rem;
-}
-
-.core .node-title{
-  font-size:1.1rem;
-  font-family:'Orbitron', sans-serif;
-}
-
-.core .node-sub{
-  color:var(--gold);
-}
-
-/* ===============================
-   INFO PANEL
-================================= */
-
-.info{
-  position:fixed;
-  bottom:18px;
-  left:18px;
-
-  width:290px;
-
-  background:rgba(10,15,28,.92);
-  border:1px solid rgba(255,255,255,.08);
-
-  border-radius:20px;
-
-  padding:18px;
-
-  backdrop-filter:blur(18px);
-
-  z-index:1000;
-}
-
-.info h2{
-  font-family:'Orbitron', sans-serif;
-  font-size:.95rem;
-  margin-bottom:10px;
-  color:var(--cyan);
-}
-
-.info p{
-  color:var(--muted);
-  line-height:1.5;
-  font-size:.9rem;
-}
-
-.tip{
-  margin-top:14px;
-  font-size:.72rem;
-  letter-spacing:1px;
-  color:var(--gold);
-}
-
-/* ===============================
-   MOBILE
-================================= */
-
-@media(max-width:700px){
-
-  .stats{
-    gap:6px;
-  }
-
-  .stat{
-    min-width:58px;
-    padding:6px;
-  }
-
-  .stat-value{
-    font-size:.8rem;
-  }
-
-  .info{
-    width:calc(100vw - 36px);
-  }
-
-}
-
+::-webkit-scrollbar{display:none;}
 </style>
 </head>
 <body>
 
-<div class="stars" id="stars"></div>
+<div class="torch-l"></div>
+<div class="torch-r"></div>
 
-<div class="topbar">
+<div class="shell">
 
-  <div class="brand">
-    <small>Quest Network</small>
-    <h1>VENI VIDI VICI</h1>
+  <!-- ── TOPBAR ── -->
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-eye">Live Long and Prosper</span>
+      <span class="brand-name">Veni Vidi Vici</span>
+    </div>
+    <div class="topbar-r">
+      <div class="hud" onclick="openCalendar()">
+        <span>📜 <span class="hv" id="statQ">77</span></span>
+        <span>🎞 <span class="hv" id="statV">12</span></span>
+        <span>⏳ <span class="hv" id="statT">4h 22m</span></span>
+      </div>
+      <div class="sigil" onclick="openDrawer()">
+        <span class="sigil-txt" id="sigilTxt">AV</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── IDENT ── -->
+  <div class="ident">
+    <span class="ident-name" id="studentName">Andrew Veda</span>
+    <span class="ident-sep">·</span>
+    <span class="ident-dept" id="studentDept">Cyber Security</span>
   </div>
 
-  <div class="stats">
-
-    <div class="stat">
-      <div class="stat-value" id="unlockedCount">1</div>
-      <div class="stat-label">Unlocked</div>
+  <!-- ── PROGRESS RIBBON ── -->
+  <div class="ribbon" onclick="openCalendar()">
+    <span class="rib-cal">Quest Log</span>
+    <div class="rib-sep"></div>
+    <div class="rib-stats">
+      <div class="rib-stat"><span class="rib-val" id="ribQ">77</span><span class="rib-lbl">Quests</span></div>
+      <div class="rib-stat"><span class="rib-val" id="ribAcc">84%</span><span class="rib-lbl">Accuracy</span></div>
+      <div class="rib-stat"><span class="rib-val" id="ribScore">2140</span><span class="rib-lbl">Score</span></div>
+      <div class="rib-stat"><span class="rib-val" id="ribW">491</span><span class="rib-lbl">Wrong</span></div>
     </div>
-
-    <div class="stat">
-      <div class="stat-value" id="completedCount">0</div>
-      <div class="stat-label">Completed</div>
+    <div class="rib-sep"></div>
+    <div class="streak" id="streakBar">
+      <div class="sd done"></div><div class="sd done"></div><div class="sd done"></div>
+      <div class="sd done"></div><div class="sd done"></div><div class="sd done"></div>
+      <div class="sd done"></div><div class="sd miss"></div><div class="sd done"></div>
+      <div class="sd done"></div><div class="sd done"></div><div class="sd done"></div>
+      <div class="sd done"></div><div class="sd now"></div>
     </div>
-
-    <div class="stat">
-      <div class="stat-value">14%</div>
-      <div class="stat-label">Mastery</div>
-    </div>
-
+    <span class="rib-open">↗</span>
   </div>
 
-</div>
+  <!-- ══════════════════════════
+       MISSION LIST
+  ══════════════════════════ -->
+  <div class="missions" id="missionList">
 
-<div class="viewport" id="viewport">
-
-  <div class="world" id="world">
-
-    <!-- CONNECTIONS -->
-    <svg class="connections" width="2400" height="1800">
-
-      <line class="connection active" x1="1200" y1="900" x2="850" y2="520"/>
-      <line class="connection active" x1="1200" y1="900" x2="1550" y2="520"/>
-      <line class="connection active" x1="1200" y1="900" x2="720" y2="980"/>
-      <line class="connection active" x1="1200" y1="900" x2="1680" y2="980"/>
-
-      <line class="connection" x1="850" y1="520" x2="520" y2="300"/>
-      <line class="connection" x1="850" y1="520" x2="980" y2="200"/>
-
-      <line class="connection" x1="1550" y1="520" x2="1880" y2="320"/>
-      <line class="connection" x1="1550" y1="520" x2="1420" y2="180"/>
-
-      <line class="connection" x1="720" y1="980" x2="420" y2="1250"/>
-      <line class="connection" x1="1680" y1="980" x2="1980" y2="1260"/>
-
-    </svg>
-
-    <!-- CORE -->
-    <div class="node core unlocked"
-      style="left:1115px; top:815px;"
-      data-title="Andrew Veda"
-      data-desc="The central nexus. Philosophy, language, cryptics, strategy, aesthetics, and exploration converge here.">
-
-      <div class="node-icon">♛</div>
-      <div class="node-title">Andrew Veda</div>
-      <div class="node-sub">Central Nexus</div>
-
+    <!-- ── TIER I — DAILY PRACTICE ── -->
+    <div class="tier-head tier-I">
+      <span class="tier-gem"></span>
+      <span class="tier-label">Daily Practice</span>
+      <span class="tier-line"></span>
     </div>
 
-    <!-- FIRST LAYER -->
-    <div class="node unlocked"
-      style="left:785px; top:455px;"
-      data-unlocks="cryptic,vocab"
-      data-title="Quest Directory"
-      data-desc="The master archive of missions, challenges, and intellectual expeditions.">
+    <a class="mrow t1 done" href="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/leaderboard_hub">
+      <div class="mrow-dot"></div>
+      <span class="mrow-name">Leaderboard</span>
+      <span class="mrow-tag">Rankings</span>
+      <span class="mrow-check">✓</span>
+    </a>
 
-      <div class="node-icon">🔥</div>
-      <div class="node-title">Quest</div>
-      <div class="node-sub">Mission Hub</div>
+    <a class="mrow t1 done" href="https://andrewveda.github.io/SRM-VEC-English-PWA/cat-a">
+      <div class="mrow-dot"></div>
+      <span class="mrow-name">Quest Directory</span>
+      <span class="mrow-tag">All Missions</span>
+      <span class="mrow-check">✓</span>
+    </a>
 
+    <a class="mrow t1 active" href="https://andrewveda.github.io/V/">
+      <div class="mrow-dot"></div>
+      <span class="mrow-name">Vocabulary</span>
+      <span class="mrow-tag">Today</span>
+      <span class="mrow-arrow">→</span>
+    </a>
+
+    <a class="mrow t1 locked" href="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/videoyg">
+      <div class="mrow-dot"></div>
+      <span class="mrow-name">Video Quests</span>
+      <span class="mrow-tag">Songs & Ideas</span>
+      <span class="mrow-lock">—</span>
+    </a>
+
+    <a class="mrow t1 locked" href="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/wordle">
+      <div class="mrow-dot"></div>
+      <span class="mrow-name">Wordle!</span>
+      <span class="mrow-tag">Word Puzzle</span>
+      <span class="mrow-lock">—</span>
+    </a>
+
+    <a class="mrow t1 locked" href="https://andrewveda.github.io/cryptic">
+      <div class="mrow-dot"></div>
+      <span class="mrow-name">Cryptic</span>
+      <span class="mrow-tag">221B</span>
+      <span class="mrow-lock">—</span>
+    </a>
+
+    <!-- ── TIER II — THE ARMOURY ── -->
+    <div class="tier-head tier-II">
+      <span class="tier-gem"></span>
+      <span class="tier-label">The Armoury</span>
+      <span class="tier-line"></span>
     </div>
 
-    <div class="node unlocked"
-      style="left:1485px; top:455px;"
-      data-unlocks="stories,quotes"
-      data-title="Video Quests"
-      data-desc="Songs, ideas, cinema, philosophy, and visual learning merged into one stream.">
+    <a class="mrow t2 done" href="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/blossomhub">
+      <div class="mrow-dot"></div>
+      <span class="mrow-name">Blossom</span>
+      <span class="mrow-tag">Plant Words</span>
+      <span class="mrow-check">✓</span>
+    </a>
 
-      <div class="node-icon">🎥</div>
-      <div class="node-title">Video</div>
-      <div class="node-sub">Ideas Stream</div>
+    <a class="mrow t2 done" href="https://andrewveda.github.io/SRM-VEC-English-PWA/wordleblitz">
+      <div class="mrow-dot"></div>
+      <span class="mrow-name">Wordle Blitz</span>
+      <span class="mrow-tag">Fast & Slow</span>
+      <span class="mrow-check">✓</span>
+    </a>
 
+    <a class="mrow t2 locked" href="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/vox-velocity-directory">
+      <div class="mrow-dot"></div>
+      <span class="mrow-name">Vox Velocity</span>
+      <span class="mrow-tag">Letter by Letter</span>
+      <span class="mrow-lock">—</span>
+    </a>
+
+    <a class="mrow t2 locked" href="https://andrewveda.github.io/SRM-VEC-English-PWA/4pics">
+      <div class="mrow-dot"></div>
+      <span class="mrow-name">Mystic Summit</span>
+      <span class="mrow-tag">Lingua League</span>
+      <span class="mrow-lock">—</span>
+    </a>
+
+    <a class="mrow t2 locked" href="https://andrewveda.github.io/a-quote-a-day/">
+      <div class="mrow-dot"></div>
+      <span class="mrow-name">A Quote a Day</span>
+      <span class="mrow-tag">Wisdom</span>
+      <span class="mrow-lock">—</span>
+    </a>
+
+    <a class="mrow t2 locked" href="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/stories">
+      <div class="mrow-dot"></div>
+      <span class="mrow-name">Vault of Voices</span>
+      <span class="mrow-tag">Vision & Voice</span>
+      <span class="mrow-lock">—</span>
+    </a>
+
+    <a class="mrow t2 locked" href="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/chess">
+      <div class="mrow-dot"></div>
+      <span class="mrow-name">Strategic Thinking</span>
+      <span class="mrow-tag">Chess</span>
+      <span class="mrow-lock">—</span>
+    </a>
+
+    <!-- ── TIER III — COMMAND ── -->
+    <div class="tier-head tier-III">
+      <span class="tier-gem"></span>
+      <span class="tier-label">Command</span>
+      <span class="tier-line"></span>
     </div>
 
-    <div class="node unlocked"
-      style="left:655px; top:915px;"
-      data-unlocks="wordle"
-      data-title="Chess"
-      data-desc="Strategic thinking, pattern recognition, sacrifice, initiative, foresight.">
+    <a class="mrow t3" href="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/bookinsights">
+      <div class="mrow-dot"></div>
+      <span class="mrow-name">Book Insights</span>
+      <span class="mrow-tag">One Book at a Time</span>
+      <span class="mrow-arrow" style="color:var(--t3);animation:none;opacity:.5;">→</span>
+    </a>
 
-      <div class="node-icon">♟️</div>
-      <div class="node-title">Chess</div>
-      <div class="node-sub">Strategy</div>
+    <a class="mrow t3" href="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/vox-forum">
+      <div class="mrow-dot"></div>
+      <span class="mrow-name">Vox Forum</span>
+      <span class="mrow-tag">Draft ∞</span>
+      <span class="mrow-arrow" style="color:var(--t3);animation:none;opacity:.5;">→</span>
+    </a>
 
-    </div>
+    <a class="mrow t3" href="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/leaderboard_dept">
+      <div class="mrow-dot"></div>
+      <span class="mrow-name">Mission Control</span>
+      <span class="mrow-tag">Analytics</span>
+      <span class="mrow-arrow" style="color:var(--t3);animation:none;opacity:.5;">→</span>
+    </a>
 
-    <div class="node unlocked"
-      style="left:1615px; top:915px;"
-      data-unlocks="forum"
-      data-title="Blossom"
-      data-desc="Language growth. Beautiful words planted into memory.">
+  </div><!-- /missions -->
 
-      <div class="node-icon">🌱</div>
-      <div class="node-title">Blossom</div>
-      <div class="node-sub">Growth</div>
-
-    </div>
-
-    <!-- SECOND LAYER -->
-    <div class="node locked"
-      id="cryptic"
-      style="left:455px; top:235px;"
-      data-title="Cryptic"
-      data-desc="A detective chamber of hidden meanings, deception, inference, and elegant wordplay.">
-
-      <div class="node-icon">🔍</div>
-      <div class="node-title">Cryptic</div>
-      <div class="node-sub">221B</div>
-
-    </div>
-
-    <div class="node locked"
-      id="vocab"
-      style="left:915px; top:135px;"
-      data-title="Vocabulary"
-      data-desc="An ever-expanding codex of precision, nuance, elegance, and linguistic power.">
-
-      <div class="node-icon">📚</div>
-      <div class="node-title">Vocabulary</div>
-      <div class="node-sub">Lexicon</div>
-
-    </div>
-
-    <div class="node locked"
-      id="stories"
-      style="left:1355px; top:115px;"
-      data-title="Vault of Voices"
-      data-desc="Narratives, perspectives, imagination, and emotional architecture.">
-
-      <div class="node-icon">📖</div>
-      <div class="node-title">Stories</div>
-      <div class="node-sub">Voices</div>
-
-    </div>
-
-    <div class="node locked"
-      id="quotes"
-      style="left:1815px; top:255px;"
-      data-title="Quote a Day"
-      data-desc="Fragments of wisdom extracted from philosophy, literature, science, and cinema.">
-
-      <div class="node-icon">💬</div>
-      <div class="node-title">Quotes</div>
-      <div class="node-sub">Thought</div>
-
-    </div>
-
-    <div class="node locked"
-      id="wordle"
-      style="left:355px; top:1185px;"
-      data-title="Wordle Blitz"
-      data-desc="Thinking fast and slow under pressure. Language as reflex.">
-
-      <div class="node-icon">🟩</div>
-      <div class="node-title">Wordle</div>
-      <div class="node-sub">Speed</div>
-
-    </div>
-
-    <div class="node locked"
-      id="forum"
-      style="left:1915px; top:1195px;"
-      data-title="Vox Forum"
-      data-desc="Infinite drafting. Discussion. Reflection. Collaborative thought.">
-
-      <div class="node-icon">♾️</div>
-      <div class="node-title">Forum</div>
-      <div class="node-sub">∞ Draft</div>
-
-    </div>
-
+  <!-- ── QUOTE FOOTER ── -->
+  <div class="quote-footer">
+    <span class="quote-mark">"</span>
+    <span class="quote-text" id="quoteText">The opposite of a profound truth may well be another profound truth.</span>
+    <span class="quote-attr" id="quoteAttr">Niels Bohr</span>
   </div>
-</div>
 
-<div class="info">
-  <h2 id="infoTitle">Skill Nexus</h2>
-  <p id="infoDesc">
-    Drag across the universe. Click unlocked nodes to complete them and reveal new pathways.
-  </p>
-
-  <div class="tip">
-    CLICK • DRAG • UNLOCK • ASCEND
-  </div>
-</div>
+</div><!-- /shell -->
 
 <script>
+/* ── QUOTE CAROUSEL ── */
+const quotes=[
+  {text:"The opposite of a profound truth may well be another profound truth.",attr:"Niels Bohr"},
+  {text:"Ever tried. Ever failed. No matter. Try again. Fail again. Fail better.",attr:"Beckett"},
+  {text:"Do or do not. There is no try.",attr:"Yoda"},
+  {text:"The opposite of a good idea is another good idea.",attr:"Rory Sutherland"},
+];
+let qi=0;
+setInterval(()=>{
+  const q=quotes[(qi=(qi+1)%quotes.length)];
+  const qt=document.getElementById("quoteText");
+  const qa=document.getElementById("quoteAttr");
+  qt.style.opacity=qa.style.opacity="0";
+  setTimeout(()=>{
+    qt.textContent=q.text;
+    qa.textContent=q.attr;
+    qt.style.transition=qa.style.transition="opacity .6s";
+    qt.style.opacity=qa.style.opacity="1";
+  },500);
+},5000);
 
-/* ===============================
-   STARFIELD
-================================= */
-
-const stars = document.getElementById('stars');
-
-for(let i=0;i<180;i++){
-
-  const s = document.createElement('div');
-  s.className='star';
-
-  s.style.left=Math.random()*100+'vw';
-  s.style.top=Math.random()*100+'vh';
-
-  s.style.opacity=Math.random();
-
-  s.style.animationDuration=
-    2 + Math.random()*4 + 's';
-
-  stars.appendChild(s);
-
-}
-
-/* ===============================
-   DRAGGING
-================================= */
-
-const viewport = document.getElementById('viewport');
-const world = document.getElementById('world');
-
-let isDragging=false;
-let startX,startY;
-let currentX=-800;
-let currentY=-550;
-
-world.style.transform=`translate(${currentX}px, ${currentY}px)`;
-
-viewport.addEventListener('mousedown',e=>{
-  isDragging=true;
-  startX=e.clientX-currentX;
-  startY=e.clientY-currentY;
-});
-
-window.addEventListener('mouseup',()=>{
-  isDragging=false;
-});
-
-window.addEventListener('mousemove',e=>{
-
-  if(!isDragging) return;
-
-  currentX=e.clientX-startX;
-  currentY=e.clientY-startY;
-
-  world.style.transform=
-    `translate(${currentX}px, ${currentY}px)`;
-
-});
-
-/* touch */
-
-viewport.addEventListener('touchstart',e=>{
-
-  isDragging=true;
-
-  startX=e.touches[0].clientX-currentX;
-  startY=e.touches[0].clientY-currentY;
-
-});
-
-window.addEventListener('touchend',()=>{
-  isDragging=false;
-});
-
-window.addEventListener('touchmove',e=>{
-
-  if(!isDragging) return;
-
-  currentX=e.touches[0].clientX-startX;
-  currentY=e.touches[0].clientY-startY;
-
-  world.style.transform=
-    `translate(${currentX}px, ${currentY}px)`;
-
-});
-
-/* ===============================
-   NODE SYSTEM
-================================= */
-
-const infoTitle=document.getElementById('infoTitle');
-const infoDesc=document.getElementById('infoDesc');
-
-const unlockedCount=document.getElementById('unlockedCount');
-const completedCount=document.getElementById('completedCount');
-
-let completed=0;
-
-document.querySelectorAll('.node').forEach(node=>{
-
-  node.addEventListener('mouseenter',()=>{
-
-    infoTitle.textContent=node.dataset.title;
-    infoDesc.textContent=node.dataset.desc;
-
-  });
-
-  node.addEventListener('click',()=>{
-
-    if(node.classList.contains('locked')) return;
-
-    if(!node.classList.contains('completed')){
-
-      node.classList.add('completed');
-      completed++;
-
-      completedCount.textContent=completed;
-
-      const unlocks=node.dataset.unlocks;
-
-      if(unlocks){
-
-        unlocks.split(',').forEach(id=>{
-
-          const target=document.getElementById(id);
-
-          if(target){
-
-            target.classList.remove('locked');
-            target.classList.add('unlocked');
-
-          }
-
-        });
-
-      }
-
-      updateCounts();
-
+/* ── MISSION UNLOCK STATE
+   Replace this array with real Supabase data later.
+   Format: { el, status: 'done'|'active'|'locked'|'' }
+   The JS below reads data-status from each .mrow
+   and can be driven by: updateMissions(completedSet)
+── */
+function updateMissions(completedIds){
+  // completedIds = Set of href strings completed
+  // Wire to real data when Supabase is integrated
+  document.querySelectorAll('.mrow').forEach(row=>{
+    const href = row.getAttribute('href');
+    if(completedIds && completedIds.has(href)){
+      row.classList.remove('locked','active');
+      row.classList.add('done');
     }
-
   });
-
-});
-
-function updateCounts(){
-
-  const unlocked=
-    document.querySelectorAll('.node.unlocked, .node.completed').length;
-
-  unlockedCount.textContent=unlocked;
-
 }
 
-/* ===============================
-   AUTO CENTER INTRO
-================================= */
-
-setTimeout(()=>{
-
-  world.style.transition='transform 2s ease';
-
-  world.style.transform=
-    `translate(${currentX}px, ${currentY}px) scale(1)`;
-
-},200);
-
+/* ── STUBS ── */
+function openCalendar(){console.log('calendar');}
+function openDrawer(){console.log('drawer');}
 </script>
-
 </body>
 </html>

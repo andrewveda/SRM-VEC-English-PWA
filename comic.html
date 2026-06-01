@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Idiom Comic Showcase</title>
+
+<style>
+body{
+    font-family:Arial, sans-serif;
+    margin:0;
+    padding:20px;
+    background:#f5f5f5;
+}
+
+h1{
+    text-align:center;
+}
+
+#search{
+    width:100%;
+    max-width:500px;
+    display:block;
+    margin:20px auto;
+    padding:12px;
+    font-size:16px;
+}
+
+#gallery{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(320px,1fr));
+    gap:20px;
+}
+
+.card{
+    background:white;
+    border-radius:12px;
+    padding:20px;
+    box-shadow:0 2px 8px rgba(0,0,0,.1);
+}
+
+.card h2{
+    margin-top:0;
+}
+
+.idiom{
+    color:#1565c0;
+    font-weight:bold;
+    margin-bottom:10px;
+}
+
+.explanation{
+    margin:15px 0;
+    line-height:1.5;
+}
+
+.button{
+    display:inline-block;
+    padding:10px 15px;
+    background:#1565c0;
+    color:white;
+    text-decoration:none;
+    border-radius:6px;
+}
+
+.button:hover{
+    opacity:.9;
+}
+
+.date{
+    margin-top:15px;
+    font-size:12px;
+    color:#666;
+}
+
+.loading{
+    text-align:center;
+    font-size:20px;
+}
+</style>
+</head>
+<body>
+
+<h1>📚 Idiom Comic Showcase</h1>
+
+<input
+id="search"
+placeholder="Search by student name or idiom..."
+>
+
+<div id="gallery">
+<div class="loading">Loading submissions...</div>
+</div>
+
+<script>
+
+const OWNER = "andrewveda";
+const REPO = "SRM-VEC-English-PWA";
+
+const gallery = document.getElementById("gallery");
+const searchBox = document.getElementById("search");
+
+let cards = [];
+
+function extractField(body, fieldName){
+
+    const regex = new RegExp(
+        `${fieldName}[\\s\\S]*?\\n([\\s\\S]*?)(?=\\n###|$)`,
+        "i"
+    );
+
+    const match = body.match(regex);
+
+    if(match){
+        return match[1].trim();
+    }
+
+    return "";
+}
+
+function getURL(text){
+
+    const match =
+        text.match(/https?:\/\/[^\s<>"']+/i);
+
+    return match ? match[0] : "";
+}
+
+fetch(
+`https://api.github.com/repos/${OWNER}/${REPO}/issues?labels=submission&state=open&per_page=100`
+)
+.then(r=>r.json())
+.then(issues=>{
+
+    gallery.innerHTML="";
+
+    issues.forEach(issue=>{
+
+        const body = issue.body || "";
+
+        const student =
+            extractField(body,"Student Name");
+
+        const idiom =
+            extractField(body,"Idiom Used");
+
+        const websiteField =
+            extractField(body,"Comic Website URL");
+
+        const explanation =
+            extractField(body,"Meaning of the Idiom");
+
+        const comicURL =
+            getURL(websiteField);
+
+        const card = document.createElement("div");
+
+        card.className = "card";
+
+        card.dataset.search =
+            (
+                student + " " +
+                idiom + " " +
+                explanation
+            ).toLowerCase();
+
+        card.innerHTML = `
+            <h2>${student || issue.title}</h2>
+
+            <div class="idiom">
+                ${idiom}
+            </div>
+
+            <div class="explanation">
+                ${explanation}
+            </div>
+
+            ${
+                comicURL
+                ?
+                `<a class="button"
+                   href="${comicURL}"
+                   target="_blank">
+                   Open Comic
+                 </a>`
+                :
+                ""
+            }
+
+            <div class="date">
+                Submitted:
+                ${new Date(issue.created_at)
+                    .toLocaleDateString()}
+            </div>
+        `;
+
+        gallery.appendChild(card);
+
+        cards.push(card);
+
+    });
+
+    if(issues.length===0){
+        gallery.innerHTML=
+            "<h2>No submissions yet.</h2>";
+    }
+
+})
+.catch(error=>{
+
+    gallery.innerHTML=
+    `
+    <h2>
+    Could not load submissions.
+    </h2>
+
+    <p>
+    Check OWNER and REPO values.
+    </p>
+    `;
+
+    console.error(error);
+});
+
+searchBox.addEventListener("input",()=>{
+
+    const term =
+        searchBox.value.toLowerCase();
+
+    cards.forEach(card=>{
+
+        if(card.dataset.search.includes(term)){
+            card.style.display="block";
+        }
+        else{
+            card.style.display="none";
+        }
+
+    });
+
+});
+
+</script>
+
+</body>
+</html>

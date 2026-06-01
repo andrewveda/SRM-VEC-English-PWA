@@ -1,63 +1,567 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Idiom Comic Showcase</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Idiom Comics Showcase</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
 <style>
-body{
-    font-family:Arial,sans-serif;
-    max-width:1000px;
-    margin:auto;
-    padding:20px;
-    background:#f5f5f5;
-}
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-.card{
-    background:white;
-    padding:15px;
-    margin:15px 0;
-    border-radius:10px;
-    box-shadow:0 2px 5px rgba(0,0,0,.1);
-}
+  :root {
+    --ink: #1a1a1a;
+    --muted: #666;
+    --soft: #999;
+    --surface: #fff;
+    --raised: #f7f6f3;
+    --page: #f2f0eb;
+    --border: rgba(0,0,0,0.1);
+    --border-md: rgba(0,0,0,0.2);
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --accent: #D85A30;
+  }
 
-a{
-    display:inline-block;
-    margin-top:10px;
-}
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ink: #f0ede8;
+      --muted: #aaa;
+      --soft: #666;
+      --surface: #1e1d1b;
+      --raised: #272623;
+      --page: #161513;
+      --border: rgba(255,255,255,0.1);
+      --border-md: rgba(255,255,255,0.2);
+    }
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--page);
+    color: var(--ink);
+    min-height: 100vh;
+  }
+
+  .banner {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0.7rem 1.5rem;
+    background: #FAECE7;
+    border-bottom: 1px solid #F0997B;
+    font-size: 12px;
+    color: #993C1D;
+    font-weight: 500;
+  }
+  .banner i { font-size: 15px; }
+
+  .hero {
+    text-align: center;
+    padding: 3rem 1.5rem 2rem;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+  }
+  .hero-label {
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 500;
+    margin-bottom: 0.75rem;
+  }
+  .hero h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2rem, 6vw, 3.5rem);
+    font-weight: 900;
+    color: var(--ink);
+    line-height: 1.1;
+    margin-bottom: 0.5rem;
+  }
+  .hero h1 em { font-style: italic; color: var(--accent); }
+  .hero-sub {
+    font-size: 14px;
+    color: var(--muted);
+    max-width: 440px;
+    margin: 0 auto 1.75rem;
+    line-height: 1.6;
+  }
+  .stats-bar {
+    display: flex;
+    justify-content: center;
+    gap: 2.5rem;
+    flex-wrap: wrap;
+  }
+  .stat-num {
+    font-family: 'Playfair Display', serif;
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--ink);
+  }
+  .stat-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    font-weight: 500;
+  }
+
+  .controls {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding: 1rem 1.5rem;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .controls.visible { display: flex; }
+  .search-wrap {
+    position: relative;
+    flex: 1;
+    min-width: 180px;
+    max-width: 320px;
+  }
+  .search-wrap i {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 15px;
+    color: var(--muted);
+    pointer-events: none;
+  }
+  .search-wrap input {
+    width: 100%;
+    padding: 8px 12px 8px 34px;
+    font-size: 13px;
+    font-family: 'DM Sans', sans-serif;
+    border: 1px solid var(--border-md);
+    border-radius: var(--radius-md);
+    background: var(--raised);
+    color: var(--ink);
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .search-wrap input:focus { border-color: var(--accent); }
+  .search-wrap input::placeholder { color: var(--soft); }
+
+  .filter-btn {
+    font-size: 12px;
+    padding: 6px 14px;
+    border: 1px solid var(--border-md);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 500;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+  }
+  .filter-btn:hover { background: var(--raised); }
+  .filter-btn.active {
+    background: var(--ink);
+    color: var(--surface);
+    border-color: var(--ink);
+  }
+
+  .section-divider {
+    display: none;
+    padding: 0.65rem 1.5rem;
+    background: var(--raised);
+    border-bottom: 1px solid var(--border);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 500;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .section-divider.visible { display: flex; }
+  .count-pill {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--border);
+    color: var(--muted);
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1px;
+    background: var(--border);
+  }
+
+  .card {
+    background: var(--surface);
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    transition: background 0.15s;
+  }
+  .card:hover { background: var(--raised); }
+
+  .card-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+  .card-meta { flex: 1; min-width: 0; }
+  .card-student {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ink);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .card-date { font-size: 11px; color: var(--soft); }
+
+  .state-badge {
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 999px;
+    font-weight: 500;
+    flex-shrink: 0;
+  }
+  .state-open { background: #E1F5EE; color: #085041; }
+  .state-closed { background: #F1EFE8; color: #444441; }
+
+  .idiom-quote {
+    font-family: 'Playfair Display', serif;
+    font-size: 15px;
+    font-weight: 700;
+    font-style: italic;
+    color: var(--ink);
+    border-left: 2.5px solid var(--accent);
+    border-radius: 0;
+    padding-left: 10px;
+    line-height: 1.35;
+  }
+
+  .meaning {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  .card-footer {
+    margin-top: auto;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .view-link {
+    font-size: 12px;
+    font-weight: 500;
+    color: #185FA5;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .view-link:hover { text-decoration: underline; }
+  .no-link { font-size: 12px; color: var(--soft); }
+  .issue-link {
+    font-size: 11px;
+    color: var(--soft);
+    text-decoration: none;
+  }
+  .issue-link:hover { color: var(--muted); }
+
+  .state-box {
+    padding: 4rem 1.5rem;
+    text-align: center;
+    color: var(--muted);
+    font-size: 14px;
+    background: var(--surface);
+  }
+  .state-box i {
+    font-size: 36px;
+    display: block;
+    margin-bottom: 1rem;
+    color: var(--soft);
+  }
+  .state-box p { line-height: 1.6; max-width: 340px; margin: 0 auto; }
+  .retry-btn {
+    margin-top: 1rem;
+    padding: 7px 18px;
+    font-size: 13px;
+    font-family: 'DM Sans', sans-serif;
+    border: 1px solid var(--border-md);
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--ink);
+    cursor: pointer;
+  }
+  .retry-btn:hover { background: var(--raised); }
+
+  .spinner {
+    display: inline-block;
+    width: 32px;
+    height: 32px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin-bottom: 1rem;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  footer {
+    padding: 1.5rem;
+    text-align: center;
+    font-size: 11px;
+    color: var(--soft);
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+  }
 </style>
 </head>
 <body>
 
-<h1>📚 Idiom Comic Showcase</h1>
+<div class="banner">
+  <i class="ti ti-brand-github"></i>
+  andrewveda / SRM-VEC-English-PWA &nbsp;·&nbsp; Idiom Comics Gallery
+</div>
 
-<div id="gallery">Loading...</div>
+<div class="hero">
+  <p class="hero-label">Class Showcase</p>
+  <h1>Idioms in <em>Pictures</em></h1>
+  <p class="hero-sub">Students brought English idioms to life through original comics. Every submission below links directly to their published work.</p>
+  <div class="stats-bar">
+    <div class="stat">
+      <div class="stat-num" id="stat-count">—</div>
+      <div class="stat-label">Submissions</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num" id="stat-open">—</div>
+      <div class="stat-label">Open</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num" id="stat-closed">—</div>
+      <div class="stat-label">Closed</div>
+    </div>
+  </div>
+</div>
+
+<div class="controls" id="controls">
+  <div class="search-wrap">
+    <i class="ti ti-search"></i>
+    <input type="text" id="search-box" placeholder="Search student or idiom…" oninput="filterCards()" />
+  </div>
+  <button class="filter-btn active" onclick="setFilter('all', this)">All</button>
+  <button class="filter-btn active-state" onclick="setStateFilter('all', this)">All statuses</button>
+  <button class="filter-btn" onclick="setStateFilter('open', this)">Open</button>
+  <button class="filter-btn" onclick="setStateFilter('closed', this)">Closed</button>
+</div>
+
+<div class="section-divider" id="divider">
+  <span>Comic submissions</span>
+  <span class="count-pill" id="visible-count">0 shown</span>
+</div>
+
+<div id="state-area">
+  <div class="state-box">
+    <div class="spinner"></div>
+    <p>Loading submissions from GitHub…</p>
+  </div>
+</div>
+
+<div class="grid" id="card-grid"></div>
+
+<footer>
+  Data fetched live from GitHub Issues &nbsp;·&nbsp; Filtered to <code>[Comic]</code> submissions only
+</footer>
 
 <script>
+const REPO = 'andrewveda/SRM-VEC-English-PWA';
+const API  = `https://api.github.com/repos/${REPO}/issues?state=all&per_page=100&labels=submission`;
 
-fetch(
-'https://api.github.com/repos/andrewveda/SRM-VEC-English-PWA/issues?state=open&per_page=100'
-)
-.then(r => r.json())
-.then(issues => {
+const avColors = [
+  { bg:'#EEEDFE', c:'#3C3489' },
+  { bg:'#E1F5EE', c:'#085041' },
+  { bg:'#FAECE7', c:'#993C1D' },
+  { bg:'#E6F1FB', c:'#0C447C' },
+  { bg:'#FBEAF0', c:'#72243E' },
+  { bg:'#EAF3DE', c:'#3B6D11' },
+  { bg:'#FAEEDA', c:'#854F0B' },
+];
 
-    const gallery = document.getElementById('gallery');
+function initials(name) {
+  return name.trim().split(/\s+/).slice(0, 2).map(n => n[0].toUpperCase()).join('');
+}
 
-    gallery.innerHTML = '';
+function parseBody(body) {
+  if (!body) return {};
+  const result = {};
+  const studentMatch = body.match(/###\s*Student Name\s*\n+([^\n#]+)/i);
+  const idiomMatch   = body.match(/###\s*Idiom Used\s*\n+([^\n#]+)/i);
+  const urlMatch     = body.match(/###\s*Comic Website URL\s*\n+([^\n#]+)/i);
+  const meaningMatch = body.match(/###\s*Meaning of the Idiom\s*\n+([\s\S]+?)(?:\n###|$)/i);
+  if (studentMatch) result.student = studentMatch[1].trim();
+  if (idiomMatch)   result.idiom   = idiomMatch[1].trim();
+  if (urlMatch)     result.url     = urlMatch[1].trim();
+  if (meaningMatch) result.meaning = meaningMatch[1].trim().slice(0, 240);
+  return result;
+}
 
-    issues.forEach(issue => {
+function formatDate(iso) {
+  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+}
 
-        gallery.innerHTML += `
-        <div class="card">
-            <h3>${issue.title}</h3>
-            <pre>${issue.body}</pre>
+let allCards    = [];
+let stateFilter = 'all';
+
+function renderCards(list) {
+  const grid = document.getElementById('card-grid');
+  const vc   = document.getElementById('visible-count');
+  vc.textContent = list.length + ' shown';
+
+  if (!list.length) {
+    grid.innerHTML = `<div class="state-box">
+      <i class="ti ti-mood-empty"></i>
+      <p>No submissions match your search.</p>
+    </div>`;
+    return;
+  }
+
+  grid.innerHTML = list.map((item, i) => {
+    const av      = avColors[i % avColors.length];
+    const name    = item.student || 'Unknown';
+    const idiom   = item.idiom   || item.title.replace(/^\[Comic\]\s*/i, '').trim();
+    const meaning = item.meaning || '';
+    const url     = item.url;
+    const hasUrl  = url && url.startsWith('http');
+
+    return `<div class="card">
+      <div class="card-top">
+        <div class="avatar" style="background:${av.bg};color:${av.c}">${initials(name)}</div>
+        <div class="card-meta">
+          <div class="card-student">${name}</div>
+          <div class="card-date">${item.date}</div>
         </div>
-        `;
+        <span class="state-badge ${item.state === 'open' ? 'state-open' : 'state-closed'}">${item.state}</span>
+      </div>
+      <div class="idiom-quote">${idiom}</div>
+      ${meaning ? `<div class="meaning">${meaning}</div>` : ''}
+      <div class="card-footer">
+        ${hasUrl
+          ? `<a class="view-link" href="${url}" target="_blank" rel="noopener">
+               <i class="ti ti-external-link" style="font-size:13px"></i> View comic
+             </a>`
+          : `<span class="no-link">No link provided</span>`}
+        <a class="issue-link" href="${item.html_url}" target="_blank" rel="noopener">#${item.number}</a>
+      </div>
+    </div>`;
+  }).join('');
+}
 
+function filterCards() {
+  const q = document.getElementById('search-box').value.toLowerCase();
+  const filtered = allCards.filter(c => {
+    const matchSearch = (c.student || '').toLowerCase().includes(q)
+                     || (c.idiom   || '').toLowerCase().includes(q)
+                     || c.title.toLowerCase().includes(q);
+    const matchState  = stateFilter === 'all' || c.state === stateFilter;
+    return matchSearch && matchState;
+  });
+  renderCards(filtered);
+}
+
+function setStateFilter(val, btn) {
+  stateFilter = val;
+  document.querySelectorAll('.filter-btn.active-state').forEach(b => b.classList.remove('active-state', 'active'));
+  btn.classList.add('active-state', 'active');
+  filterCards();
+}
+
+function setFilter(val, btn) {
+  document.querySelectorAll('.filter-btn:not(.active-state)').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  filterCards();
+}
+
+async function loadIssues() {
+  document.getElementById('state-area').innerHTML = `
+    <div class="state-box">
+      <div class="spinner"></div>
+      <p>Loading submissions from GitHub…</p>
+    </div>`;
+
+  try {
+    const res = await fetch(API, { headers: { Accept: 'application/vnd.github+json' } });
+    if (!res.ok) throw new Error('GitHub API returned ' + res.status);
+    const issues = await res.json();
+
+    const comics = issues.filter(i =>
+      i.title.toLowerCase().startsWith('[comic]') && !i.pull_request
+    );
+
+    document.getElementById('stat-count').textContent  = comics.length;
+    document.getElementById('stat-open').textContent   = comics.filter(i => i.state === 'open').length;
+    document.getElementById('stat-closed').textContent = comics.filter(i => i.state === 'closed').length;
+
+    if (!comics.length) {
+      document.getElementById('state-area').innerHTML = `
+        <div class="state-box">
+          <i class="ti ti-mood-empty"></i>
+          <p>No comic submissions found yet. They'll appear here once students submit via the issue form.</p>
+        </div>`;
+      return;
+    }
+
+    allCards = comics.map(i => {
+      const parsed = parseBody(i.body);
+      return {
+        ...parsed,
+        title:    i.title,
+        number:   i.number,
+        html_url: i.html_url,
+        state:    i.state,
+        date:     formatDate(i.created_at),
+      };
     });
 
-});
+    document.getElementById('state-area').style.display = 'none';
+    document.getElementById('controls').classList.add('visible');
+    document.getElementById('divider').classList.add('visible');
+    renderCards(allCards);
 
+  } catch (err) {
+    document.getElementById('state-area').innerHTML = `
+      <div class="state-box">
+        <i class="ti ti-alert-circle"></i>
+        <p>Could not load submissions: ${err.message}</p>
+        <button class="retry-btn" onclick="loadIssues()">Retry</button>
+      </div>`;
+  }
+}
+
+loadIssues();
 </script>
-
 </body>
 </html>

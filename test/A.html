@@ -3,689 +3,228 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Purpose Statements Quest</title>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;600;700&family=Orbitron:wght@700;900&family=DM+Sans:wght@400;600&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js">
-/* ══════ AUDIO PLAYER ══════ */
-window.addEventListener("load", () => {
-  const audio       = document.getElementById("mainAudio");
-  const playBtn     = document.getElementById("playBtn");
-  const progressFill= document.getElementById("progressFill");
-  const progressWrap= document.getElementById("progressWrap");
-  const curTimeEl   = document.getElementById("curTime");
-  const durTimeEl   = document.getElementById("durTime");
-  const waveform    = document.getElementById("waveform");
-  const volSlider   = document.getElementById("volSlider");
-  const volIcon     = document.getElementById("volIcon");
-  if (!audio) return;
-
-  function fmt(s) {
-    const m = Math.floor(s/60), sec = Math.floor(s%60);
-    return m+":"+sec.toString().padStart(2,"0");
-  }
-
-  audio.addEventListener("loadedmetadata", () => {
-    durTimeEl.textContent = fmt(audio.duration);
-  });
-
-  audio.addEventListener("timeupdate", () => {
-    if (!audio.duration) return;
-    const pct = (audio.currentTime / audio.duration) * 100;
-    progressFill.style.width = pct + "%";
-    curTimeEl.textContent = fmt(audio.currentTime);
-  });
-
-  audio.addEventListener("ended", () => {
-    playBtn.textContent = "▶";
-    if(waveform) waveform.classList.add("paused");
-  });
-
-  window.togglePlay = function() {
-    if (audio.paused) {
-      audio.play();
-      playBtn.textContent = "⏸";
-      if(waveform) waveform.classList.remove("paused");
-    } else {
-      audio.pause();
-      playBtn.textContent = "▶";
-      if(waveform) waveform.classList.add("paused");
-    }
-  };
-
-  window.seekRel = function(delta) {
-    audio.currentTime = Math.max(0, Math.min(audio.duration||0, audio.currentTime + delta));
-  };
-
-  if(progressWrap) progressWrap.addEventListener("click", (e) => {
-    const rect = progressWrap.getBoundingClientRect();
-    const ratio = (e.clientX - rect.left) / rect.width;
-    audio.currentTime = ratio * (audio.duration || 0);
-  });
-
-  window.setVolume = function(v) {
-    audio.volume = parseFloat(v);
-    if(volIcon) volIcon.textContent = v==0?"🔇":v<0.4?"🔈":"🔊";
-  };
-});
-
-</script>
+<title>Semester Practical</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=DM+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-
 <style>
 :root {
   --bg: #0a0f1e;
   --card: #111827;
   --border: rgba(255,215,0,0.15);
   --gold: #FFD700;
-  --gold-soft: #ffb300;
+  --gold2: #ffb300;
   --red: #ff4444;
   --green: #00e676;
   --blue: #38bdf8;
   --text: #e2e8f0;
   --muted: #64748b;
 }
-
 * { box-sizing: border-box; margin: 0; padding: 0; }
-
-body {
-  font-family: 'DM Sans', sans-serif;
-  background: var(--bg);
-  color: var(--text);
-  min-height: 100vh;
-}
+body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
 
 /* ── NAME SCREEN ── */
 #nameScreen {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 100vh;
-  padding: 2rem 1rem;
-  background: radial-gradient(ellipse at 50% 0%, rgba(255,215,0,0.08) 0%, transparent 60%),
-              var(--bg);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  min-height: 100vh; padding: 2rem 1rem;
+  background: radial-gradient(ellipse at 50% 0%, rgba(255,215,0,0.08) 0%, transparent 60%), var(--bg);
 }
+.brand { font-family:'Orbitron',monospace; font-size:0.7rem; letter-spacing:4px; color:var(--gold); text-transform:uppercase; margin-bottom:0.5rem; opacity:0.8; }
+.title { font-family:'Orbitron',monospace; font-size:clamp(1.4rem,5vw,2.2rem); font-weight:900; color:var(--gold); text-shadow:0 0 30px rgba(255,215,0,0.4); text-align:center; margin-bottom:0.3rem; line-height:1.2; }
+.subtitle { font-size:0.9rem; color:var(--muted); margin-bottom:2.5rem; text-align:center; }
+.form-card { width:100%; max-width:440px; background:var(--card); border:1px solid var(--border); border-radius:24px; padding:2rem 1.8rem; box-shadow:0 30px 60px rgba(0,0,0,0.5); }
+.field-label { font-size:0.78rem; font-weight:600; letter-spacing:1px; text-transform:uppercase; color:var(--muted); margin-bottom:0.5rem; display:block; }
+.field-group { margin-bottom:1.2rem; }
+input[type="text"], select { width:100%; padding:0.9rem 1rem; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.1); border-radius:12px; font-size:1rem; color:var(--text); font-family:'DM Sans',sans-serif; outline:none; transition:border-color .2s,box-shadow .2s; }
+input[type="text"]:focus, select:focus { border-color:var(--gold); box-shadow:0 0 0 3px rgba(255,215,0,0.15); }
+select option { background:#1e293b; }
+.start-btn { width:100%; padding:1rem; background:linear-gradient(135deg,var(--gold),var(--gold2)); color:#000; font-family:'Orbitron',monospace; font-size:0.85rem; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; border:none; border-radius:14px; cursor:pointer; margin-top:0.5rem; transition:transform .2s,box-shadow .2s; }
+.start-btn:hover { transform:translateY(-2px); box-shadow:0 10px 30px rgba(255,215,0,0.35); }
 
-.brand {
-  font-family: 'Orbitron', monospace;
-  font-size: 0.7rem;
-  letter-spacing: 4px;
-  color: var(--gold);
-  text-transform: uppercase;
-  margin-bottom: 0.5rem;
-  opacity: 0.8;
-}
+/* ── QUIZ SCREEN: two-column layout ── */
+#quizScreen { display:none; flex-direction:column; min-height:100vh; }
 
-.title {
-  font-family: 'Orbitron', monospace;
-  font-size: clamp(1.4rem, 5vw, 2.2rem);
-  font-weight: 900;
-  color: var(--gold);
-  text-shadow: 0 0 30px rgba(255,215,0,0.4);
-  text-align: center;
-  margin-bottom: 0.3rem;
-  line-height: 1.2;
-}
-
-.subtitle {
-  font-size: 0.9rem;
-  color: var(--muted);
-  margin-bottom: 2.5rem;
-  text-align: center;
-}
-
-.form-card {
-  width: 100%;
-  max-width: 440px;
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 24px;
-  padding: 2rem 1.8rem;
-  box-shadow: 0 0 0 1px rgba(255,215,0,0.05), 0 30px 60px rgba(0,0,0,0.5);
-}
-
-.field-label {
-  font-size: 0.78rem;
-  font-weight: 600;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  color: var(--muted);
-  margin-bottom: 0.5rem;
-  display: block;
-}
-
-.field-group { margin-bottom: 1.2rem; }
-
-input[type="text"], select {
-  width: 100%;
-  padding: 0.9rem 1rem;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 12px;
-  font-size: 1rem;
-  color: var(--text);
-  font-family: 'DM Sans', sans-serif;
-  outline: none;
-  transition: border-color 0.2s, box-shadow 0.2s;
-}
-input[type="text"]:focus, select:focus {
-  border-color: var(--gold);
-  box-shadow: 0 0 0 3px rgba(255,215,0,0.15);
-}
-select option { background: #1e293b; }
-
-.start-btn {
-  width: 100%;
-  padding: 1rem;
-  background: linear-gradient(135deg, var(--gold), var(--gold-soft));
-  color: #000;
-  font-family: 'Orbitron', monospace;
-  font-size: 0.85rem;
-  font-weight: 700;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-  border: none;
-  border-radius: 14px;
-  cursor: pointer;
-  margin-top: 0.5rem;
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-.start-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 30px rgba(255,215,0,0.35);
-}
-
-/* ── QUIZ SCREEN ── */
-#quizScreen {
-  display: none;
-  flex-direction: column;
-  min-height: 100vh;
-}
-
-/* ── ANTI-CHEAT BAR ── */
+/* Cheat bar */
 #cheatBar {
-  position: sticky;
-  top: 0;
-  z-index: 999;
-  background: rgba(10,15,30,0.95);
-  backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--border);
-  padding: 0.6rem 1rem;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.6rem;
-  flex-wrap: wrap;
+  position:sticky; top:0; z-index:999;
+  background:rgba(10,15,30,0.96); backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);
+  padding:0.55rem 1rem;
+  display:flex; align-items:center; justify-content:space-between; gap:0.5rem; flex-wrap:wrap;
 }
+.bar-player { font-size:0.8rem; font-weight:600; color:var(--gold); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:170px; }
+.bar-stats { display:flex; gap:0.45rem; align-items:center; flex-wrap:wrap; }
+.stat-pill { display:flex; align-items:center; gap:0.25rem; padding:0.28rem 0.65rem; border-radius:20px; font-size:0.72rem; font-weight:700; font-family:'Orbitron',monospace; border:1px solid; white-space:nowrap; }
+.pill-time  { border-color:rgba(56,189,248,.3);  color:var(--blue); background:rgba(56,189,248,.08); }
+.pill-tabs  { border-color:rgba(255,68,68,.3);   color:var(--red);  background:rgba(255,68,68,.08); }
+.pill-cheat { border-color:rgba(255,68,68,.4);   color:var(--red);  background:rgba(255,68,68,.12); }
 
-.bar-player {
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: var(--gold);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 180px;
-}
-
-.bar-stats {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-.stat-pill {
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-  padding: 0.3rem 0.7rem;
-  border-radius: 20px;
-  font-size: 0.75rem;
-  font-weight: 700;
-  font-family: 'Orbitron', monospace;
-  border: 1px solid;
-  white-space: nowrap;
-}
-
-.pill-time  { border-color: rgba(56,189,248,0.3); color: var(--blue); background: rgba(56,189,248,0.08); }
-.pill-tabs  { border-color: rgba(255,68,68,0.3);  color: var(--red);  background: rgba(255,68,68,0.08); }
-.pill-cheat { border-color: rgba(255,68,68,0.4);  color: var(--red);  background: rgba(255,68,68,0.12); }
-
-/* ── CHEAT ALERT TOAST ── */
+/* Cheat toast */
 #cheatToast {
-  position: fixed;
-  top: 70px;
-  left: 50%;
-  transform: translateX(-50%) translateY(-20px);
-  opacity: 0;
-  pointer-events: none;
-  z-index: 9999;
-  background: linear-gradient(135deg, #7f0000, #c00);
-  color: #fff;
-  padding: 0.9rem 1.4rem;
-  border-radius: 14px;
-  font-weight: 700;
-  font-size: 0.9rem;
-  box-shadow: 0 10px 30px rgba(255,0,0,0.4);
-  text-align: center;
-  max-width: 340px;
-  width: calc(100% - 2rem);
-  transition: opacity 0.3s ease, transform 0.3s ease;
+  position:fixed; top:68px; left:50%; transform:translateX(-50%) translateY(-20px);
+  opacity:0; pointer-events:none; z-index:9999;
+  background:linear-gradient(135deg,#7f0000,#c00); color:#fff;
+  padding:0.8rem 1.2rem; border-radius:14px; font-weight:700; font-size:0.88rem;
+  box-shadow:0 10px 30px rgba(255,0,0,0.4); text-align:center;
+  max-width:320px; width:calc(100% - 2rem);
+  transition:opacity .3s,transform .3s;
 }
-#cheatToast.show {
-  opacity: 1;
-  transform: translateX(-50%) translateY(0);
+#cheatToast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+/* ── MAIN CONTENT AREA: side-by-side ── */
+#mainContent {
+  display:flex;
+  flex:1;
+  gap:0;
+  align-items:stretch;
 }
 
-/* ── FORM WRAPPER ── */
-#formWrapper {
-  flex: 1;
-  display: flex;
-  justify-content: center;
-  padding: 1.5rem 1rem 1rem;
+/* LEFT PANEL — audio + submit */
+#leftPanel {
+  width:300px;
+  flex-shrink:0;
+  display:flex;
+  flex-direction:column;
+  gap:1rem;
+  padding:1.2rem 1rem 1.2rem 1.2rem;
+  border-right:1px solid rgba(255,215,0,0.1);
+  background:rgba(6,13,26,0.6);
+  position:sticky;
+  top:52px;          /* height of cheat bar */
+  height:calc(100vh - 52px);
+  overflow-y:auto;
 }
 
-#formWrapper iframe {
-  width: 100%;
-  max-width: 720px;
-  min-height: 85vh;
-  border: none;
-  border-radius: 16px;
-  background: white;
+/* RIGHT PANEL — Google Form */
+#rightPanel {
+  flex:1;
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+}
+#rightPanel iframe {
+  flex:1;
+  width:100%;
+  height:calc(100vh - 52px);
+  border:none;
+  display:block;
 }
 
-/* ── SUBMIT BUTTON AREA ── */
-#submitArea {
-  position: sticky;
-  bottom: 0;
-  z-index: 100;
-  background: rgba(10,15,30,0.97);
-  backdrop-filter: blur(14px);
-  border-top: 1px solid var(--border);
-  padding: 1rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.6rem;
+/* ── AUDIO CARD ── */
+.audio-card {
+  background:linear-gradient(135deg,#0d1a2e,#111827);
+  border:1px solid rgba(255,215,0,0.22);
+  border-radius:18px;
+  padding:1.1rem 1rem;
+  box-shadow:0 0 0 1px rgba(255,215,0,0.06), 0 16px 40px rgba(0,0,0,0.5);
 }
+.audio-label { font-family:'Orbitron',monospace; font-size:0.6rem; letter-spacing:3px; text-transform:uppercase; color:var(--gold); opacity:0.8; margin-bottom:0.3rem; }
+.audio-title { font-size:0.82rem; font-weight:700; color:var(--text); margin-bottom:0.9rem; line-height:1.35; }
+.audio-title span { color:var(--gold); }
 
-.submit-note {
-  font-size: 0.72rem;
-  color: var(--muted);
-  text-align: center;
-}
+/* Progress */
+.audio-progress-wrap { position:relative; height:5px; background:rgba(255,255,255,0.08); border-radius:10px; cursor:pointer; margin-bottom:0.45rem; overflow:hidden; }
+.audio-progress-fill { height:100%; width:0%; background:linear-gradient(90deg,var(--gold),var(--gold2)); border-radius:10px; pointer-events:none; transition:width .1s linear; }
 
+.audio-times { display:flex; justify-content:space-between; font-size:0.68rem; color:var(--muted); font-family:'Orbitron',monospace; margin-bottom:0.8rem; }
+
+/* Controls */
+.audio-controls { display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap; }
+.audio-btn { background:none; border:none; cursor:pointer; color:var(--text); font-size:1.1rem; line-height:1; padding:0.25rem; transition:transform .15s,color .15s; -webkit-tap-highlight-color:transparent; }
+.audio-btn:hover { color:var(--gold); transform:scale(1.15); }
+.play-btn { width:42px; height:42px; border-radius:50%; background:linear-gradient(135deg,var(--gold),var(--gold2)); color:#000; font-size:1rem; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 16px rgba(255,215,0,0.35); flex-shrink:0; border:none; cursor:pointer; transition:transform .15s,box-shadow .15s; -webkit-tap-highlight-color:transparent; }
+.play-btn:hover { transform:scale(1.08); box-shadow:0 6px 22px rgba(255,215,0,0.45); }
+.play-btn:active { transform:scale(0.95); }
+
+/* Waveform */
+.waveform { display:flex; align-items:center; gap:2px; height:22px; margin:0 0.2rem; }
+.waveform-bar { width:3px; border-radius:2px; background:rgba(255,215,0,0.35); animation:wavePulse 1.2s ease-in-out infinite; }
+.waveform-bar:nth-child(1){height:7px;  animation-delay:0s}
+.waveform-bar:nth-child(2){height:14px; animation-delay:.1s}
+.waveform-bar:nth-child(3){height:20px; animation-delay:.2s}
+.waveform-bar:nth-child(4){height:12px; animation-delay:.3s}
+.waveform-bar:nth-child(5){height:18px; animation-delay:.4s}
+.waveform-bar:nth-child(6){height:9px;  animation-delay:.5s}
+.waveform-bar:nth-child(7){height:16px; animation-delay:.6s}
+@keyframes wavePulse { 0%,100%{opacity:.35;transform:scaleY(1)} 50%{opacity:.9;transform:scaleY(1.35)} }
+.waveform.paused .waveform-bar { animation-play-state:paused; opacity:.18; }
+
+/* Volume */
+.vol-wrap { display:flex; align-items:center; gap:0.3rem; margin-left:auto; }
+.vol-icon { font-size:0.9rem; color:var(--muted); }
+input[type=range].vol-slider { -webkit-appearance:none; width:58px; height:4px; background:rgba(255,255,255,0.12); border-radius:10px; outline:none; border:none; cursor:pointer; padding:0; }
+input[type=range].vol-slider::-webkit-slider-thumb { -webkit-appearance:none; width:13px; height:13px; border-radius:50%; background:var(--gold); cursor:pointer; box-shadow:0 0 6px rgba(255,215,0,0.4); }
+
+.audio-notice { margin-top:0.8rem; font-size:0.7rem; color:rgba(251,191,36,0.7); background:rgba(251,191,36,0.06); border:1px solid rgba(251,191,36,0.15); border-radius:8px; padding:0.4rem 0.6rem; line-height:1.5; }
+
+/* ── SUBMIT BUTTON (in left panel, pushes to bottom) ── */
+.submit-spacer { flex:1; }
+.submit-area-left { display:flex; flex-direction:column; gap:0.5rem; }
+.submit-note-left { font-size:0.7rem; color:var(--muted); line-height:1.5; }
 .done-btn {
-  width: 100%;
-  max-width: 420px;
-  padding: 1rem;
-  background: linear-gradient(135deg, var(--gold), var(--gold-soft));
-  color: #000;
-  font-family: 'Orbitron', monospace;
-  font-size: 0.82rem;
-  font-weight: 700;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-  border: none;
-  border-radius: 14px;
-  cursor: pointer;
-  transition: transform 0.15s, box-shadow 0.15s;
-  box-shadow: 0 4px 20px rgba(255,215,0,0.3);
+  width:100%; padding:0.9rem 0.8rem;
+  background:linear-gradient(135deg,var(--gold),var(--gold2));
+  color:#000; font-family:'Orbitron',monospace; font-size:0.72rem; font-weight:700;
+  letter-spacing:1px; text-transform:uppercase;
+  border:none; border-radius:14px; cursor:pointer;
+  box-shadow:0 4px 20px rgba(255,215,0,0.3);
+  transition:transform .15s,box-shadow .15s;
 }
-.done-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(255,215,0,0.4); }
-.done-btn:active { transform: scale(0.97); }
+.done-btn:hover { transform:translateY(-2px); box-shadow:0 8px 28px rgba(255,215,0,0.4); }
+.done-btn:active { transform:scale(0.97); }
+
+/* Mobile: stack vertically */
+@media (max-width:700px) {
+  #mainContent { flex-direction:column; }
+  #leftPanel { width:100%; position:static; height:auto; border-right:none; border-bottom:1px solid rgba(255,215,0,0.1); padding:1rem; }
+  #rightPanel iframe { height:80vh; }
+  .submit-spacer { display:none; }
+}
 
 /* ── SCORE SCREEN ── */
-#scoreScreen {
-  display: none;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 100vh;
-  padding: 2rem 1rem;
-  background: radial-gradient(ellipse at 50% 0%, rgba(255,215,0,0.07) 0%, transparent 55%),
-              var(--bg);
-}
-
-.score-portal {
-  width: 100%;
-  max-width: 420px;
-  background: #060d1a;
-  border: 1px solid rgba(255,215,0,0.18);
-  border-radius: 24px;
-  padding: 1.5rem 1.3rem;
-  box-shadow: 0 0 0 1px rgba(255,215,0,0.06), 0 30px 60px rgba(0,0,0,0.6);
-  animation: portalIn 0.5s cubic-bezier(0.16,1,0.3,1);
-}
-@keyframes portalIn {
-  from { opacity: 0; transform: translateY(24px) scale(0.96); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-.portal-title {
-  font-family: 'Orbitron', monospace;
-  font-size: 0.78rem;
-  letter-spacing: 3px;
-  color: var(--gold);
-  text-transform: uppercase;
-  text-align: center;
-  margin-bottom: 0.4rem;
-  text-shadow: 0 0 14px rgba(255,215,0,0.4);
-}
-
-.portal-player {
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,215,0,0.2);
-  border-radius: 10px;
-  padding: 0.6rem 0.8rem;
-  text-align: center;
-  font-size: 0.92rem;
-  font-weight: 600;
-  color: var(--text);
-  margin-bottom: 1.2rem;
-}
-
-/* Ring */
-.ring-wrap { display: flex; justify-content: center; margin-bottom: 1.2rem; }
-
-.accuracy-ring {
-  width: 150px; height: 150px;
-  border-radius: 50%; position: relative;
-  display: flex; align-items: center; justify-content: center;
-  animation: ringIn 0.8s cubic-bezier(0.16,1,0.3,1);
-}
-@keyframes ringIn {
-  from { transform: scale(0.5) rotate(-30deg); opacity: 0; }
-  to   { transform: scale(1) rotate(0deg); opacity: 1; }
-}
-.accuracy-ring::before {
-  content: "";
-  position: absolute; inset: 0; border-radius: 50%;
-  background: conic-gradient(
-    var(--rc) calc(var(--rp) * 1%),
-    rgba(255,255,255,0.06) 0
-  );
-}
-.accuracy-inner {
-  width: 105px; height: 105px;
-  border-radius: 50%; background: #060d1a;
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  z-index: 1;
-}
-.acc-val {
-  font-family: 'Orbitron', monospace;
-  font-size: 2rem; font-weight: 900;
-  color: var(--rc); line-height: 1;
-  animation: pulse 2.5s ease-in-out infinite;
-}
+#scoreScreen { display:none; flex-direction:column; align-items:center; justify-content:center; min-height:100vh; padding:2rem 1rem; background:radial-gradient(ellipse at 50% 0%,rgba(255,215,0,0.07) 0%,transparent 55%),var(--bg); }
+.score-portal { width:100%; max-width:420px; background:#060d1a; border:1px solid rgba(255,215,0,0.18); border-radius:24px; padding:1.5rem 1.3rem; box-shadow:0 30px 60px rgba(0,0,0,0.6); animation:portalIn .5s cubic-bezier(0.16,1,0.3,1); }
+@keyframes portalIn { from{opacity:0;transform:translateY(24px) scale(0.96)} to{opacity:1;transform:translateY(0) scale(1)} }
+.portal-title { font-family:'Orbitron',monospace; font-size:0.78rem; letter-spacing:3px; color:var(--gold); text-transform:uppercase; text-align:center; margin-bottom:0.4rem; text-shadow:0 0 14px rgba(255,215,0,0.4); }
+.portal-player { background:rgba(255,255,255,0.05); border:1px solid rgba(255,215,0,0.2); border-radius:10px; padding:0.6rem 0.8rem; text-align:center; font-size:0.92rem; font-weight:600; color:var(--text); margin-bottom:1.2rem; }
+.ring-wrap { display:flex; justify-content:center; margin-bottom:1.2rem; }
+.accuracy-ring { width:150px; height:150px; border-radius:50%; position:relative; display:flex; align-items:center; justify-content:center; animation:ringIn .8s cubic-bezier(0.16,1,0.3,1); }
+@keyframes ringIn { from{transform:scale(0.5) rotate(-30deg);opacity:0} to{transform:scale(1) rotate(0deg);opacity:1} }
+.accuracy-ring::before { content:""; position:absolute; inset:0; border-radius:50%; background:conic-gradient(var(--rc) calc(var(--rp) * 1%),rgba(255,255,255,0.06) 0); }
+.accuracy-inner { width:105px; height:105px; border-radius:50%; background:#060d1a; display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:1; }
+.acc-val { font-family:'Orbitron',monospace; font-size:2rem; font-weight:900; color:var(--rc); line-height:1; animation:pulse 2.5s ease-in-out infinite; }
 @keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.06)} }
-.acc-lbl { font-size: 0.5rem; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-top: 2px; }
-
-/* Stat grid */
-.stats-grid {
-  display: grid; grid-template-columns: 1fr 1fr;
-  gap: 0.5rem; margin-bottom: 1rem;
-}
-.stat-card {
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.07);
-  border-radius: 12px; padding: 0.7rem 0.8rem;
-  animation: statIn 0.4s ease both;
-}
-.stat-card:nth-child(1){animation-delay:.05s}
-.stat-card:nth-child(2){animation-delay:.1s}
-.stat-card:nth-child(3){animation-delay:.15s}
-.stat-card:nth-child(4){animation-delay:.2s}
-@keyframes statIn {
-  from { transform: translateY(10px); opacity: 0; }
-  to   { transform: translateY(0); opacity: 1; }
-}
-.stat-emoji { font-size: 0.85rem; margin-bottom: 0.15rem; opacity: 0.75; }
-.stat-value { font-family: 'Orbitron', monospace; font-size: 1.5rem; font-weight: 900; line-height: 1; margin-bottom: 0.1rem; }
-.stat-label { font-size: 0.55rem; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); }
-.s-time  .stat-value { color: var(--blue);  text-shadow: 0 0 10px rgba(56,189,248,0.35); font-size: 1.1rem; }
-.s-tabs  .stat-value { color: var(--red);   text-shadow: 0 0 10px rgba(255,68,68,0.35); }
-.s-cheat .stat-value { color: #ff8c00;      text-shadow: 0 0 10px rgba(255,140,0,0.35); }
-.s-blur  .stat-value { color: #c084fc;      text-shadow: 0 0 10px rgba(192,132,252,0.35); }
-
-/* Cheat breakdown */
-.cheat-breakdown {
-  background: rgba(255,68,68,0.05);
-  border: 1px solid rgba(255,68,68,0.2);
-  border-radius: 12px;
-  padding: 0.8rem 1rem;
-  margin-bottom: 1rem;
-  font-size: 0.78rem;
-  line-height: 1.8;
-  color: #fca5a5;
-}
-.cheat-breakdown strong { color: var(--red); }
-
-.perf-msg {
-  background: rgba(251,191,36,0.07);
-  border: 1px solid rgba(251,191,36,0.2);
-  border-radius: 10px;
-  padding: 0.6rem 0.8rem;
-  font-size: 0.85rem;
-  font-weight: 700;
-  color: #fbbf24;
-  margin-bottom: 1rem;
-  line-height: 1.4;
-}
-
-.portal-actions { display: flex; flex-direction: column; gap: 0.6rem; }
-
-.next-btn {
-  padding: 0.95rem;
-  font-family: 'Orbitron', monospace;
-  font-size: 0.78rem; font-weight: 700;
-  letter-spacing: 1px; text-transform: uppercase;
-  border: none; border-radius: 14px; cursor: pointer;
-  background: linear-gradient(135deg, var(--gold), var(--gold-soft));
-  color: #000;
-  box-shadow: 0 4px 18px rgba(255,215,0,0.35);
-  transition: transform 0.15s;
-}
-.next-btn:active { transform: scale(0.97); }
-
-.pdf-btn {
-  padding: 0.9rem;
-  font-family: 'Orbitron', monospace;
-  font-size: 0.78rem; font-weight: 700;
-  letter-spacing: 1px; text-transform: uppercase;
-  border: none; border-radius: 14px; cursor: pointer;
-  background: linear-gradient(135deg, #38bdf8, #0ea5e9);
-  color: #021018;
-  box-shadow: 0 4px 18px rgba(56,189,248,0.3);
-  transition: transform 0.15s;
-}
-.pdf-btn:active { transform: scale(0.97); }
-
-@media (max-width: 600px) {
-  .form-card { padding: 1.5rem 1.2rem; }
-}
-
-/* ── AUDIO PLAYER ── */
-#audioSection {
-  width: 100%;
-  max-width: 720px;
-  margin: 1.2rem auto 0;
-  padding: 0 1rem;
-}
-
-.audio-card {
-  background: linear-gradient(135deg, #0d1a2e, #111827);
-  border: 1px solid rgba(255,215,0,0.2);
-  border-radius: 20px;
-  padding: 1.2rem 1.4rem;
-  box-shadow: 0 0 0 1px rgba(255,215,0,0.06), 0 16px 40px rgba(0,0,0,0.5);
-}
-
-.audio-label {
-  font-family: 'Orbitron', monospace;
-  font-size: 0.65rem;
-  letter-spacing: 3px;
-  text-transform: uppercase;
-  color: var(--gold);
-  opacity: 0.8;
-  margin-bottom: 0.3rem;
-}
-
-.audio-title {
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: var(--text);
-  margin-bottom: 1rem;
-  line-height: 1.35;
-}
-
-.audio-title span {
-  color: var(--gold);
-}
-
-/* Progress bar */
-.audio-progress-wrap {
-  position: relative;
-  height: 6px;
-  background: rgba(255,255,255,0.08);
-  border-radius: 10px;
-  cursor: pointer;
-  margin-bottom: 0.6rem;
-  overflow: hidden;
-}
-.audio-progress-fill {
-  height: 100%;
-  width: 0%;
-  background: linear-gradient(90deg, var(--gold), var(--gold-soft));
-  border-radius: 10px;
-  transition: width 0.1s linear;
-  pointer-events: none;
-}
-
-/* Time row */
-.audio-times {
-  display: flex;
-  justify-content: space-between;
-  font-size: 0.72rem;
-  color: var(--muted);
-  font-family: 'Orbitron', monospace;
-  margin-bottom: 0.9rem;
-}
-
-/* Controls row */
-.audio-controls {
-  display: flex;
-  align-items: center;
-  gap: 0.8rem;
-}
-
-.audio-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: var(--text);
-  font-size: 1.3rem;
-  line-height: 1;
-  padding: 0.3rem;
-  transition: transform 0.15s, color 0.15s;
-  -webkit-tap-highlight-color: transparent;
-}
-.audio-btn:hover { color: var(--gold); transform: scale(1.15); }
-.audio-btn:active { transform: scale(0.92); }
-
-.play-btn {
-  width: 46px; height: 46px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--gold), var(--gold-soft));
-  color: #000 !important;
-  font-size: 1.15rem;
-  display: flex; align-items: center; justify-content: center;
-  box-shadow: 0 4px 16px rgba(255,215,0,0.35);
-  flex-shrink: 0;
-  border: none; cursor: pointer;
-  transition: transform 0.15s, box-shadow 0.15s;
-  -webkit-tap-highlight-color: transparent;
-}
-.play-btn:hover { transform: scale(1.08); box-shadow: 0 6px 22px rgba(255,215,0,0.45); }
-.play-btn:active { transform: scale(0.95); }
-
-.vol-wrap {
-  display: flex; align-items: center; gap: 0.4rem;
-  margin-left: auto;
-}
-.vol-icon { font-size: 1rem; color: var(--muted); }
-
-input[type=range].vol-slider {
-  -webkit-appearance: none;
-  width: 70px; height: 4px;
-  background: rgba(255,255,255,0.12);
-  border-radius: 10px;
-  outline: none;
-  border: none;
-  cursor: pointer;
-  padding: 0;
-}
-input[type=range].vol-slider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 14px; height: 14px;
-  border-radius: 50%;
-  background: var(--gold);
-  cursor: pointer;
-  box-shadow: 0 0 6px rgba(255,215,0,0.4);
-}
-
-/* Waveform bars (decorative) */
-.waveform {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  height: 24px;
-  margin: 0 0.3rem;
-}
-.waveform-bar {
-  width: 3px;
-  border-radius: 2px;
-  background: rgba(255,215,0,0.35);
-  animation: wavePulse 1.2s ease-in-out infinite;
-}
-.waveform-bar:nth-child(1){height:8px;  animation-delay:0s}
-.waveform-bar:nth-child(2){height:16px; animation-delay:.1s}
-.waveform-bar:nth-child(3){height:22px; animation-delay:.2s}
-.waveform-bar:nth-child(4){height:14px; animation-delay:.3s}
-.waveform-bar:nth-child(5){height:20px; animation-delay:.4s}
-.waveform-bar:nth-child(6){height:10px; animation-delay:.5s}
-.waveform-bar:nth-child(7){height:18px; animation-delay:.6s}
-@keyframes wavePulse {
-  0%,100% { opacity: 0.35; transform: scaleY(1); }
-  50%      { opacity: 0.9;  transform: scaleY(1.35); }
-}
-.waveform.paused .waveform-bar { animation-play-state: paused; opacity: 0.2; }
-
-.audio-notice {
-  margin-top: 0.9rem;
-  font-size: 0.72rem;
-  color: rgba(251,191,36,0.7);
-  background: rgba(251,191,36,0.06);
-  border: 1px solid rgba(251,191,36,0.15);
-  border-radius: 8px;
-  padding: 0.45rem 0.7rem;
-  line-height: 1.5;
-}
+.acc-lbl { font-size:0.5rem; letter-spacing:2px; text-transform:uppercase; color:var(--muted); margin-top:2px; }
+.stats-grid { display:grid; grid-template-columns:1fr 1fr; gap:0.5rem; margin-bottom:1rem; }
+.stat-card { background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.07); border-radius:12px; padding:0.7rem 0.8rem; animation:statIn .4s ease both; }
+.stat-card:nth-child(1){animation-delay:.05s} .stat-card:nth-child(2){animation-delay:.1s}
+.stat-card:nth-child(3){animation-delay:.15s} .stat-card:nth-child(4){animation-delay:.2s}
+@keyframes statIn { from{transform:translateY(10px);opacity:0} to{transform:translateY(0);opacity:1} }
+.stat-emoji { font-size:0.85rem; margin-bottom:.15rem; opacity:.75; }
+.stat-value { font-family:'Orbitron',monospace; font-size:1.5rem; font-weight:900; line-height:1; margin-bottom:.1rem; }
+.stat-label { font-size:0.55rem; letter-spacing:1px; text-transform:uppercase; color:var(--muted); }
+.s-time  .stat-value { color:var(--blue);  text-shadow:0 0 10px rgba(56,189,248,.35); font-size:1.1rem; }
+.s-tabs  .stat-value { color:var(--red);   text-shadow:0 0 10px rgba(255,68,68,.35); }
+.s-cheat .stat-value { color:#ff8c00;      text-shadow:0 0 10px rgba(255,140,0,.35); }
+.s-blur  .stat-value { color:#c084fc;      text-shadow:0 0 10px rgba(192,132,252,.35); }
+.cheat-breakdown { background:rgba(255,68,68,0.05); border:1px solid rgba(255,68,68,0.2); border-radius:12px; padding:.8rem 1rem; margin-bottom:1rem; font-size:.78rem; line-height:1.8; color:#fca5a5; }
+.cheat-breakdown strong { color:var(--red); }
+.perf-msg { background:rgba(251,191,36,0.07); border:1px solid rgba(251,191,36,0.2); border-radius:10px; padding:.6rem .8rem; font-size:.85rem; font-weight:700; color:#fbbf24; margin-bottom:1rem; line-height:1.4; }
+.portal-actions { display:flex; flex-direction:column; gap:0.6rem; }
+.next-btn { padding:.95rem; font-family:'Orbitron',monospace; font-size:.78rem; font-weight:700; letter-spacing:1px; text-transform:uppercase; border:none; border-radius:14px; cursor:pointer; background:linear-gradient(135deg,var(--gold),var(--gold2)); color:#000; box-shadow:0 4px 18px rgba(255,215,0,0.35); transition:transform .15s; }
+.next-btn:active { transform:scale(0.97); }
+.pdf-btn { padding:.9rem; font-family:'Orbitron',monospace; font-size:.78rem; font-weight:700; letter-spacing:1px; text-transform:uppercase; border:none; border-radius:14px; cursor:pointer; background:linear-gradient(135deg,#38bdf8,#0ea5e9); color:#021018; box-shadow:0 4px 18px rgba(56,189,248,0.3); transition:transform .15s; }
+.pdf-btn:active { transform:scale(0.97); }
 </style>
 </head>
 <body>
 
-<!-- ══════════════════════════════════════
-     NAME SCREEN
-══════════════════════════════════════ -->
+<!-- ══ NAME SCREEN ══ -->
 <div id="nameScreen">
-  <div class="brand">SRM Valliammai Engineering College · Dept. of English</div>
-  <h1 class="title">Purpose Statements Quest</h1>
+  <div class="brand">SRM Valliammai Engineering College · Department of English</div>
+  <h1 class="title">PROFESSIONAL COMMUNICATION LABORATORY - SEMESTER PRACTICAL</h1>
   <p class="subtitle">Fill in your details to begin the monitored quiz</p>
-
   <div class="form-card">
     <div class="field-group">
       <label class="field-label">Your Name</label>
@@ -705,115 +244,108 @@ input[type=range].vol-slider::-webkit-slider-thumb {
         <option>IT-1</option><option>IT-2</option>
       </select>
     </div>
-
-    <!-- Anti-cheat notice -->
     <div style="background:rgba(255,68,68,0.07);border:1px solid rgba(255,68,68,0.25);border-radius:12px;padding:0.8rem 1rem;margin-bottom:1.2rem;font-size:0.78rem;color:#fca5a5;line-height:1.6;">
       ⚠️ <strong style="color:#ff6b6b;">Anti-Cheat Active</strong><br>
-      Tab switches, window blur, copy attempts, and right-clicks are recorded and sent to your instructor.
+      Tab switches, window blur, copy attempts, and right-clicks are recorded.
     </div>
-
     <button class="start-btn" onclick="beginQuiz()">🚀 Begin Quest</button>
   </div>
 </div>
 
-<!-- ══════════════════════════════════════
-     QUIZ SCREEN
-══════════════════════════════════════ -->
+<!-- ══ QUIZ SCREEN ══ -->
 <div id="quizScreen">
 
-  <!-- Sticky anti-cheat bar -->
+  <!-- Sticky cheat bar -->
   <div id="cheatBar">
     <div class="bar-player" id="barPlayer">👤 —</div>
     <div class="bar-stats">
-      <div class="stat-pill pill-time" id="pillTime">⏱ 0s</div>
-      <div class="stat-pill pill-tabs" id="pillTabs">🔁 0 tab switches</div>
+      <div class="stat-pill pill-time"  id="pillTime">⏱ 0s</div>
+      <div class="stat-pill pill-tabs"  id="pillTabs">🔁 0 switches</div>
       <div class="stat-pill pill-cheat" id="pillCheat">⚠️ 0 violations</div>
     </div>
   </div>
 
-  <!-- Cheat toast -->
   <div id="cheatToast">⚠️ Violation detected! This is being recorded.</div>
 
-  <!-- 🎧 AUDIO PLAYER -->
-  <div id="audioSection">
-    <div class="audio-card">
-      <div class="audio-label">🎧 Listening Component</div>
-      <div class="audio-title"><span>Douglas Adams</span> — The Sentient Puddle</div>
+  <!-- Side-by-side content -->
+  <div id="mainContent">
 
-      <audio id="mainAudio"
-        src="https://raw.githubusercontent.com/andrewveda/vox-persona/main/Douglas%20Adams_%20The%20Sentient%20Puddle.mp3"
-        preload="metadata"></audio>
+    <!-- LEFT: audio + submit -->
+    <div id="leftPanel">
 
-      <div class="audio-progress-wrap" id="progressWrap">
-        <div class="audio-progress-fill" id="progressFill"></div>
-      </div>
+      <div class="audio-card">
+        <div class="audio-label">🎧 Listening Component</div>
+        <div class="audio-title"><span>Douglas Adams</span><br>The Sentient Puddle</div>
 
-      <div class="audio-times">
-        <span id="curTime">0:00</span>
-        <span id="durTime">--:--</span>
-      </div>
+        <!-- THE AUDIO ELEMENT -->
+        <audio id="mainAudio" preload="auto">
+          <source src="https://raw.githubusercontent.com/andrewveda/vox-persona/main/Douglas%20Adams_%20The%20Sentient%20Puddle.mp3" type="audio/mpeg">
+        </audio>
 
-      <div class="audio-controls">
-        <button class="audio-btn" onclick="seekRel(-10)" title="Rewind 10s">⏮</button>
-        <button class="play-btn" id="playBtn" onclick="togglePlay()">▶</button>
-        <button class="audio-btn" onclick="seekRel(10)" title="Forward 10s">⏭</button>
-
-        <div class="waveform paused" id="waveform">
-          <div class="waveform-bar"></div>
-          <div class="waveform-bar"></div>
-          <div class="waveform-bar"></div>
-          <div class="waveform-bar"></div>
-          <div class="waveform-bar"></div>
-          <div class="waveform-bar"></div>
-          <div class="waveform-bar"></div>
+        <div class="audio-progress-wrap" id="progressWrap" onclick="audioSeek(event)">
+          <div class="audio-progress-fill" id="progressFill"></div>
         </div>
 
-        <div class="vol-wrap">
-          <span class="vol-icon" id="volIcon">🔊</span>
-          <input type="range" class="vol-slider" id="volSlider" min="0" max="1" step="0.05" value="1"
-            oninput="setVolume(this.value)" />
+        <div class="audio-times">
+          <span id="curTime">0:00</span>
+          <span id="durTime">0:00</span>
         </div>
+
+        <div class="audio-controls">
+          <button class="audio-btn" onclick="audioSeekRel(-10)" title="−10s">⏮</button>
+          <button class="play-btn"  id="playBtn" onclick="audioToggle()">▶</button>
+          <button class="audio-btn" onclick="audioSeekRel(10)"  title="+10s">⏭</button>
+
+          <div class="waveform paused" id="waveform">
+            <div class="waveform-bar"></div><div class="waveform-bar"></div>
+            <div class="waveform-bar"></div><div class="waveform-bar"></div>
+            <div class="waveform-bar"></div><div class="waveform-bar"></div>
+            <div class="waveform-bar"></div>
+          </div>
+
+          <div class="vol-wrap">
+            <span class="vol-icon" id="volIcon">🔊</span>
+            <input type="range" class="vol-slider" id="volSlider" min="0" max="1" step="0.05" value="1" oninput="audioVolume(this.value)">
+          </div>
+        </div>
+
+        <div class="audio-notice">🎙️ Listen carefully — the form may include questions based on this audio.</div>
       </div>
 
-      <div class="audio-notice">
-        🎙️ Listen carefully — the Google Form below may contain questions based on this audio.
+      <!-- Spacer pushes submit to bottom -->
+      <div class="submit-spacer"></div>
+
+      <div class="submit-area-left">
+        <p class="submit-note-left">✅ Complete the Google Form on the right, then click below to log your result.</p>
+        <button class="done-btn" onclick="submitQuest()">I've Submitted — Log Result</button>
       </div>
+
+    </div><!-- /leftPanel -->
+
+    <!-- RIGHT: Google Form fills remaining width -->
+    <div id="rightPanel">
+      <iframe
+        src="https://docs.google.com/forms/d/e/1FAIpQLScdx70pwI5J9IyOplsFrJPx1WwMCv6nnn5FspBVM2d71ATlDQ/viewform?embedded=true"
+        frameborder="0" marginheight="0" marginwidth="0">Loading…</iframe>
     </div>
-  </div>
 
-  <!-- Google Form -->
-  <div id="formWrapper">
-    <iframe
-      src="https://docs.google.com/forms/d/e/1FAIpQLScdx70pwI5J9IyOplsFrJPx1WwMCv6nnn5FspBVM2d71ATlDQ/viewform?embedded=true"
-      frameborder="0"
-      marginheight="0"
-      marginwidth="0">Loading…</iframe>
-  </div>
+  </div><!-- /mainContent -->
+</div><!-- /quizScreen -->
 
-  <!-- Submit strip -->
-  <div id="submitArea">
-    <p class="submit-note">Submit the Google Form above first, then tap the button below to log your result.</p>
-    <button class="done-btn" onclick="submitQuest()">✅ I've Submitted — Log My Result</button>
-  </div>
-</div>
-
-<!-- ══════════════════════════════════════
-     SCORE SCREEN
-══════════════════════════════════════ -->
+<!-- ══ SCORE SCREEN ══ -->
 <div id="scoreScreen"></div>
 
 <script>
-/* ══════ STATE ══════ */
+/* ── GLOBALS ── */
 let playerName = "", playerDept = "";
 let startTime, timerInterval;
-let tabSwitches = 0, windowBlurs = 0, copyAttempts = 0, rightClicks = 0, pasteAttempts = 0;
-let totalViolations = 0;
+let tabSwitches=0, windowBlurs=0, copyAttempts=0, rightClicks=0, pasteAttempts=0, totalViolations=0;
 let cheatLog = [];
 
 const EDGE_URL = "https://yellow-lab-4999.andrewveda.workers.dev/functions/v1/logQuest";
 const NEXT_URL = "https://andrewveda.github.io/SRM-VEC-English-PWA/semII/11";
 
-/* ══════ RESTORE ══════ */
+/* ── RESTORE ── */
 window.addEventListener("load", () => {
   const n = localStorage.getItem("questPlayerName");
   const d = localStorage.getItem("questPlayerDept");
@@ -821,7 +353,7 @@ window.addEventListener("load", () => {
   if (d) document.getElementById("departmentSelect").value = d;
 });
 
-/* ══════ BEGIN ══════ */
+/* ── BEGIN ── */
 function beginQuiz() {
   const n = document.getElementById("nameInput").value.trim();
   const d = document.getElementById("departmentSelect").value;
@@ -830,42 +362,113 @@ function beginQuiz() {
   playerName = n; playerDept = d;
   localStorage.setItem("questPlayerName", n);
   localStorage.setItem("questPlayerDept", d);
-
   document.getElementById("nameScreen").style.display = "none";
   document.getElementById("quizScreen").style.display = "flex";
-  document.getElementById("barPlayer").textContent = `👤 ${playerName}`;
-
+  document.getElementById("barPlayer").textContent = "👤 " + playerName;
   startTime = Date.now();
   startTimer();
   startAntiCheat();
+  initAudio();
 }
 
-/* ══════ TIMER ══════ */
+/* ── TIMER ── */
 function startTimer() {
   timerInterval = setInterval(() => {
     const s = Math.floor((Date.now() - startTime) / 1000);
-    const m = Math.floor(s / 60), sec = s % 60;
-    document.getElementById("pillTime").textContent =
-      m > 0 ? `⏱ ${m}m ${sec}s` : `⏱ ${s}s`;
+    const m = Math.floor(s/60), sec = s%60;
+    document.getElementById("pillTime").textContent = m > 0 ? "⏱ "+m+"m "+sec+"s" : "⏱ "+s+"s";
   }, 1000);
 }
 
-/* ══════ ANTI-CHEAT ══════ */
+/* ── AUDIO ── */
+function initAudio() {
+  const audio = document.getElementById("mainAudio");
+  const fill  = document.getElementById("progressFill");
+  const cur   = document.getElementById("curTime");
+  const dur   = document.getElementById("durTime");
+  const wave  = document.getElementById("waveform");
+  const btn   = document.getElementById("playBtn");
+
+  function fmt(s) {
+    if (isNaN(s) || s < 0) return "0:00";
+    const m = Math.floor(s/60), sec = Math.floor(s%60);
+    return m + ":" + (sec < 10 ? "0" : "") + sec;
+  }
+
+  audio.addEventListener("loadedmetadata", function() {
+    dur.textContent = fmt(audio.duration);
+  });
+
+  audio.addEventListener("timeupdate", function() {
+    if (audio.duration && !isNaN(audio.duration)) {
+      fill.style.width = ((audio.currentTime / audio.duration) * 100) + "%";
+      cur.textContent  = fmt(audio.currentTime);
+    }
+  });
+
+  audio.addEventListener("ended", function() {
+    btn.textContent = "▶";
+    wave.classList.add("paused");
+  });
+
+  audio.addEventListener("error", function(e) {
+    console.error("Audio error:", e);
+  });
+}
+
+function audioToggle() {
+  const audio = document.getElementById("mainAudio");
+  const btn   = document.getElementById("playBtn");
+  const wave  = document.getElementById("waveform");
+  if (audio.paused) {
+    audio.play().then(() => {
+      btn.textContent = "⏸";
+      wave.classList.remove("paused");
+    }).catch(err => console.error("Playback failed:", err));
+  } else {
+    audio.pause();
+    btn.textContent = "▶";
+    wave.classList.add("paused");
+  }
+}
+
+function audioSeekRel(delta) {
+  const audio = document.getElementById("mainAudio");
+  audio.currentTime = Math.max(0, Math.min(audio.duration || 0, audio.currentTime + delta));
+}
+
+function audioSeek(e) {
+  const audio = document.getElementById("mainAudio");
+  const wrap  = document.getElementById("progressWrap");
+  const rect  = wrap.getBoundingClientRect();
+  const ratio = (e.clientX - rect.left) / rect.width;
+  if (audio.duration) audio.currentTime = ratio * audio.duration;
+}
+
+function audioVolume(v) {
+  const audio = document.getElementById("mainAudio");
+  audio.volume = parseFloat(v);
+  const icon  = document.getElementById("volIcon");
+  icon.textContent = v == 0 ? "🔇" : v < 0.4 ? "🔈" : "🔊";
+}
+
+/* ── ANTI-CHEAT ── */
 function logViolation(type) {
   totalViolations++;
   const ts = Math.floor((Date.now() - startTime) / 1000);
-  cheatLog.push({ type, at: `${ts}s` });
-  document.getElementById("pillCheat").textContent = `⚠️ ${totalViolations} violation${totalViolations > 1 ? "s" : ""}`;
+  cheatLog.push({ type: type, at: ts + "s" });
+  document.getElementById("pillCheat").textContent = "⚠️ " + totalViolations + " violation" + (totalViolations > 1 ? "s" : "");
   showToast(type);
 }
 
 function showToast(type) {
   const msgs = {
-    "Tab Switch":       "🔁 Tab switch detected — recorded!",
-    "Window Blur":      "👁️ You left the window — recorded!",
-    "Copy Attempt":     "📋 Copy detected — recorded!",
-    "Paste Attempt":    "📋 Paste detected — recorded!",
-    "Right Click":      "🖱️ Right-click disabled during quiz!"
+    "Tab Switch":   "🔁 Tab switch detected — recorded!",
+    "Window Blur":  "👁️ You left the window — recorded!",
+    "Copy Attempt": "📋 Copy detected — recorded!",
+    "Paste Attempt":"📋 Paste detected — recorded!",
+    "Right Click":  "🖱️ Right-click disabled during quiz!",
+    "Key Combo":    "⌨️ Shortcut blocked — recorded!"
   };
   const toast = document.getElementById("cheatToast");
   toast.textContent = msgs[type] || "⚠️ Violation detected!";
@@ -874,165 +477,78 @@ function showToast(type) {
 }
 
 function startAntiCheat() {
-
-  /* Tab visibility switch */
   document.addEventListener("visibilitychange", () => {
     if (document.hidden) {
       tabSwitches++;
-      document.getElementById("pillTabs").textContent = `🔁 ${tabSwitches} tab switch${tabSwitches > 1 ? "es" : ""}`;
+      document.getElementById("pillTabs").textContent = "🔁 " + tabSwitches + " switch" + (tabSwitches > 1 ? "es" : "");
       logViolation("Tab Switch");
     }
   });
-
-  /* Window blur (switching apps) */
-  window.addEventListener("blur", () => {
-    windowBlurs++;
-    logViolation("Window Blur");
-  });
-
-  /* Copy */
-  document.addEventListener("copy", (e) => {
-    e.preventDefault();
-    copyAttempts++;
-    logViolation("Copy Attempt");
-  });
-
-  /* Paste */
-  document.addEventListener("paste", (e) => {
-    e.preventDefault();
-    pasteAttempts++;
-    logViolation("Paste Attempt");
-  });
-
-  /* Right-click */
-  document.addEventListener("contextmenu", (e) => {
-    e.preventDefault();
-    rightClicks++;
-    logViolation("Right Click");
-  });
-
-  /* Key combos — DevTools, print, save */
-  document.addEventListener("keydown", (e) => {
-    const blocked = (
-      (e.ctrlKey && ['c','v','u','s','p','a'].includes(e.key.toLowerCase())) ||
-      e.key === "F12" ||
-      (e.ctrlKey && e.shiftKey && ['i','j','c'].includes(e.key.toLowerCase()))
-    );
-    if (blocked) {
-      e.preventDefault();
-      logViolation("Key Combo");
-    }
+  window.addEventListener("blur", () => { windowBlurs++; logViolation("Window Blur"); });
+  document.addEventListener("copy",  e => { e.preventDefault(); copyAttempts++;  logViolation("Copy Attempt"); });
+  document.addEventListener("paste", e => { e.preventDefault(); pasteAttempts++; logViolation("Paste Attempt"); });
+  document.addEventListener("contextmenu", e => { e.preventDefault(); rightClicks++; logViolation("Right Click"); });
+  document.addEventListener("keydown", e => {
+    const blocked = (e.ctrlKey && ['c','v','u','s','p','a'].includes(e.key.toLowerCase())) ||
+                    e.key === "F12" ||
+                    (e.ctrlKey && e.shiftKey && ['i','j','c'].includes(e.key.toLowerCase()));
+    if (blocked) { e.preventDefault(); logViolation("Key Combo"); }
   });
 }
 
-/* ══════ SUBMIT ══════ */
+/* ── SUBMIT ── */
 function submitQuest() {
-  if (!confirm("Have you submitted the Google Form above? Tap OK to log your result.")) return;
-
+  if (!confirm("Have you submitted the Google Form? Click OK to log your result.")) return;
   clearInterval(timerInterval);
   const totalTimeSec = Math.floor((Date.now() - startTime) / 1000);
-
-  /* Send to Supabase — tab switches go in 'wrong' field as agreed */
   sendToSupabase({
-    student_name: playerName,
-    department: playerDept,
-    correct: 0,                 // Google Form handles scoring
-    wrong: tabSwitches,        // tab switches as agreed
-    time_spent: totalTimeSec,
-    quest_id: "Quest 180 (Form)",
-    // bonus fields — send full cheat summary as a JSON string in notes if your table has one
-    // cheat_log: JSON.stringify(cheatLog)
+    student_name: playerName, department: playerDept,
+    correct: 0, wrong: tabSwitches,
+    time_spent: totalTimeSec, quest_id: "Quest 180 (Form)"
   });
-
   showScore(totalTimeSec);
 }
 
 async function sendToSupabase(payload) {
   try {
-    const r = await fetch(EDGE_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    });
+    const r = await fetch(EDGE_URL, { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload) });
     if (!r.ok) console.error("Supabase error:", await r.text());
     else console.log("✅ Logged to Supabase");
   } catch(e) { console.error("Network error:", e); }
 }
 
-/* ══════ SCORE SCREEN ══════ */
+/* ── SCORE SCREEN ── */
 function showScore(totalTimeSec) {
   document.getElementById("quizScreen").style.display = "none";
+  const m = Math.floor(totalTimeSec/60), s = totalTimeSec%60;
+  const timeStr = m > 0 ? m+"m "+s+"s" : s+"s";
+  const integ = Math.max(0, 100 - totalViolations * 8);
+  const rc = integ >= 80 ? "#00e676" : integ >= 50 ? "#ffcc00" : "#ff5252";
+  const cheatDetail = "Tab Switches: <strong>"+tabSwitches+"</strong> &nbsp;|&nbsp; Window Blurs: <strong>"+windowBlurs+"</strong><br>Copy Attempts: <strong>"+copyAttempts+"</strong> &nbsp;|&nbsp; Right Clicks: <strong>"+rightClicks+"</strong>";
+  const perfMsg = integ >= 90 ? "🌟 Excellent integrity — great job!" : integ >= 70 ? "✅ Good effort — minimal distractions." : integ >= 50 ? "⚠️ Several violations were recorded." : "🚨 High violation count — report flagged.";
 
-  const m = Math.floor(totalTimeSec / 60), s = totalTimeSec % 60;
-  const timeStr = m > 0 ? `${m}m ${s}s` : `${s}s`;
-  const integrityScore = Math.max(0, 100 - totalViolations * 8);
-  const ringColor = integrityScore >= 80 ? "#00e676" : integrityScore >= 50 ? "#ffcc00" : "#ff5252";
+  const ss = document.getElementById("scoreScreen");
+  ss.style.display = "flex";
+  ss.innerHTML = '<div class="score-portal">' +
+    '<div class="portal-title">Mission Complete</div>' +
+    '<div class="portal-player">👤 '+playerName+' · '+playerDept+'</div>' +
+    '<div class="ring-wrap"><div class="accuracy-ring" style="--rp:0;--rc:'+rc+';">' +
+    '<div class="accuracy-inner"><div class="acc-val" id="accVal">0%</div><div class="acc-lbl">Integrity</div></div></div></div>' +
+    '<div class="stats-grid">' +
+    '<div class="stat-card s-time"><div class="stat-emoji">⏱️</div><div class="stat-value">'+timeStr+'</div><div class="stat-label">Time Taken</div></div>' +
+    '<div class="stat-card s-tabs"><div class="stat-emoji">🔁</div><div class="stat-value">'+tabSwitches+'</div><div class="stat-label">Tab Switches</div></div>' +
+    '<div class="stat-card s-cheat"><div class="stat-emoji">⚠️</div><div class="stat-value">'+totalViolations+'</div><div class="stat-label">Violations</div></div>' +
+    '<div class="stat-card s-blur"><div class="stat-emoji">👁️</div><div class="stat-value">'+windowBlurs+'</div><div class="stat-label">Window Blurs</div></div>' +
+    '</div>' +
+    '<div class="cheat-breakdown">📊 Breakdown:<br>'+cheatDetail+'</div>' +
+    '<div class="perf-msg">'+perfMsg+'</div>' +
+    '<div class="portal-actions">' +
+    '<button class="next-btn" onclick="window.location.href=\''+NEXT_URL+'\'">🚀 Next Quest</button>' +
+    '<button class="pdf-btn" onclick="downloadReport('+totalTimeSec+')">📥 Download Report</button>' +
+    '</div></div>';
 
-  const cheatDetail = `
-    Tab Switches: <strong>${tabSwitches}</strong> &nbsp;|&nbsp;
-    Window Blurs: <strong>${windowBlurs}</strong><br>
-    Copy Attempts: <strong>${copyAttempts}</strong> &nbsp;|&nbsp;
-    Right Clicks: <strong>${rightClicks}</strong>
-  `;
-
-  const perfMsg = integrityScore >= 90
-    ? "🌟 Excellent integrity — great job!"
-    : integrityScore >= 70
-    ? "✅ Good effort — minimal distractions."
-    : integrityScore >= 50
-    ? "⚠️ Several violations were recorded."
-    : "🚨 High violation count — report flagged.";
-
-  document.getElementById("scoreScreen").style.display = "flex";
-  document.getElementById("scoreScreen").innerHTML = `
-<div class="score-portal">
-  <div class="portal-title">Mission Complete</div>
-  <div class="portal-player">👤 ${playerName} · ${playerDept}</div>
-
-  <div class="ring-wrap">
-    <div class="accuracy-ring" style="--rp:0; --rc:${ringColor};">
-      <div class="accuracy-inner">
-        <div class="acc-val" id="accVal">0%</div>
-        <div class="acc-lbl">Integrity</div>
-      </div>
-    </div>
-  </div>
-
-  <div class="stats-grid">
-    <div class="stat-card s-time">
-      <div class="stat-emoji">⏱️</div>
-      <div class="stat-value">${timeStr}</div>
-      <div class="stat-label">Time Taken</div>
-    </div>
-    <div class="stat-card s-tabs">
-      <div class="stat-emoji">🔁</div>
-      <div class="stat-value">${tabSwitches}</div>
-      <div class="stat-label">Tab Switches</div>
-    </div>
-    <div class="stat-card s-cheat">
-      <div class="stat-emoji">⚠️</div>
-      <div class="stat-value">${totalViolations}</div>
-      <div class="stat-label">Total Violations</div>
-    </div>
-    <div class="stat-card s-blur">
-      <div class="stat-emoji">👁️</div>
-      <div class="stat-value">${windowBlurs}</div>
-      <div class="stat-label">Window Blurs</div>
-    </div>
-  </div>
-
-  <div class="cheat-breakdown">📊 Violation breakdown:<br>${cheatDetail}</div>
-
-  <div class="perf-msg">${perfMsg}</div>
-
-  <div class="portal-actions">
-    <button class="next-btn" onclick="window.location.href='${NEXT_URL}'">🚀 Next Quest</button>
-    <button class="pdf-btn" onclick="downloadReport(${totalTimeSec})">📥 Download Report</button>
-  </div>
-</div>`;
-
-  triggerConfetti();
-  setTimeout(() => animateRing(integrityScore, ringColor), 100);
+  confetti({ particleCount:120, spread:80, origin:{y:0.6} });
+  setTimeout(() => animateRing(integ, rc), 100);
 }
 
 function animateRing(final, color) {
@@ -1045,84 +561,45 @@ function animateRing(final, color) {
     if (cur >= final) { clearInterval(iv); return; }
     cur++;
     ring.style.setProperty("--rp", cur);
-    val.textContent = `${cur}%`;
+    val.textContent = cur + "%";
   }, 12);
 }
 
-function triggerConfetti() {
-  confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
-}
-
-/* ══════ PDF ══════ */
+/* ── PDF ── */
 function downloadReport(totalTimeSec) {
   const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
-  const date = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
-  const m = Math.floor(totalTimeSec / 60), s = totalTimeSec % 60;
-  const timeStr = m > 0 ? `${m}m ${s}s` : `${s}s`;
+  const doc  = new jsPDF();
+  const date = new Date().toLocaleString('en-IN', { timeZone:'Asia/Kolkata' });
+  const m = Math.floor(totalTimeSec/60), s = totalTimeSec%60;
+  const timeStr = m > 0 ? m+"m "+s+"s" : s+"s";
   const integrity = Math.max(0, 100 - totalViolations * 8);
 
-  doc.setFillColor(25, 25, 60); doc.rect(0, 0, 210, 45, 'F');
+  doc.setFillColor(25,25,60); doc.rect(0,0,210,45,'F');
   doc.setTextColor(255,255,255); doc.setFont('times','bold'); doc.setFontSize(17);
-  doc.text('SRM VALLIAMMAI ENGINEERING COLLEGE', 105, 16, { align: 'center' });
-  doc.setFontSize(12); doc.setFont('times','italic'); doc.text('(Autonomous)', 105, 23, { align: 'center' });
-  doc.setFontSize(14); doc.setFont('times','normal'); doc.text('Department of English', 105, 31, { align: 'center' });
+  doc.text('SRM VALLIAMMAI ENGINEERING COLLEGE', 105, 16, {align:'center'});
+  doc.setFontSize(12); doc.setFont('times','italic'); doc.text('(Autonomous)', 105, 23, {align:'center'});
+  doc.setFontSize(14); doc.setFont('times','normal'); doc.text('Department of English', 105, 31, {align:'center'});
   doc.setFontSize(13); doc.setFont('times','bold'); doc.setTextColor(212,175,55);
-  doc.text('Quest Anti-Cheat & Performance Report', 105, 39, { align: 'center' });
+  doc.text('Quest Anti-Cheat & Performance Report', 105, 39, {align:'center'});
 
   doc.setTextColor(0,0,0); doc.setFontSize(11); doc.setFont('times','bold');
   doc.text('CANDIDATE INFORMATION', 20, 55);
-  doc.autoTable({
-    startY: 58,
-    body: [
-      ['Student Name', playerName],
-      ['Department', playerDept],
-      ['Quest ID', 'Quest 180 (Google Form)'],
-      ['Completed On', date],
-    ],
-    theme: 'plain',
-    styles: { fontSize: 10, font: 'times', cellPadding: 3 },
-    columnStyles: { 0: { fontStyle:'bold', cellWidth:60, textColor:[70,70,70] }, 1: { cellWidth:120 } },
-    margin: { left:20, right:20 }
-  });
+  doc.autoTable({ startY:58, body:[['Student Name',playerName],['Department',playerDept],['Quest ID','Quest 180 (Google Form)'],['Completed On',date]], theme:'plain', styles:{fontSize:10,font:'times',cellPadding:3}, columnStyles:{0:{fontStyle:'bold',cellWidth:60,textColor:[70,70,70]},1:{cellWidth:120}}, margin:{left:20,right:20} });
 
   let y = doc.lastAutoTable.finalY + 10;
   doc.setFont('times','bold'); doc.text('INTEGRITY REPORT', 20, y); y += 4;
-  doc.autoTable({
-    startY: y + 3,
-    body: [
-      ['Total Time Taken', timeStr],
-      ['Tab Switches', tabSwitches.toString()],
-      ['Window Blurs (app switches)', windowBlurs.toString()],
-      ['Copy Attempts', copyAttempts.toString()],
-      ['Paste Attempts', pasteAttempts.toString()],
-      ['Right-Click Attempts', rightClicks.toString()],
-      ['Total Violations', totalViolations.toString()],
-      ['Integrity Score', `${integrity}%`],
-    ],
-    theme: 'grid',
-    styles: { fontSize: 10, font: 'times', cellPadding: 3 },
-    margin: { left:20, right:20 }
-  });
+  doc.autoTable({ startY:y+3, body:[['Total Time Taken',timeStr],['Tab Switches',tabSwitches.toString()],['Window Blurs',windowBlurs.toString()],['Copy Attempts',copyAttempts.toString()],['Paste Attempts',pasteAttempts.toString()],['Right-Click Attempts',rightClicks.toString()],['Total Violations',totalViolations.toString()],['Integrity Score',integrity+'%']], theme:'grid', styles:{fontSize:10,font:'times',cellPadding:3}, margin:{left:20,right:20} });
 
   if (cheatLog.length > 0) {
     y = doc.lastAutoTable.finalY + 10;
     doc.setFont('times','bold'); doc.text('VIOLATION LOG (Timeline)', 20, y); y += 4;
-    doc.autoTable({
-      startY: y + 3,
-      head: [['#', 'Violation Type', 'Time into Quiz']],
-      body: cheatLog.map((e, i) => [i+1, e.type, e.at]),
-      theme: 'striped',
-      styles: { fontSize: 9, font: 'times', cellPadding: 3 },
-      margin: { left:20, right:20 }
-    });
+    doc.autoTable({ startY:y+3, head:[['#','Violation Type','Time into Quiz']], body:cheatLog.map((e,i)=>[i+1,e.type,e.at]), theme:'striped', styles:{fontSize:9,font:'times',cellPadding:3}, margin:{left:20,right:20} });
   }
 
-  doc.setDrawColor(184,134,11); doc.setLineWidth(0.5); doc.line(20, 280, 190, 280);
+  doc.setDrawColor(184,134,11); doc.setLineWidth(0.5); doc.line(20,280,190,280);
   doc.setFontSize(8); doc.setTextColor(128,128,128); doc.setFont('times','italic');
-  doc.text('System-generated anti-cheat report — SRM Valliammai Engineering College', 105, 287, { align: 'center' });
-
-  doc.save(`${playerName.replace(/[^a-zA-Z0-9]/g,'_')}_Quest180_Report.pdf`);
+  doc.text('System-generated anti-cheat report — SRM Valliammai Engineering College', 105, 287, {align:'center'});
+  doc.save(playerName.replace(/[^a-zA-Z0-9]/g,'_')+'_Quest180_Report.pdf');
 }
 </script>
 </body>

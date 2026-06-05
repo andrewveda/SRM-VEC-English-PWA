@@ -520,51 +520,41 @@ async function sendToSupabase(payload) {
 /* ── SCORE SCREEN ── */
 function showScore(totalTimeSec) {
   document.getElementById("quizScreen").style.display = "none";
-  const m = Math.floor(totalTimeSec/60), s = totalTimeSec%60;
-  const timeStr = m > 0 ? m+"m "+s+"s" : s+"s";
-  const integ = Math.max(0, 100 - totalViolations * 8);
-  const rc = integ >= 80 ? "#00e676" : integ >= 50 ? "#ffcc00" : "#ff5252";
-  const cheatDetail = "Tab Switches: <strong>"+tabSwitches+"</strong> &nbsp;|&nbsp; Window Blurs: <strong>"+windowBlurs+"</strong><br>Copy Attempts: <strong>"+copyAttempts+"</strong> &nbsp;|&nbsp; Right Clicks: <strong>"+rightClicks+"</strong>";
-  const perfMsg = integ >= 90 ? "🌟 Excellent integrity — great job!" : integ >= 70 ? "✅ Good effort — minimal distractions." : integ >= 50 ? "⚠️ Several violations were recorded." : "🚨 High violation count — report flagged.";
 
   const ss = document.getElementById("scoreScreen");
   ss.style.display = "flex";
-  ss.innerHTML = '<div class="score-portal">' +
-    '<div class="portal-title">Mission Complete</div>' +
-    '<div class="portal-player">👤 '+playerName+' · '+playerDept+'</div>' +
-    '<div class="ring-wrap"><div class="accuracy-ring" style="--rp:0;--rc:'+rc+';">' +
-    '<div class="accuracy-inner"><div class="acc-val" id="accVal">0%</div><div class="acc-lbl">Integrity</div></div></div></div>' +
-    '<div class="stats-grid">' +
-    '<div class="stat-card s-time"><div class="stat-emoji">⏱️</div><div class="stat-value">'+timeStr+'</div><div class="stat-label">Time Taken</div></div>' +
-    '<div class="stat-card s-tabs"><div class="stat-emoji">🔁</div><div class="stat-value">'+tabSwitches+'</div><div class="stat-label">Tab Switches</div></div>' +
-    '<div class="stat-card s-cheat"><div class="stat-emoji">⚠️</div><div class="stat-value">'+totalViolations+'</div><div class="stat-label">Violations</div></div>' +
-    '<div class="stat-card s-blur"><div class="stat-emoji">👁️</div><div class="stat-value">'+windowBlurs+'</div><div class="stat-label">Window Blurs</div></div>' +
-    '</div>' +
-    '<div class="cheat-breakdown">📊 Breakdown:<br>'+cheatDetail+'</div>' +
-    '<div class="perf-msg">'+perfMsg+'</div>' +
-    '<div class="portal-actions">' +
-    '<button class="next-btn" onclick="window.location.href=\''+NEXT_URL+'\'">🚀 Next Quest</button>' +
-    '<button class="pdf-btn" onclick="downloadReport('+totalTimeSec+')">📥 Download Report</button>' +
-    '</div></div>';
 
-  confetti({ particleCount:120, spread:80, origin:{y:0.6} });
-  setTimeout(() => animateRing(integ, rc), 100);
+  ss.innerHTML = `
+    <div class="score-portal">
+      <div class="portal-title">Submission Logged</div>
+
+      <div class="portal-player">
+        👤 ${playerName}
+      </div>
+
+      <div class="portal-player">
+        🏛️ ${playerDept}
+      </div>
+
+      <div class="portal-player">
+        🔁 Tab Switches: <strong>${tabSwitches}</strong>
+      </div>
+
+      <div class="portal-actions">
+        <button class="next-btn"
+          onclick="window.location.href='${NEXT_URL}'">
+          🚀 Next Quest
+        </button>
+      </div>
+    </div>
+  `;
+
+  confetti({
+    particleCount: 120,
+    spread: 80,
+    origin: { y: 0.6 }
+  });
 }
-
-function animateRing(final, color) {
-  const ring = document.querySelector(".accuracy-ring");
-  const val  = document.getElementById("accVal");
-  if (!ring || !val) return;
-  ring.style.setProperty("--rc", color);
-  let cur = 0;
-  const iv = setInterval(() => {
-    if (cur >= final) { clearInterval(iv); return; }
-    cur++;
-    ring.style.setProperty("--rp", cur);
-    val.textContent = cur + "%";
-  }, 12);
-}
-
 /* ── PDF ── */
 function downloadReport(totalTimeSec) {
   const { jsPDF } = window.jspdf;

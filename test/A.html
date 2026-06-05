@@ -5,7 +5,70 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Purpose Statements Quest</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;600;700&family=Orbitron:wght@700;900&family=DM+Sans:wght@400;600&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js">
+/* ══════ AUDIO PLAYER ══════ */
+window.addEventListener("load", () => {
+  const audio       = document.getElementById("mainAudio");
+  const playBtn     = document.getElementById("playBtn");
+  const progressFill= document.getElementById("progressFill");
+  const progressWrap= document.getElementById("progressWrap");
+  const curTimeEl   = document.getElementById("curTime");
+  const durTimeEl   = document.getElementById("durTime");
+  const waveform    = document.getElementById("waveform");
+  const volSlider   = document.getElementById("volSlider");
+  const volIcon     = document.getElementById("volIcon");
+  if (!audio) return;
+
+  function fmt(s) {
+    const m = Math.floor(s/60), sec = Math.floor(s%60);
+    return m+":"+sec.toString().padStart(2,"0");
+  }
+
+  audio.addEventListener("loadedmetadata", () => {
+    durTimeEl.textContent = fmt(audio.duration);
+  });
+
+  audio.addEventListener("timeupdate", () => {
+    if (!audio.duration) return;
+    const pct = (audio.currentTime / audio.duration) * 100;
+    progressFill.style.width = pct + "%";
+    curTimeEl.textContent = fmt(audio.currentTime);
+  });
+
+  audio.addEventListener("ended", () => {
+    playBtn.textContent = "▶";
+    if(waveform) waveform.classList.add("paused");
+  });
+
+  window.togglePlay = function() {
+    if (audio.paused) {
+      audio.play();
+      playBtn.textContent = "⏸";
+      if(waveform) waveform.classList.remove("paused");
+    } else {
+      audio.pause();
+      playBtn.textContent = "▶";
+      if(waveform) waveform.classList.add("paused");
+    }
+  };
+
+  window.seekRel = function(delta) {
+    audio.currentTime = Math.max(0, Math.min(audio.duration||0, audio.currentTime + delta));
+  };
+
+  if(progressWrap) progressWrap.addEventListener("click", (e) => {
+    const rect = progressWrap.getBoundingClientRect();
+    const ratio = (e.clientX - rect.left) / rect.width;
+    audio.currentTime = ratio * (audio.duration || 0);
+  });
+
+  window.setVolume = function(v) {
+    audio.volume = parseFloat(v);
+    if(volIcon) volIcon.textContent = v==0?"🔇":v<0.4?"🔈":"🔊";
+  };
+});
+
+</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
@@ -444,6 +507,173 @@ select option { background: #1e293b; }
 @media (max-width: 600px) {
   .form-card { padding: 1.5rem 1.2rem; }
 }
+
+/* ── AUDIO PLAYER ── */
+#audioSection {
+  width: 100%;
+  max-width: 720px;
+  margin: 1.2rem auto 0;
+  padding: 0 1rem;
+}
+
+.audio-card {
+  background: linear-gradient(135deg, #0d1a2e, #111827);
+  border: 1px solid rgba(255,215,0,0.2);
+  border-radius: 20px;
+  padding: 1.2rem 1.4rem;
+  box-shadow: 0 0 0 1px rgba(255,215,0,0.06), 0 16px 40px rgba(0,0,0,0.5);
+}
+
+.audio-label {
+  font-family: 'Orbitron', monospace;
+  font-size: 0.65rem;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--gold);
+  opacity: 0.8;
+  margin-bottom: 0.3rem;
+}
+
+.audio-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 1rem;
+  line-height: 1.35;
+}
+
+.audio-title span {
+  color: var(--gold);
+}
+
+/* Progress bar */
+.audio-progress-wrap {
+  position: relative;
+  height: 6px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 10px;
+  cursor: pointer;
+  margin-bottom: 0.6rem;
+  overflow: hidden;
+}
+.audio-progress-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--gold), var(--gold-soft));
+  border-radius: 10px;
+  transition: width 0.1s linear;
+  pointer-events: none;
+}
+
+/* Time row */
+.audio-times {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.72rem;
+  color: var(--muted);
+  font-family: 'Orbitron', monospace;
+  margin-bottom: 0.9rem;
+}
+
+/* Controls row */
+.audio-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.audio-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text);
+  font-size: 1.3rem;
+  line-height: 1;
+  padding: 0.3rem;
+  transition: transform 0.15s, color 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.audio-btn:hover { color: var(--gold); transform: scale(1.15); }
+.audio-btn:active { transform: scale(0.92); }
+
+.play-btn {
+  width: 46px; height: 46px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--gold), var(--gold-soft));
+  color: #000 !important;
+  font-size: 1.15rem;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 16px rgba(255,215,0,0.35);
+  flex-shrink: 0;
+  border: none; cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.play-btn:hover { transform: scale(1.08); box-shadow: 0 6px 22px rgba(255,215,0,0.45); }
+.play-btn:active { transform: scale(0.95); }
+
+.vol-wrap {
+  display: flex; align-items: center; gap: 0.4rem;
+  margin-left: auto;
+}
+.vol-icon { font-size: 1rem; color: var(--muted); }
+
+input[type=range].vol-slider {
+  -webkit-appearance: none;
+  width: 70px; height: 4px;
+  background: rgba(255,255,255,0.12);
+  border-radius: 10px;
+  outline: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+input[type=range].vol-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: var(--gold);
+  cursor: pointer;
+  box-shadow: 0 0 6px rgba(255,215,0,0.4);
+}
+
+/* Waveform bars (decorative) */
+.waveform {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 24px;
+  margin: 0 0.3rem;
+}
+.waveform-bar {
+  width: 3px;
+  border-radius: 2px;
+  background: rgba(255,215,0,0.35);
+  animation: wavePulse 1.2s ease-in-out infinite;
+}
+.waveform-bar:nth-child(1){height:8px;  animation-delay:0s}
+.waveform-bar:nth-child(2){height:16px; animation-delay:.1s}
+.waveform-bar:nth-child(3){height:22px; animation-delay:.2s}
+.waveform-bar:nth-child(4){height:14px; animation-delay:.3s}
+.waveform-bar:nth-child(5){height:20px; animation-delay:.4s}
+.waveform-bar:nth-child(6){height:10px; animation-delay:.5s}
+.waveform-bar:nth-child(7){height:18px; animation-delay:.6s}
+@keyframes wavePulse {
+  0%,100% { opacity: 0.35; transform: scaleY(1); }
+  50%      { opacity: 0.9;  transform: scaleY(1.35); }
+}
+.waveform.paused .waveform-bar { animation-play-state: paused; opacity: 0.2; }
+
+.audio-notice {
+  margin-top: 0.9rem;
+  font-size: 0.72rem;
+  color: rgba(251,191,36,0.7);
+  background: rgba(251,191,36,0.06);
+  border: 1px solid rgba(251,191,36,0.15);
+  border-radius: 8px;
+  padding: 0.45rem 0.7rem;
+  line-height: 1.5;
+}
 </style>
 </head>
 <body>
@@ -503,6 +733,53 @@ select option { background: #1e293b; }
 
   <!-- Cheat toast -->
   <div id="cheatToast">⚠️ Violation detected! This is being recorded.</div>
+
+  <!-- 🎧 AUDIO PLAYER -->
+  <div id="audioSection">
+    <div class="audio-card">
+      <div class="audio-label">🎧 Listening Component</div>
+      <div class="audio-title"><span>Douglas Adams</span> — The Sentient Puddle</div>
+
+      <audio id="mainAudio"
+        src="https://raw.githubusercontent.com/andrewveda/vox-persona/main/Douglas%20Adams_%20The%20Sentient%20Puddle.mp3"
+        preload="metadata"></audio>
+
+      <div class="audio-progress-wrap" id="progressWrap">
+        <div class="audio-progress-fill" id="progressFill"></div>
+      </div>
+
+      <div class="audio-times">
+        <span id="curTime">0:00</span>
+        <span id="durTime">--:--</span>
+      </div>
+
+      <div class="audio-controls">
+        <button class="audio-btn" onclick="seekRel(-10)" title="Rewind 10s">⏮</button>
+        <button class="play-btn" id="playBtn" onclick="togglePlay()">▶</button>
+        <button class="audio-btn" onclick="seekRel(10)" title="Forward 10s">⏭</button>
+
+        <div class="waveform paused" id="waveform">
+          <div class="waveform-bar"></div>
+          <div class="waveform-bar"></div>
+          <div class="waveform-bar"></div>
+          <div class="waveform-bar"></div>
+          <div class="waveform-bar"></div>
+          <div class="waveform-bar"></div>
+          <div class="waveform-bar"></div>
+        </div>
+
+        <div class="vol-wrap">
+          <span class="vol-icon" id="volIcon">🔊</span>
+          <input type="range" class="vol-slider" id="volSlider" min="0" max="1" step="0.05" value="1"
+            oninput="setVolume(this.value)" />
+        </div>
+      </div>
+
+      <div class="audio-notice">
+        🎙️ Listen carefully — the Google Form below may contain questions based on this audio.
+      </div>
+    </div>
+  </div>
 
   <!-- Google Form -->
   <div id="formWrapper">

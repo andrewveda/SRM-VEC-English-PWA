@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Vox Velocity</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0e0b05;
+  --gold:#C9A84C;
+  --gold-light:#E8C97A;
+  --gold-dim:rgba(201,168,76,0.10);
+  --gold-border:rgba(201,168,76,0.22);
+  --emerald:#3a8f6a;
+  --emerald-dim:rgba(58,143,106,0.15);
+  --emerald-border:rgba(58,143,106,0.35);
+  --text:#F9F3E3;
+  --ash:rgba(249,243,227,0.38);
+  --ash2:rgba(249,243,227,0.18);
+  --surface:rgba(201,168,76,0.055);
+  --rule:rgba(201,168,76,0.13);
+  --danger:#8B2020;
+}
+html.light {
+  --bg:#f5efe0;
+  --gold:#8a5e00;
+  --gold-light:#a07020;
+  --gold-dim:rgba(138,94,0,0.10);
+  --gold-border:rgba(138,94,0,0.22);
+  --emerald:#2a7a58;
+  --emerald-dim:rgba(42,122,88,0.12);
+  --emerald-border:rgba(42,122,88,0.35);
+  --text:#2a1f00;
+  --ash:rgba(42,31,0,0.45);
+  --ash2:rgba(42,31,0,0.20);
+  --surface:rgba(138,94,0,0.06);
+  --rule:rgba(138,94,0,0.14);
+  --danger:#9a1a1a;
+}
+
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;transition:background .3s,color .3s;}
+body{min-height:100dvh;display:flex;flex-direction:column;overflow-x:hidden;}
+
+/* ── PATTERN ── */
+body::before{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  opacity:.018;
+  background-image:
+    repeating-linear-gradient(45deg,transparent,transparent 40px,var(--gold) 40px,var(--gold) 41px),
+    repeating-linear-gradient(-45deg,transparent,transparent 40px,var(--gold) 40px,var(--gold) 41px);
+}
+
+/* ── CHROME ── */
+.chrome{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 16px 0;flex-shrink:0;position:relative;z-index:10;
+}
+.chrome-left{display:flex;align-items:center;gap:8px;}
+.wordmark{
+  font-family:'Playfair Display',serif;font-size:13px;font-weight:400;
+  letter-spacing:.18em;color:var(--gold-light);opacity:.7;
+}
+.player-pill{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:3px 9px;border:1px solid var(--gold-border);border-radius:20px;
+  font-size:9px;color:var(--gold);letter-spacing:.09em;cursor:pointer;
+  background:var(--gold-dim);transition:border-color .2s;
+}
+.player-pill:hover{border-color:var(--gold);}
+.pip{width:5px;height:5px;border-radius:50%;background:var(--gold);flex-shrink:0;}
+.pip.loading{animation:pipPulse 1s ease infinite;}
+@keyframes pipPulse{0%,100%{opacity:1}50%{opacity:.1}}
+.sign-in-btn{
+  font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--gold);background:var(--gold-dim);border:1px solid var(--gold-border);
+  border-radius:20px;padding:3px 10px;cursor:pointer;transition:border-color .2s;
+}
+.sign-in-btn:hover{border-color:var(--gold);}
+.theme-btn{
+  font-size:13px;cursor:pointer;background:none;border:none;
+  color:var(--gold);opacity:.6;padding:2px;
+}
+
+/* ── HERO ── */
+.hero{
+  position:relative;z-index:1;
+  display:flex;align-items:center;justify-content:center;gap:0;
+  padding:18px 20px 14px;
+}
+.hero-ring-wrap{position:relative;width:96px;height:96px;flex-shrink:0;}
+.hero-ring-wrap svg{width:96px;height:96px;transform:rotate(-90deg);}
+.ring-track{fill:none;stroke:var(--ash2);stroke-width:4;}
+.ring-fill{
+  fill:none;stroke:var(--gold);stroke-width:4;stroke-linecap:round;
+  stroke-dasharray:263;stroke-dashoffset:263;
+  transition:stroke-dashoffset 1.8s cubic-bezier(.22,1,.36,1),stroke .4s;
+  filter:drop-shadow(0 0 5px rgba(201,168,76,.35));
+}
+.ring-fill.complete{stroke:var(--emerald);}
+.hero-center{
+  position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+}
+.hero-pct{
+  font-family:'Playfair Display',serif;font-size:26px;font-weight:700;
+  color:var(--gold-light);line-height:1;letter-spacing:-.01em;
+}
+.hero-pct-label{font-size:7px;letter-spacing:.22em;text-transform:uppercase;color:var(--ash);margin-top:2px;}
+
+.hero-stats{
+  display:flex;flex-direction:column;gap:10px;
+  padding-left:20px;border-left:1px solid var(--rule);margin-left:4px;
+}
+.hero-stat{display:flex;flex-direction:column;gap:1px;}
+.hero-stat-num{
+  font-family:'Playfair Display',serif;font-size:22px;font-weight:700;
+  color:var(--gold-light);line-height:1;letter-spacing:-.01em;
+}
+.hero-stat-num.skel{
+  display:inline-block;width:44px;height:20px;
+  background:var(--ash2);border-radius:4px;animation:sk 1.4s ease infinite;
+}
+@keyframes sk{0%,100%{opacity:.25}50%{opacity:.65}}
+.hero-stat-lbl{font-size:7px;letter-spacing:.22em;text-transform:uppercase;color:var(--ash);}
+
+/* ── SIGN-IN PROMPT ── */
+.hero-signin{
+  text-align:center;padding:22px 20px 14px;position:relative;z-index:1;
+}
+.hero-signin-title{
+  font-family:'Playfair Display',serif;font-size:28px;font-weight:400;
+  color:var(--gold-light);letter-spacing:.06em;line-height:1;margin-bottom:4px;
+}
+.hero-signin-sub{font-size:8px;letter-spacing:.28em;text-transform:uppercase;color:var(--ash);margin-bottom:14px;}
+.hero-signin-btn{
+  display:inline-flex;align-items:center;gap:6px;
+  background:linear-gradient(135deg,var(--gold),#8a5e00);color:#0e0b05;
+  border:none;border-radius:8px;padding:9px 20px;
+  font-family:'DM Mono',monospace;font-size:10px;font-weight:500;
+  letter-spacing:.12em;text-transform:uppercase;cursor:pointer;
+}
+
+/* ── SECTIONS ── */
+.sections{
+  flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  padding:0 14px 24px;position:relative;z-index:1;
+}
+
+.section{margin-bottom:6px;}
+.section-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 0 6px;
+  border-bottom:1px solid var(--rule);
+  margin-bottom:1px;
+}
+.section-name{
+  font-size:8px;letter-spacing:.32em;text-transform:uppercase;color:var(--gold);opacity:.55;
+}
+.section-meta{font-size:8px;letter-spacing:.1em;color:var(--ash);opacity:.7;}
+
+/* ── PACK ROW ── */
+.pack-row{
+  display:flex;align-items:center;gap:10px;
+  padding:9px 0 9px 10px;
+  border-bottom:1px solid var(--ash2);
+  cursor:pointer;text-decoration:none;color:inherit;
+  position:relative;
+  transition:background .15s;
+  /* left accent border via box-shadow */
+  box-shadow:inset 3px 0 0 var(--ash2);
+}
+.pack-row:active{background:var(--gold-dim);}
+.pack-row.untouched{box-shadow:inset 3px 0 0 var(--ash2);}
+.pack-row.in-progress{box-shadow:inset 3px 0 0 var(--gold);}
+.pack-row.done{box-shadow:inset 3px 0 0 var(--emerald);}
+
+.pack-icon{font-size:14px;line-height:1;flex-shrink:0;width:18px;text-align:center;}
+.pack-info{flex:1;min-width:0;}
+.pack-name{
+  font-size:11px;font-weight:500;letter-spacing:.04em;
+  color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  transition:color .2s;
+}
+.pack-row.done .pack-name{color:var(--ash);}
+.pack-sub{
+  font-size:8px;letter-spacing:.06em;color:var(--ash);
+  margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+
+.pack-right{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+.pack-pct{
+  font-family:'Playfair Display',serif;font-size:12px;
+  color:var(--gold);min-width:32px;text-align:right;
+  transition:color .2s;
+}
+.pack-row.done .pack-pct{color:var(--emerald);}
+.pack-row.untouched .pack-pct{color:var(--ash);}
+
+/* micro progress arc */
+.micro-arc{width:20px;height:20px;flex-shrink:0;}
+.micro-arc svg{width:20px;height:20px;transform:rotate(-90deg);}
+.micro-track{fill:none;stroke:var(--ash2);stroke-width:2.5;}
+.micro-fill{fill:none;stroke:var(--gold);stroke-width:2.5;stroke-linecap:round;stroke-dasharray:53;stroke-dashoffset:53;transition:stroke-dashoffset 1.4s cubic-bezier(.22,1,.36,1) var(--delay,0s);}
+.pack-row.done .micro-fill{stroke:var(--emerald);}
+.pack-row.untouched .micro-fill{stroke:var(--ash2);}
+
+.done-check{font-size:11px;color:var(--emerald);flex-shrink:0;}
+
+/* ── SKELETON ROWS ── */
+.pack-row-skel{
+  display:flex;align-items:center;gap:10px;
+  padding:9px 0 9px 10px;border-bottom:1px solid var(--ash2);
+}
+.skel-block{background:var(--ash2);border-radius:3px;animation:sk 1.4s ease infinite;}
+
+/* ── FOOTER ── */
+.dir-footer{
+  text-align:center;font-size:7px;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--ash);padding:8px 0 12px;flex-shrink:0;position:relative;z-index:1;
+  opacity:.4;
+}
+
+/* ── MODAL ── */
+.modal-backdrop{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);
+  z-index:200;justify-content:center;align-items:center;padding:20px;
+  backdrop-filter:blur(10px);
+}
+html.light .modal-backdrop{background:rgba(245,239,224,.92);}
+.modal-backdrop.show{display:flex;}
+.modal-card{
+  background:linear-gradient(160deg,#2e2010,#0e0b05);
+  border:1px solid var(--gold-border);border-radius:16px;
+  padding:24px 20px;width:100%;max-width:320px;position:relative;overflow:hidden;
+  animation:cardIn .3s cubic-bezier(.34,1.56,.64,1);
+}
+html.light .modal-card{background:linear-gradient(160deg,#ede0c0,#f5efe0);}
+@keyframes cardIn{from{transform:scale(.88) translateY(14px);opacity:0}to{transform:scale(1);opacity:1}}
+.modal-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--danger),var(--gold),var(--danger));}
+.modal-title{font-family:'Playfair Display',serif;font-size:18px;font-weight:400;color:var(--gold-light);text-align:center;margin-bottom:2px;}
+.modal-sub{font-size:8px;letter-spacing:.25em;text-transform:uppercase;color:var(--ash);text-align:center;margin-bottom:18px;}
+.field-group{margin-bottom:11px;}
+.field-group label{display:block;font-size:8px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);opacity:.5;margin-bottom:5px;}
+.field-group input,.field-group select{
+  width:100%;background:var(--surface);border:1px solid var(--gold-border);
+  border-radius:8px;padding:10px 12px;
+  font-family:'DM Mono',monospace;font-size:13px;color:var(--text);
+  outline:none;transition:border-color .2s;-webkit-appearance:none;
+}
+.field-group input::placeholder{color:var(--gold);opacity:.3;}
+.field-group input:focus,.field-group select:focus{border-color:var(--gold);}
+.field-group select{
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23c9a84c' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 12px center;padding-right:30px;cursor:pointer;
+}
+.field-group select option{background:#2d2010;color:#F9F3E3;}
+.btn-gold{
+  background:linear-gradient(135deg,var(--gold),#8a5e00);color:#0e0b05;border:none;
+  border-radius:8px;padding:11px;font-family:'DM Mono',monospace;font-size:11px;
+  font-weight:500;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;width:100%;margin-top:4px;
+}
+.dup-btn{
+  width:100%;background:var(--surface);border:1px solid var(--gold-border);
+  border-radius:8px;padding:9px 12px;text-align:left;cursor:pointer;margin-bottom:6px;color:var(--text);
+}
+.dup-btn:hover{border-color:var(--gold);}
+.dup-name{font-family:'Playfair Display',serif;font-size:13px;}
+.dup-meta{font-size:8px;letter-spacing:.12em;color:var(--gold);opacity:.55;margin-top:2px;}
+
+/* ── ENTRY ANIMATION ── */
+@keyframes rowIn{from{opacity:0;transform:translateX(-8px);}to{opacity:1;transform:translateX(0);}}
+.pack-row{animation:rowIn .4s ease both;}
+</style>
+</head>
+<body>
+
+<div class="chrome">
+  <div class="chrome-left">
+    <span class="wordmark">VOX VELOCITY</span>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center;">
+    <div id="playerArea"><button class="sign-in-btn" onclick="openModal()">&#9654; Sign In</button></div>
+    <button class="theme-btn" id="themeBtn" onclick="toggleTheme()">&#9728;&#65039;</button>
+  </div>
+</div>
+
+<!-- Hero: shown when signed in -->
+<div class="hero" id="heroStats" style="display:none;">
+  <div class="hero-ring-wrap">
+    <svg viewBox="0 0 96 96" xmlns="http://www.w3.org/2000/svg">
+      <circle class="ring-track" cx="48" cy="48" r="42"/>
+      <circle class="ring-fill" id="heroRing" cx="48" cy="48" r="42"/>
+    </svg>
+    <div class="hero-center">
+      <div class="hero-pct" id="heroPct">0%</div>
+      <div class="hero-pct-label">overall</div>
+    </div>
+  </div>
+  <div class="hero-stats">
+    <div class="hero-stat">
+      <div class="hero-stat-num" id="heroWords">—</div>
+      <div class="hero-stat-lbl">words done</div>
+    </div>
+    <div class="hero-stat">
+      <div class="hero-stat-num" id="heroPacks">—</div>
+      <div class="hero-stat-lbl">packs complete</div>
+    </div>
+    <div class="hero-stat">
+      <div class="hero-stat-num" id="heroRemain">—</div>
+      <div class="hero-stat-lbl">words remaining</div>
+    </div>
+  </div>
+</div>
+
+<!-- Hero: shown when not signed in -->
+<div class="hero-signin" id="heroSignin">
+  <div class="hero-signin-title">Vox Velocity</div>
+  <div class="hero-signin-sub">IELTS · TOEFL · GRE</div>
+  <button class="hero-signin-btn" onclick="openModal()">&#9654;&ensp;Sign in to track progress</button>
+</div>
+
+<div class="sections" id="sections">
+  <!-- rendered by JS -->
+</div>
+
+<div class="dir-footer">Vox Velocity &mdash; IELTS · TOEFL · GRE &mdash; &copy; 2025</div>
+
+<!-- MODAL -->
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal-card">
+    <div class="modal-title">Sign In</div>
+    <div class="modal-sub">Track your progress across all packs</div>
+    <div class="field-group"><label>Your Name</label><input id="nameInput" type="text" placeholder="Enter your name…" maxlength="60" autocomplete="off"/></div>
+    <div class="field-group">
+      <label>Department</label>
+      <select id="deptSelect">
+        <option value="">-- Select Department --</option>
+        <option>Cyber Security</option><option>EIE</option>
+        <option>CSE-1</option><option>CSE-2</option><option>CSE-3</option>
+        <option>Mechanical Engineering</option>
+        <option>ECE-1</option><option>ECE-2</option><option>ECE-3</option>
+        <option>AI DS-1</option><option>AI DS-2</option>
+        <option>Agri and Civil</option><option>EEE</option>
+        <option>Medical Electronics</option>
+        <option>IT-1</option><option>IT-2</option>
+      </select>
+    </div>
+    <button class="btn-gold" onclick="handleLogin()">Continue &#8594;</button>
+    <div id="dupSection" style="display:none;margin-top:14px;">
+      <div style="font-size:8px;color:var(--gold);opacity:.55;margin-bottom:8px;text-align:center;letter-spacing:.1em;">MULTIPLE ACCOUNTS FOUND</div>
+      <div id="dupList"></div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm";
+const supabase = createClient(
+  "https://yellow-lab-4999.andrewveda.workers.dev",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoZXpzc29jenZwYmt0ZWZmY2d6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI4NTk1ODUsImV4cCI6MjA3ODQzNTU4NX0.2ZlqXnZxv0opkhynAT7OlK4S-xPygcc7ETUyTXRfGHE"
+);
+
+// ── DATA ──────────────────────────────────────────────────────────
+const SECTIONS = [
+  {
+    name: 'Vocabulary',
+    packs: [
+      { id:'food',    icon:'🍽', name:'Words That Make You Hungry',   sub:'Gluttons & gourmands',            min:3061, max:3075, total:15, href:'vv_food' },
+      { id:'people',  icon:'🙂', name:'People Are Quite Nice Actually',sub:'The warm & the wonderful',        min:3076, max:3090, total:15, href:'vv_people' },
+      { id:'selfid',  icon:'🌟', name:"You're Not So Bad",            sub:'Words for people worth admiring', min:3091, max:3105, total:15, href:'vv_positiveidentity' },
+      { id:'others',  icon:'🧠', name:'The Sharp Ones',               sub:'Perspicacious & sagacious',       min:3106, max:3120, total:15, href:'vv_others' },
+      { id:'posexp',  icon:'☀',  name:'Life Is Sometimes Good',       sub:'Words for when things go right',  min:3121, max:3135, total:15, href:'vv_positiveexperience' },
+      { id:'droll',   icon:'😂', name:'Surprisingly Funny Words',     sub:'When wit is the only weapon',     min:3136, max:3150, total:15, href:'vv_droll' },
+      { id:'pompous', icon:'🥱', name:'Words That Sound Important',   sub:'For dinner parties & debates',    min:3166, max:3180, total:15, href:'vv_pompous' },
+      { id:'vocab1',  icon:'📖', name:'The Tenacious Lexicon',        sub:'Hard work & perseverance',        min:6000, max:6014, total:15, href:'vv_vocab1' },
+      { id:'lexicon', icon:'📚', name:'GRE / IELTS Core',             sub:'High-frequency exam words',       min:3000, max:3059, total:60, href:'vox-velocity_gre' },
+    ]
+  },
+  {
+    name: 'Idioms',
+    packs: [
+      { id:'vv',      icon:'💬', name:'English Idioms',               sub:'Definitions to idioms',            min:1000, max:1041, total:42, href:'idiomhangman' },
+      { id:'idioms1', icon:'📘', name:'Burn the Midnight Oil',        sub:'Hard work, discipline & study',    min:5000, max:5014, total:15, href:'vv_idioms1' },
+      { id:'idioms2', icon:'🏆', name:'On Top of the World',          sub:'Success & achievement',            min:5015, max:5029, total:15, href:'vv_idioms2' },
+      { id:'idioms3', icon:'📈', name:'Keep the Ball Rolling',        sub:'Progress & momentum',              min:5030, max:5044, total:15, href:'vv_idioms3' },
+      { id:'idioms4', icon:'🦁', name:'Work Like a Horse',            sub:'Animal idioms — effort & grit',    min:5045, max:5059, total:15, href:'vv_idioms4' },
+      { id:'idioms5', icon:'🔥', name:'Fire in the Belly',            sub:'Motivation & ambition',            min:5075, max:5089, total:15, href:'vv_idioms5' },
+      { id:'idioms6', icon:'⚡', name:'Strike While It\'s Hot',       sub:'Opportunity & bold action',        min:5165, max:5179, total:15, href:'vv_idioms6' },
+      { id:'idioms7', icon:'🌧', name:'Weather the Storm',            sub:'Resilience & endurance',           min:5225, max:5239, total:15, href:'vv_idioms7' },
+      { id:'idioms8', icon:'💪', name:'Tough as Nails',               sub:'Grit & staying strong',            min:5270, max:5284, total:15, href:'vv_idioms8' },
+      { id:'idioms9', icon:'💎', name:'Never Say Die',                sub:'Persistence & survival mindset',   min:5300, max:5314, total:15, href:'vv_idioms9' },
+    ]
+  },
+  {
+    name: 'Other',
+    packs: [
+      { id:'verbum',  icon:'📌', name:'Latin & Foreign Phrases',      sub:'Latin, French, German & Greek',    min:2000, max:2041, total:42, href:'vox-velocity_foreign' },
+      { id:'cogito',  icon:'👾', name:'Philosophy Quotes',            sub:'Guess quotes from great thinkers', min:4000, max:4041, total:42, href:'vox-velocity_philosophy' },
+    ]
+  }
+];
+
+const BASE = 'https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/';
+const CIRC_MICRO = 53; // 2πr for r=8.4 ≈ 53
+const CIRC_HERO  = 264; // 2πr for r=42
+
+let playerName = '', playerDept = '';
+
+// ── STORAGE ───────────────────────────────────────────────────────
+function loadFromStorage() {
+  playerName = localStorage.getItem('userName') || localStorage.getItem('questPlayerName') || '';
+  playerDept = localStorage.getItem('userDept')  || localStorage.getItem('questPlayerDept') || '';
+}
+function savePlayer(name, dept) {
+  playerName = name; playerDept = dept;
+  ['userName','questPlayerName','idiomPlayerName'].forEach(k => localStorage.setItem(k, name));
+  ['userDept','questPlayerDept'].forEach(k => localStorage.setItem(k, dept));
+}
+
+// ── PLAYER PILL ───────────────────────────────────────────────────
+function renderPlayerArea() {
+  const area = document.getElementById('playerArea');
+  if (playerName) {
+    area.innerHTML = `<div class="player-pill" onclick="openModal()"><span class="pip" id="playerPip"></span><span>${playerName}</span></div>`;
+  } else {
+    area.innerHTML = `<button class="sign-in-btn" onclick="openModal()">&#9654; Sign In</button>`;
+  }
+}
+
+// ── HERO TOGGLE ───────────────────────────────────────────────────
+function showHero(show) {
+  document.getElementById('heroStats').style.display  = show ? 'flex' : 'none';
+  document.getElementById('heroSignin').style.display = show ? 'none' : 'block';
+}
+
+// ── SKELETON SECTIONS ─────────────────────────────────────────────
+function renderSkeleton() {
+  const el = document.getElementById('sections');
+  el.innerHTML = '';
+  SECTIONS.forEach(sec => {
+    const div = document.createElement('div'); div.className = 'section';
+    div.innerHTML = `<div class="section-head"><span class="section-name">${sec.name}</span><span class="section-meta skel" style="width:48px;height:9px;display:inline-block;border-radius:3px;"></span></div>`;
+    sec.packs.forEach(() => {
+      div.innerHTML += `<div class="pack-row-skel"><div class="skel-block" style="width:14px;height:14px;border-radius:3px;flex-shrink:0;"></div><div style="flex:1;display:flex;flex-direction:column;gap:4px;"><div class="skel-block" style="width:60%;height:9px;border-radius:3px;"></div><div class="skel-block" style="width:40%;height:7px;border-radius:3px;opacity:.5;"></div></div><div class="skel-block" style="width:24px;height:11px;border-radius:3px;flex-shrink:0;"></div></div>`;
+    });
+    el.appendChild(div);
+  });
+}
+
+// ── RENDER SECTIONS WITH DATA ─────────────────────────────────────
+function renderSections(ids) {
+  const el = document.getElementById('sections');
+  el.innerHTML = '';
+
+  let totalDone = 0, totalAll = 0, packsDone = 0;
+  SECTIONS.forEach(sec => { sec.packs.forEach(p => { totalAll += p.total; }); });
+
+  // precompute per-pack
+  const packStats = {};
+  SECTIONS.forEach(sec => {
+    sec.packs.forEach(p => {
+      const done = ids ? [...ids].filter(id => id >= p.min && id <= p.max).length : 0;
+      const pct  = Math.round(done / p.total * 100);
+      packStats[p.id] = { done, pct, complete: done >= p.total };
+      totalDone += done;
+      if (done >= p.total) packsDone++;
+    });
+  });
+
+  // hero
+  if (ids) {
+    const totalPct = Math.round(totalDone / totalAll * 100);
+    const remain   = totalAll - totalDone;
+    animateHero(totalPct, totalDone, packsDone, remain);
+    showHero(true);
+  }
+
+  // sections
+  let globalRowIdx = 0;
+  SECTIONS.forEach(sec => {
+    const div = document.createElement('div'); div.className = 'section';
+    const secDone = sec.packs.filter(p => packStats[p.id].complete).length;
+    div.innerHTML = `<div class="section-head"><span class="section-name">${sec.name}</span><span class="section-meta">${secDone}/${sec.packs.length} complete</span></div>`;
+
+    sec.packs.forEach((p, i) => {
+      const { done, pct, complete } = packStats[p.id];
+      const state = complete ? 'done' : done > 0 ? 'in-progress' : 'untouched';
+      const delay = (globalRowIdx * 0.04).toFixed(2);
+      globalRowIdx++;
+
+      // micro arc offset
+      const microOffset = CIRC_MICRO * (1 - pct / 100);
+
+      const row = document.createElement('a');
+      row.className = `pack-row ${state}`;
+      row.href = BASE + p.href;
+      row.style.setProperty('--delay', delay + 's');
+      row.style.animationDelay = delay + 's';
+
+      row.innerHTML = `
+        <span class="pack-icon">${p.icon}</span>
+        <div class="pack-info">
+          <div class="pack-name">${p.name}</div>
+          <div class="pack-sub">${p.sub}</div>
+        </div>
+        <div class="pack-right">
+          <span class="pack-pct" id="pp-${p.id}">${ids ? (complete ? '✓' : pct + '%') : '—'}</span>
+          <div class="micro-arc">
+            <svg viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+              <circle class="micro-track" cx="10" cy="10" r="8.4"/>
+              <circle class="micro-fill" id="mf-${p.id}" cx="10" cy="10" r="8.4"
+                style="stroke-dashoffset:${ids ? CIRC_MICRO : CIRC_MICRO};--delay:${delay}s"/>
+            </svg>
+          </div>
+        </div>`;
+
+      div.appendChild(row);
+
+      // animate micro arc after render
+      if (ids && pct > 0) {
+        requestAnimationFrame(() => setTimeout(() => {
+          const mf = document.getElementById('mf-' + p.id);
+          if (mf) mf.style.strokeDashoffset = microOffset;
+        }, 80 + globalRowIdx * 40));
+      }
+    });
+
+    el.appendChild(div);
+  });
+}
+
+// ── HERO ANIMATION ────────────────────────────────────────────────
+function animateHero(pct, words, packs, remain) {
+  const ring   = document.getElementById('heroRing');
+  const pctEl  = document.getElementById('heroPct');
+  const wordsEl= document.getElementById('heroWords');
+  const packsEl= document.getElementById('heroPacks');
+  const remEl  = document.getElementById('heroRemain');
+
+  if (pct >= 100) ring.classList.add('complete');
+
+  // count-up animation
+  const duration = 1600, steps = 60, interval = duration / steps;
+  let step = 0;
+  const timer = setInterval(() => {
+    step++;
+    const progress = step / steps;
+    const ease = 1 - Math.pow(1 - progress, 3);
+    const cur = Math.round(ease * pct);
+    pctEl.textContent  = cur + '%';
+    wordsEl.textContent= Math.round(ease * words);
+    packsEl.textContent= Math.round(ease * packs);
+    remEl.textContent  = Math.round(remain + (1 - ease) * (words > 0 ? words : 0));
+    if (step >= steps) {
+      clearInterval(timer);
+      pctEl.textContent  = pct + '%';
+      wordsEl.textContent= words;
+      packsEl.textContent= packs;
+      remEl.textContent  = remain;
+    }
+  }, interval);
+
+  // ring arc
+  requestAnimationFrame(() => setTimeout(() => {
+    ring.style.strokeDashoffset = CIRC_HERO * (1 - pct / 100);
+  }, 120));
+}
+
+// ── FETCH ─────────────────────────────────────────────────────────
+async function fetchAndRender() {
+  if (!playerName) { renderSections(null); showHero(false); return; }
+  const pip = document.getElementById('playerPip'); if (pip) pip.classList.add('loading');
+  renderSkeleton();
+  showHero(true);
+  document.getElementById('heroWords').className = 'hero-stat-num skel';
+  document.getElementById('heroPacks').className = 'hero-stat-num skel';
+  document.getElementById('heroRemain').className= 'hero-stat-num skel';
+  try {
+    const { data, error } = await supabase.from('report_card_view').select('quest_list').ilike('name', playerName);
+    const ids = new Set();
+    if (!error && data) {
+      data.forEach(row => {
+        (row.quest_list||'').split(',').forEach(item => {
+          const m = item.trim().match(/Quest\s+(\d+)/i);
+          if (m) ids.add(Number(m[1]));
+        });
+      });
+    }
+    ['heroWords','heroPacks','heroRemain'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.className = 'hero-stat-num';
+    });
+    renderSections(ids);
+  } catch {
+    ['heroWords','heroPacks','heroRemain'].forEach(id => {
+      const el = document.getElementById(id); if (el) { el.className='hero-stat-num'; el.textContent='—'; }
+    });
+    renderSections(null);
+  }
+  const p = document.getElementById('playerPip'); if (p) p.classList.remove('loading');
+}
+
+// ── MODAL ─────────────────────────────────────────────────────────
+window.openModal = function () {
+  document.getElementById('nameInput').value  = playerName;
+  document.getElementById('deptSelect').value = playerDept;
+  document.getElementById('dupSection').style.display = 'none';
+  document.getElementById('modalBackdrop').classList.add('show');
+};
+function closeModal() { document.getElementById('modalBackdrop').classList.remove('show'); }
+document.getElementById('modalBackdrop').addEventListener('click', e => {
+  if (e.target === document.getElementById('modalBackdrop')) closeModal();
+});
+document.getElementById('nameInput').addEventListener('keydown', e => { if (e.key === 'Enter') window.handleLogin(); });
+
+window.handleLogin = async function () {
+  const rawName = document.getElementById('nameInput').value.trim();
+  const dept    = document.getElementById('deptSelect').value;
+  if (!rawName) { alert('Please enter your name!'); return; }
+  try {
+    const { data, error } = await supabase.from('report_card_view').select('name, department, quests_completed, quest_list');
+    if (error) throw error;
+    const matches = (data||[]).filter(u => u.name && u.name.trim().toLowerCase() === rawName.trim().toLowerCase());
+    if (matches.length === 0) { if (!dept) { alert('Please select your department!'); return; } savePlayer(rawName, dept); closeModal(); renderPlayerArea(); fetchAndRender(); return; }
+    if (matches.length === 1) { savePlayer(matches[0].name, dept||matches[0].department||''); closeModal(); renderPlayerArea(); fetchAndRender(); return; }
+    showDupPicker(matches, dept);
+  } catch {
+    if (!dept) { alert('Please select your department!'); return; }
+    savePlayer(rawName, dept); closeModal(); renderPlayerArea(); fetchAndRender();
+  }
+};
+function showDupPicker(matches, dept) {
+  const sec = document.getElementById('dupSection'), list = document.getElementById('dupList');
+  list.innerHTML = '';
+  matches.forEach(match => {
+    const btn = document.createElement('button'); btn.className = 'dup-btn';
+    btn.innerHTML = `<div class="dup-name">${match.name}</div><div class="dup-meta">${match.department||'No dept'} · ${match.quests_completed??0} quests</div>`;
+    btn.onclick = () => { savePlayer(match.name, dept||match.department||''); closeModal(); renderPlayerArea(); fetchAndRender(); sec.style.display='none'; };
+    list.appendChild(btn);
+  });
+  sec.style.display = 'block';
+}
+
+// ── THEME ─────────────────────────────────────────────────────────
+const THEME_KEY = 'langLabTheme';
+function applyTheme(t) {
+  document.documentElement.classList.toggle('light', t === 'light');
+  document.getElementById('themeBtn').textContent = t === 'light' ? '🌙' : '☀️';
+}
+window.toggleTheme = function () {
+  const n = document.documentElement.classList.contains('light') ? 'dark' : 'light';
+  localStorage.setItem(THEME_KEY, n); applyTheme(n);
+};
+applyTheme(localStorage.getItem(THEME_KEY) || 'dark');
+
+// ── INIT ──────────────────────────────────────────────────────────
+loadFromStorage();
+renderPlayerArea();
+if (playerName) {
+  showHero(true);
+  fetchAndRender();
+} else {
+  showHero(false);
+  renderSections(null);
+  openModal();
+}
+</script>
+</body>
+</html>

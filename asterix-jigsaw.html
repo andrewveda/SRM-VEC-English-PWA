@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
+<title>Jigsaw Puzzle</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=DM+Sans:wght@400;600;700&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+<style>
+:root {
+  --neon-yellow: #FFE600;
+  --neon-cyan: #00F5FF;
+  --neon-pink: #FF2D78;
+  --neon-green: #39FF14;
+  --dark: #0a0a1a;
+  --darker: #060610;
+  --card: #12122a;
+  --border: #2a2a5a;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--dark);
+  color: #fff;
+  min-height: 100dvh;
+  overflow-x: hidden;
+}
+
+/* ── STARS BG ── */
+body::before {
+  content: "";
+  position: fixed; inset: 0; z-index: 0;
+  background-image:
+    radial-gradient(1px 1px at 10% 15%, rgba(255,255,255,0.3) 0%, transparent 100%),
+    radial-gradient(1px 1px at 30% 60%, rgba(0,245,255,0.25) 0%, transparent 100%),
+    radial-gradient(1px 1px at 55% 25%, rgba(255,255,255,0.2) 0%, transparent 100%),
+    radial-gradient(1px 1px at 75% 80%, rgba(255,230,0,0.2) 0%, transparent 100%),
+    radial-gradient(1px 1px at 90% 40%, rgba(255,255,255,0.25) 0%, transparent 100%),
+    radial-gradient(2px 2px at 20% 90%, rgba(0,245,255,0.15) 0%, transparent 100%),
+    radial-gradient(2px 2px at 80% 10%, rgba(255,45,120,0.15) 0%, transparent 100%);
+  pointer-events: none;
+}
+
+.screen { position: relative; z-index: 1; }
+
+/* ── NAME SCREEN ── */
+#nameScreen {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; min-height: 100dvh;
+  padding: 2rem 1.2rem;
+}
+.game-logo {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 1.1rem; line-height: 1.8;
+  color: var(--neon-yellow);
+  text-shadow: 0 0 20px rgba(255,230,0,0.6);
+  margin-bottom: 0.4rem; text-align: center;
+}
+.game-sub {
+  font-size: 0.8rem; color: var(--neon-cyan);
+  font-family: 'Press Start 2P', monospace;
+  margin-bottom: 2rem; text-align: center;
+}
+.form-card {
+  width: 100%; max-width: 360px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 1.8rem 1.4rem;
+  display: flex; flex-direction: column; gap: 1rem;
+}
+.form-card label {
+  font-size: 0.72rem; font-weight: 600;
+  color: var(--neon-cyan); letter-spacing: 1px;
+  text-transform: uppercase; margin-bottom: 0.2rem;
+  display: block;
+}
+.form-card input, .form-card select {
+  width: 100%; padding: 0.85rem 1rem;
+  background: var(--darker); border: 1px solid var(--border);
+  border-radius: 10px; font-size: 1rem; color: #fff;
+  outline: none; font-family: 'DM Sans', sans-serif;
+  -webkit-appearance: none;
+}
+.form-card input:focus, .form-card select:focus {
+  border-color: var(--neon-cyan);
+  box-shadow: 0 0 0 2px rgba(0,245,255,0.15);
+}
+.form-card select option { background: #12122a; }
+.start-btn {
+  width: 100%; padding: 1rem;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.75rem; letter-spacing: 1px;
+  background: var(--neon-yellow); color: #000;
+  border: none; border-radius: 12px; cursor: pointer;
+  margin-top: 0.4rem;
+  transition: transform 0.15s, box-shadow 0.15s;
+  box-shadow: 0 0 20px rgba(255,230,0,0.35);
+}
+.start-btn:active { transform: scale(0.97); }
+
+/* ── PUZZLE SCREEN ── */
+#puzzleScreen { display: none; padding: 0.8rem; }
+
+.hud {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0.6rem 0.8rem; margin-bottom: 0.7rem;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 12px;
+}
+.hud-item {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.58rem; color: var(--neon-cyan);
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+}
+.hud-val { font-size: 0.85rem; color: var(--neon-yellow); }
+.hud-mute {
+  background: none; border: 1px solid var(--border);
+  border-radius: 8px; padding: 6px 10px; cursor: pointer;
+  font-size: 1.1rem; color: #fff;
+}
+
+/* commentary ticker */
+.commentary {
+  background: var(--card); border: 1px solid var(--neon-pink);
+  border-radius: 10px; padding: 0.6rem 0.9rem;
+  margin-bottom: 0.7rem; min-height: 44px;
+  font-size: 0.85rem; font-weight: 600;
+  color: var(--neon-pink);
+  text-shadow: 0 0 8px rgba(255,45,120,0.4);
+  line-height: 1.4; text-align: center;
+  transition: opacity 0.3s;
+}
+
+/* ── PUZZLE AREA ── */
+.puzzle-wrap {
+  position: relative;
+  width: 100%; max-width: 420px;
+  margin: 0 auto 0.8rem;
+  border: 2px solid var(--neon-cyan);
+  border-radius: 10px;
+  box-shadow: 0 0 20px rgba(0,245,255,0.2);
+  overflow: hidden;
+  touch-action: none;
+}
+#puzzleCanvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  touch-action: none;
+}
+
+/* tray of loose pieces */
+.tray {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  justify-content: center;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 12px; padding: 0.8rem;
+  margin-bottom: 0.8rem;
+  min-height: 80px;
+}
+.tray-piece {
+  border-radius: 6px; cursor: grab;
+  border: 2px solid var(--border);
+  transition: transform 0.15s, border-color 0.15s;
+  touch-action: none;
+  user-select: none;
+}
+.tray-piece:active { transform: scale(1.08); border-color: var(--neon-yellow); cursor: grabbing; }
+.tray-piece.selected { border-color: var(--neon-yellow); box-shadow: 0 0 10px rgba(255,230,0,0.5); transform: scale(1.06); }
+
+/* progress bar */
+.progress-bar-wrap {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 10px; padding: 0.5rem 0.8rem;
+  margin-bottom: 0.6rem;
+}
+.progress-label {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.52rem; color: var(--neon-cyan);
+  margin-bottom: 5px; display: flex; justify-content: space-between;
+}
+.progress-track {
+  height: 8px; background: var(--border); border-radius: 4px; overflow: hidden;
+}
+.progress-fill {
+  height: 100%; background: linear-gradient(90deg, var(--neon-cyan), var(--neon-green));
+  border-radius: 4px; width: 0%; transition: width 0.4s ease;
+  box-shadow: 0 0 8px rgba(57,255,20,0.4);
+}
+
+/* ── WIN SCREEN ── */
+#winScreen {
+  display: none; flex-direction: column; align-items: center;
+  justify-content: center; min-height: 100dvh;
+  padding: 2rem 1.2rem; text-align: center;
+}
+.win-title {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 1.1rem; color: var(--neon-yellow);
+  text-shadow: 0 0 20px rgba(255,230,0,0.7);
+  margin-bottom: 0.5rem; line-height: 1.8;
+}
+.win-sub { font-size: 0.9rem; color: var(--neon-cyan); margin-bottom: 1.5rem; }
+.win-stats {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 0.8rem; width: 100%; max-width: 320px; margin-bottom: 1.5rem;
+}
+.win-stat {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 12px; padding: 0.9rem 0.6rem;
+}
+.win-stat-val {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 1rem; color: var(--neon-yellow); display: block;
+}
+.win-stat-lbl { font-size: 0.72rem; color: #aaa; margin-top: 4px; display: block; }
+.win-img {
+  width: 100%; max-width: 320px; border-radius: 12px;
+  border: 2px solid var(--neon-green);
+  box-shadow: 0 0 24px rgba(57,255,20,0.35);
+  margin-bottom: 1.5rem;
+}
+.play-again-btn {
+  padding: 0.9rem 2rem;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.7rem; letter-spacing: 1px;
+  background: var(--neon-green); color: #000;
+  border: none; border-radius: 12px; cursor: pointer;
+  box-shadow: 0 0 18px rgba(57,255,20,0.4);
+}
+
+/* drag ghost */
+#dragGhost {
+  position: fixed; pointer-events: none; z-index: 9999;
+  border-radius: 6px; border: 2px solid var(--neon-yellow);
+  box-shadow: 0 0 14px rgba(255,230,0,0.5);
+  display: none; transform: translate(-50%, -50%);
+}
+</style>
+</head>
+<body>
+
+<!-- NAME SCREEN -->
+<div id="nameScreen" class="screen">
+  <div class="game-logo">JIGSAW<br>QUEST</div>
+  <div class="game-sub">PUZZLE CHALLENGE</div>
+  <div class="form-card">
+    <div>
+      <label>Your Name</label>
+      <input type="text" id="nameInput" placeholder="Enter your name" autocomplete="off"/>
+    </div>
+    <div>
+      <label>Department</label>
+      <select id="deptSelect">
+        <option value="">-- Select Department --</option>
+        <option>Cyber Security</option><option>EIE</option>
+        <option>CSE-1</option><option>CSE-2</option><option>CSE-3</option>
+        <option>Mechanical Engineering</option>
+        <option>ECE-1</option><option>ECE-2</option><option>ECE-3</option>
+        <option>AI DS-1</option><option>AI DS-2</option>
+        <option>Agri and Civil</option><option>EEE</option>
+        <option>Medical Electronics</option>
+        <option>IT-1</option><option>IT-2</option>
+      </select>
+    </div>
+    <button class="start-btn" onclick="startGame()">▶ START PUZZLE</button>
+  </div>
+</div>
+
+<!-- PUZZLE SCREEN -->
+<div id="puzzleScreen" class="screen">
+  <div class="hud">
+    <div class="hud-item"><span class="hud-val" id="timerVal">0:00</span><span>TIME</span></div>
+    <div class="hud-item"><span class="hud-val" id="movesVal">0</span><span>MOVES</span></div>
+    <div class="hud-item"><span class="hud-val" id="piecesVal">0/0</span><span>PLACED</span></div>
+    <button class="hud-mute" id="muteBtn" onclick="toggleMute()">🔊</button>
+  </div>
+
+  <div class="commentary" id="commentary">Get ready to solve the puzzle! 🎮</div>
+
+  <div class="progress-bar-wrap">
+    <div class="progress-label">
+      <span>PROGRESS</span>
+      <span id="pctLabel">0%</span>
+    </div>
+    <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+  </div>
+
+  <div class="puzzle-wrap">
+    <canvas id="puzzleCanvas"></canvas>
+  </div>
+
+  <div class="tray" id="tray"></div>
+</div>
+
+<!-- WIN SCREEN -->
+<div id="winScreen" class="screen">
+  <div class="win-title">PUZZLE<br>COMPLETE!</div>
+  <div class="win-sub" id="winSub"></div>
+  <img id="winImg" class="win-img" alt="Completed puzzle"/>
+  <div class="win-stats">
+    <div class="win-stat"><span class="win-stat-val" id="wTime">-</span><span class="win-stat-lbl">Time</span></div>
+    <div class="win-stat"><span class="win-stat-val" id="wMoves">-</span><span class="win-stat-lbl">Moves</span></div>
+  </div>
+  <button class="play-again-btn" onclick="playAgain()">▶ PLAY AGAIN</button>
+</div>
+
+<canvas id="dragGhost"></canvas>
+
+<script>
+/* ── CONFIG ── */
+const IMAGE_URL = "https://raw.githubusercontent.com/andrewveda/asterix/main/RCO001_1663947548.jpg";
+const COLS = 4, ROWS = 4;
+const SUPABASE_URL = "https://yellow-lab-4999.andrewveda.workers.dev/functions/v1/logQuest";
+
+let playerName = "", playerDept = "";
+let pieces = [], selected = null;
+let moves = 0, placed = 0, startTime = null, timerInterval = null;
+let isMuted = false;
+const TOTAL = COLS * ROWS;
+
+/* ── WEB SPEECH ── */
+const synth = window.speechSynthesis;
+function speak(text) {
+  if (isMuted || !synth) return;
+  synth.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.rate = 1.05; u.pitch = 1.1; u.volume = 1;
+  synth.speak(u);
+}
+function toggleMute() {
+  isMuted = !isMuted;
+  document.getElementById("muteBtn").textContent = isMuted ? "🔇" : "🔊";
+  if (isMuted) synth.cancel();
+}
+
+/* ── COMMENTARY ── */
+const greetings = [
+  n => `Let's go ${n}! Tap a piece, then tap where it belongs! 🎮`,
+  n => `${n} is IN THE ZONE! Keep placing those pieces! 🔥`,
+  n => `Looking sharp ${n}! You've got the eye for this! 👀`,
+];
+const correctMsgs = [
+  n => `YES! ${n} nailed it! 🎯`,
+  n => `Snap! ${n} is on fire! 🔥`,
+  n => `Perfect fit! ${n} has eagle eyes! 🦅`,
+  n => `BOOM! ${n} is unstoppable! 💥`,
+  n => `${n} is a puzzle legend! ⚡`,
+  n => `Incredible! ${n} sees the big picture! 🌟`,
+  n => `That's the one! ${n} keep going! 🚀`,
+];
+const milestoneMsgs = {
+  25: n => `${n} is 25% there! The picture is forming! 🖼️`,
+  50: n => `HALFWAY! ${n} is absolutely crushing this! 💪`,
+  75: n => `75% done! ${n} can almost see it! Almost there! 🏁`,
+};
+function setCommentary(text) {
+  const el = document.getElementById("commentary");
+  el.style.opacity = 0;
+  setTimeout(() => { el.textContent = text; el.style.opacity = 1; speak(text); }, 200);
+}
+
+/* ── TIMER ── */
+function startTimer() {
+  startTime = Date.now();
+  timerInterval = setInterval(() => {
+    const s = Math.floor((Date.now() - startTime) / 1000);
+    const m = Math.floor(s / 60), sec = s % 60;
+    document.getElementById("timerVal").textContent = `${m}:${sec.toString().padStart(2,"0")}`;
+  }, 500);
+}
+function getElapsed() { return Math.floor((Date.now() - startTime) / 1000); }
+
+/* ── RESTORE NAME ── */
+window.addEventListener("load", () => {
+  const n = localStorage.getItem("jigName"), d = localStorage.getItem("jigDept");
+  if (n) document.getElementById("nameInput").value = n;
+  if (d) document.getElementById("deptSelect").value = d;
+});
+
+/* ── START ── */
+function startGame() {
+  const n = document.getElementById("nameInput").value.trim();
+  const d = document.getElementById("deptSelect").value;
+  if (!n) { alert("Please enter your name!"); return; }
+  if (!d) { alert("Please select your department!"); return; }
+  playerName = n; playerDept = d;
+  localStorage.setItem("jigName", n); localStorage.setItem("jigDept", d);
+  document.getElementById("nameScreen").style.display = "none";
+  document.getElementById("puzzleScreen").style.display = "block";
+  initPuzzle();
+}
+
+/* ── PUZZLE INIT ── */
+let img, pieceW, pieceH, canvasW, canvasH;
+
+function initPuzzle() {
+  moves = 0; placed = 0; pieces = []; selected = null;
+  document.getElementById("movesVal").textContent = "0";
+  document.getElementById("piecesVal").textContent = `0/${TOTAL}`;
+  document.getElementById("progressFill").style.width = "0%";
+  document.getElementById("pctLabel").textContent = "0%";
+
+  img = new Image();
+  img.crossOrigin = "anonymous";
+  img.onload = () => buildPuzzle();
+  img.onerror = () => {
+    // fallback gradient image
+    const fc = document.createElement("canvas");
+    fc.width = 400; fc.height = 400;
+    const ctx = fc.getContext("2d");
+    const g = ctx.createLinearGradient(0,0,400,400);
+    g.addColorStop(0,"#1a1a6e"); g.addColorStop(0.5,"#8e24aa"); g.addColorStop(1,"#e91e63");
+    ctx.fillStyle = g; ctx.fillRect(0,0,400,400);
+    ctx.fillStyle = "#FFE600"; ctx.font = "bold 48px DM Sans";
+    ctx.textAlign = "center"; ctx.fillText("🧩 PUZZLE", 200, 180);
+    ctx.fillText(playerName, 200, 250);
+    img = new Image(); img.src = fc.toDataURL(); img.onload = () => buildPuzzle();
+  };
+  img.src = IMAGE_URL;
+}
+
+function buildPuzzle() {
+  const canvas = document.getElementById("puzzleCanvas");
+  const wrap = canvas.parentElement;
+  const maxW = Math.min(wrap.clientWidth || 380, 420);
+  canvasW = maxW; canvasH = Math.round(maxW * img.height / img.width);
+  canvas.width = canvasW; canvas.height = canvasH;
+  pieceW = Math.floor(canvasW / COLS);
+  pieceH = Math.floor(canvasH / ROWS);
+
+  // build pieces array
+  pieces = [];
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      pieces.push({ id: r * COLS + c, row: r, col: c, placed: false });
+    }
+  }
+  // shuffle
+  for (let i = pieces.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i+1));
+    [pieces[i], pieces[j]] = [pieces[j], pieces[i]];
+  }
+
+  drawBoard();
+  buildTray();
+  startTimer();
+  setTimeout(() => setCommentary(greetings[0](playerName)), 400);
+}
+
+/* ── DRAW BOARD (grid of grey slots) ── */
+function drawBoard() {
+  const canvas = document.getElementById("puzzleCanvas");
+  const ctx = canvas.getContext("2d");
+  ctx.clearRect(0,0,canvasW,canvasH);
+
+  // draw placed pieces first
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const idx = r * COLS + c;
+      const piece = pieces.find(p => p.row === r && p.col === c && p.placed);
+      if (piece) {
+        ctx.drawImage(img, c * pieceW, r * pieceH, pieceW, pieceH,
+                          c * pieceW, r * pieceH, pieceW, pieceH);
+      } else {
+        // empty slot
+        ctx.fillStyle = "rgba(255,255,255,0.04)";
+        ctx.fillRect(c * pieceW + 1, r * pieceH + 1, pieceW - 2, pieceH - 2);
+        ctx.strokeStyle = "rgba(0,245,255,0.25)";
+        ctx.lineWidth = 1;
+        ctx.strokeRect(c * pieceW + 1, r * pieceH + 1, pieceW - 2, pieceH - 2);
+        // slot number hint
+        ctx.fillStyle = "rgba(0,245,255,0.15)";
+        ctx.font = `${Math.floor(pieceW * 0.3)}px DM Sans`;
+        ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        ctx.fillText(idx + 1, c * pieceW + pieceW/2, r * pieceH + pieceH/2);
+      }
+    }
+  }
+  // grid lines
+  ctx.strokeStyle = "rgba(0,245,255,0.3)";
+  ctx.lineWidth = 1;
+  for (let c = 1; c < COLS; c++) {
+    ctx.beginPath(); ctx.moveTo(c * pieceW, 0); ctx.lineTo(c * pieceW, canvasH); ctx.stroke();
+  }
+  for (let r = 1; r < ROWS; r++) {
+    ctx.beginPath(); ctx.moveTo(0, r * pieceH); ctx.lineTo(canvasW, r * pieceH); ctx.stroke();
+  }
+}
+
+/* ── BUILD TRAY ── */
+function buildTray() {
+  const tray = document.getElementById("tray");
+  tray.innerHTML = "";
+  const unplaced = pieces.filter(p => !p.placed);
+
+  unplaced.forEach(piece => {
+    const pc = document.createElement("canvas");
+    pc.width = pieceW; pc.height = pieceH;
+    pc.className = "tray-piece";
+    pc.dataset.id = piece.id;
+    pc.style.width = Math.min(pieceW, 70) + "px";
+    pc.style.height = Math.min(pieceH, 70) + "px";
+
+    const ctx = pc.getContext("2d");
+    ctx.drawImage(img, piece.col * pieceW, piece.row * pieceH, pieceW, pieceH,
+                       0, 0, pieceW, pieceH);
+    // label
+    ctx.fillStyle = "rgba(0,0,0,0.45)";
+    ctx.fillRect(0, 0, pieceW, 18);
+    ctx.fillStyle = "#FFE600";
+    ctx.font = `bold ${Math.floor(pieceW * 0.22)}px DM Sans`;
+    ctx.textAlign = "center"; ctx.textBaseline = "top";
+    ctx.fillText(piece.id + 1, pieceW / 2, 2);
+
+    pc.addEventListener("click", () => selectPiece(piece.id));
+    pc.addEventListener("touchstart", e => { e.preventDefault(); selectPiece(piece.id); }, {passive:false});
+    tray.appendChild(pc);
+  });
+}
+
+/* ── SELECTION & PLACEMENT ── */
+function selectPiece(id) {
+  // deselect previous
+  document.querySelectorAll(".tray-piece").forEach(el => el.classList.remove("selected"));
+  if (selected === id) { selected = null; return; }
+  selected = id;
+  const el = document.querySelector(`.tray-piece[data-id="${id}"]`);
+  if (el) el.classList.add("selected");
+  setCommentary(`Piece ${id+1} selected — now tap its spot on the board! 🎯`);
+  speak(`Piece ${id+1} selected`);
+}
+
+/* board click */
+document.getElementById("puzzleCanvas").addEventListener("click", function(e) {
+  if (selected === null) return;
+  const rect = this.getBoundingClientRect();
+  const x = (e.clientX - rect.left) * (canvasW / rect.width);
+  const y = (e.clientY - rect.top) * (canvasH / rect.height);
+  const col = Math.floor(x / pieceW);
+  const row = Math.floor(y / pieceH);
+  tryPlace(row, col);
+});
+document.getElementById("puzzleCanvas").addEventListener("touchstart", function(e) {
+  if (selected === null) return;
+  e.preventDefault();
+  const t = e.touches[0];
+  const rect = this.getBoundingClientRect();
+  const x = (t.clientX - rect.left) * (canvasW / rect.width);
+  const y = (t.clientY - rect.top) * (canvasH / rect.height);
+  const col = Math.floor(x / pieceW);
+  const row = Math.floor(y / pieceH);
+  tryPlace(row, col);
+}, {passive:false});
+
+function tryPlace(row, col) {
+  if (row < 0 || row >= ROWS || col < 0 || col >= COLS) return;
+  const slotId = row * COLS + col;
+  const piece = pieces.find(p => p.id === selected);
+  if (!piece || piece.placed) return;
+  moves++;
+  document.getElementById("movesVal").textContent = moves;
+
+  if (piece.id === slotId) {
+    // correct!
+    piece.placed = true;
+    placed++;
+    selected = null;
+    const pct = Math.round((placed / TOTAL) * 100);
+    document.getElementById("progressFill").style.width = pct + "%";
+    document.getElementById("pctLabel").textContent = pct + "%";
+    document.getElementById("piecesVal").textContent = `${placed}/${TOTAL}`;
+    drawBoard();
+    buildTray();
+    // confetti burst
+    confetti({ particleCount: 30, spread: 50, origin: { y: 0.5 }, colors: ["#FFE600","#00F5FF","#39FF14"] });
+    // milestone or random correct
+    const milestone = [25,50,75].find(m => pct >= m && pct - Math.round(100/TOTAL) < m);
+    const msg = milestone ? milestoneMsgs[milestone](playerName)
+                          : correctMsgs[Math.floor(Math.random() * correctMsgs.length)](playerName);
+    setCommentary(msg);
+    if (placed === TOTAL) setTimeout(showWin, 600);
+  } else {
+    // wrong slot
+    flashBoard("rgba(255,45,120,0.3)");
+    setCommentary(`Not quite! That piece goes somewhere else — keep looking! 🔍`);
+    selected = null;
+    document.querySelectorAll(".tray-piece").forEach(el => el.classList.remove("selected"));
+  }
+}
+
+function flashBoard(color) {
+  const canvas = document.getElementById("puzzleCanvas");
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = color;
+  ctx.fillRect(0,0,canvasW,canvasH);
+  setTimeout(() => drawBoard(), 250);
+}
+
+/* ── WIN ── */
+function showWin() {
+  clearInterval(timerInterval);
+  const elapsed = getElapsed();
+  const m = Math.floor(elapsed/60), s = elapsed%60;
+  const timeStr = `${m}:${s.toString().padStart(2,"0")}`;
+
+  // mega confetti
+  const end = Date.now() + 3000;
+  (function frame() {
+    confetti({ particleCount: 5, angle: 60, spread: 55, origin:{x:0}, colors:["#FFE600","#00F5FF","#39FF14","#FF2D78"] });
+    confetti({ particleCount: 5, angle: 120, spread: 55, origin:{x:1}, colors:["#FFE600","#00F5FF","#39FF14","#FF2D78"] });
+    if (Date.now() < end) requestAnimationFrame(frame);
+  }());
+
+  document.getElementById("puzzleScreen").style.display = "none";
+  const ws = document.getElementById("winScreen");
+  ws.style.display = "flex";
+  document.getElementById("winSub").textContent = `${playerName} · ${playerDept}`;
+  document.getElementById("wTime").textContent = timeStr;
+  document.getElementById("wMoves").textContent = moves;
+  document.getElementById("winImg").src = IMAGE_URL;
+
+  const winMsg = `Congratulations ${playerName}! Puzzle solved in ${timeStr} with ${moves} moves! Absolutely brilliant!`;
+  speak(winMsg);
+
+  sendToSupabase({ student_name: playerName, department: playerDept, time_spent: elapsed, moves, quest_id: "Jigsaw-01" });
+}
+
+async function sendToSupabase(payload) {
+  try {
+    await fetch(SUPABASE_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+  } catch(e) { console.warn("Supabase log failed", e); }
+}
+
+function playAgain() {
+  document.getElementById("winScreen").style.display = "none";
+  document.getElementById("puzzleScreen").style.display = "block";
+  initPuzzle();
+}
+</script>
+</body>
+</html>

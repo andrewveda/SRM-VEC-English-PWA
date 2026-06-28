@@ -1,0 +1,998 @@
+ clustering, swap mechanic, continuous commentary, flash text, Web Speech, streak, difficulty
+bash
+
+cat > /home/claude/jigsaw.html << 'HTMLEOF'
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
+<title>Jigsaw Quest</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=DM+Sans:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+<style>
+:root {
+  --dark:    #08081a;
+  --darker:  #04040f;
+  --card:    #10102a;
+  --border:  #22225a;
+  --yellow:  #FFE600;
+  --cyan:    #00F5FF;
+  --pink:    #FF2D78;
+  --green:   #39FF14;
+  --red:     #FF3333;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; overflow: hidden; }
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--dark); color: #fff;
+  display: flex; flex-direction: column;
+  height: 100dvh; overflow: hidden;
+}
+
+/* ══ NAME SCREEN ══ */
+#nameScreen {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  height: 100dvh; padding: 2rem 1.4rem;
+  background: radial-gradient(ellipse at 55% 20%, #1a0a3a 0%, #08081a 70%);
+  overflow-y: auto;
+}
+.logo {
+  font-family: 'Press Start 2P', monospace;
+  font-size: clamp(1rem, 5vw, 1.5rem);
+  color: var(--yellow);
+  text-shadow: 0 0 24px rgba(255,230,0,0.55);
+  text-align: center; margin-bottom: 0.2rem; line-height: 1.8;
+}
+.logo-sub {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.55rem; color: var(--cyan);
+  letter-spacing: 3px; margin-bottom: 2rem; text-align: center;
+}
+.form-card {
+  width: 100%; max-width: 340px;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 18px; padding: 1.8rem 1.4rem;
+  display: flex; flex-direction: column; gap: 1.1rem;
+}
+.field-label {
+  font-size: 0.68rem; font-weight: 700; color: var(--cyan);
+  letter-spacing: 1.5px; text-transform: uppercase;
+  margin-bottom: 0.35rem; display: block;
+}
+.form-card input, .form-card select {
+  width: 100%; padding: 0.9rem 1rem;
+  background: var(--darker); border: 1px solid var(--border);
+  border-radius: 10px; font-size: 1rem; color: #fff;
+  outline: none; font-family: 'DM Sans', sans-serif;
+  -webkit-appearance: none; appearance: none;
+}
+.form-card input:focus, .form-card select:focus {
+  border-color: var(--cyan); box-shadow: 0 0 0 2px rgba(0,245,255,0.12);
+}
+.form-card select option { background: #12122a; }
+.diff-row {
+  display: flex; gap: 0.6rem;
+}
+.diff-btn {
+  flex: 1; padding: 0.7rem 0.4rem;
+  font-family: 'Press Start 2P', monospace; font-size: 0.52rem;
+  background: var(--darker); border: 1px solid var(--border);
+  border-radius: 10px; color: #aaa; cursor: pointer;
+  transition: all 0.15s;
+}
+.diff-btn.active {
+  background: var(--yellow); color: #000;
+  border-color: var(--yellow);
+  box-shadow: 0 0 14px rgba(255,230,0,0.4);
+}
+.start-btn {
+  width: 100%; padding: 1rem;
+  font-family: 'Press Start 2P', monospace; font-size: 0.72rem;
+  background: var(--yellow); color: #000;
+  border: none; border-radius: 12px; cursor: pointer;
+  box-shadow: 0 0 22px rgba(255,230,0,0.35);
+  transition: transform 0.12s;
+}
+.start-btn:active { transform: scale(0.96); }
+
+/* ══ PUZZLE SCREEN ══ */
+#puzzleScreen {
+  display: none; flex-direction: column;
+  height: 100dvh; overflow: hidden;
+}
+
+/* HUD */
+.hud {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0.45rem 0.9rem; flex-shrink: 0;
+  background: var(--darker); border-bottom: 1px solid var(--border);
+}
+.hud-item { display: flex; flex-direction: column; align-items: center; gap: 1px; }
+.hud-val {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.82rem; color: var(--yellow);
+}
+.hud-lbl {
+  font-size: 0.45rem; color: #444; letter-spacing: 1px;
+  text-transform: uppercase; font-family: 'Press Start 2P', monospace;
+}
+.hud-val.red { color: var(--red); animation: pulse 0.5s ease infinite alternate; }
+@keyframes pulse { from{opacity:1} to{opacity:0.4} }
+.mute-btn {
+  background: none; border: 1px solid var(--border);
+  border-radius: 8px; padding: 5px 9px;
+  font-size: 1rem; cursor: pointer; color: #fff;
+}
+
+/* ══ COMMENTARY AREA ══ */
+.commentary-area {
+  flex-shrink: 0;
+  background: #050510;
+  border-bottom: 1px solid var(--border);
+  padding: 0.5rem 0.8rem 0.6rem;
+  min-height: 90px;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 0.3rem;
+  overflow: hidden;
+}
+.flash-word {
+  font-family: 'Press Start 2P', monospace;
+  font-size: clamp(1.1rem, 5vw, 1.6rem);
+  text-align: center; line-height: 1.3;
+  transition: opacity 0.3s; opacity: 0;
+  text-shadow: 0 0 20px currentColor;
+  letter-spacing: 1px;
+}
+.flash-word.show { opacity: 1; }
+.commentary-text {
+  font-size: clamp(0.8rem, 3.5vw, 1rem);
+  font-weight: 700; text-align: center;
+  color: #e2e8f0; line-height: 1.4;
+  transition: opacity 0.3s; opacity: 0;
+  max-width: 95%;
+}
+.commentary-text.show { opacity: 1; }
+
+/* progress bar */
+.prog-wrap {
+  flex-shrink: 0; padding: 0.35rem 0.9rem;
+  background: var(--darker); border-bottom: 1px solid var(--border);
+}
+.prog-track { height: 5px; background: #1e1e45; border-radius: 3px; overflow: hidden; }
+.prog-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--cyan), var(--green));
+  border-radius: 3px; width: 0%; transition: width 0.4s ease;
+  box-shadow: 0 0 6px rgba(57,255,20,0.5);
+}
+
+/* ══ GRID ══ */
+.grid-wrap {
+  flex: 1; overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+  padding: 0.5rem; touch-action: none;
+  position: relative;
+}
+.grid {
+  display: grid;
+  gap: 2px;
+  touch-action: none;
+}
+.cell {
+  position: relative; overflow: hidden;
+  border-radius: 4px; cursor: pointer;
+  border: 2px solid rgba(255,255,255,0.08);
+  transition: border-color 0.2s, transform 0.15s;
+  touch-action: none;
+}
+.cell canvas { display: block; width: 100%; height: 100%; }
+.cell.selected {
+  border-color: var(--yellow) !important;
+  box-shadow: 0 0 14px rgba(255,230,0,0.6);
+  transform: scale(1.04); z-index: 2;
+}
+.cell.locked {
+  border-color: rgba(57,255,20,0.5) !important;
+  cursor: default;
+}
+.cell.locked-group {
+  border-color: rgba(0,245,255,0.6) !important;
+  box-shadow: 0 0 10px rgba(0,245,255,0.35);
+}
+.cell.red-flash {
+  animation: redFlash 0.4s ease;
+}
+@keyframes redFlash {
+  0%   { background: rgba(255,51,51,0.7); border-color: var(--red); }
+  100% { background: transparent; }
+}
+.cell.snap-pop {
+  animation: snapPop 0.35s ease;
+}
+@keyframes snapPop {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+/* lock overlay tick */
+.lock-tick {
+  position: absolute; bottom: 3px; right: 4px;
+  font-size: 0.65rem; opacity: 0.85; pointer-events: none;
+  text-shadow: 0 0 6px #000;
+}
+
+/* ══ WIN SCREEN ══ */
+#winScreen {
+  display: none; flex-direction: column;
+  align-items: center; justify-content: center;
+  height: 100dvh; padding: 2rem 1.2rem; text-align: center;
+  background: radial-gradient(ellipse at 50% 30%, #0d2a0d 0%, #08081a 70%);
+  overflow-y: auto;
+}
+.win-title {
+  font-family: 'Press Start 2P', monospace;
+  font-size: clamp(0.9rem, 4vw, 1.2rem); line-height: 2;
+  color: var(--green);
+  text-shadow: 0 0 22px rgba(57,255,20,0.6); margin-bottom: 0.5rem;
+}
+.win-player { font-size: 0.95rem; color: var(--cyan); margin-bottom: 1rem; }
+.win-img {
+  width: 100%; max-width: 280px; border-radius: 10px;
+  border: 2px solid var(--green);
+  box-shadow: 0 0 28px rgba(57,255,20,0.35);
+  margin-bottom: 1.2rem;
+}
+.win-stats {
+  display: grid; grid-template-columns: 1fr 1fr 1fr;
+  gap: 0.7rem; width: 100%; max-width: 320px; margin-bottom: 1.4rem;
+}
+.win-stat {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 12px; padding: 0.8rem 0.4rem;
+}
+.win-stat-val {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.85rem; color: var(--yellow); display: block;
+}
+.win-stat-lbl { font-size: 0.65rem; color: #888; margin-top: 4px; display: block; }
+.again-btn {
+  padding: 0.9rem 2rem;
+  font-family: 'Press Start 2P', monospace; font-size: 0.65rem;
+  background: var(--green); color: #000;
+  border: none; border-radius: 12px; cursor: pointer;
+  box-shadow: 0 0 20px rgba(57,255,20,0.4);
+}
+</style>
+</head>
+<body>
+
+<!-- ══ NAME SCREEN ══ -->
+<div id="nameScreen">
+  <div class="logo">JIGSAW<br>QUEST</div>
+  <div class="logo-sub">TAP · SWAP · SOLVE</div>
+  <div class="form-card">
+    <div>
+      <label class="field-label">Your Name</label>
+      <input type="text" id="nameInput" placeholder="Enter your name" autocomplete="off"/>
+    </div>
+    <div>
+      <label class="field-label">Department</label>
+      <select id="deptSelect">
+        <option value="">-- Select Department --</option>
+        <option>Cyber Security</option><option>EIE</option>
+        <option>CSE-1</option><option>CSE-2</option><option>CSE-3</option>
+        <option>Mechanical Engineering</option>
+        <option>ECE-1</option><option>ECE-2</option><option>ECE-3</option>
+        <option>AI DS-1</option><option>AI DS-2</option>
+        <option>Agri and Civil</option><option>EEE</option>
+        <option>Medical Electronics</option>
+        <option>IT-1</option><option>IT-2</option>
+      </select>
+    </div>
+    <div>
+      <label class="field-label">Difficulty</label>
+      <div class="diff-row">
+        <button class="diff-btn active" data-d="3" onclick="setDiff(this,3)">3×3<br>EASY</button>
+        <button class="diff-btn"        data-d="4" onclick="setDiff(this,4)">4×4<br>MEDIUM</button>
+        <button class="diff-btn"        data-d="5" onclick="setDiff(this,5)">5×5<br>HARD</button>
+      </div>
+    </div>
+    <button class="start-btn" onclick="startGame()">▶ START PUZZLE</button>
+  </div>
+</div>
+
+<!-- ══ PUZZLE SCREEN ══ -->
+<div id="puzzleScreen">
+  <div class="hud">
+    <div class="hud-item">
+      <span class="hud-val" id="timerVal">3:00</span>
+      <span class="hud-lbl">TIME</span>
+    </div>
+    <div class="hud-item">
+      <span class="hud-val" id="swapsVal">0</span>
+      <span class="hud-lbl">SWAPS</span>
+    </div>
+    <div class="hud-item">
+      <span class="hud-val" id="streakVal">🔥0</span>
+      <span class="hud-lbl">STREAK</span>
+    </div>
+    <div class="hud-item">
+      <span class="hud-val" id="placedVal">0/0</span>
+      <span class="hud-lbl">LOCKED</span>
+    </div>
+    <button class="mute-btn" id="muteBtn" onclick="toggleMute()">🔊</button>
+  </div>
+
+  <div class="commentary-area">
+    <div class="flash-word" id="flashWord"></div>
+    <div class="commentary-text" id="commentaryText"></div>
+  </div>
+
+  <div class="prog-wrap">
+    <div class="prog-track"><div class="prog-fill" id="progFill"></div></div>
+  </div>
+
+  <div class="grid-wrap">
+    <div class="grid" id="grid"></div>
+  </div>
+</div>
+
+<!-- ══ WIN SCREEN ══ -->
+<div id="winScreen">
+  <div class="win-title">PUZZLE<br>COMPLETE!</div>
+  <div class="win-player" id="winPlayer"></div>
+  <img id="winImg" class="win-img" alt="Solved"/>
+  <div class="win-stats">
+    <div class="win-stat"><span class="win-stat-val" id="wTime">-</span><span class="win-stat-lbl">Time</span></div>
+    <div class="win-stat"><span class="win-stat-val" id="wSwaps">-</span><span class="win-stat-lbl">Swaps</span></div>
+    <div class="win-stat"><span class="win-stat-val" id="wStreak">-</span><span class="win-stat-lbl">Best Streak</span></div>
+  </div>
+  <button class="again-btn" onclick="playAgain()">▶ PLAY AGAIN</button>
+</div>
+
+<script>
+/* ══════════════════════════════════
+   CONFIG
+══════════════════════════════════ */
+const IMAGE_URL    = "https://raw.githubusercontent.com/andrewveda/asterix/main/RCO001_1663947548.jpg";
+const SUPABASE_URL = "https://yellow-lab-4999.andrewveda.workers.dev/functions/v1/logQuest";
+const COUNTDOWN    = 180; // seconds
+
+/* ══════════════════════════════════
+   STATE
+══════════════════════════════════ */
+let playerName="", playerDept="", COLS=3, ROWS=3;
+let pieces=[], selected=null, swaps=0, locked=0, streak=0, bestStreak=0;
+let timeLeft=COUNTDOWN, timerInterval=null, idleTimer=null;
+let isMuted=false, img=null, pw=0, ph=0;
+let commentaryQueue=[], isSpeaking=false;
+
+/* ══════════════════════════════════
+   DIFFICULTY
+══════════════════════════════════ */
+function setDiff(btn, d) {
+  document.querySelectorAll(".diff-btn").forEach(b=>b.classList.remove("active"));
+  btn.classList.add("active"); COLS=d; ROWS=d;
+}
+
+/* ══════════════════════════════════
+   WEB SPEECH — queued, continuous
+══════════════════════════════════ */
+const synth = window.speechSynthesis;
+function speak(txt, priority=false) {
+  if (isMuted) return;
+  if (priority) { synth.cancel(); commentaryQueue=[]; }
+  commentaryQueue.push(txt);
+  if (!isSpeaking) drainQueue();
+}
+function drainQueue() {
+  if (!commentaryQueue.length) { isSpeaking=false; return; }
+  isSpeaking=true;
+  const u = new SpeechSynthesisUtterance(commentaryQueue.shift());
+  u.rate=1.05; u.pitch=1.1; u.volume=1;
+  u.onend = drainQueue;
+  u.onerror = drainQueue;
+  synth.speak(u);
+}
+function toggleMute() {
+  isMuted=!isMuted;
+  document.getElementById("muteBtn").textContent=isMuted?"🔇":"🔊";
+  if (isMuted) { synth.cancel(); commentaryQueue=[]; isSpeaking=false; }
+}
+
+/* ══════════════════════════════════
+   COMMENTARY ENGINE
+══════════════════════════════════ */
+const WORDS = {
+  correct:  ["BRILLIANT!","LOCKED IN!","PERFECT!","SNAP!","NAILED IT!","FANTASTIC!","YES!","AMAZING!"],
+  wrong:    ["NOT YET!","KEEP GOING!","ALMOST!","TRY AGAIN!","CLOSE!"],
+  group:    ["GROUP MOVE!","THEY TRAVEL TOGETHER!","CLUSTER!","BONDED!"],
+  streak:   ["ON FIRE!","UNSTOPPABLE!","LEGENDARY!","INCREDIBLE!"],
+  milestone:["QUARTER DONE!","HALFWAY!","75% THERE!","ALMOST SOLVED!"],
+  idle:     ["THINKING...","YOU'VE GOT THIS!","STUDY THE EDGES!","LOOK CAREFULLY!"],
+  win:      ["PUZZLE SOLVED!","CHAMPION!","OUTSTANDING!","GENIUS!"]
+};
+const LINES = {
+  correct: [
+    n=>`${n}, that piece has found its rightful home! Exceptional observation!`,
+    n=>`Perseverance pays off! ${n} is reading the picture beautifully!`,
+    n=>`An astute move by ${n}! The image is gradually revealing itself!`,
+    n=>`Extraordinary! ${n}'s spatial awareness is truly remarkable!`,
+    n=>`${n} demonstrates that patience and focus always triumph!`,
+    n=>`Magnificent! ${n} is piecing together success, one swap at a time!`,
+    n=>`The hallmark of a champion — ${n} never stops trying!`,
+    n=>`Brilliance in action! ${n} sees what others miss!`,
+  ],
+  wrong: [
+    n=>`Every great explorer takes a wrong turn, ${n}! Keep navigating!`,
+    n=>`Edison failed a thousand times before the lightbulb — keep going, ${n}!`,
+    n=>`Not quite, ${n}! Every mistake is a stepping stone to success!`,
+    n=>`The puzzle is testing your resolve, ${n} — rise to the challenge!`,
+    n=>`A temporary setback for ${n} — but champions never give up!`,
+    n=>`Failure is merely feedback, ${n}! Analyse and try again!`,
+  ],
+  group: [
+    n=>`Remarkable! Those two pieces recognise each other — they journey together, ${n}!`,
+    n=>`${n} has discovered that some pieces belong together as a team!`,
+    n=>`A cluster is forming! ${n} understands the power of togetherness!`,
+    n=>`Those pieces are bonded, ${n} — move them wisely to their correct home!`,
+  ],
+  streak: [
+    (n,s)=>`${s} in a row! ${n} is absolutely unstoppable right now!`,
+    (n,s)=>`A streak of ${s}! ${n}'s focus is razor-sharp!`,
+    (n,s)=>`${n} is on a magnificent run of ${s} correct swaps!`,
+  ],
+  milestone: {
+    25: n=>`A quarter of the way there! ${n} is building momentum!`,
+    50: n=>`Halfway! ${n} has cracked the code — the image is emerging!`,
+    75: n=>`Three quarters complete! ${n} can almost see the full picture now!`,
+  },
+  idle: [
+    n=>`Take a careful look at the colours near the edges, ${n}…`,
+    n=>`Which piece seems out of place to you, ${n}? Study the shapes!`,
+    n=>`${n}, look for pieces that share colours with their neighbours!`,
+    n=>`Patience is a virtue, ${n}! The answer is right in front of you!`,
+    n=>`Compare the edges carefully, ${n} — the picture wants to emerge!`,
+  ],
+  win: [
+    (n,t,s)=>`Congratulations ${n}! You solved the entire puzzle in ${t} with just ${s} swaps! Truly outstanding!`,
+  ]
+};
+
+function rand(arr) { return arr[Math.floor(Math.random()*arr.length)]; }
+
+let flashTimeout=null, textTimeout=null;
+function showCommentary(word, text, wordColor="var(--yellow)") {
+  const fw = document.getElementById("flashWord");
+  const ct = document.getElementById("commentaryText");
+
+  // flash word
+  fw.style.opacity=0;
+  clearTimeout(flashTimeout);
+  setTimeout(()=>{
+    fw.textContent=word; fw.style.color=wordColor;
+    fw.classList.add("show"); fw.style.opacity=1;
+  },150);
+  flashTimeout=setTimeout(()=>{ fw.classList.remove("show"); fw.style.opacity=0; },2500);
+
+  // commentary text
+  ct.style.opacity=0;
+  clearTimeout(textTimeout);
+  setTimeout(()=>{
+    ct.textContent=text; ct.classList.add("show"); ct.style.opacity=1;
+  },200);
+  textTimeout=setTimeout(()=>{ ct.classList.remove("show"); ct.style.opacity=0; },4500);
+}
+
+function commentCorrect() {
+  const w=rand(WORDS.correct), t=rand(LINES.correct)(playerName);
+  showCommentary(w, t, "var(--green)");
+  speak(w.replace(/!/g,"")+" — "+t, true);
+}
+function commentWrong() {
+  const w=rand(WORDS.wrong), t=rand(LINES.wrong)(playerName);
+  showCommentary(w, t, "var(--red)");
+  speak(w.replace(/!/g,"")+" — "+t, true);
+}
+function commentGroup(count) {
+  const w=rand(WORDS.group), t=rand(LINES.group)(playerName);
+  showCommentary(w, t, "var(--cyan)");
+  speak(t, true);
+}
+function commentStreak(s) {
+  const w=rand(WORDS.streak), t=rand(LINES.streak)(playerName,s);
+  showCommentary(w, t, "var(--yellow)");
+  speak(w.replace(/!/g,"")+"! "+t, true);
+}
+function commentMilestone(pct) {
+  const w=rand(WORDS.milestone), t=LINES.milestone[pct](playerName);
+  showCommentary(w, t, "var(--yellow)");
+  speak(t, true);
+}
+function commentIdle() {
+  const t=rand(LINES.idle)(playerName);
+  showCommentary("PSST…", t, "var(--cyan)");
+  speak(t);
+}
+function commentWin(timeStr) {
+  const w=rand(WORDS.win), t=LINES.win[0](playerName,timeStr,swaps);
+  showCommentary(w, t, "var(--green)");
+  speak(w.replace(/!/g,"")+"! "+t, true);
+}
+
+/* ══════════════════════════════════
+   IDLE WATCHER
+══════════════════════════════════ */
+function resetIdle() {
+  clearTimeout(idleTimer);
+  idleTimer=setTimeout(()=>{ if(locked<COLS*ROWS) commentIdle(); resetIdle(); },4000);
+}
+
+/* ══════════════════════════════════
+   TIMER
+══════════════════════════════════ */
+function startTimer() {
+  timeLeft=COUNTDOWN;
+  updateTimerDisplay();
+  timerInterval=setInterval(()=>{
+    timeLeft--;
+    updateTimerDisplay();
+    if(timeLeft<=0) { clearInterval(timerInterval); timeUp(); }
+  },1000);
+}
+function updateTimerDisplay() {
+  const m=Math.floor(timeLeft/60), s=timeLeft%60;
+  const el=document.getElementById("timerVal");
+  el.textContent=`${m}:${s.toString().padStart(2,"0")}`;
+  el.className="hud-val"+(timeLeft<=30?" red":"");
+}
+function timeUp() {
+  showCommentary("TIME'S UP!","Don't worry — every attempt makes you stronger! Try again!","var(--red)");
+  speak("Time is up! Don't worry, every attempt makes you stronger!", true);
+  setTimeout(()=>{ if(confirm("Time's up! Play again?")) playAgain(); },1500);
+}
+function elapsed() { return COUNTDOWN-timeLeft; }
+
+/* ══════════════════════════════════
+   NAME RESTORE
+══════════════════════════════════ */
+window.addEventListener("load",()=>{
+  const n=localStorage.getItem("jigName"), d=localStorage.getItem("jigDept");
+  if(n) document.getElementById("nameInput").value=n;
+  if(d) document.getElementById("deptSelect").value=d;
+});
+
+/* ══════════════════════════════════
+   START
+══════════════════════════════════ */
+function startGame() {
+  const n=document.getElementById("nameInput").value.trim();
+  const d=document.getElementById("deptSelect").value;
+  if(!n){alert("Please enter your name!");return;}
+  if(!d){alert("Please select your department!");return;}
+  playerName=n; playerDept=d;
+  localStorage.setItem("jigName",n); localStorage.setItem("jigDept",d);
+  document.getElementById("nameScreen").style.display="none";
+  document.getElementById("puzzleScreen").style.display="flex";
+  initPuzzle();
+}
+
+/* ══════════════════════════════════
+   PUZZLE INIT
+══════════════════════════════════ */
+function initPuzzle() {
+  pieces=[]; selected=null; swaps=0; locked=0; streak=0; bestStreak=0;
+  document.getElementById("swapsVal").textContent="0";
+  document.getElementById("streakVal").textContent="🔥0";
+  document.getElementById("placedVal").textContent=`0/${COLS*ROWS}`;
+  document.getElementById("progFill").style.width="0%";
+  clearInterval(timerInterval); clearTimeout(idleTimer);
+
+  img=new Image(); img.crossOrigin="anonymous";
+  img.onload=buildGrid;
+  img.onerror=()=>{
+    const fc=document.createElement("canvas");
+    fc.width=400; fc.height=400;
+    const ctx=fc.getContext("2d");
+    const g=ctx.createLinearGradient(0,0,400,400);
+    g.addColorStop(0,"#1a0a6a"); g.addColorStop(1,"#6a0a1a");
+    ctx.fillStyle=g; ctx.fillRect(0,0,400,400);
+    ctx.fillStyle="#FFE600"; ctx.font="bold 60px sans-serif";
+    ctx.textAlign="center"; ctx.fillText("🧩",200,160);
+    ctx.font="bold 28px sans-serif"; ctx.fillText(playerName,200,260);
+    const tmp=new Image(); tmp.src=fc.toDataURL();
+    tmp.onload=()=>{img=tmp; buildGrid();};
+  };
+  img.src=IMAGE_URL;
+}
+
+/* ══════════════════════════════════
+   BUILD GRID
+══════════════════════════════════ */
+function buildGrid() {
+  const wrap=document.getElementById("grid-wrap")||document.querySelector(".grid-wrap");
+  const gridEl=document.getElementById("grid");
+  gridEl.innerHTML="";
+
+  const availW=wrap.clientWidth-16;
+  const availH=wrap.clientHeight-16;
+  pw=Math.floor(Math.min(availW/COLS, availH/ROWS));
+  ph=pw; // square pieces
+
+  gridEl.style.gridTemplateColumns=`repeat(${COLS},${pw}px)`;
+  gridEl.style.gridTemplateRows=`repeat(${ROWS},${ph}px)`;
+
+  const TOTAL=COLS*ROWS;
+  // create pieces 0..TOTAL-1 in correct order
+  const order=Array.from({length:TOTAL},(_,i)=>i);
+  // shuffle
+  for(let i=order.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [order[i],order[j]]=[order[j],order[i]];
+  }
+  // ensure no piece starts in its correct slot
+  for(let i=0;i<TOTAL;i++){
+    if(order[i]===i){
+      const j=(i+1)%TOTAL;
+      [order[i],order[j]]=[order[j],order[i]];
+    }
+  }
+
+  pieces=[];
+  order.forEach((pieceId,slotIdx)=>{
+    const pc={
+      id:pieceId,
+      slot:slotIdx,
+      locked:false,
+      row:Math.floor(pieceId/COLS),
+      col:pieceId%COLS
+    };
+    pieces.push(pc);
+    const cell=document.createElement("div");
+    cell.className="cell";
+    cell.dataset.slot=slotIdx;
+    cell.style.width=pw+"px"; cell.style.height=ph+"px";
+
+    // draw piece on canvas
+    const cnv=document.createElement("canvas");
+    const dpr=window.devicePixelRatio||1;
+    cnv.width=pw*dpr; cnv.height=ph*dpr;
+    cnv.style.width=pw+"px"; cnv.style.height=ph+"px";
+    const ctx=cnv.getContext("2d");
+    ctx.scale(dpr,dpr);
+    const sw=img.naturalWidth/COLS, sh=img.naturalHeight/ROWS;
+    ctx.drawImage(img, pc.col*sw, pc.row*sh, sw, sh, 0,0, pw, ph);
+    cell.appendChild(cnv);
+
+    // lock tick placeholder
+    const tick=document.createElement("div");
+    tick.className="lock-tick"; tick.style.display="none"; tick.textContent="✅";
+    cell.appendChild(tick);
+
+    cell.addEventListener("click",()=>onCellTap(slotIdx));
+    cell.addEventListener("touchstart",e=>{e.preventDefault();onCellTap(slotIdx);},{passive:false});
+    gridEl.appendChild(cell);
+  });
+
+  startTimer();
+  resetIdle();
+  setTimeout(()=>{
+    showCommentary("LET'S GO!",`Welcome ${playerName}! Tap two pieces to swap them and solve the puzzle!`,"var(--yellow)");
+    speak(`Welcome ${playerName}! Tap any piece to select it, then tap another to swap. Locked pieces travel together as a group. Good luck!`, true);
+  },500);
+}
+
+/* ══════════════════════════════════
+   CELL TAP
+══════════════════════════════════ */
+function onCellTap(slotIdx) {
+  resetIdle();
+  const piece=pieces[slotIdx];
+  if(!piece) return;
+
+  // if tapping a fully-locked correct piece — ignore
+  if(piece.locked && piece.id===piece.slot) return;
+
+  if(selected===null) {
+    // SELECT
+    selected=slotIdx;
+    highlightCell(slotIdx,true);
+    // hint about groups
+    const grp=getGroup(slotIdx);
+    if(grp.length>1) {
+      commentGroup(grp.length);
+    } else {
+      showCommentary("SELECTED!",`Piece selected! Now tap where you want to move it, ${playerName}!`,"var(--cyan)");
+      speak(`Piece selected! Now choose its destination.`);
+    }
+  } else {
+    if(selected===slotIdx) {
+      // deselect
+      highlightCell(slotIdx,false); selected=null; return;
+    }
+    // SWAP
+    doSwap(selected, slotIdx);
+    highlightCell(selected,false);
+    selected=null;
+  }
+}
+
+/* ══════════════════════════════════
+   GROUP LOGIC
+   A group = pieces that are correct
+   relative to each other (same island)
+══════════════════════════════════ */
+function getGroup(slotIdx) {
+  // find all pieces that are locked-together (correct relative neighbours)
+  // A piece belongs to a group if it and its neighbour are both placed
+  // correctly relative to each other (their slot difference matches their id difference)
+  const group=[slotIdx];
+  const visited=new Set([slotIdx]);
+  const queue=[slotIdx];
+  while(queue.length){
+    const cur=queue.shift();
+    const curPiece=pieces[cur];
+    // check 4 neighbours
+    const neighbours=getNeighbourSlots(cur);
+    for(const nb of neighbours){
+      if(visited.has(nb)) continue;
+      const nbPiece=pieces[nb];
+      // relative check: are curPiece and nbPiece correct relative to each other?
+      const curRow=Math.floor(cur/COLS), curCol=cur%COLS;
+      const nbRow=Math.floor(nb/COLS),  nbCol=nb%COLS;
+      const dRow=nbRow-curRow, dCol=nbCol-curCol;
+      const expectedNbId=curPiece.id + dRow*COLS + dCol;
+      if(expectedNbId===nbPiece.id && expectedNbId>=0 && expectedNbId<COLS*ROWS){
+        visited.add(nb); group.push(nb); queue.push(nb);
+      }
+    }
+  }
+  return group;
+}
+
+function getNeighbourSlots(slot){
+  const r=Math.floor(slot/COLS), c=slot%COLS, nb=[];
+  if(r>0)      nb.push((r-1)*COLS+c);
+  if(r<ROWS-1) nb.push((r+1)*COLS+c);
+  if(c>0)      nb.push(r*COLS+(c-1));
+  if(c<COLS-1) nb.push(r*COLS+(c+1));
+  return nb;
+}
+
+/* ══════════════════════════════════
+   SWAP
+══════════════════════════════════ */
+function doSwap(slotA, slotB) {
+  const groupA=getGroup(slotA);
+  const groupB=getGroup(slotB);
+
+  // build offset maps for groups
+  const offA=groupA.map(s=>s-slotA);
+  const offB=groupB.map(s=>s-slotB);
+
+  // check if target slots are available for group move
+  // (simple: just try to swap the anchor, carry the group)
+  // For group moves: each member of groupA moves by (slotB-slotA) offset
+  const delta=slotB-slotA;
+
+  // check all group members can move without collision with each other
+  const newSlotsA=groupA.map(s=>s+delta);
+  const newSlotsB=groupB.map(s=>s-delta);
+  const TOTAL=COLS*ROWS;
+
+  // validate no out-of-bounds AND grid row shift
+  const rowA=Math.floor(slotA/COLS), rowB=Math.floor(slotB/COLS);
+  const colA=slotA%COLS, colB=slotB%COLS;
+  const dRow=rowB-rowA, dCol=colB-colA;
+
+  // For groups bigger than 1, ensure members stay in valid grid positions
+  let canMoveA=true, canMoveB=true;
+  for(const s of groupA){
+    const r=Math.floor(s/COLS), c=s%COLS;
+    const nr=r+dRow, nc=c+dCol;
+    if(nr<0||nr>=ROWS||nc<0||nc>=COLS){ canMoveA=false; break; }
+  }
+  for(const s of groupB){
+    const r=Math.floor(s/COLS), c=s%COLS;
+    const nr=r-dRow, nc=c-dCol;
+    if(nr<0||nr>=ROWS||nc<0||nc>=COLS){ canMoveB=false; break; }
+  }
+
+  if(!canMoveA || !canMoveB){
+    // can't move group — red flash
+    flashCells([slotA,slotB]);
+    showCommentary("BLOCKED!",`That group can't move there, ${playerName}! Find another path!`,"var(--red)");
+    speak(`That group cannot move there! Try a different spot.`, true);
+    return;
+  }
+
+  swaps++;
+  document.getElementById("swapsVal").textContent=swaps;
+
+  // perform swap of all group members
+  const groupAisMulti=groupA.length>1;
+  const groupBisMulti=groupB.length>1;
+
+  // snapshot current pieces
+  const snapshot=pieces.map(p=>({...p}));
+
+  // move groupA members
+  groupA.forEach(s=>{
+    const r=Math.floor(s/COLS), c=s%COLS;
+    const ns=(r+dRow)*COLS+(c+dCol);
+    pieces[ns]={...snapshot[s], slot:ns};
+  });
+  // move groupB members
+  groupB.forEach(s=>{
+    const r=Math.floor(s/COLS), c=s%COLS;
+    const ns=(r-dRow)*COLS+(c-dCol);
+    pieces[ns]={...snapshot[s], slot:ns};
+  });
+
+  // announce group move
+  if(groupAisMulti||groupBisMulti) commentGroup(Math.max(groupA.length,groupB.length));
+
+  // re-render all affected cells
+  const affected=new Set([...groupA,...groupB,
+    ...groupA.map(s=>{ const r=Math.floor(s/COLS),c=s%COLS; return (r+dRow)*COLS+(c+dCol); }),
+    ...groupB.map(s=>{ const r=Math.floor(s/COLS),c=s%COLS; return (r-dRow)*COLS+(c-dCol); })
+  ]);
+  affected.forEach(s=>renderCell(s));
+
+  // check locks
+  let anyLocked=false;
+  let prevLocked=locked;
+  affected.forEach(s=>{ if(checkLock(s)) anyLocked=true; });
+
+  const newlyLocked=locked-prevLocked;
+  const pct=Math.round(locked/(COLS*ROWS)*100);
+
+  if(anyLocked) {
+    streak++; if(streak>bestStreak) bestStreak=streak;
+    document.getElementById("streakVal").textContent=`🔥${streak}`;
+    const milestone=[25,50,75].find(m=>pct>=m && pct-(newlyLocked*100/(COLS*ROWS))<m);
+    if(milestone) { commentMilestone(milestone); }
+    else if(streak>=3 && streak%3===0) { commentStreak(streak); }
+    else { commentCorrect(); }
+    // confetti
+    confetti({particleCount:20+newlyLocked*10,spread:50,origin:{y:0.5},colors:["#FFE600","#00F5FF","#39FF14"]});
+    if(locked===COLS*ROWS) setTimeout(showWin,600);
+  } else {
+    streak=0; document.getElementById("streakVal").textContent="🔥0";
+    if(!groupAisMulti&&!groupBisMulti) {
+      flashCells([...affected]);
+      commentWrong();
+    }
+  }
+
+  updateProgress();
+}
+
+/* ══════════════════════════════════
+   LOCK CHECK
+══════════════════════════════════ */
+function checkLock(slot) {
+  const p=pieces[slot];
+  if(!p||p.locked) return false;
+  if(p.id===slot) {
+    p.locked=true; locked++;
+    const cell=getCellEl(slot);
+    cell.classList.add("locked"); cell.classList.remove("selected");
+    const tick=cell.querySelector(".lock-tick"); if(tick) tick.style.display="block";
+    cell.style.pointerEvents="none";
+    document.getElementById("placedVal").textContent=`${locked}/${COLS*ROWS}`;
+    // snap pop
+    cell.classList.add("snap-pop");
+    setTimeout(()=>cell.classList.remove("snap-pop"),400);
+    // also check if its neighbours form a group — highlight group
+    const grp=getGroup(slot);
+    if(grp.length>1){
+      grp.forEach(s=>{ const c=getCellEl(s); if(c) c.classList.add("locked-group"); });
+    }
+    return true;
+  }
+  return false;
+}
+
+/* ══════════════════════════════════
+   RENDER
+══════════════════════════════════ */
+function renderCell(slot) {
+  const cell=getCellEl(slot);
+  if(!cell) return;
+  const p=pieces[slot];
+  const cnv=cell.querySelector("canvas");
+  const dpr=window.devicePixelRatio||1;
+  cnv.width=pw*dpr; cnv.height=ph*dpr;
+  cnv.style.width=pw+"px"; cnv.style.height=ph+"px";
+  const ctx=cnv.getContext("2d");
+  ctx.scale(dpr,dpr);
+  const sw=img.naturalWidth/COLS, sh=img.naturalHeight/ROWS;
+  ctx.drawImage(img, p.col*sw, p.row*sh, sw, sh, 0,0, pw, ph);
+}
+
+function getCellEl(slot) {
+  return document.querySelector(`.cell[data-slot="${slot}"]`);
+}
+
+function highlightCell(slot, on) {
+  const cell=getCellEl(slot);
+  if(!cell) return;
+  const grp=getGroup(slot);
+  if(on) {
+    grp.forEach(s=>getCellEl(s)?.classList.add("selected"));
+  } else {
+    grp.forEach(s=>getCellEl(s)?.classList.remove("selected"));
+  }
+}
+
+function flashCells(slots) {
+  slots.forEach(s=>{
+    const c=getCellEl(s);
+    if(!c) return;
+    c.classList.add("red-flash");
+    setTimeout(()=>c.classList.remove("red-flash"),500);
+  });
+}
+
+function updateProgress() {
+  const pct=Math.round(locked/(COLS*ROWS)*100);
+  document.getElementById("progFill").style.width=pct+"%";
+}
+
+/* ══════════════════════════════════
+   WIN
+══════════════════════════════════ */
+function showWin() {
+  clearInterval(timerInterval); clearTimeout(idleTimer);
+  const s=elapsed();
+  const m=Math.floor(s/60), sec=s%60;
+  const timeStr=`${m}:${sec.toString().padStart(2,"0")}`;
+
+  const end=Date.now()+3500;
+  (function frame(){
+    confetti({particleCount:7,angle:60, spread:55,origin:{x:0},colors:["#FFE600","#00F5FF","#39FF14","#FF2D78"]});
+    confetti({particleCount:7,angle:120,spread:55,origin:{x:1},colors:["#FFE600","#00F5FF","#39FF14","#FF2D78"]});
+    if(Date.now()<end) requestAnimationFrame(frame);
+  }());
+
+  commentWin(timeStr);
+  setTimeout(()=>{
+    document.getElementById("puzzleScreen").style.display="none";
+    const ws=document.getElementById("winScreen");
+    ws.style.display="flex";
+    document.getElementById("winPlayer").textContent=`${playerName} · ${playerDept}`;
+    document.getElementById("wTime").textContent=timeStr;
+    document.getElementById("wSwaps").textContent=swaps;
+    document.getElementById("wStreak").textContent=`🔥${bestStreak}`;
+    document.getElementById("winImg").src=IMAGE_URL;
+  },1000);
+
+  sendToSupabase({student_name:playerName,department:playerDept,
+    time_spent:s, swaps, best_streak:bestStreak, quest_id:"Jigsaw-01"});
+}
+
+async function sendToSupabase(payload) {
+  try {
+    await fetch(SUPABASE_URL,{method:"POST",
+      headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+  } catch(e){console.warn("Supabase log failed",e);}
+}
+
+function playAgain() {
+  document.getElementById("winScreen").style.display="none";
+  document.getElementById("puzzleScreen").style.display="flex";
+  initPuzzle();
+}
+
+window.addEventListener("resize",()=>{
+  if(document.getElementById("puzzleScreen").style.display==="flex"&&img?.complete) buildGrid();
+});
+</script>
+</body>
+</html>
+HTMLEOF
+echo "done

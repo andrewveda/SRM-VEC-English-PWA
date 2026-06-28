@@ -396,10 +396,15 @@ function initPuzzle() {
 function buildPuzzle() {
   const canvas = document.getElementById("puzzleCanvas");
   const area   = canvas.parentElement;
+  const dpr = window.devicePixelRatio || 1;
   cw = area.clientWidth;
   ch = area.clientHeight;
-  canvas.width  = cw;
-  canvas.height = ch;
+  canvas.width  = cw * dpr;
+  canvas.height = ch * dpr;
+  canvas.style.width  = cw + "px";
+  canvas.style.height = ch + "px";
+  const ctx0 = canvas.getContext("2d");
+  ctx0.scale(dpr, dpr);
 
   // piece size — fit grid with padding
   const padX = 10, padY = 10;
@@ -473,10 +478,12 @@ function drawPiece(ctx, p) {
   roundRect(ctx, p.x, p.y, pw, ph, 4);
   ctx.clip();
 
-  // draw image fragment
+  // draw image fragment — use naturalWidth/Height for full-res source
+  const srcW = img.naturalWidth  || img.width;
+  const srcH = img.naturalHeight || img.height;
   ctx.drawImage(img,
-    p.col*(img.width/COLS), p.row*(img.height/ROWS),
-    img.width/COLS, img.height/ROWS,
+    p.col * (srcW / COLS), p.row * (srcH / ROWS),
+    srcW / COLS,           srcH / ROWS,
     p.x, p.y, pw, ph
   );
 

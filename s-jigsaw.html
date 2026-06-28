@@ -277,6 +277,7 @@ const SUPABASE_URL= "https://yellow-lab-4999.andrewveda.workers.dev/functions/v1
 /* ════════════════════════════════
    STATE
 ════════════════════════════════ */
+let canvas; // Explicitly declared globally to fix ReferenceError
 let playerName = "", playerDept = "";
 let img, cw, ch, pw, ph;       
 let boardX = 0, boardY = 0;    
@@ -288,7 +289,7 @@ let isDragging = false;
 let dragAnchor = null;
 let startPointerX = 0, startPointerY = 0;
 let currentPointerX = 0, currentPointerY = 0;
-const DRAG_THRESHOLD = 7; // Min pixels to switch from tap mode to drag mode
+const DRAG_THRESHOLD = 7; 
 
 let placed = 0, moves = 0;
 let startTime = null, timerInterval = null;
@@ -351,6 +352,7 @@ function elapsed() { return Math.floor((Date.now()-startTime)/1000); }
    NAME RESTORE
 ════════════════════════════════ */
 window.addEventListener("load", ()=>{
+  canvas = document.getElementById("puzzleCanvas"); // Safely bind global reference on page load
   const n = localStorage.getItem("jigName");
   const d = localStorage.getItem("jigDept");
   if (n) document.getElementById("nameInput").value = n;
@@ -392,7 +394,7 @@ function initPuzzle() {
    BUILD PIECES & SHUFFLE
 ════════════════════════════════ */
 function buildPuzzle() {
-  const canvas = document.getElementById("puzzleCanvas");
+  if (!canvas) canvas = document.getElementById("puzzleCanvas");
   const area   = canvas.parentElement;
   const dpr = window.devicePixelRatio || 1;
   cw = area.clientWidth;
@@ -498,29 +500,25 @@ function triggerRedFlash() {
    DRAWING CONTROLLERS
 ════════════════════════════════ */
 function drawAll() {
-  const canvas = document.getElementById("puzzleCanvas");
+  if (!canvas) return;
   const ctx = canvas.getContext("2d");
   ctx.clearRect(0,0,cw,ch);
 
-  // Structural board outline
   ctx.strokeStyle = "rgba(0,245,255,0.15)";
   ctx.lineWidth = 1.5;
   ctx.strokeRect(boardX, boardY, pw*COLS, ph*ROWS);
 
-  // Separate dragging pieces to draw them on top layer
   let draggingCluster = [];
   if (isDragging && dragAnchor) {
     draggingCluster = getCluster(dragAnchor);
   }
 
-  // Draw static items first
   pieces.forEach(p => {
     if (!draggingCluster.some(dc => dc.id === p.id)) {
       drawPiece(ctx, p, 0, 0);
     }
   });
 
-  // Draw dragging cluster items on top with structural offsets
   if (isDragging && dragAnchor) {
     let deltaX = currentPointerX - startPointerX;
     let deltaY = currentPointerY - startPointerY;
@@ -624,19 +622,16 @@ function executeClusterMove(anchor, deltaR, deltaC) {
     }
   });
 
-  // Shift current grouping forward
   cluster.forEach(cp => {
     cp.row += deltaR;
     cp.col += deltaC;
   });
 
-  // Inverse push old structural coordinates back conversely
   destinationOccupants.forEach(tp => {
     tp.row -= deltaR;
     tp.col -= deltaC;
   });
 
-  // Recalculate completions
   let newLocksEarned = 0;
   pieces.forEach(piece => {
     if (!piece.locked && piece.row === piece.tr && piece.col === piece.tc) {
@@ -661,7 +656,6 @@ function executeClusterMove(anchor, deltaR, deltaC) {
       setTimeout(showWin, 700);
     }
   } else {
-    // Valid swap pathway executed, but no blocks absolute-locked. Flash red constraint warning.
     triggerRedFlash();
   }
 
@@ -704,7 +698,6 @@ function onDown(e) {
     return;
   }
 
-  // Anchor dragging tracking points
   dragAnchor = p;
   startPointerX = x;
   startPointerY = y;
@@ -724,7 +717,7 @@ function onMove(e) {
     let distance = Math.hypot(currentPointerX - startPointerX, currentPointerY - startPointerY);
     if (distance > DRAG_THRESHOLD) {
       isDragging = true;
-      selectedPiece = null; // Drag override cancels waiting manual tap indicators
+      selectedPiece = null; 
     }
   }
 
@@ -738,7 +731,6 @@ function onUp(e) {
   e.preventDefault();
 
   if (isDragging) {
-    // Process Drag-and-Drop Resolution
     let totalDeltaX = currentPointerX - startPointerX;
     let totalDeltaY = currentPointerY - startPointerY;
 
@@ -752,7 +744,6 @@ function onUp(e) {
     dragAnchor = null;
     drawAll();
   } else {
-    // Process Tap-to-Swap Resolution
     let p = dragAnchor;
     dragAnchor = null; 
 
@@ -782,14 +773,20 @@ function onUp(e) {
   }
 }
 
-canvas.addEventListener("mousedown",  onDown,  {passive:false});
-canvas.addEventListener("mousemove",  onMove,  {passive:false});
-canvas.addEventListener("mouseup",    onUp,    {passive:false});
-canvas.addEventListener("mouseleave", onUp,    {passive:false});
+// Global script setup execution block safely loading listeners to the DOM node
+window.addEventListener("DOMContentLoaded", () => {
+  canvas = document.getElementById("puzzleCanvas");
+});
 
-canvas.addEventListener("touchstart", onDown,  {passive:false});
-canvas.addEventListener("touchmove",  onMove,  {passive:false});
-canvas.addEventListener("touchend",   onUp,    {passive:false});
+const targetCanvas = document.getElementById("puzzleCanvas");
+targetCanvas.addEventListener("mousedown",  onDown,  {passive:false});
+targetCanvas.addEventListener("mousemove",  onMove,  {passive:false});
+targetCanvas.addEventListener("mouseup",    onUp,    {passive:false});
+targetCanvas.addEventListener("mouseleave", onUp,    {passive:false});
+
+targetCanvas.addEventListener("touchstart", onDown,  {passive:false});
+targetCanvas.addEventListener("touchmove",  onMove,  {passive:false});
+targetCanvas.addEventListener("touchend",   onUp,    {passive:false});
 
 /* ════════════════════════════════
    PROGRESS

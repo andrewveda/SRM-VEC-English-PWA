@@ -135,7 +135,7 @@ body {
   transition: background 0.1s ease;
 }
 
-/* Red Flash Wrong Swap Animation */
+/* Red Flash Animation */
 .flash-red {
   animation: redPulse 0.4s ease-out;
 }
@@ -282,6 +282,14 @@ let img, cw, ch, pw, ph;
 let boardX = 0, boardY = 0;    
 let pieces = [];                
 let selectedPiece = null;       
+
+// Drag-and-Drop parameters
+let isDragging = false;
+let dragAnchor = null;
+let startPointerX = 0, startPointerY = 0;
+let currentPointerX = 0, currentPointerY = 0;
+const DRAG_THRESHOLD = 7; // Min pixels to switch from tap mode to drag mode
+
 let placed = 0, moves = 0;
 let startTime = null, timerInterval = null;
 let isMuted = false;
@@ -369,7 +377,7 @@ function startGame() {
    PUZZLE INIT
 ════════════════════════════════ */
 function initPuzzle() {
-  pieces = []; selectedPiece = null; placed = 0; moves = 0;
+  pieces = []; selectedPiece = null; isDragging = false; dragAnchor = null; placed = 0; moves = 0;
   document.getElementById("movesVal").textContent = "0";
   document.getElementById("placedVal").textContent = `0/${TOTAL}`;
   document.getElementById("progFill").style.width = "0%";
@@ -381,7 +389,7 @@ function initPuzzle() {
 }
 
 /* ════════════════════════════════
-   BUILD PIECES & INITIAL GRID SHUFFLE
+   BUILD PIECES & SHUFFLE
 ════════════════════════════════ */
 function buildPuzzle() {
   const canvas = document.getElementById("puzzleCanvas");
@@ -403,7 +411,6 @@ function buildPuzzle() {
   boardX = Math.floor((cw - pw*COLS) / 2);
   boardY = Math.floor((ch - ph*ROWS) / 2);
 
-  // Generate fixed-grid layouts for uniform slot occupation
   let slots = [];
   for (let r = 0; r < ROWS; r++) {
     for (let c = 0; c < COLS; c++) {
@@ -411,7 +418,6 @@ function buildPuzzle() {
     }
   }
 
-  // Shuffle positions thoroughly until zero elements land on absolute slots instantly
   do {
     slots.sort(() => Math.random() - 0.5);
   } while (slots.some((s, idx) => s.r === Math.floor(idx / COLS) && s.c === (idx % COLS)));
@@ -423,17 +429,16 @@ function buildPuzzle() {
       const currentSlot = slots[idx];
       pieces.push({
         id: idx,
-        tr: r,        // target absolute row
-        tc: c,        // target absolute column
-        row: currentSlot.r, // current grid cell row
-        col: currentSlot.c, // current grid cell col
+        tr: r,        
+        tc: c,        
+        row: currentSlot.r, 
+        col: currentSlot.c, 
         locked: false
       });
       idx++;
     }
   }
 
-  // Double-verify immediate matches (if layout changes cause random matching alignments)
   pieces.forEach(p => {
     if (p.row === p.tr && p.col === p.tc) p.locked = true;
   });
@@ -442,7 +447,7 @@ function buildPuzzle() {
   updateProgress();
   drawAll();
   startTimer();
-  setTimeout(()=>setCommentary(`Tap pieces to shift clusters, ${playerName}! 🧩`), 400);
+  setTimeout(()=>setCommentary(`Drag or tap pieces to shift clusters, ${playerName}! 🧩`), 400);
 }
 
 /* ════════════════════════════════
@@ -462,10 +467,8 @@ function getCluster(startPiece) {
     pieces.forEach(other => {
       if (other.locked || visited.has(other.id)) return;
 
-      // Check current structural adjacency inside the board grid matrix
       let isAdjacent = Math.abs(curr.row - other.row) + Math.abs(curr.col - other.col) === 1;
       if (isAdjacent) {
-        // Evaluate if their current layout matches their real asset coordinate offsets
         let currentDR = curr.row - other.row;
         let currentDC = curr.col - other.col;
         let targetDR = curr.tr - other.tr;
@@ -487,7 +490,7 @@ function getCluster(startPiece) {
 function triggerRedFlash() {
   const area = document.querySelector('.puzzle-area');
   area.classList.remove('flash-red');
-  void area.offsetWidth; // Trigger layout engine reflow
+  void area.offsetWidth; 
   area.classList.add('flash-red');
 }
 
@@ -499,19 +502,37 @@ function drawAll() {
   const ctx = canvas.getContext("2d");
   ctx.clearRect(0,0,cw,ch);
 
-  // Structural board baseline outline
+  // Structural board outline
   ctx.strokeStyle = "rgba(0,245,255,0.15)";
   ctx.lineWidth = 1.5;
   ctx.strokeRect(boardX, boardY, pw*COLS, ph*ROWS);
 
-  // Render grid fragments dynamically
-  pieces.forEach(p => drawPiece(ctx, p));
+  // Separate dragging pieces to draw them on top layer
+  let draggingCluster = [];
+  if (isDragging && dragAnchor) {
+    draggingCluster = getCluster(dragAnchor);
+  }
+
+  // Draw static items first
+  pieces.forEach(p => {
+    if (!draggingCluster.some(dc => dc.id === p.id)) {
+      drawPiece(ctx, p, 0, 0);
+    }
+  });
+
+  // Draw dragging cluster items on top with structural offsets
+  if (isDragging && dragAnchor) {
+    let deltaX = currentPointerX - startPointerX;
+    let deltaY = currentPointerY - startPointerY;
+    draggingCluster.forEach(p => {
+      drawPiece(ctx, p, deltaX, deltaY, true);
+    });
+  }
 }
 
-function drawPiece(ctx, p) {
-  // Convert grid row/col to precise absolute coordinates
-  let x = boardX + p.col * pw;
-  let y = boardY + p.row * ph;
+function drawPiece(ctx, p, offsetX, offsetY, isClusterDragged = false) {
+  let x = boardX + p.col * pw + offsetX;
+  let y = boardY + p.row * ph + offsetY;
 
   ctx.save();
   roundRect(ctx, x, y, pw, ph, 4);
@@ -526,20 +547,17 @@ function drawPiece(ctx, p) {
     x, y, pw, ph
   );
 
-  // Identify selection group paths
-  let isSelectedCluster = false;
-  if (selectedPiece) {
+  let isSelectedInTapMode = false;
+  if (!isDragging && selectedPiece) {
     let activeCluster = getCluster(selectedPiece);
-    isSelectedCluster = activeCluster.some(cp => cp.id === p.id);
+    isSelectedInTapMode = activeCluster.some(cp => cp.id === p.id);
   }
 
   if (p.locked) {
-    // Locked configuration: Neon green high-intensity highlight border
     ctx.strokeStyle = "rgba(57,255,20,0.85)";
     ctx.lineWidth = 3;
     ctx.stroke();
-  } else if (isSelectedCluster) {
-    // Active selection group cluster highlight
+  } else if (isClusterDragged || isSelectedInTapMode) {
     ctx.strokeStyle = "#FFE600";
     ctx.lineWidth = 3;
     ctx.stroke();
@@ -565,10 +583,94 @@ function roundRect(ctx, x, y, w, h, r) {
 }
 
 /* ════════════════════════════════
-   TAP TO SWAP COMPONENT INTERACTION
+   UNIFIED EXECUTE CORE SWAP MOVE
 ════════════════════════════════ */
-const canvas = document.getElementById("puzzleCanvas");
+function executeClusterMove(anchor, deltaR, deltaC) {
+  let cluster = getCluster(anchor);
+  let moveValid = true;
+  let targetCoordinates = [];
 
+  for (let cp of cluster) {
+    let targetRow = cp.row + deltaR;
+    let targetCol = cp.col + deltaC;
+
+    if (targetRow < 0 || targetRow >= ROWS || targetCol < 0 || targetCol >= COLS) {
+      moveValid = false;
+      break;
+    }
+    
+    targetCoordinates.push({ r: targetRow, c: targetCol });
+
+    let occupyingPiece = pieces.find(p => p.row === targetRow && p.col === targetCol);
+    if (occupyingPiece && occupyingPiece.locked) {
+      moveValid = false;
+      break;
+    }
+  }
+
+  if (!moveValid) {
+    triggerRedFlash();
+    return false;
+  }
+
+  moves++;
+  document.getElementById("movesVal").textContent = moves;
+
+  let destinationOccupants = [];
+  targetCoordinates.forEach(coord => {
+    let match = pieces.find(p => p.row === coord.r && p.col === coord.c);
+    if (match && !cluster.some(cp => cp.id === match.id)) {
+      destinationOccupants.push(match);
+    }
+  });
+
+  // Shift current grouping forward
+  cluster.forEach(cp => {
+    cp.row += deltaR;
+    cp.col += deltaC;
+  });
+
+  // Inverse push old structural coordinates back conversely
+  destinationOccupants.forEach(tp => {
+    tp.row -= deltaR;
+    tp.col -= deltaC;
+  });
+
+  // Recalculate completions
+  let newLocksEarned = 0;
+  pieces.forEach(piece => {
+    if (!piece.locked && piece.row === piece.tr && piece.col === piece.tc) {
+      piece.locked = true;
+      newLocksEarned++;
+    }
+  });
+
+  placed = pieces.filter(piece => piece.locked).length;
+  updateProgress();
+
+  if (newLocksEarned > 0) {
+    confetti({ particleCount:25, spread:45, origin:{y:0.5}, colors:["#FFE600","#00F5FF","#39FF14"] });
+    let pct = Math.round(placed/TOTAL*100);
+    let milestone = [25,50,75].find(m=>pct>=m && pct-Math.round(100/TOTAL)<m);
+    let msg = milestone
+      ? milestones[milestone](playerName)
+      : correctLines[Math.floor(Math.random()*correctLines.length)](playerName);
+    setCommentary(msg);
+
+    if (placed === TOTAL) {
+      setTimeout(showWin, 700);
+    }
+  } else {
+    // Valid swap pathway executed, but no blocks absolute-locked. Flash red constraint warning.
+    triggerRedFlash();
+  }
+
+  return true;
+}
+
+/* ════════════════════════════════
+   HYBRID INTERACTION POINTER CORES
+════════════════════════════════ */
 function getPos(e) {
   const rect = canvas.getBoundingClientRect();
   const scaleX = cw / rect.width;
@@ -589,136 +691,105 @@ function onDown(e) {
   e.preventDefault();
   const {x, y} = getPos(e);
 
-  // Compute targeted grid matrix location mapping
   let col = Math.floor((x - boardX) / pw);
   let row = Math.floor((y - boardY) / ph);
 
-  // Disregard boundary out of range tap event registrations
   if (row < 0 || row >= ROWS || col < 0 || col >= COLS) return;
 
   let p = pieces.find(piece => piece.row === row && piece.col === col);
   if (!p) return;
 
-  // Rule 1: Prevent interaction actions shifting absolutely locked pieces
   if (p.locked) {
     triggerRedFlash();
     return;
   }
 
-  if (!selectedPiece) {
-    selectedPiece = p;
-  } else {
-    // Tapped identical cluster item or self token cancels current state
-    if (selectedPiece.id === p.id) {
-      selectedPiece = null;
-      drawAll();
-      return;
+  // Anchor dragging tracking points
+  dragAnchor = p;
+  startPointerX = x;
+  startPointerY = y;
+  currentPointerX = x;
+  currentPointerY = y;
+  isDragging = false; 
+}
+
+function onMove(e) {
+  if (!dragAnchor) return;
+  e.preventDefault();
+  const {x, y} = getPos(e);
+  currentPointerX = x;
+  currentPointerY = y;
+
+  if (!isDragging) {
+    let distance = Math.hypot(currentPointerX - startPointerX, currentPointerY - startPointerY);
+    if (distance > DRAG_THRESHOLD) {
+      isDragging = true;
+      selectedPiece = null; // Drag override cancels waiting manual tap indicators
     }
-
-    let cluster = getCluster(selectedPiece);
-
-    // If second item falls inside identical relative structure, redirect anchor item
-    if (cluster.some(cp => cp.id === p.id)) {
-      selectedPiece = p;
-      drawAll();
-      return;
-    }
-
-    let deltaR = p.row - selectedPiece.row;
-    let deltaC = p.col - selectedPiece.col;
-
-    // Validate relative group translations inside strict board index parameters
-    let moveValid = true;
-    let targetCoordinates = [];
-
-    for (let cp of cluster) {
-      let targetRow = cp.row + deltaR;
-      let targetCol = cp.col + deltaC;
-
-      if (targetRow < 0 || targetRow >= ROWS || targetCol < 0 || targetCol >= COLS) {
-        moveValid = false;
-        break;
-      }
-      
-      targetCoordinates.push({ r: targetRow, c: targetCol });
-
-      // Identify collisions hitting locked block entities
-      let occupyingPiece = pieces.find(p => p.row === targetRow && p.col === targetCol);
-      if (occupyingPiece && occupyingPiece.locked) {
-        moveValid = false;
-        break;
-      }
-    }
-
-    if (!moveValid) {
-      triggerRedFlash();
-      selectedPiece = null;
-      drawAll();
-      return;
-    }
-
-    // Execute synchronous reciprocal block matrix translations
-    moves++;
-    document.getElementById("movesVal").textContent = moves;
-
-    let destinationOccupants = [];
-    targetCoordinates.forEach(coord => {
-      let match = pieces.find(p => p.row === coord.r && p.col === coord.c);
-      if (match && !cluster.some(cp => cp.id === match.id)) {
-        destinationOccupants.push(match);
-      }
-    });
-
-    // Move cluster blocks forward
-    cluster.forEach(cp => {
-      cp.row += deltaR;
-      cp.col += deltaC;
-    });
-
-    // Translate shifted destination elements conversely backward
-    destinationOccupants.forEach(tp => {
-      tp.row -= deltaR;
-      tp.col -= deltaC;
-    });
-
-    // Recalculate absolute locking completions
-    let newLocksEarned = 0;
-    pieces.forEach(piece => {
-      if (!piece.locked && piece.row === piece.tr && piece.col === piece.tc) {
-        piece.locked = true;
-        newLocksEarned++;
-      }
-    });
-
-    placed = pieces.filter(piece => piece.locked).length;
-    updateProgress();
-
-    if (newLocksEarned > 0) {
-      // Piece locked successfully: Green bursts & audio visual progress affirmation
-      confetti({ particleCount:25, spread:45, origin:{y:0.5}, colors:["#FFE600","#00F5FF","#39FF14"] });
-      let pct = Math.round(placed/TOTAL*100);
-      let milestone = [25,50,75].find(m=>pct>=m && pct-Math.round(100/TOTAL)<m);
-      let msg = milestone
-        ? milestones[milestone](playerName)
-        : correctLines[Math.floor(Math.random()*correctLines.length)](playerName);
-      setCommentary(msg);
-
-      if (placed === TOTAL) {
-        setTimeout(showWin, 700);
-      }
-    } else {
-      // Wrong Swap: Safe shift completed, but nothing locked permanently. Flash red.
-      triggerRedFlash();
-    }
-
-    selectedPiece = null;
   }
 
-  drawAll();
+  if (isDragging) {
+    drawAll();
+  }
+}
+
+function onUp(e) {
+  if (!dragAnchor) return;
+  e.preventDefault();
+
+  if (isDragging) {
+    // Process Drag-and-Drop Resolution
+    let totalDeltaX = currentPointerX - startPointerX;
+    let totalDeltaY = currentPointerY - startPointerY;
+
+    let deltaCol = Math.round(totalDeltaX / pw);
+    let deltaRow = Math.round(totalDeltaY / ph);
+
+    if (deltaCol !== 0 || deltaRow !== 0) {
+      executeClusterMove(dragAnchor, deltaRow, deltaCol);
+    }
+    isDragging = false;
+    dragAnchor = null;
+    drawAll();
+  } else {
+    // Process Tap-to-Swap Resolution
+    let p = dragAnchor;
+    dragAnchor = null; 
+
+    if (!selectedPiece) {
+      selectedPiece = p;
+    } else {
+      if (selectedPiece.id === p.id) {
+        selectedPiece = null;
+        drawAll();
+        return;
+      }
+
+      let cluster = getCluster(selectedPiece);
+      if (cluster.some(cp => cp.id === p.id)) {
+        selectedPiece = p;
+        drawAll();
+        return;
+      }
+
+      let deltaR = p.row - selectedPiece.row;
+      let deltaC = p.col - selectedPiece.col;
+
+      executeClusterMove(selectedPiece, deltaR, deltaC);
+      selectedPiece = null;
+    }
+    drawAll();
+  }
 }
 
 canvas.addEventListener("mousedown",  onDown,  {passive:false});
+canvas.addEventListener("mousemove",  onMove,  {passive:false});
+canvas.addEventListener("mouseup",    onUp,    {passive:false});
+canvas.addEventListener("mouseleave", onUp,    {passive:false});
+
 canvas.addEventListener("touchstart", onDown,  {passive:false});
+canvas.addEventListener("touchmove",  onMove,  {passive:false});
+canvas.addEventListener("touchend",   onUp,    {passive:false});
 
 /* ════════════════════════════════
    PROGRESS
@@ -753,11 +824,11 @@ function showWin() {
   document.getElementById("wMoves").textContent = moves;
   document.getElementById("winImg").src = IMAGE_URL;
 
-  const msg = `Congratulations ${playerName}! Puzzle completed beautifully in ${timeStr}!`;
+  const msg = `Congratulations ${playerName}! Puzzle completed inside ${timeStr}!`;
   setCommentary(msg);
 
   sendToSupabase({ student_name:playerName, department:playerDept,
-                   time_spent:s, moves, quest_id:"Jigsaw-GridSwap" });
+                   time_spent:s, moves, quest_id:"Jigsaw-HybridSwap" });
 }
 
 async function sendToSupabase(payload) {
@@ -767,11 +838,11 @@ async function sendToSupabase(payload) {
       headers:{"Content-Type":"application/json"},
       body: JSON.stringify(payload)
     });
-  } catch(e) { console.warn("Supabase transmission failure logs:", e); }
+  } catch(e) { console.warn("Supabase log dropped:", e); }
 }
 
 /* ════════════════════════════════
-   PLAY AGAINRESET
+   PLAY AGAIN RESET
 ════════════════════════════════ */
 function playAgain() {
   document.getElementById("winScreen").style.display = "none";
@@ -779,7 +850,6 @@ function playAgain() {
   initPuzzle();
 }
 
-/* Screen Configuration Resize Adjustments */
 window.addEventListener("resize", ()=>{
   if (document.getElementById("puzzleScreen").style.display==="flex" && img?.complete) {
     buildPuzzle();

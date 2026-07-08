@@ -4,12 +4,14 @@
   <link rel="icon" type="image/png" href="icons/icon-96x96.png">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SRM VEC English — Mission Control</title>
+  <title>SRM VEC English — Quest Hub</title>
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#ffffff">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;900&family=DM+Mono:wght@300;400;500&family=Crimson+Pro:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+
+  <script src="/SRM-VEC-English-PWA/auth-guard.js"></script>
 
   <style>
     :root {
@@ -26,8 +28,8 @@
       --text: #2a2a2a;
       --text-muted: #7a766f;
       --text-dim: #b0a99f;
+      --green: #23d18b;
 
-      --green-light: #4CAF50;
       --border: rgba(201,168,76,0.35);
       --border-dim: rgba(0,0,0,0.06);
     }
@@ -42,7 +44,7 @@
       overflow-x: hidden;
     }
 
-    /* Noise Overlay */
+    /* Ambient noise background */
     body::before {
       content: '';
       position: fixed;
@@ -81,7 +83,7 @@
       flex-direction: column;
     }
 
-    /* Header */
+    /* Top Bar */
     .topbar {
       display: flex;
       align-items: center;
@@ -133,7 +135,7 @@
       object-fit: cover;
     }
 
-    /* Main Grid View */
+    /* Main View Area */
     .main {
       flex: 1;
       padding: 16px 16px 40px;
@@ -179,7 +181,7 @@
       background: var(--border-dim);
     }
 
-    /* Grid layout */
+    /* Mission Grid */
     .mission-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -219,7 +221,7 @@
       letter-spacing: 0.5px;
     }
 
-    /* Wide Tile */
+    /* Wide Tile Format */
     .mission-tile.wide {
       grid-column: span 2;
       flex-direction: row;
@@ -268,7 +270,7 @@
       text-transform: uppercase;
     }
 
-    /* Auth Overlay */
+    /* Auth Overlay Card Style */
     .login-overlay {
       position: fixed;
       inset: 0;
@@ -284,55 +286,97 @@
       background: linear-gradient(145deg, #ffffff, #f8f2e8);
       border: 1px solid var(--border);
       border-radius: 20px;
-      padding: 36px 28px;
+      padding: 30px 24px;
       width: 90%;
-      max-width: 380px;
-      text-align: center;
+      max-width: 400px;
       box-shadow: 0 12px 35px rgba(0,0,0,0.08);
     }
 
-    .login-card .card-title {
+    .login-title {
       font-family: 'Playfair Display', serif;
-      font-size: 1.6rem;
-      font-weight: 700;
-      color: var(--text);
-      margin-bottom: 4px;
-    }
-
-    .login-card .card-org {
-      font-size: 0.6rem;
+      font-size: 1.2rem;
       letter-spacing: 2px;
       color: var(--gold);
-      text-transform: uppercase;
-      margin-bottom: 24px;
+      text-align: center;
+      margin-bottom: 1.5rem;
     }
 
-    .github-btn {
-      width: 100%;
-      background: #24292e;
-      color: white;
-      border: none;
-      border-radius: 10px;
-      padding: 12px;
-      font-family: 'DM Mono', monospace;
-      font-size: 0.75rem;
-      letter-spacing: 1px;
-      cursor: pointer;
+    /* GitHub Identity Card */
+    .gh-identity {
+      margin-bottom: 1.5rem;
+      border: 1px solid rgba(201,168,76,0.3);
+      border-radius: 14px;
+      padding: 1rem;
+      background: var(--gold-dim);
       display: flex;
       align-items: center;
-      justify-content: center;
-      gap: 10px;
-      transition: all 0.2s;
+      gap: 1rem;
     }
 
-    .github-btn:hover {
-      background: #000000;
-      transform: translateY(-1px);
+    .gh-avatar {
+      width: 48px; height: 48px; border-radius: 50%;
+      border: 2px solid var(--gold);
+      object-fit: cover; flex-shrink: 0;
+      background: #ffffff;
     }
 
-    .github-btn svg { width: 18px; height: 18px; fill: currentColor; }
+    .gh-avatar-fallback {
+      width: 48px; height: 48px; border-radius: 50%;
+      border: 2px solid var(--gold);
+      background: var(--surface2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.2rem; color: var(--gold); flex-shrink: 0;
+    }
 
-    /* Profile Drawer */
+    .gh-info { flex: 1; min-width: 0; }
+    .gh-name {
+      font-size: .92rem; font-weight: 700; color: var(--text);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .gh-handle { font-size: .75rem; color: var(--text-muted); margin-top: .1rem; }
+    .gh-badge {
+      display: inline-flex; align-items: center; gap: .35rem;
+      font-size: .65rem; letter-spacing: .08em; text-transform: uppercase;
+      color: var(--green); margin-top: .25rem;
+    }
+    .gh-badge::before {
+      content: ''; display: inline-block;
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--green);
+    }
+
+    .field-label {
+      display: block;
+      font-size: .68rem; letter-spacing: .12em; text-transform: uppercase;
+      color: var(--text-muted); margin-bottom: .4rem; margin-top: 1rem;
+    }
+
+    select {
+      width: 100%; padding: .75rem 1rem;
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text); font-family: 'DM Mono', monospace; font-size: .85rem;
+      outline: none; transition: border-color .2s; appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23c9a84c' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+    }
+
+    select:focus { border-color: var(--gold); }
+
+    .btn-launch {
+      width: 100%; margin-top: 1.5rem; padding: .85rem;
+      background: linear-gradient(135deg, var(--gold), var(--gold-light));
+      color: #ffffff; font-family: 'DM Mono', monospace; font-size: .85rem; font-weight: 700;
+      border: none; border-radius: 10px; cursor: pointer; letter-spacing: .05em;
+      text-transform: uppercase;
+      box-shadow: 0 4px 15px rgba(201,168,76,0.25); transition: all .2s;
+    }
+
+    .btn-launch:hover { transform: translateY(-1px); filter: brightness(1.05); }
+
+    /* Drawer */
     .drawer-overlay {
       position: fixed; inset: 0;
       background: rgba(0,0,0,0.3);
@@ -381,15 +425,42 @@
 
 <div class="ambient"></div>
 
-<div class="login-overlay" id="loginOverlay">
+<div class="login-overlay" id="screenLogin">
   <div class="login-card">
-    <h1 class="card-title">Veni Vidi Vici</h1>
-    <p class="card-org">SRM VEC English Portal</p>
-    
-    <button class="github-btn" onclick="loginWithGitHub()">
-      <svg viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
-      Continue with GitHub
-    </button>
+    <div class="login-title">MISSION BRIEFING</div>
+
+    <div class="gh-identity" id="ghIdentityCard">
+      <div id="ghAvatarSlot"></div>
+      <div class="gh-info">
+        <div class="gh-name" id="ghDisplayName">Loading…</div>
+        <div class="gh-handle" id="ghHandleText"></div>
+        <div class="gh-badge">GitHub Authenticated</div>
+      </div>
+    </div>
+
+    <label class="field-label" for="deptSelect">Department</label>
+    <select id="deptSelect">
+      <option value="">— Select your department —</option>
+      <option value="Cyber Security">Cyber Security</option>
+      <option value="CSE-1">CSE-1</option>
+      <option value="CSE-2">CSE-2</option>
+      <option value="CSE-3">CSE-3</option>
+      <option value="Mechanical Engineering">Mechanical Engineering</option>
+      <option value="ECE-1">ECE-1</option>
+      <option value="ECE-2">ECE-2</option>
+      <option value="ECE-3">ECE-3</option>
+      <option value="AI DS-1">AI DS-1</option>
+      <option value="AI DS-2">AI DS-2</option>
+      <option value="Civil">Civil</option>
+      <option value="Agri">Agri</option>
+      <option value="EEE">EEE</option>
+      <option value="EIE">EIE</option>
+      <option value="Medical Electronics">Medical Electronics</option>
+      <option value="IT-1">IT-1</option>
+      <option value="IT-2">IT-2</option>
+    </select>
+
+    <button class="btn-launch" id="launchBtn" onclick="handleLaunch()">Enter Mission Control 🚀</button>
   </div>
 </div>
 
@@ -397,7 +468,7 @@
 <div class="drawer" id="drawer">
   <div class="drawer-top">
     <div style="font-family:'Playfair Display', serif; font-weight:700; font-size:1.1rem;" id="drawerName">—</div>
-    <div style="font-size:0.6rem; color:var(--gold); letter-spacing:1px; margin-top:2px;" id="drawerDept">ENGINEERING</div>
+    <div style="font-size:0.6rem; color:var(--gold); letter-spacing:1px; margin-top:2px;" id="drawerDept">—</div>
   </div>
   <div class="drawer-body">
     <p style="font-size:0.6rem; color:var(--text-dim); text-transform:uppercase; letter-spacing:1px; margin-bottom:12px;">Quick Access</p>
@@ -423,7 +494,7 @@
 
     <div class="student-strip">
       <div class="student-name" id="studentName">—</div>
-      <div class="student-dept" id="studentDept">SRM VEC</div>
+      <div class="student-dept" id="studentDept">—</div>
     </div>
 
     <div class="section-label">Missions & Directory</div>
@@ -526,79 +597,83 @@
   </div>
 </div>
 
-<script type="module">
-  import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm";
-
-  // Initialize Supabase Client
-  const supabase = createClient(
-    "https://yellow-lab-4999.andrewveda.workers.dev",
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoZXpzc29jenZwYmt0ZWZmY2d6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI4NTk1ODUsImV4cCI6MjA3ODQzNTU4NX0.2ZlqXnZxv0opkhynAT7OlK4S-xPygcc7ETUyTXRfGHE"
-  );
-
-  const quotes = [
-    { text: "Ever tried. Ever failed. No matter. Try again. Fail again. Fail better.", attr: "Samuel Beckett" },
-    { text: "Do or do not. There is no try.", attr: "Yoda" },
-    { text: "The opposite of a profound truth may well be another profound truth.", attr: "Niels Bohr" }
-  ];
-
-  async function init() {
-    setupQuoteCarousel();
-    
-    // Check Active Auth Session
-    const { data: { session } } = await supabase.auth.getSession();
-
-    if (session) {
-      handleUserSession(session.user);
-    } else {
-      document.getElementById("loginOverlay").style.display = "flex";
-      document.getElementById("appShell").style.display = "none";
+<script>
+  /* Helper Utilities */
+  function makeAvatar(src, fallbackChar, size) {
+    if (src) {
+      const img = document.createElement('img');
+      img.src = src;
+      img.className = 'gh-avatar';
+      img.style.cssText = `width:${size}px;height:${size}px;`;
+      img.onerror = () => img.replaceWith(makeFallback(fallbackChar, size));
+      return img;
     }
-
-    // Listen to Auth State Changes
-    supabase.auth.onAuthStateChange((_event, session) => {
-      if (session) {
-        handleUserSession(session.user);
-      } else {
-        document.getElementById("loginOverlay").style.display = "flex";
-        document.getElementById("appShell").style.display = "none";
-      }
-    });
+    return makeFallback(fallbackChar, size);
   }
 
-  function handleUserSession(user) {
-    const name = user.user_metadata.full_name || user.email.split('@')[0];
-    const avatar = user.user_metadata.avatar_url;
+  function makeFallback(char, size) {
+    const d = document.createElement('div');
+    d.className = 'gh-avatar-fallback';
+    d.style.cssText = `width:${size}px;height:${size}px;`;
+    d.textContent = (char || '?')[0].toUpperCase();
+    return d;
+  }
 
-    document.getElementById("loginOverlay").style.display = "none";
-    document.getElementById("appShell").style.display = "flex";
+  /* Identity Population */
+  function populateIdentity() {
+    // Read GH global populated by auth-guard.js
+    const displayName = window.GH?.name || window.GH?.username || 'GitHub User';
+    const handle = window.GH?.username ? `@${window.GH.username}` : '';
+    const avatar = window.GH?.avatar || '';
 
-    document.getElementById("studentName").textContent = name;
-    document.getElementById("drawerName").textContent = name;
+    // Login screen elements
+    document.getElementById('ghDisplayName').textContent = displayName;
+    document.getElementById('ghHandleText').textContent = handle;
+    const ghSlot = document.getElementById('ghAvatarSlot');
+    ghSlot.innerHTML = '';
+    ghSlot.appendChild(makeAvatar(avatar, displayName, 48));
 
-    const avatarBtn = document.getElementById("avatarBtn");
-    if (avatar) {
-      avatarBtn.innerHTML = `<img src="${avatar}" alt="User Avatar">`;
-    } else {
-      avatarBtn.textContent = name.charAt(0).toUpperCase();
+    // Department selection recovery
+    const savedDept = localStorage.getItem('vfv_dept') || localStorage.getItem('userDept') || window.GH?.dept;
+    if (savedDept) {
+      const sel = document.getElementById('deptSelect');
+      if ([...sel.options].some(o => o.value === savedDept)) sel.value = savedDept;
+      
+      // If department is already chosen, auto-launch into shell
+      enterApp(displayName, savedDept, avatar);
     }
   }
 
-  // GitHub Auth Handler
-  window.loginWithGitHub = async function() {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'github',
-      options: {
-        redirectTo: window.location.href
-      }
-    });
-    if (error) console.error("Error signing in:", error.message);
-  };
+  function handleLaunch() {
+    const dept = document.getElementById('deptSelect').value;
+    if (!dept) { alert('Please select your department!'); return; }
 
-  window.logout = async function() {
-    await supabase.auth.signOut();
-    window.location.reload();
-  };
+    // Save choice across local variables
+    if (window.GH) window.GH.dept = dept;
+    localStorage.setItem('vfv_dept', dept);
+    localStorage.setItem('userDept', dept);
 
+    const displayName = window.GH?.name || window.GH?.username || 'GitHub User';
+    const avatar = window.GH?.avatar || '';
+    enterApp(displayName, dept, avatar);
+  }
+
+  function enterApp(name, dept, avatar) {
+    document.getElementById('screenLogin').style.display = 'none';
+    document.getElementById('appShell').style.display = 'flex';
+
+    document.getElementById('studentName').textContent = name;
+    document.getElementById('studentDept').textContent = dept;
+
+    document.getElementById('drawerName').textContent = name;
+    document.getElementById('drawerDept').textContent = dept;
+
+    const avatarBtn = document.getElementById('avatarBtn');
+    avatarBtn.innerHTML = '';
+    avatarBtn.appendChild(makeAvatar(avatar, name, 38));
+  }
+
+  /* Drawer Handlers */
   window.openDrawer = () => {
     document.getElementById("drawer").classList.add("open");
     document.getElementById("drawerOverlay").classList.add("open");
@@ -608,6 +683,19 @@
     document.getElementById("drawer").classList.remove("open");
     document.getElementById("drawerOverlay").classList.remove("open");
   };
+
+  window.logout = () => {
+    localStorage.removeItem('vfv_dept');
+    localStorage.removeItem('userDept');
+    window.location.reload();
+  };
+
+  /* Carousel Logic */
+  const quotes = [
+    { text: "Ever tried. Ever failed. No matter. Try again. Fail again. Fail better.", attr: "Samuel Beckett" },
+    { text: "Do or do not. There is no try.", attr: "Yoda" },
+    { text: "The opposite of a profound truth may well be another profound truth.", attr: "Niels Bohr" }
+  ];
 
   function setupQuoteCarousel() {
     let qi = 0;
@@ -624,7 +712,11 @@
     }, 4000);
   }
 
-  init();
+  /* Init */
+  (function init() {
+    populateIdentity();
+    setupQuoteCarousel();
+  })();
 </script>
 
 <script>

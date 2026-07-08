@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="icon" type="image/png" href="icons/icon-96x96.png">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SRM VEC English — Mission Control</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#ffffff">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;900&family=DM+Mono:wght@300;400;500&family=Crimson+Pro:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --obsidian: #ffffff;
+      --deep: #faf7f2;
+      --surface: #ffffff;
+      --surface2: #f5efe6;
+
+      --gold: #c9a84c;
+      --gold-light: #e8c97a;
+      --gold-dim: rgba(201,168,76,0.12);
+
+      --crimson: #7A0019;
+      --text: #2a2a2a;
+      --text-muted: #7a766f;
+      --text-dim: #b0a99f;
+
+      --green-light: #4CAF50;
+      --border: rgba(201,168,76,0.35);
+      --border-dim: rgba(0,0,0,0.06);
+    }
+
+    * { margin:0; padding:0; box-sizing:border-box; }
+
+    body {
+      font-family: 'DM Mono', monospace;
+      background: var(--obsidian);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Noise Overlay */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.015'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 9999;
+      opacity: 0.35;
+    }
+
+    .ambient {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+    }
+    .ambient::before {
+      content:'';
+      position:absolute;
+      top:-20%; left:-10%;
+      width:60vw; height:60vw;
+      background: radial-gradient(circle, rgba(201,168,76,0.08), transparent 70%);
+      animation: breathe 10s ease-in-out infinite;
+    }
+    @keyframes breathe {
+      0%,100% { transform: scale(1); opacity: 0.4; }
+      50% { transform: scale(1.15); opacity: 1; }
+    }
+
+    .app {
+      position: relative;
+      z-index: 1;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Header */
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 20px;
+      background: rgba(255,255,255,0.85);
+      backdrop-filter: blur(18px);
+      border-bottom: 1px solid var(--border-dim);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .topbar-brand .org {
+      font-size: 0.52rem;
+      letter-spacing: 2.5px;
+      color: var(--gold);
+      text-transform: uppercase;
+      display: block;
+    }
+
+    .topbar-brand .dept {
+      font-family: 'Playfair Display', serif;
+      font-size: 1rem;
+      font-weight: 700;
+      color: #1f1f1f;
+    }
+
+    .avatar-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: var(--gold-dim);
+      border: 1.5px solid var(--gold);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 0.85rem;
+      color: var(--gold);
+      font-family: 'Playfair Display', serif;
+      font-weight: 700;
+      overflow: hidden;
+    }
+
+    .avatar-btn img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    /* Main Grid View */
+    .main {
+      flex: 1;
+      padding: 16px 16px 40px;
+      max-width: 650px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .student-strip {
+      text-align: center;
+      padding: 10px 0 16px;
+    }
+
+    .student-name {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.5rem;
+      font-weight: 900;
+      color: var(--text);
+    }
+
+    .student-dept {
+      font-size: 0.65rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-top: 2px;
+    }
+
+    .section-label {
+      font-size: 0.55rem;
+      letter-spacing: 2.5px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      margin: 16px 0 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .section-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border-dim);
+    }
+
+    /* Grid layout */
+    .mission-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .mission-tile {
+      background: linear-gradient(145deg, #ffffff, #f8f2e8);
+      border: 1px solid var(--border-dim);
+      border-radius: 12px;
+      padding: 14px 12px;
+      text-decoration: none;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      transition: all 0.25s ease;
+      position: relative;
+    }
+
+    .mission-tile:hover {
+      transform: translateY(-2px);
+      border-color: var(--gold);
+      box-shadow: 0 8px 25px rgba(201,168,76,0.15);
+    }
+
+    .mission-tile .tile-icon { font-size: 1.1rem; }
+    .mission-tile .tile-label {
+      font-family: 'Playfair Display', serif;
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .mission-tile .tile-sub {
+      font-size: 0.55rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* Wide Tile */
+    .mission-tile.wide {
+      grid-column: span 2;
+      flex-direction: row;
+      align-items: center;
+      padding: 12px 16px;
+      gap: 12px;
+    }
+
+    .tile-icon-wrap {
+      width: 38px; height: 38px;
+      border-radius: 8px;
+      background: var(--gold-dim);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      flex-shrink: 0;
+    }
+
+    .mission-tile.wide .tile-text { flex: 1; }
+    .tile-arrow { color: var(--gold); font-size: 0.85rem; }
+
+    /* Quote Strip */
+    .quote-strip {
+      background: linear-gradient(145deg, #ffffff, #f6efe5);
+      border: 1px solid var(--border-dim);
+      border-radius: 12px;
+      padding: 14px 16px;
+      font-family: 'Crimson Pro', serif;
+      font-style: italic;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      margin-top: 10px;
+      display: block;
+      text-decoration: none;
+      transition: opacity 0.5s;
+    }
+
+    .quote-attr {
+      margin-top: 4px;
+      font-size: 0.58rem;
+      letter-spacing: 1.5px;
+      color: var(--gold);
+      font-style: normal;
+      font-family: 'DM Mono', monospace;
+      text-transform: uppercase;
+    }
+
+    /* Auth Overlay */
+    .login-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 500;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255,255,255,0.96);
+      backdrop-filter: blur(12px);
+    }
+
+    .login-card {
+      background: linear-gradient(145deg, #ffffff, #f8f2e8);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 36px 28px;
+      width: 90%;
+      max-width: 380px;
+      text-align: center;
+      box-shadow: 0 12px 35px rgba(0,0,0,0.08);
+    }
+
+    .login-card .card-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+
+    .login-card .card-org {
+      font-size: 0.6rem;
+      letter-spacing: 2px;
+      color: var(--gold);
+      text-transform: uppercase;
+      margin-bottom: 24px;
+    }
+
+    .github-btn {
+      width: 100%;
+      background: #24292e;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      padding: 12px;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.75rem;
+      letter-spacing: 1px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      transition: all 0.2s;
+    }
+
+    .github-btn:hover {
+      background: #000000;
+      transform: translateY(-1px);
+    }
+
+    .github-btn svg { width: 18px; height: 18px; fill: currentColor; }
+
+    /* Profile Drawer */
+    .drawer-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.3);
+      z-index: 300; display: none;
+      backdrop-filter: blur(3px);
+    }
+    .drawer-overlay.open { display: block; }
+
+    .drawer {
+      position: fixed; top: 0; right: -320px;
+      width: 300px; height: 100%;
+      background: #ffffff;
+      border-left: 1px solid var(--border);
+      z-index: 310; transition: right 0.3s ease;
+      display: flex; flex-direction: column;
+    }
+    .drawer.open { right: 0; }
+
+    .drawer-top { padding: 20px; background: var(--deep); border-bottom: 1px solid var(--border-dim); }
+    .drawer-body { padding: 16px; flex: 1; overflow-y: auto; }
+    .drawer-footer { padding: 16px; border-top: 1px solid var(--border-dim); }
+
+    .logout-btn {
+      width: 100%;
+      background: rgba(122,0,25,0.08);
+      border: 1px solid rgba(122,0,25,0.2);
+      border-radius: 8px;
+      padding: 10px;
+      color: var(--crimson);
+      font-family: 'DM Mono', monospace;
+      font-size: 0.7rem;
+      cursor: pointer;
+    }
+
+    .footer {
+      text-align: center;
+      padding: 24px 12px 12px;
+      font-size: 0.58rem;
+      letter-spacing: 1px;
+      color: var(--text-dim);
+    }
+    .footer a { color: var(--gold); text-decoration: none; }
+  </style>
+</head>
+<body>
+
+<div class="ambient"></div>
+
+<div class="login-overlay" id="loginOverlay">
+  <div class="login-card">
+    <h1 class="card-title">Veni Vidi Vici</h1>
+    <p class="card-org">SRM VEC English Portal</p>
+    
+    <button class="github-btn" onclick="loginWithGitHub()">
+      <svg viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+      Continue with GitHub
+    </button>
+  </div>
+</div>
+
+<div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-top">
+    <div style="font-family:'Playfair Display', serif; font-weight:700; font-size:1.1rem;" id="drawerName">—</div>
+    <div style="font-size:0.6rem; color:var(--gold); letter-spacing:1px; margin-top:2px;" id="drawerDept">ENGINEERING</div>
+  </div>
+  <div class="drawer-body">
+    <p style="font-size:0.6rem; color:var(--text-dim); text-transform:uppercase; letter-spacing:1px; margin-bottom:12px;">Quick Access</p>
+    <a href="https://andrewveda.github.io/V/" style="display:block; padding:8px 0; color:var(--text); text-decoration:none; font-size:0.8rem;">📚 Daily Vocabulary</a>
+    <a href="https://andrewveda.github.io/a-quote-a-day/" style="display:block; padding:8px 0; color:var(--text); text-decoration:none; font-size:0.8rem;">💬 Quote Engine</a>
+  </div>
+  <div class="drawer-footer">
+    <button class="logout-btn" onclick="logout()">Logout</button>
+  </div>
+</div>
+
+<div class="app" id="appShell" style="display:none;">
+
+  <div class="topbar">
+    <div class="topbar-brand">
+      <span class="org">SRM VEC English</span>
+      <span class="dept">Mission Control</span>
+    </div>
+    <div class="avatar-btn" id="avatarBtn" onclick="openDrawer()">?</div>
+  </div>
+
+  <div class="main">
+
+    <div class="student-strip">
+      <div class="student-name" id="studentName">—</div>
+      <div class="student-dept" id="studentDept">SRM VEC</div>
+    </div>
+
+    <div class="section-label">Missions & Directory</div>
+
+    <div class="mission-grid">
+
+      <a class="mission-tile wide" href="https://andrewveda.github.io/SRM-VEC-English-PWA/cat-a">
+        <div class="tile-icon-wrap">🔥</div>
+        <div class="tile-text">
+          <div class="tile-label">Quest Directory</div>
+          <div class="tile-sub">All Academic Missions & Quests</div>
+        </div>
+        <span class="tile-arrow">→</span>
+      </a>
+
+      <a class="mission-tile" href="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/leaderboard_hub">
+        <span class="tile-icon">🏆</span>
+        <div class="tile-label">Leaderboard</div>
+        <div class="tile-sub">Veni Vidi Vici</div>
+      </a>
+
+      <a class="mission-tile" href="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/videoyg">
+        <span class="tile-icon">🎥</span>
+        <div class="tile-label">Video Quests</div>
+        <div class="tile-sub">Songs & Ideas</div>
+      </a>
+
+      <a class="mission-tile" href="https://andrewveda.github.io/V/">
+        <span class="tile-icon">📚</span>
+        <div class="tile-label">Vocabulary</div>
+        <div class="tile-sub">Daily Words</div>
+      </a>
+
+      <a class="mission-tile" href="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/wordle">
+        <span class="tile-icon">🟩</span>
+        <div class="tile-label">Wordle!</div>
+        <div class="tile-sub">Word Puzzle</div>
+      </a>
+
+      <a class="mission-tile wide" href="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/blossomhub">
+        <div class="tile-icon-wrap">🌱</div>
+        <div class="tile-text">
+          <div class="tile-label">Blossom Hub</div>
+          <div class="tile-sub">Plant Beautiful Words</div>
+        </div>
+        <span class="tile-arrow">→</span>
+      </a>
+
+      <a class="mission-tile wide" href="https://andrewveda.github.io/SRM-VEC-English-PWA/wordleblitz">
+        <div class="tile-icon-wrap">⚡</div>
+        <div class="tile-text">
+          <div class="tile-label">Wordle Blitz</div>
+          <div class="tile-sub">Thinking Fast and Slow</div>
+        </div>
+        <span class="tile-arrow">→</span>
+      </a>
+
+      <a class="mission-tile" href="https://andrewveda.github.io/cryptic">
+        <span class="tile-icon">🔍</span>
+        <div class="tile-label">Cryptic</div>
+        <div class="tile-sub">Crossword Challenges</div>
+      </a>
+
+      <a class="mission-tile" href="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/chess">
+        <span class="tile-icon">♟️</span>
+        <div class="tile-label">Chess Tactics</div>
+        <div class="tile-sub">Strategic Thinking</div>
+      </a>
+
+      <a class="mission-tile wide" href="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/bookinsights">
+        <div class="tile-icon-wrap">📖</div>
+        <div class="tile-text">
+          <div class="tile-label">Book Insights</div>
+          <div class="tile-sub">Unlocking Knowledge & Wisdom</div>
+        </div>
+        <span class="tile-arrow">→</span>
+      </a>
+
+      <a class="mission-tile wide" href="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/vox-forum">
+        <div class="tile-icon-wrap">♾️</div>
+        <div class="tile-text">
+          <div class="tile-label">Vox Forum</div>
+          <div class="tile-sub">In Pursuit of Draft ∞</div>
+        </div>
+        <span class="tile-arrow">→</span>
+      </a>
+
+    </div>
+
+    <div class="section-label">Today's Thought</div>
+    <a href="https://andrewveda.github.io/a-quote-a-day/" class="quote-strip" id="quoteStrip">
+      <div id="quoteText">Ever tried. Ever failed. No matter. Try again. Fail again. Fail better.</div>
+      <div class="quote-attr" id="quoteAttr">Samuel Beckett</div>
+    </a>
+
+    <div class="footer">
+      Created with grit, nurtured with love ♥ by <a href="https://andrewveda.github.io/" target="_blank">Andrew Veda</a> · SRM VEC
+    </div>
+
+  </div>
+</div>
+
+<script type="module">
+  import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm";
+
+  // Initialize Supabase Client
+  const supabase = createClient(
+    "https://yellow-lab-4999.andrewveda.workers.dev",
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoZXpzc29jenZwYmt0ZWZmY2d6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI4NTk1ODUsImV4cCI6MjA3ODQzNTU4NX0.2ZlqXnZxv0opkhynAT7OlK4S-xPygcc7ETUyTXRfGHE"
+  );
+
+  const quotes = [
+    { text: "Ever tried. Ever failed. No matter. Try again. Fail again. Fail better.", attr: "Samuel Beckett" },
+    { text: "Do or do not. There is no try.", attr: "Yoda" },
+    { text: "The opposite of a profound truth may well be another profound truth.", attr: "Niels Bohr" }
+  ];
+
+  async function init() {
+    setupQuoteCarousel();
+    
+    // Check Active Auth Session
+    const { data: { session } } = await supabase.auth.getSession();
+
+    if (session) {
+      handleUserSession(session.user);
+    } else {
+      document.getElementById("loginOverlay").style.display = "flex";
+      document.getElementById("appShell").style.display = "none";
+    }
+
+    // Listen to Auth State Changes
+    supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) {
+        handleUserSession(session.user);
+      } else {
+        document.getElementById("loginOverlay").style.display = "flex";
+        document.getElementById("appShell").style.display = "none";
+      }
+    });
+  }
+
+  function handleUserSession(user) {
+    const name = user.user_metadata.full_name || user.email.split('@')[0];
+    const avatar = user.user_metadata.avatar_url;
+
+    document.getElementById("loginOverlay").style.display = "none";
+    document.getElementById("appShell").style.display = "flex";
+
+    document.getElementById("studentName").textContent = name;
+    document.getElementById("drawerName").textContent = name;
+
+    const avatarBtn = document.getElementById("avatarBtn");
+    if (avatar) {
+      avatarBtn.innerHTML = `<img src="${avatar}" alt="User Avatar">`;
+    } else {
+      avatarBtn.textContent = name.charAt(0).toUpperCase();
+    }
+  }
+
+  // GitHub Auth Handler
+  window.loginWithGitHub = async function() {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'github',
+      options: {
+        redirectTo: window.location.href
+      }
+    });
+    if (error) console.error("Error signing in:", error.message);
+  };
+
+  window.logout = async function() {
+    await supabase.auth.signOut();
+    window.location.reload();
+  };
+
+  window.openDrawer = () => {
+    document.getElementById("drawer").classList.add("open");
+    document.getElementById("drawerOverlay").classList.add("open");
+  };
+
+  window.closeDrawer = () => {
+    document.getElementById("drawer").classList.remove("open");
+    document.getElementById("drawerOverlay").classList.remove("open");
+  };
+
+  function setupQuoteCarousel() {
+    let qi = 0;
+    setInterval(() => {
+      qi = (qi + 1) % quotes.length;
+      const strip = document.getElementById("quoteStrip");
+      if (!strip) return;
+      strip.style.opacity = 0;
+      setTimeout(() => {
+        document.getElementById("quoteText").textContent = quotes[qi].text;
+        document.getElementById("quoteAttr").textContent = quotes[qi].attr;
+        strip.style.opacity = 1;
+      }, 500);
+    }, 4000);
+  }
+
+  init();
+</script>
+
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('service-worker.js').catch(() => {});
+    });
+  }
+</script>
+</body>
+</html>

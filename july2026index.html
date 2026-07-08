@@ -4,13 +4,14 @@
   <link rel="icon" type="image/png" href="icons/icon-96x96.png">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SRM VEC English — Quest Hub</title>
+  <title>SRM VEC English — Mission Control</title>
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#ffffff">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;900&family=DM+Mono:wght@300;400;500&family=Crimson+Pro:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
 
+  <!-- AUTH GUARD -->
   <script src="/SRM-VEC-English-PWA/auth-guard.js"></script>
 
   <style>
@@ -44,7 +45,6 @@
       overflow-x: hidden;
     }
 
-    /* Ambient noise background */
     body::before {
       content: '';
       position: fixed;
@@ -135,7 +135,7 @@
       object-fit: cover;
     }
 
-    /* Main View Area */
+    /* Main Container */
     .main {
       flex: 1;
       padding: 16px 16px 40px;
@@ -161,6 +161,34 @@
       letter-spacing: 2px;
       text-transform: uppercase;
       color: var(--gold);
+      margin-top: 2px;
+    }
+
+    /* Stats Grid */
+    .stats-card {
+      background: linear-gradient(145deg, #ffffff, #f8f2e8);
+      border: 1px solid var(--border-dim);
+      border-radius: 14px;
+      padding: 14px;
+      margin-bottom: 12px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      text-align: center;
+    }
+
+    .stat-item .val {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--gold);
+    }
+
+    .stat-item .lbl {
+      font-size: 0.52rem;
+      letter-spacing: 1px;
+      color: var(--text-dim);
+      text-transform: uppercase;
       margin-top: 2px;
     }
 
@@ -221,7 +249,6 @@
       letter-spacing: 0.5px;
     }
 
-    /* Wide Tile Format */
     .mission-tile.wide {
       grid-column: span 2;
       flex-direction: row;
@@ -270,7 +297,7 @@
       text-transform: uppercase;
     }
 
-    /* Auth Overlay Card Style */
+    /* Login Screen Overlay */
     .login-overlay {
       position: fixed;
       inset: 0;
@@ -301,7 +328,6 @@
       margin-bottom: 1.5rem;
     }
 
-    /* GitHub Identity Card */
     .gh-identity {
       margin-bottom: 1.5rem;
       border: 1px solid rgba(201,168,76,0.3);
@@ -376,7 +402,7 @@
 
     .btn-launch:hover { transform: translateY(-1px); filter: brightness(1.05); }
 
-    /* Drawer */
+    /* Drawer Styles */
     .drawer-overlay {
       position: fixed; inset: 0;
       background: rgba(0,0,0,0.3);
@@ -386,8 +412,8 @@
     .drawer-overlay.open { display: block; }
 
     .drawer {
-      position: fixed; top: 0; right: -320px;
-      width: 300px; height: 100%;
+      position: fixed; top: 0; right: -340px;
+      width: 320px; height: 100%;
       background: #ffffff;
       border-left: 1px solid var(--border);
       z-index: 310; transition: right 0.3s ease;
@@ -397,6 +423,30 @@
 
     .drawer-top { padding: 20px; background: var(--deep); border-bottom: 1px solid var(--border-dim); }
     .drawer-body { padding: 16px; flex: 1; overflow-y: auto; }
+
+    .drawer-link {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 11px 14px;
+      border-radius: 10px;
+      border: 1px solid var(--border-dim);
+      color: var(--text);
+      text-decoration: none;
+      font-size: 0.78rem;
+      margin-bottom: 6px;
+      transition: all 0.2s;
+      background: var(--surface);
+    }
+
+    .drawer-link:hover {
+      border-color: var(--gold);
+      color: var(--gold);
+      background: var(--gold-dim);
+    }
+
+    .drawer-link .dl-icon { font-size: 0.9rem; }
+
     .drawer-footer { padding: 16px; border-top: 1px solid var(--border-dim); }
 
     .logout-btn {
@@ -425,6 +475,7 @@
 
 <div class="ambient"></div>
 
+<!-- Login / Department Selection Overlay -->
 <div class="login-overlay" id="screenLogin">
   <div class="login-card">
     <div class="login-title">MISSION BRIEFING</div>
@@ -464,22 +515,49 @@
   </div>
 </div>
 
+<!-- Profile Drawer with All 8 Quick Access Links -->
 <div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
 <div class="drawer" id="drawer">
   <div class="drawer-top">
     <div style="font-family:'Playfair Display', serif; font-weight:700; font-size:1.1rem;" id="drawerName">—</div>
     <div style="font-size:0.6rem; color:var(--gold); letter-spacing:1px; margin-top:2px;" id="drawerDept">—</div>
   </div>
+
   <div class="drawer-body">
-    <p style="font-size:0.6rem; color:var(--text-dim); text-transform:uppercase; letter-spacing:1px; margin-bottom:12px;">Quick Access</p>
-    <a href="https://andrewveda.github.io/V/" style="display:block; padding:8px 0; color:var(--text); text-decoration:none; font-size:0.8rem;">📚 Daily Vocabulary</a>
-    <a href="https://andrewveda.github.io/a-quote-a-day/" style="display:block; padding:8px 0; color:var(--text); text-decoration:none; font-size:0.8rem;">💬 Quote Engine</a>
+    <p style="font-size:0.6rem; color:var(--text-dim); text-transform:uppercase; letter-spacing:1px; margin-bottom:12px;">Quick Links</p>
+
+    <a class="drawer-link" href="https://andrewveda.github.io/V/">
+      <span class="dl-icon">📚</span> Daily Vocabulary
+    </a>
+    <a class="drawer-link" href="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/blossomhub">
+      <span class="dl-icon">🌱</span> Blossom Hub
+    </a>
+    <a class="drawer-link" href="https://andrewveda.github.io/videoquest">
+      <span class="dl-icon">🎥</span> Video Quests
+    </a>
+    <a class="drawer-link" href="https://andrewveda.github.io/SRM-VEC-English-PWA/directory">
+      <span class="dl-icon">🗺</span> Quest Directory - Semester I
+    </a>
+    <a class="drawer-link" href="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/leaderboard">
+      <span class="dl-icon">😎</span> Leaderboard - Sem I - CAT-I
+    </a>
+    <a class="drawer-link" href="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/ELLL.html">
+      <span class="dl-icon">📝</span> ELLL Record
+    </a>
+    <a class="drawer-link" href="https://andrewveda.github.io/a-quote-a-day/">
+      <span class="dl-icon">💬</span> A Quote a Day
+    </a>
+    <a class="drawer-link" href="https://andrewveda.github.io/cryptic">
+      <span class="dl-icon">🔍</span> Cryptic Crossword
+    </a>
   </div>
+
   <div class="drawer-footer">
     <button class="logout-btn" onclick="logout()">Logout</button>
   </div>
 </div>
 
+<!-- Main Dashboard Interface -->
 <div class="app" id="appShell" style="display:none;">
 
   <div class="topbar">
@@ -497,6 +575,27 @@
       <div class="student-dept" id="studentDept">—</div>
     </div>
 
+    <!-- Live Supabase Analytics Card -->
+    <div class="stats-card">
+      <div class="stat-item">
+        <div class="val" id="statQuests">0</div>
+        <div class="lbl">Quests</div>
+      </div>
+      <div class="stat-item">
+        <div class="val" id="statScore">0</div>
+        <div class="lbl">Score</div>
+      </div>
+      <div class="stat-item">
+        <div class="val" id="statAccuracy">0%</div>
+        <div class="lbl">Accuracy</div>
+      </div>
+      <div class="stat-item">
+        <div class="val" id="statVideos">0</div>
+        <div class="lbl">Videos</div>
+      </div>
+    </div>
+
+    <!-- Actions Grid -->
     <div class="section-label">Missions & Directory</div>
 
     <div class="mission-grid">
@@ -584,6 +683,7 @@
 
     </div>
 
+    <!-- Thought Strip -->
     <div class="section-label">Today's Thought</div>
     <a href="https://andrewveda.github.io/a-quote-a-day/" class="quote-strip" id="quoteStrip">
       <div id="quoteText">Ever tried. Ever failed. No matter. Try again. Fail again. Fail better.</div>
@@ -597,8 +697,15 @@
   </div>
 </div>
 
-<script>
-  /* Helper Utilities */
+<script type="module">
+  import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm";
+
+  // Supabase Initialization
+  const supabase = createClient(
+    "https://yellow-lab-4999.andrewveda.workers.dev",
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoZXpzc29jenZwYmt0ZWZmY2d6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI4NTk1ODUsImV4cCI6MjA3ODQzNTU4NX0.2ZlqXnZxv0opkhynAT7OlK4S-xPygcc7ETUyTXRfGHE"
+  );
+
   function makeAvatar(src, fallbackChar, size) {
     if (src) {
       const img = document.createElement('img');
@@ -619,36 +726,30 @@
     return d;
   }
 
-  /* Identity Population */
   function populateIdentity() {
-    // Read GH global populated by auth-guard.js
     const displayName = window.GH?.name || window.GH?.username || 'GitHub User';
     const handle = window.GH?.username ? `@${window.GH.username}` : '';
     const avatar = window.GH?.avatar || '';
 
-    // Login screen elements
     document.getElementById('ghDisplayName').textContent = displayName;
     document.getElementById('ghHandleText').textContent = handle;
     const ghSlot = document.getElementById('ghAvatarSlot');
     ghSlot.innerHTML = '';
     ghSlot.appendChild(makeAvatar(avatar, displayName, 48));
 
-    // Department selection recovery
     const savedDept = localStorage.getItem('vfv_dept') || localStorage.getItem('userDept') || window.GH?.dept;
     if (savedDept) {
       const sel = document.getElementById('deptSelect');
       if ([...sel.options].some(o => o.value === savedDept)) sel.value = savedDept;
       
-      // If department is already chosen, auto-launch into shell
       enterApp(displayName, savedDept, avatar);
     }
   }
 
-  function handleLaunch() {
+  window.handleLaunch = function() {
     const dept = document.getElementById('deptSelect').value;
     if (!dept) { alert('Please select your department!'); return; }
 
-    // Save choice across local variables
     if (window.GH) window.GH.dept = dept;
     localStorage.setItem('vfv_dept', dept);
     localStorage.setItem('userDept', dept);
@@ -656,9 +757,9 @@
     const displayName = window.GH?.name || window.GH?.username || 'GitHub User';
     const avatar = window.GH?.avatar || '';
     enterApp(displayName, dept, avatar);
-  }
+  };
 
-  function enterApp(name, dept, avatar) {
+  async function enterApp(name, dept, avatar) {
     document.getElementById('screenLogin').style.display = 'none';
     document.getElementById('appShell').style.display = 'flex';
 
@@ -671,9 +772,35 @@
     const avatarBtn = document.getElementById('avatarBtn');
     avatarBtn.innerHTML = '';
     avatarBtn.appendChild(makeAvatar(avatar, name, 38));
+
+    // Fetch user progress directly from Supabase
+    await fetchUserData(name);
   }
 
-  /* Drawer Handlers */
+  async function fetchUserData(name) {
+    try {
+      const { data, error } = await supabase
+        .from("report_card_view")
+        .select("*");
+
+      if (error) throw error;
+
+      const user = (data || []).find(u => 
+        u.name && u.name.trim().toLowerCase() === name.trim().toLowerCase()
+      );
+
+      if (user) {
+        document.getElementById("statQuests").textContent = user.quests_completed ?? 0;
+        document.getElementById("statScore").textContent = user.total_score ?? 0;
+        document.getElementById("statAccuracy").textContent = Math.round((user.accuracy ?? 0) * 100) + "%";
+        document.getElementById("statVideos").textContent = user.videos_completed ?? 0;
+      }
+    } catch (e) {
+      console.error("Supabase data fetch error:", e);
+    }
+  }
+
+  /* Drawer Actions */
   window.openDrawer = () => {
     document.getElementById("drawer").classList.add("open");
     document.getElementById("drawerOverlay").classList.add("open");
@@ -690,7 +817,7 @@
     window.location.reload();
   };
 
-  /* Carousel Logic */
+  /* Thought Carousel */
   const quotes = [
     { text: "Ever tried. Ever failed. No matter. Try again. Fail again. Fail better.", attr: "Samuel Beckett" },
     { text: "Do or do not. There is no try.", attr: "Yoda" },
@@ -712,7 +839,6 @@
     }, 4000);
   }
 
-  /* Init */
   (function init() {
     populateIdentity();
     setupQuoteCarousel();

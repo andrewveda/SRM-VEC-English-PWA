@@ -471,6 +471,17 @@
       color: var(--text-dim);
     }
     .footer a { color: var(--gold); text-decoration: none; }
+    .stats-card {
+  background: linear-gradient(145deg, #ffffff, #f8f2e8);
+  border: 1px solid var(--border-dim);
+  border-radius: 14px;
+  padding: 14px;
+  margin-bottom: 12px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px 8px;
+  text-align: center;
+}
   </style>
 </head>
 <body>
@@ -577,25 +588,19 @@
       <div class="student-dept" id="studentDept">—</div>
     </div>
 
-    <!-- Analytics Summary -->
-    <div class="stats-card">
-      <div class="stat-item">
-        <div class="val" id="statQuests">0</div>
-        <div class="lbl">Quests</div>
-      </div>
-      <div class="stat-item">
-        <div class="val" id="statScore">0</div>
-        <div class="lbl">Score</div>
-      </div>
-      <div class="stat-item">
-        <div class="val" id="statAccuracy">0%</div>
-        <div class="lbl">Accuracy</div>
-      </div>
-      <div class="stat-item">
-        <div class="val" id="statVideos">0</div>
-        <div class="lbl">Videos</div>
-      </div>
-    </div>
+   <div class="stats-card">
+  <div class="stat-item"><div class="val" id="statQuests">0</div><div class="lbl">Quests</div></div>
+  <div class="stat-item"><div class="val" id="statVideos">0</div><div class="lbl">Videos</div></div>
+  <div class="stat-item"><div class="val" id="statStories">0</div><div class="lbl">Stories</div></div>
+  <div class="stat-item"><div class="val" id="statScore">0</div><div class="lbl">Score</div></div>
+  <div class="stat-item"><div class="val" id="statAccuracy">0%</div><div class="lbl">Accuracy</div></div>
+  <div class="stat-item"><div class="val" id="statCorrect" style="color:var(--green)">0</div><div class="lbl">Correct</div></div>
+  <div class="stat-item"><div class="val" id="statWrong" style="color:var(--crimson)">0</div><div class="lbl">Wrong</div></div>
+  <div class="stat-item"><div class="val" id="statCryptic">0</div><div class="lbl">Cryptic</div></div>
+  <div class="stat-item"><div class="val" id="statWordle">0</div><div class="lbl">Wordle</div></div>
+  <div class="stat-item"><div class="val" id="statVocab">0</div><div class="lbl">Vocab</div></div>
+  <div class="stat-item" style="grid-column: span 2;"><div class="val" id="statTime">0h 0m</div><div class="lbl">Total Time</div></div>
+</div>
 
     <!-- Actions Directory Grid -->
     <div class="section-label">Missions & Directory</div>
@@ -779,29 +784,45 @@
     await fetchUserData(name);
   }
 
-  async function fetchUserData(name) {
-    try {
-      const { data, error } = await supabase
-        .from("report_card_view")
-        .select("*");
+ async function fetchUserData(name) {
+  try {
+    const { data, error } = await supabase
+      .from("report_card_view")
+      .select("*");
 
-      if (error) throw error;
+    if (error) throw error;
 
-      const user = (data || []).find(u => 
-        u.name && u.name.trim().toLowerCase() === name.trim().toLowerCase()
-      );
+    const user = (data || []).find(u => 
+      u.name && u.name.trim().toLowerCase() === name.trim().toLowerCase()
+    );
 
-      if (user) {
-        document.getElementById("statQuests").textContent = user.quests_completed ?? 0;
-        document.getElementById("statScore").textContent = user.total_score ?? 0;
-        document.getElementById("statAccuracy").textContent = Math.round((user.accuracy ?? 0) * 100) + "%";
-        document.getElementById("statVideos").textContent = user.videos_completed ?? 0;
-      }
-    } catch (e) {
-      console.error("Supabase data fetch error:", e);
+    if (user) {
+      // Primary Counters
+      document.getElementById("statQuests").textContent = user.quests_completed ?? 0;
+      document.getElementById("statVideos").textContent = user.videos_completed ?? 0;
+      document.getElementById("statStories").textContent = user.stories_completed ?? 0;
+      document.getElementById("statScore").textContent = user.total_score ?? 0;
+      
+      // Performance
+      document.getElementById("statAccuracy").textContent = Math.round((user.accuracy ?? 0) * 100) + "%";
+      document.getElementById("statCorrect").textContent = user.total_correct ?? 0;
+      document.getElementById("statWrong").textContent = user.total_wrong ?? 0;
+
+      // Special Quests
+      document.getElementById("statCryptic").textContent = user.cryptic_completed ?? 0;
+      document.getElementById("statWordle").textContent = user.wordle_completed ?? 0;
+      document.getElementById("statVocab").textContent = user.vocab_completed ?? 0;
+
+      // Total Time Formatting (Seconds to Hours/Mins)
+      const sec = user.total_time ?? 0;
+      const h = Math.floor(sec / 3600);
+      const m = Math.floor((sec % 3600) / 60);
+      document.getElementById("statTime").textContent = `${h}h ${m}m`;
     }
+  } catch (e) {
+    console.error("Supabase data fetch error:", e);
   }
-
+}
   /* Drawer Actions */
   window.openDrawer = () => {
     document.getElementById("drawer").classList.add("open");

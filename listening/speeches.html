@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0"/>
+<title>Listening Quest · Word Order</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Playfair+Display:wght@600;700;900&family=DM+Sans:wght@400;500;600;700&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+<style>
+:root {
+  --ivory:        #FBF6EA;
+  --ivory-deep:    #F1E7CE;
+  --parchment:     #EEE2C4;
+  --gold:          #B8912E;
+  --gold-bright:   #E9C766;
+  --gold-deep:     #7C5E1E;
+  --ink:           #34281A;
+  --ink-soft:      #7A6A50;
+  --brick:         #9C3B2E;
+  --shadow-warm:   rgba(90, 62, 12, 0.18);
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+  height: 100%;
+  margin: 0; padding: 0;
+  overflow: hidden;
+  font-family: 'DM Sans', sans-serif;
+  color: var(--ink);
+  text-align: center;
+}
+
+body {
+  height: 100dvh;
+  background:
+    radial-gradient(circle at 12% 8%, rgba(232,199,102,0.25) 0%, transparent 45%),
+    radial-gradient(circle at 90% 85%, rgba(184,145,46,0.18) 0%, transparent 50%),
+    linear-gradient(160deg, #FBF6EA 0%, #F3E9D0 55%, #ECDFBC 100%);
+}
+
+.container {
+  position: relative; z-index: 1;
+  max-width: 640px; margin: 0 auto;
+  height: 100dvh;
+  display: flex; flex-direction: column;
+  padding: max(0.7rem, env(safe-area-inset-top)) 1rem max(0.7rem, env(safe-area-inset-bottom));
+}
+
+/* ===================== NAME FORM ===================== */
+#nameForm {
+  flex: 1; min-height: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.9rem;
+  background: linear-gradient(180deg, #FFFDF7, var(--ivory-deep));
+  padding: 1.8rem 1.5rem;
+  border-radius: 22px;
+  border: 1px solid rgba(184,145,46,0.35);
+  box-shadow: 0 18px 40px var(--shadow-warm), inset 0 0 0 1px rgba(255,255,255,0.6);
+}
+.crest {
+  width: 52px; height: 52px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, var(--gold-bright), var(--gold) 55%, var(--gold-deep) 100%);
+  box-shadow: 0 6px 18px var(--shadow-warm), inset 0 0 0 3px rgba(255,255,255,0.35);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.4rem;
+}
+.eyebrow { font-size: 0.65rem; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; color: var(--gold-deep); }
+.hero-title { font-family: 'Playfair Display', serif; font-size: clamp(1.4rem, 6vw, 1.7rem); font-weight: 700; margin: 0.1rem 0 0.2rem; }
+.hero-sub { font-family: 'Cormorant Garamond', serif; font-size: 1.1rem; font-style: italic; color: var(--ink-soft); }
+#nameInput, #departmentSelect {
+  width: 100%; padding: 0.85rem 1rem;
+  background: #fffef9; border: 1.5px solid rgba(124,94,30,0.35);
+  border-radius: 12px; font-size: 1rem; outline: none; color: var(--ink);
+  font-family: 'DM Sans', sans-serif;
+}
+#nameInput:focus, #departmentSelect:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(184,145,46,0.2); }
+#nameForm button.primary {
+  width: 100%; padding: 0.9rem;
+  background: linear-gradient(135deg, var(--gold-bright), var(--gold));
+  color: #2b1f0c; font-size: 1rem; font-weight: 700; letter-spacing: 0.4px;
+  border: none; border-radius: 14px; cursor: pointer;
+  box-shadow: 0 10px 24px rgba(184,145,46,0.4);
+  touch-action: manipulation; transition: transform 0.15s ease;
+}
+#nameForm button.primary:active { transform: scale(0.97); }
+
+/* ===================== QUIZ SCREEN ===================== */
+#quizContent {
+  flex: 1; min-height: 0;
+  display: flex; flex-direction: column;
+  gap: 0.6rem;
+}
+
+/* header: timer / progress dots / gems */
+.quiz-header {
+  flex: 0 0 auto;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0.5rem 0.9rem;
+  background: rgba(255,253,247,0.75);
+  border: 1px solid rgba(184,145,46,0.3);
+  border-radius: 14px;
+}
+.quiz-header .stat { font-size: 0.78rem; font-weight: 700; color: var(--gold-deep); white-space: nowrap; }
+.dot-track { display: flex; gap: 0.4rem; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(124,94,30,0.25); transition: all 0.3s ease; }
+.dot.done { background: var(--gold); }
+.dot.active { background: var(--gold-bright); box-shadow: 0 0 0 3px rgba(233,199,102,0.3); transform: scale(1.2); }
+
+/* audio bar: single compact row */
+.audio-bar {
+  flex: 0 0 auto;
+  display: flex; align-items: center; gap: 0.7rem;
+  background: linear-gradient(180deg, #FFFDF7, var(--ivory-deep));
+  border: 1px solid rgba(184,145,46,0.35);
+  border-radius: 16px;
+  padding: 0.55rem 0.8rem;
+  box-shadow: 0 8px 20px var(--shadow-warm);
+}
+.seal-btn {
+  flex: 0 0 auto;
+  width: 46px; height: 46px; border-radius: 50%; border: none; cursor: pointer;
+  background: radial-gradient(circle at 32% 28%, var(--gold-bright) 0%, var(--gold) 48%, var(--gold-deep) 100%);
+  box-shadow: 0 0 0 3px rgba(255,253,247,0.9), 0 0 0 4px rgba(184,145,46,0.4), 0 6px 14px rgba(90,62,12,0.35);
+  display: flex; align-items: center; justify-content: center;
+  position: relative; touch-action: manipulation; transition: transform 0.15s ease;
+}
+.seal-btn:active { transform: scale(0.93); }
+.seal-btn svg { width: 18px; height: 18px; fill: #2b1f0c; }
+.seal-btn.playing { animation: sealPulse 1.6s ease-in-out infinite; }
+@keyframes sealPulse {
+  0%,100% { box-shadow: 0 0 0 3px rgba(255,253,247,0.9), 0 0 0 4px rgba(184,145,46,0.4), 0 6px 14px rgba(90,62,12,0.35); }
+  50%     { box-shadow: 0 0 0 3px rgba(255,253,247,0.9), 0 0 0 7px rgba(184,145,46,0.22), 0 6px 18px rgba(90,62,12,0.45); }
+}
+.audio-mid { flex: 1; min-width: 0; }
+.audio-progress-track { width: 100%; height: 5px; border-radius: 6px; background: rgba(124,94,30,0.18); overflow: hidden; }
+.audio-progress-fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--gold), var(--gold-bright)); border-radius: 6px; transition: width 0.1s linear; }
+.audio-time { font-size: 0.68rem; font-weight: 600; color: var(--ink-soft); font-variant-numeric: tabular-nums; margin-top: 2px; }
+
+/* sentence build strip — flexible center area */
+.sentence-card {
+  flex: 1.6; min-height: 0;
+  background: linear-gradient(180deg, #FFFDF7, var(--ivory-deep));
+  border: 1px solid rgba(184,145,46,0.3);
+  border-radius: 18px;
+  padding: 0.6rem 1rem;
+  box-shadow: 0 8px 20px var(--shadow-warm);
+  display: flex; align-items: center; justify-content: center;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.sentence-strip {
+  display: flex; flex-wrap: wrap; gap: 0.35rem 0.5rem;
+  justify-content: center; align-items: baseline;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: clamp(0.85rem, 4.4vw, 1.32rem); font-weight: 600; line-height: 1.55;
+  transition: opacity 0.25s ease;
+  width: 100%;
+}
+.sentence-strip.fading { opacity: 0; }
+.slot { display: inline-block; min-width: 2.2em; padding-bottom: 2px; border-bottom: 2px solid rgba(124,94,30,0.4); color: var(--ink-soft); letter-spacing: 1px; }
+.slot.filled { color: var(--gold-deep); font-weight: 700; border-bottom-color: var(--gold); animation: slotReveal 0.35s ease; }
+@keyframes slotReveal { from { transform: translateY(6px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+/* word conveyor — fixed slots, tiles pop in/out continuously */
+.bank-card {
+  flex: 1; min-height: 0; max-height: 40%;
+  background: rgba(255,253,247,0.6);
+  border: 1px dashed rgba(184,145,46,0.4);
+  border-radius: 18px;
+  padding: 0.6rem 0.6rem;
+  display: flex; align-items: center;
+  overflow: hidden;
+}
+.word-bank { width: 100%; display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center; align-content: center; }
+.tile-slot { display: flex; align-items: center; justify-content: center; }
+.word-tile {
+  padding: 0.55rem 0.95rem;
+  background: linear-gradient(180deg, #FFFDF7, var(--parchment));
+  border: 1.5px solid rgba(184,145,46,0.5);
+  border-radius: 10px;
+  font-weight: 600; font-size: 0.92rem; color: var(--ink);
+  cursor: pointer; user-select: none;
+  box-shadow: 0 3px 8px rgba(90,62,12,0.12);
+  touch-action: manipulation;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+  animation: tilePopIn 0.3s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes tilePopIn { from { transform: scale(0.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.word-tile:active { transform: scale(0.94); }
+.word-tile.correct-tap { animation: tileAway 0.3s ease forwards; }
+@keyframes tileAway { to { transform: scale(0.5) translateY(-10px); opacity: 0; } }
+.word-tile.wrong-tap { animation: tileShake 0.45s ease; border-color: var(--brick); color: var(--brick); }
+@keyframes tileShake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-7px); } 75% { transform: translateX(7px); } }
+
+/* ===================== SCORE PORTAL ===================== */
+#scoreScreen { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.score-portal {
+  position: relative; overflow: hidden; flex: 1; min-height: 0;
+  display: flex; flex-direction: column; justify-content: space-between;
+  padding: 1.1rem 1rem; border-radius: 22px;
+  background: linear-gradient(160deg, #241b0d, #150f07);
+  color: #F1E7CE;
+  box-shadow: 0 0 0 1px rgba(233,199,102,0.2), 0 24px 55px rgba(0,0,0,0.5);
+  animation: portalEntrance 0.6s cubic-bezier(0.16,1,0.3,1);
+}
+.score-portal::before {
+  content: ""; position: absolute; inset: 0; z-index: 0; border-radius: 22px;
+  background-image:
+    radial-gradient(1.5px 1.5px at 15% 25%, rgba(233,199,102,0.35) 0, transparent 100%),
+    radial-gradient(1.5px 1.5px at 50% 12%, rgba(233,199,102,0.3) 0, transparent 100%),
+    radial-gradient(1.5px 1.5px at 82% 60%, rgba(233,199,102,0.25) 0, transparent 100%),
+    radial-gradient(1.5px 1.5px at 8% 80%, rgba(233,199,102,0.3) 0, transparent 100%);
+  pointer-events: none;
+}
+.score-portal > * { position: relative; z-index: 1; }
+@keyframes portalEntrance { from { opacity: 0; transform: translateY(18px) scale(0.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
+
+.portal-header { display: flex; flex-direction: column; align-items: center; gap: 0.35rem; }
+.portal-title { font-family: 'Orbitron', monospace; font-size: 0.78rem; font-weight: 900; letter-spacing: 2.2px; text-transform: uppercase; color: var(--gold-bright); text-shadow: 0 0 14px rgba(233,199,102,0.5); }
+.portal-player { width: 100%; font-size: 0.88rem; font-weight: 700; background: rgba(233,199,102,0.08); border: 1px solid rgba(233,199,102,0.28); padding: 0.45rem 0.7rem; border-radius: 12px; }
+
+.portal-body { display: flex; flex-direction: column; align-items: center; gap: 0.6rem; }
+.accuracy-ring { width: clamp(96px, 26vh, 130px); height: clamp(96px, 26vh, 130px); border-radius: 50%; position: relative; display: flex; align-items: center; justify-content: center; animation: ringReveal 0.7s cubic-bezier(0.16,1,0.3,1); }
+.accuracy-ring::before { content: ""; position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(var(--ring-color) calc(var(--progress) * 1%), rgba(255,255,255,0.06) 0); }
+@keyframes ringReveal { from { transform: scale(0.55) rotate(-30deg); opacity: 0; } to { transform: scale(1) rotate(0deg); opacity: 1; } }
+.accuracy-inner { width: 72%; height: 72%; border-radius: 50%; background: #150f07; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.accuracy-value { font-family: 'Orbitron', monospace; font-size: clamp(1.2rem, 5vh, 1.7rem); font-weight: 900; color: var(--ring-color); }
+.accuracy-label { font-size: 0.55rem; letter-spacing: 1.5px; text-transform: uppercase; color: #8a7c5e; margin-top: 2px; }
+
+.stats-grid { width: 100%; max-width: 360px; display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem; }
+.stat-card { background: rgba(233,199,102,0.05); border: 1px solid rgba(233,199,102,0.12); border-radius: 12px; padding: 0.45rem 0.6rem; display: flex; flex-direction: column; align-items: flex-start; }
+.stat-emoji { font-size: 0.78rem; opacity: 0.8; }
+.stat-value { font-family: 'Orbitron', monospace; font-size: 1.2rem; font-weight: 900; }
+.stat-label { font-size: 0.54rem; letter-spacing: 1px; text-transform: uppercase; color: #8a7c5e; }
+.correct-card .stat-value { color: #9fd66b; } .wrong-card .stat-value { color: #e2765f; }
+.gems-card .stat-value { color: var(--gold-bright); } .time-card .stat-value { color: #cfe0b8; font-size: 1rem; }
+
+.performance-message { font-size: 0.8rem; font-weight: 700; color: var(--gold-bright); background: rgba(233,199,102,0.07); border: 1px solid rgba(233,199,102,0.2); border-radius: 10px; padding: 0.4rem 0.65rem; text-align: left; }
+
+.portal-actions { display: flex; flex-direction: column; gap: 0.45rem; }
+.next-quest-btn, .report-btn, .again-btn { padding: 0.7rem 1rem; font-family: 'Orbitron', monospace; font-size: 0.7rem; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; border-radius: 12px; border: none; cursor: pointer; touch-action: manipulation; }
+.next-quest-btn { background: linear-gradient(135deg, var(--gold-bright), var(--gold)); color: #2b1f0c; }
+.report-btn { background: rgba(233,199,102,0.08); color: var(--gold-bright); border: 1px solid rgba(233,199,102,0.3) !important; }
+.again-btn { background: rgba(255,255,255,0.05); color: #cfc3a3; border: 1px solid rgba(255,255,255,0.12) !important; }
+.next-quest-btn:active, .report-btn:active, .again-btn:active { transform: scale(0.96); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
+}
+</style>
+</head>
+
+<body>
+<div class="container" id="quizContainer">
+
+  <div id="nameForm">
+    <div class="crest">🪶</div>
+    <div class="eyebrow">SRM Valliammai Engineering College · Dept. of English</div>
+    <div class="hero-title">The Listening Quest</div>
+    <div class="hero-sub">Hear it. Recall it. Set it in order.</div>
+    <input type="text" id="nameInput" placeholder="Enter your name"/>
+    <select id="departmentSelect">
+      <option value="">-- Select Department --</option>
+      <option value="Cyber Security">Cyber Security</option>
+      <option value="EIE">EIE</option>
+      <option value="CSE-1">CSE-1</option>
+      <option value="CSE-2">CSE-2</option>
+      <option value="CSE-3">CSE-3</option>
+      <option value="Mechanical Engineering">Mechanical Engineering</option>
+      <option value="ECE-1">ECE-1</option>
+      <option value="ECE-2">ECE-2</option>
+      <option value="ECE-3">ECE-3</option>
+      <option value="AI DS-1">AI DS-1</option>
+      <option value="AI DS-2">AI DS-2</option>
+      <option value="Agri and Civil">Agri and Civil</option>
+      <option value="EEE">EEE</option>
+      <option value="Medical Electronics">Medical Electronics</option>
+      <option value="IT-1">IT-1</option>
+      <option value="IT-2">IT-2</option>
+    </select>
+    <button class="primary" onclick="beginQuiz()">Begin the Quest</button>
+  </div>
+
+  <div id="quizContent" style="display:none;">
+    <div class="quiz-header">
+      <div class="stat">⏳ <span id="timer">0s</span></div>
+      <div class="dot-track" id="dotTrack"></div>
+      <div class="stat">💎 <span id="gemsCounter">0</span></div>
+    </div>
+
+    <div class="audio-bar">
+      <button class="seal-btn" id="sealBtn" onclick="toggleAudio()">
+        <svg id="sealIcon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+      </button>
+      <div class="audio-mid">
+        <div class="audio-progress-track"><div class="audio-progress-fill" id="audioFill"></div></div>
+        <div class="audio-time" id="audioTime">0:00 / 0:00</div>
+      </div>
+    </div>
+
+    <div class="sentence-card">
+      <div class="sentence-strip" id="sentenceStrip"></div>
+    </div>
+
+    <div class="bank-card">
+      <div class="word-bank" id="wordBank"></div>
+    </div>
+  </div>
+
+  <div id="scoreScreen" style="display:none;"></div>
+</div>
+
+<audio id="questAudio" preload="metadata"></audio>
+
+<script>
+/* ========== CONFETTI (final moment only — peak-end effect) ========== */
+function triggerMegaConfetti() {
+  const duration = 2600, animationEnd = Date.now() + duration;
+  const defaults = { startVelocity: 28, spread: 360, ticks: 55, zIndex: 0, colors: ['#E9C766','#B8912E','#FBF6EA'] };
+  function randomInRange(min, max) { return Math.random() * (max - min) + min; }
+  const interval = setInterval(function() {
+    const timeLeft = animationEnd - Date.now();
+    if (timeLeft <= 0) return clearInterval(interval);
+    const particleCount = 45 * (timeLeft / duration);
+    confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.1,0.3), y: Math.random()-0.2 } }));
+    confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.7,0.9), y: Math.random()-0.2 } }));
+  }, 250);
+}
+
+/* ========== AUTO-RESTORE ========== */
+window.addEventListener("load", () => {
+  const savedName = localStorage.getItem("questPlayerName");
+  const savedDept = localStorage.getItem("questPlayerDept");
+  if (savedName) document.getElementById("nameInput").value = savedName;
+  if (savedDept) document.getElementById("departmentSelect").value = savedDept;
+});
+
+/* ==========================================================
+   QUEST DATA
+   Replace `audio` with the real file path in your GitHub repo
+   (e.g. https://andrewveda.github.io/SRM-VEC-English-PWA/sounds/recording1.mp3)
+   and make sure `sentence` matches the recording word-for-word.
+   Sentences are kept to 8–14 words: past that, auditory working
+   memory (the phonological loop) starts dropping items before
+   the sequence is even complete.
+   ========================================================== */
+const questData = [
+  { audio: "https://andrewveda.github.io/SRM-VEC-English-PWA/sounds/recording1.mp3",
+    sentence: "Four score and seven years ago our fathers brought forth a new nation" },
+  { audio: "https://andrewveda.github.io/SRM-VEC-English-PWA/sounds/recording2.mp3",
+    sentence: "conceived in liberty and dedicated to the proposition that all men are created equal" },
+  { audio: "https://andrewveda.github.io/SRM-VEC-English-PWA/sounds/recording3.mp3",
+    sentence: "government of the people by the people for the people shall not perish from the earth" }
+];
+
+/* Concurrent visible word-tiles. 5 sits at the sweet spot of Miller's
+   7±2 working-memory span and keeps Hick's-Law decision time low —
+   enough real choice to require listening, never enough to overwhelm. */
+const SLOT_COUNT = 5;
+
+let currentRoundIdx = 0, roundWords = [], hiddenQueue = [], placedCount = 0;
+let correctCount = 0, wrongCount = 0, gemsCount = 0;
+let startTime, timerInterval, playerName = "", playerDept = "";
+let tileSlotEls = [];
+
+const timerEl = document.getElementById("timer");
+const gemsCounterEl = document.getElementById("gemsCounter");
+const dotTrack = document.getElementById("dotTrack");
+const sentenceStripEl = document.getElementById("sentenceStrip");
+const wordBankEl = document.getElementById("wordBank");
+const questAudioEl = document.getElementById("questAudio");
+const sealBtn = document.getElementById("sealBtn");
+const sealIcon = document.getElementById("sealIcon");
+const audioFill = document.getElementById("audioFill");
+const audioTime = document.getElementById("audioTime");
+
+const NEXT_QUEST_URL = "https://andrewveda.github.io/SRM-VEC-English-PWA/semII/11";
+function goToNextQuest() { window.location.href = NEXT_QUEST_URL; }
+
+/* ========== AUDIO PLAYER ========== */
+function fmtTime(s) { if (!isFinite(s)) return "0:00"; const m = Math.floor(s/60), sec = Math.floor(s%60); return `${m}:${sec.toString().padStart(2,"0")}`; }
+function toggleAudio() { if (questAudioEl.paused) questAudioEl.play().catch(()=>{}); else questAudioEl.pause(); }
+questAudioEl.addEventListener("play", () => { sealBtn.classList.add("playing"); sealIcon.innerHTML = '<path d="M6 5h4v14H6zM14 5h4v14h-4z"/>'; });
+questAudioEl.addEventListener("pause", () => { sealBtn.classList.remove("playing"); sealIcon.innerHTML = '<path d="M8 5v14l11-7z"/>'; });
+questAudioEl.addEventListener("ended", () => { sealBtn.classList.remove("playing"); sealIcon.innerHTML = '<path d="M8 5v14l11-7z"/>'; });
+questAudioEl.addEventListener("timeupdate", () => {
+  const pct = questAudioEl.duration ? (questAudioEl.currentTime / questAudioEl.duration) * 100 : 0;
+  audioFill.style.width = pct + "%";
+  audioTime.innerText = `${fmtTime(questAudioEl.currentTime)} / ${fmtTime(questAudioEl.duration)}`;
+});
+questAudioEl.addEventListener("loadedmetadata", () => { audioTime.innerText = `0:00 / ${fmtTime(questAudioEl.duration)}`; });
+
+/* ========== QUIZ FLOW ========== */
+function beginQuiz() {
+  const nameField = document.getElementById("nameInput");
+  const deptField = document.getElementById("departmentSelect");
+  if (!nameField.value.trim()) { alert("Please enter your name!"); return; }
+  if (!deptField.value) { alert("Please select your department!"); return; }
+  playerName = nameField.value.trim(); playerDept = deptField.value;
+  localStorage.setItem("questPlayerName", playerName);
+  localStorage.setItem("questPlayerDept", playerDept);
+  document.getElementById("nameForm").style.display = "none";
+  document.getElementById("quizContent").style.display = "flex";
+  buildDots();
+  startQuiz();
+}
+
+function buildDots() {
+  dotTrack.innerHTML = "";
+  questData.forEach((_, i) => {
+    const d = document.createElement("div");
+    d.classList.add("dot"); d.id = `dot-${i}`;
+    dotTrack.appendChild(d);
+  });
+}
+function updateDots(activeIdx) {
+  questData.forEach((_, i) => {
+    const d = document.getElementById(`dot-${i}`);
+    d.classList.toggle("done", i < activeIdx);
+    d.classList.toggle("active", i === activeIdx);
+  });
+}
+
+function startQuiz() {
+  correctCount = 0; wrongCount = 0; gemsCount = 0;
+  startTime = Date.now();
+  gemsCounterEl.innerText = "0";
+  loadRound(0, false);
+  startTimer();
+}
+
+function shuffleIndices(n) {
+  const arr = Array.from({length: n}, (_, i) => i);
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+/* Guarantees every word — including ones just filled in — stays visible.
+   Shrinks the sentence font step by step until the content fits the box;
+   the box itself can also scroll a touch as a last-resort safety net. */
+const sentenceCardEl = document.querySelector(".sentence-card");
+function fitSentenceStrip() {
+  let size = 1.32;
+  sentenceStripEl.style.fontSize = size + "rem";
+  let guard = 0;
+  while (sentenceStripEl.scrollHeight > sentenceCardEl.clientHeight && size > 0.72 && guard < 20) {
+    size -= 0.06;
+    sentenceStripEl.style.fontSize = size + "rem";
+    guard++;
+  }
+}
+window.addEventListener("resize", fitSentenceStrip);
+
+function loadRound(idx, animateStrip) {
+  if (idx >= questData.length) return showScore();
+  currentRoundIdx = idx;
+  updateDots(idx);
+
+  const round = questData[idx];
+  roundWords = round.sentence.split(" ");
+  hiddenQueue = shuffleIndices(roundWords.length);
+  placedCount = 0;
+
+  questAudioEl.pause();
+  questAudioEl.src = round.audio;
+  audioFill.style.width = "0%";
+  audioTime.innerText = "0:00 / 0:00";
+  sealIcon.innerHTML = '<path d="M8 5v14l11-7z"/>';
+
+  const rebuild = () => {
+    sentenceStripEl.innerHTML = "";
+    sentenceStripEl.style.fontSize = "";
+    roundWords.forEach((w, i) => {
+      const slot = document.createElement("span");
+      slot.classList.add("slot"); slot.id = `slot-${i}`;
+      slot.innerText = "_".repeat(Math.max(w.length, 2));
+      sentenceStripEl.appendChild(slot);
+    });
+    sentenceStripEl.classList.remove("fading");
+    fitSentenceStrip();
+  };
+
+  if (animateStrip) {
+    sentenceStripEl.classList.add("fading");
+    setTimeout(rebuild, 260);
+  } else {
+    rebuild();
+  }
+
+  wordBankEl.innerHTML = "";
+  tileSlotEls = [];
+  for (let i = 0; i < SLOT_COUNT; i++) {
+    const slotWrap = document.createElement("div");
+    slotWrap.classList.add("tile-slot");
+    wordBankEl.appendChild(slotWrap);
+    tileSlotEls.push(slotWrap);
+  }
+  fillEmptySlots();
+}
+
+function fillEmptySlots() {
+  tileSlotEls.forEach(slotWrap => {
+    if (slotWrap.children.length === 0 && hiddenQueue.length > 0) {
+      const wordIndex = hiddenQueue.shift();
+      const tile = document.createElement("div");
+      tile.classList.add("word-tile");
+      tile.innerText = roundWords[wordIndex];
+      tile.dataset.wordIndex = wordIndex;
+      tile.onclick = () => tapTile(tile, slotWrap);
+      slotWrap.appendChild(tile);
+    }
+  });
+}
+
+function tapTile(tile, slotWrap) {
+  if (tile.classList.contains("correct-tap")) return;
+  const wordIndex = parseInt(tile.dataset.wordIndex, 10);
+
+  if (wordIndex === placedCount) {
+    const slot = document.getElementById(`slot-${placedCount}`);
+    slot.innerText = roundWords[wordIndex];
+    slot.classList.add("filled");
+
+    correctCount++; gemsCount++;
+    gemsCounterEl.innerText = gemsCount;
+    placedCount++;
+
+    tile.classList.add("correct-tap");
+    setTimeout(() => { tile.remove(); fillEmptySlots(); }, 260);
+
+    if (placedCount >= roundWords.length) {
+      setTimeout(() => loadRound(currentRoundIdx + 1, true), 550);
+    }
+  } else {
+    wrongCount++; gemsCount--;
+    gemsCounterEl.innerText = gemsCount;
+    tile.classList.add("wrong-tap");
+    setTimeout(() => tile.classList.remove("wrong-tap"), 450);
+  }
+}
+
+function startTimer() {
+  timerInterval = setInterval(() => {
+    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+    timerEl.innerText = `${elapsed}s`;
+  }, 1000);
+}
+
+function calculateAccuracy() {
+  const total = correctCount + wrongCount;
+  return total === 0 ? 0 : Math.round((correctCount / total) * 100);
+}
+function getAccuracyColor(acc) { if (acc >= 85) return "#9fd66b"; if (acc >= 60) return "#E9C766"; return "#e2765f"; }
+function animateAccuracy(finalAccuracy) {
+  const ring = document.querySelector(".accuracy-ring");
+  const valueEl = document.getElementById("accuracyValue");
+  if (!ring || !valueEl) return;
+  ring.style.setProperty("--ring-color", getAccuracyColor(finalAccuracy));
+  let cur = 0;
+  const anim = setInterval(() => {
+    if (cur >= finalAccuracy) { clearInterval(anim); return; }
+    cur++;
+    ring.style.setProperty("--progress", cur);
+    valueEl.innerText = `${cur}%`;
+  }, 12);
+}
+function generatePerformanceMessage() {
+  const acc = calculateAccuracy();
+  if (acc >= 90) return "🌟 A masterful ear — outstanding performance!";
+  if (acc >= 75) return "🔥 Strong listening! Keep sharpening.";
+  if (acc >= 50) return "💪 Good progress — mastery is close!";
+  return "🚀 Every great listener started somewhere. Keep going!";
+}
+
+const EDGE_FUNCTION_URL = "https://yellow-lab-4999.andrewveda.workers.dev/functions/v1/logQuest";
+
+function showScore() {
+  clearInterval(timerInterval);
+  questAudioEl.pause();
+  const totalTime = Math.floor((Date.now() - startTime) / 1000);
+  triggerMegaConfetti();
+
+  document.getElementById("quizContent").style.display = "none";
+
+  const accuracy = calculateAccuracy();
+  const mins = Math.floor(totalTime / 60), secs = totalTime % 60;
+  const timeStr = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+
+  const scoreScreen = document.getElementById("scoreScreen");
+  scoreScreen.style.display = "flex";
+  scoreScreen.innerHTML = `
+<div class="score-portal">
+  <div class="portal-header">
+    <div class="portal-title">QUEST COMPLETE</div>
+    <div class="portal-player">👤 ${playerName} · ${playerDept}</div>
+  </div>
+
+  <div class="portal-body">
+    <div class="accuracy-ring" style="--progress:0; --ring-color:#9fd66b;">
+      <div class="accuracy-inner">
+        <div class="accuracy-value" id="accuracyValue">0%</div>
+        <div class="accuracy-label">Accuracy</div>
+      </div>
+    </div>
+    <div class="stats-grid">
+      <div class="stat-card correct-card"><div class="stat-emoji">✅</div><div class="stat-value">${correctCount}</div><div class="stat-label">Correct</div></div>
+      <div class="stat-card wrong-card"><div class="stat-emoji">❌</div><div class="stat-value">${wrongCount}</div><div class="stat-label">Wrong</div></div>
+      <div class="stat-card gems-card"><div class="stat-emoji">💎</div><div class="stat-value">${gemsCount}</div><div class="stat-label">Gems</div></div>
+      <div class="stat-card time-card"><div class="stat-emoji">⏱️</div><div class="stat-value">${timeStr}</div><div class="stat-label">Time</div></div>
+    </div>
+  </div>
+
+  <div class="performance-message">${generatePerformanceMessage()}</div>
+
+  <div class="portal-actions">
+    <button class="next-quest-btn" onclick="goToNextQuest()">🚀 NEXT QUEST</button>
+    <button class="report-btn" onclick="downloadPDFReport()">📥 Download Quest Report</button>
+    <button class="again-btn" onclick="playAgain()">🔄 Play Again</button>
+  </div>
+</div>`;
+
+  setTimeout(() => animateAccuracy(accuracy), 80);
+
+  sendViaEdgeFunction({
+    student_name: playerName, department: playerDept,
+    correct: correctCount, wrong: wrongCount,
+    time_spent: totalTime, quest_id: "Listening Quest 181"
+  });
+}
+
+async function sendViaEdgeFunction(payload) {
+  try {
+    const response = await fetch(EDGE_FUNCTION_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) { console.error("❌ Edge Function Error:", await response.text()); return; }
+    console.log("✅ Saved to Supabase");
+  } catch (err) { console.error("⚠️ Edge Function Error:", err); }
+}
+
+function downloadPDFReport() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  const totalTime = Math.floor((Date.now() - startTime) / 1000);
+  const reportDate = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+
+  doc.setFillColor(36, 27, 13); doc.rect(0, 0, 210, 45, 'F');
+  doc.setTextColor(233, 199, 102); doc.setFont('times', 'bold'); doc.setFontSize(18);
+  doc.text('SRM VALLIAMMAI ENGINEERING COLLEGE', 105, 16, { align: 'center' });
+  doc.setFontSize(12); doc.setFont('times', 'italic'); doc.text('(Autonomous)', 105, 23, { align: 'center' });
+  doc.setFontSize(15); doc.setFont('times', 'normal'); doc.setTextColor(241, 231, 206);
+  doc.text('Department of English', 105, 31, { align: 'center' });
+  doc.setFontSize(14); doc.setFont('times', 'bold'); doc.setTextColor(233, 199, 102);
+  doc.text('Listening Quest Performance Report', 105, 39, { align: 'center' });
+
+  doc.setTextColor(0,0,0); doc.setFontSize(11); doc.text('CANDIDATE INFORMATION', 20, 55);
+  doc.autoTable({
+    startY: 58,
+    body: [['Student Name', playerName], ['Department', playerDept], ['Quest ID', 'Listening Quest 181'], ['Completed On', reportDate]],
+    theme: 'plain',
+    styles: { fontSize: 10, font: 'times', cellPadding: 3 },
+    columnStyles: { 0: { fontStyle: 'bold', cellWidth: 60, textColor: [70,70,70] }, 1: { cellWidth: 120 } },
+    margin: { left: 20, right: 20 }
+  });
+
+  let y = doc.lastAutoTable.finalY + 10;
+  doc.setFont('times', 'bold'); doc.text('PERFORMANCE SUMMARY', 20, y); y += 4;
+  doc.autoTable({
+    startY: y + 3,
+    body: [
+      ['Total Recordings', questData.length.toString()],
+      ['Correct Answers', correctCount.toString()],
+      ['Wrong Attempts', wrongCount.toString()],
+      ['Final Gems Earned', gemsCount.toString()],
+      ['Total Time', `${Math.floor(totalTime/60)}m ${totalTime%60}s`]
+    ],
+    theme: 'grid',
+    styles: { fontSize: 10, font: 'times', cellPadding: 3 },
+    margin: { left: 20, right: 20 }
+  });
+
+  y = doc.lastAutoTable.finalY + 12;
+  if (y > 250) { doc.addPage(); y = 20; }
+  doc.setFont('times', 'bold'); doc.text('RECORDINGS WITH CORRECT SEQUENCES', 20, y); y += 6;
+  questData.forEach((item, i) => {
+    if (y > 260) { doc.addPage(); y = 20; }
+    doc.setFontSize(11); doc.setFont('times', 'bold'); doc.setTextColor(36,27,13);
+    doc.text(`Recording ${i + 1}:`, 20, y); y += 6;
+    doc.setTextColor(0,0,0); doc.setFont('times', 'normal');
+    const lines = doc.splitTextToSize(item.sentence, 165);
+    doc.text(lines, 25, y); y += lines.length * 5 + 4;
+    doc.setDrawColor(230,220,190); doc.setLineWidth(0.3); doc.line(20, y, 190, y); y += 6;
+  });
+
+  doc.setDrawColor(184,145,46); doc.setLineWidth(0.5); doc.line(20, 280, 190, 280);
+  doc.setFontSize(8); doc.setTextColor(128,128,128); doc.setFont('times','italic');
+  doc.text('This is a system-generated report', 105, 287, { align: 'center' });
+  doc.save(`${playerName.replace(/[^a-zA-Z0-9]/g,'_')}_ListeningQuest_Report.pdf`);
+}
+
+function playAgain() {
+  document.getElementById("scoreScreen").style.display = "none";
+  document.getElementById("scoreScreen").innerHTML = "";
+  document.getElementById("nameForm").style.display = "flex";
+  document.getElementById("nameInput").value = "";
+}
+</script>
+</body>
+</html>

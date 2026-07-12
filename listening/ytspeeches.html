@@ -87,16 +87,6 @@ body {
   border: none;
   border-radius: 16px;
 }
-.video-overlay {
-  position: absolute; inset: 0; z-index: 2;
-  display: flex; align-items: center; justify-content: center;
-  background: rgba(26,15,5,0.65);
-  border-radius: 16px;
-  opacity: 0; pointer-events: none;
-  transition: opacity 0.3s ease;
-}
-.video-overlay.show { opacity: 1; pointer-events: auto; }
-.video-overlay-text { color: var(--gold-bright); font-family: 'Orbitron', monospace; font-size: 0.75rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; text-shadow: 0 0 12px rgba(233,199,102,0.5); }
 
 /* sentence build strip */
 .sentence-card {
@@ -123,36 +113,67 @@ body {
 .slot.filled { color: var(--gold-deep); font-weight: 700; border-bottom-color: var(--gold); animation: slotReveal 0.35s ease; }
 @keyframes slotReveal { from { transform: translateY(6px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
-/* word bank */
+/* word bank - max 7 tiles */
 .bank-card {
-  flex: 1; min-height: 0; max-height: 38%;
+  flex: 0 0 auto;
+  min-height: 0;
   background: rgba(255,253,247,0.6);
   border: 1px dashed rgba(184,145,46,0.4);
   border-radius: 16px;
-  padding: 0.5rem 0.5rem;
-  display: flex; align-items: center;
-  overflow: hidden;
+  padding: 0.6rem 0.6rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
-.word-bank { width: 100%; display: flex; flex-wrap: wrap; gap: 0.45rem; justify-content: center; align-content: center; }
-.tile-slot { display: flex; align-items: center; justify-content: center; }
+.word-bank { width: 100%; display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center; align-content: center; }
 .word-tile {
-  padding: 0.5rem 0.85rem;
+  padding: 0.55rem 0.95rem;
   background: linear-gradient(180deg, #FFFDF7, var(--parchment));
   border: 1.5px solid rgba(184,145,46,0.5);
   border-radius: 10px;
-  font-weight: 600; font-size: 0.9rem; color: var(--ink);
+  font-weight: 600; font-size: 0.92rem; color: var(--ink);
   cursor: pointer; user-select: none;
   box-shadow: 0 3px 8px rgba(90,62,12,0.12);
   touch-action: manipulation;
   transition: transform 0.12s ease, box-shadow 0.12s ease;
-  animation: tilePopIn 0.3s cubic-bezier(0.34,1.56,0.64,1);
 }
-@keyframes tilePopIn { from { transform: scale(0.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.word-tile.tile-enter { animation: tileFadeIn 0.45s ease; }
+@keyframes tileFadeIn { from { opacity: 0; } to { opacity: 1; } }
 .word-tile:active { transform: scale(0.94); }
 .word-tile.correct-tap { animation: tileAway 0.3s ease forwards; }
 @keyframes tileAway { to { transform: scale(0.5) translateY(-10px); opacity: 0; } }
 .word-tile.wrong-tap { animation: tileShake 0.45s ease; border-color: var(--brick); color: var(--brick); }
 @keyframes tileShake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-7px); } 75% { transform: translateX(7px); } }
+
+/* submit button */
+.submit-bar {
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: center;
+  padding: 0.3rem 0;
+}
+.submit-btn {
+  padding: 0.7rem 2rem;
+  background: linear-gradient(135deg, var(--gold-bright), var(--gold));
+  color: #2b1f0c;
+  font-family: 'Orbitron', monospace;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  border: none;
+  border-radius: 14px;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(184,145,46,0.4);
+  touch-action: manipulation;
+  transition: transform 0.15s ease, opacity 0.2s ease;
+}
+.submit-btn:active { transform: scale(0.96); }
+.submit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
 
 /* ===================== SCORE PORTAL ===================== */
 #scoreScreen { flex: 1; min-height: 0; display: flex; flex-direction: column; }
@@ -252,9 +273,6 @@ body {
 
     <div class="video-wrapper" id="videoWrapper">
       <div id="youtubePlayer"></div>
-      <div class="video-overlay" id="videoOverlay">
-        <div class="video-overlay-text">Round Complete</div>
-      </div>
     </div>
 
     <div class="sentence-card">
@@ -263,6 +281,10 @@ body {
 
     <div class="bank-card">
       <div class="word-bank" id="wordBank"></div>
+    </div>
+
+    <div class="submit-bar">
+      <button class="submit-btn" id="submitBtn" onclick="submitRound()" disabled>Submit Answer</button>
     </div>
   </div>
 
@@ -324,45 +346,44 @@ window.addEventListener("load", () => {
 });
 
 /* ==========================================================
-   QUEST DATA
-   Each round has:
-   - start: start time in seconds within the video
-   - end: end time in seconds (when round should auto-complete)
-   - sentence: the exact words spoken in that segment
+   QUEST DATA - ONE ROUND PER VIDEO
+   Each entry = one complete video with one sentence to reorder
    ========================================================== */
 const questData = [
   {
-    start: 0,
-    end: 8,
+    videoId: "j8qp3ITVqY0",
     sentence: "Four score and seven years ago our fathers brought forth a new nation"
   },
   {
-    start: 8,
-    end: 16,
+    videoId: "j8qp3ITVqY0",
     sentence: "conceived in liberty and dedicated to the proposition that all men are created equal"
   },
   {
-    start: 16,
-    end: 24,
+    videoId: "j8qp3ITVqY0",
     sentence: "government of the people by the people for the people shall not perish from the earth"
   }
 ];
 
-const SLOT_COUNT = 5;
+const MAX_BANK_WORDS = 7;
 
-let currentRoundIdx = 0, roundWords = [], hiddenQueue = [], placedCount = 0;
-let correctCount = 0, wrongCount = 0, gemsCount = 0;
-let startTime, timerInterval, playerName = "", playerDept = "";
-let tileSlotEls = [];
-let roundCheckInterval = null;
-let isRoundTransitioning = false;
+let currentRoundIdx = 0;
+let roundWords = [];
+let placedWords = [];      // words placed by user in order
+let bankPool = [];         // word indices not yet correctly placed (shuffled)
+let correctCount = 0;
+let wrongCount = 0;
+let gemsCount = 0;
+let startTime, timerInterval;
+let playerName = "", playerDept = "";
+let isSubmitting = false;
+let isRoundOver = false;
 
 const timerEl = document.getElementById("timer");
 const gemsCounterEl = document.getElementById("gemsCounter");
 const dotTrack = document.getElementById("dotTrack");
 const sentenceStripEl = document.getElementById("sentenceStrip");
 const wordBankEl = document.getElementById("wordBank");
-const videoOverlay = document.getElementById("videoOverlay");
+const submitBtn = document.getElementById("submitBtn");
 
 const NEXT_QUEST_URL = "https://andrewveda.github.io/SRM-VEC-English-PWA/semII/11";
 function goToNextQuest() { window.location.href = NEXT_QUEST_URL; }
@@ -406,13 +427,13 @@ function startQuiz() {
   startTimer();
 }
 
-function shuffleIndices(n) {
-  const arr = Array.from({length: n}, (_, i) => i);
-  for (let i = arr.length - 1; i > 0; i--) {
+function shuffleArray(arr) {
+  const copy = [...arr];
+  for (let i = copy.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
+    [copy[i], copy[j]] = [copy[j], copy[i]];
   }
-  return arr;
+  return copy;
 }
 
 const sentenceCardEl = document.querySelector(".sentence-card");
@@ -429,30 +450,35 @@ function fitSentenceStrip() {
 window.addEventListener("resize", fitSentenceStrip);
 
 function loadRound(idx, animateStrip) {
-  if (idx >= questData.length) { clearInterval(roundCheckInterval); return showScore(); }
+  if (idx >= questData.length) return showScore();
   currentRoundIdx = idx;
   updateDots(idx);
-  isRoundTransitioning = false;
+  isSubmitting = false;
+  isRoundOver = false;
 
   const round = questData[idx];
   roundWords = round.sentence.split(" ");
-  hiddenQueue = shuffleIndices(roundWords.length);
-  placedCount = 0;
+  placedWords = [];
+  bankPool = shuffleArray(roundWords.map((_, i) => i));
 
-  // Seek video to round start and play
-  if (ytPlayer && ytPlayer.seekTo) {
-    ytPlayer.seekTo(round.start, true);
-    ytPlayer.playVideo();
+  // Load the correct video for this round
+  if (ytPlayer && ytPlayer.loadVideoById) {
+    ytPlayer.loadVideoById({
+      videoId: round.videoId,
+      suggestedQuality: 'default'
+    });
+  } else if (ytPlayer && ytPlayer.cueVideoById) {
+    ytPlayer.cueVideoById(round.videoId);
   }
 
-  videoOverlay.classList.remove("show");
-
+  // Build sentence slots (all empty)
   const rebuild = () => {
     sentenceStripEl.innerHTML = "";
     sentenceStripEl.style.fontSize = "";
     roundWords.forEach((w, i) => {
       const slot = document.createElement("span");
-      slot.classList.add("slot"); slot.id = `slot-${i}`;
+      slot.classList.add("slot");
+      slot.id = `slot-${i}`;
       slot.innerText = "_".repeat(Math.max(w.length, 2));
       sentenceStripEl.appendChild(slot);
     });
@@ -467,91 +493,152 @@ function loadRound(idx, animateStrip) {
     rebuild();
   }
 
+  // Build word bank: ALL correct words, shuffled, max 7 visible
   wordBankEl.innerHTML = "";
-  tileSlotEls = [];
-  for (let i = 0; i < SLOT_COUNT; i++) {
-    const slotWrap = document.createElement("div");
-    slotWrap.classList.add("tile-slot");
-    wordBankEl.appendChild(slotWrap);
-    tileSlotEls.push(slotWrap);
+  buildWordBank();
+
+  submitBtn.disabled = true;
+  submitBtn.innerText = "Submit Answer";
+  submitBtn.style.background = "";
+  submitBtn.onclick = submitRound;
+}
+
+function buildWordBank() {
+  // The word at this index is the only one tapTile() will currently accept.
+  const nextNeeded = placedWords.length;
+  const visibleCount = Math.min(MAX_BANK_WORDS, bankPool.length);
+
+  // What's currently on screen (excluding the tile mid-way through its
+  // "correct-tap" exit animation, which removes itself below).
+  const currentTiles = Array.from(wordBankEl.querySelectorAll(".word-tile"));
+  let stillVisible = [];
+  currentTiles.forEach(tile => {
+    const idx = parseInt(tile.dataset.wordIndex, 10);
+    if (bankPool.includes(idx)) {
+      stillVisible.push(idx);
+    } else {
+      tile.remove(); // no longer in the pool (just answered correctly)
+    }
+  });
+
+  // Guarantee the needed word is present, making room if necessary.
+  if (!stillVisible.includes(nextNeeded)) {
+    if (stillVisible.length >= visibleCount && stillVisible.length > 0) {
+      const dropIdx = stillVisible.pop();
+      const dropTile = wordBankEl.querySelector(`.word-tile[data-word-index="${dropIdx}"]`);
+      if (dropTile) dropTile.remove();
+    }
+    stillVisible.push(nextNeeded);
   }
-  fillEmptySlots();
 
-  // Start monitoring video time for round end
-  startRoundTimer(round);
-}
+  // Fill any remaining open slots with other words still left in the pool.
+  const pickable = shuffleArray(bankPool.filter(i => !stillVisible.includes(i)));
+  while (stillVisible.length < visibleCount && pickable.length) {
+    stillVisible.push(pickable.shift());
+  }
 
-function startRoundTimer(round) {
-  if (roundCheckInterval) clearInterval(roundCheckInterval);
-  roundCheckInterval = setInterval(() => {
-    if (!ytPlayer || !ytPlayer.getCurrentTime) return;
-    const currentTime = ytPlayer.getCurrentTime();
-    if (currentTime >= round.end && !isRoundTransitioning) {
-      isRoundTransitioning = true;
-      // Pause video and show overlay
-      ytPlayer.pauseVideo();
-      videoOverlay.classList.add("show");
-      // If round not complete, auto-complete remaining words as wrong
-      const remaining = roundWords.length - placedCount;
-      if (remaining > 0) {
-        wrongCount += remaining;
-        gemsCount -= remaining;
-        gemsCounterEl.innerText = gemsCount;
-      }
-      setTimeout(() => {
-        videoOverlay.classList.remove("show");
-        loadRound(currentRoundIdx + 1, true);
-      }, 1500);
-    }
-  }, 500);
-}
-
-function fillEmptySlots() {
-  tileSlotEls.forEach(slotWrap => {
-    if (slotWrap.children.length === 0 && hiddenQueue.length > 0) {
-      const wordIndex = hiddenQueue.shift();
-      const tile = document.createElement("div");
-      tile.classList.add("word-tile");
-      tile.innerText = roundWords[wordIndex];
-      tile.dataset.wordIndex = wordIndex;
-      tile.onclick = () => tapTile(tile, slotWrap);
-      slotWrap.appendChild(tile);
-    }
+  // Only genuinely new words get a DOM node (and a subtle fade-in) —
+  // tiles that were already visible are left completely untouched, so
+  // the tray refresh feels seamless instead of the whole bank re-popping.
+  stillVisible.forEach(wordIndex => {
+    if (wordBankEl.querySelector(`.word-tile[data-word-index="${wordIndex}"]`)) return;
+    const tile = document.createElement("div");
+    tile.classList.add("word-tile", "tile-enter");
+    tile.innerText = roundWords[wordIndex];
+    tile.dataset.wordIndex = wordIndex;
+    tile.onclick = () => tapTile(tile);
+    wordBankEl.appendChild(tile);
   });
 }
 
-function tapTile(tile, slotWrap) {
-  if (tile.classList.contains("correct-tap")) return;
-  const wordIndex = parseInt(tile.dataset.wordIndex, 10);
+function tapTile(tile) {
+  if (isSubmitting || isRoundOver) return;
+  if (tile.classList.contains("used")) return;
 
-  if (wordIndex === placedCount) {
-    const slot = document.getElementById(`slot-${placedCount}`);
+  const wordIndex = parseInt(tile.dataset.wordIndex, 10);
+  const correctIndex = placedWords.length;
+
+  if (wordIndex === correctIndex) {
+    // CORRECT word tapped
+    const slot = document.getElementById(`slot-${correctIndex}`);
     slot.innerText = roundWords[wordIndex];
     slot.classList.add("filled");
 
-    correctCount++; gemsCount++;
+    placedWords.push(wordIndex);
+    correctCount++;
+    gemsCount++;
     gemsCounterEl.innerText = gemsCount;
-    placedCount++;
 
+    // Remove from the pool and let the next hidden word take its place
+    bankPool = bankPool.filter(i => i !== wordIndex);
+
+    tile.classList.add("used");
     tile.classList.add("correct-tap");
-    setTimeout(() => { tile.remove(); fillEmptySlots(); }, 260);
+    setTimeout(() => { buildWordBank(); }, 260);
 
-    if (placedCount >= roundWords.length) {
-      isRoundTransitioning = true;
-      if (roundCheckInterval) clearInterval(roundCheckInterval);
-      ytPlayer.pauseVideo();
-      videoOverlay.classList.add("show");
-      setTimeout(() => {
-        videoOverlay.classList.remove("show");
-        loadRound(currentRoundIdx + 1, true);
-      }, 1200);
+    // Enable submit when all words placed
+    if (placedWords.length >= roundWords.length) {
+      submitBtn.disabled = false;
     }
   } else {
-    wrongCount++; gemsCount--;
+    // WRONG word tapped - flash red, do NOT place it
+    wrongCount++;
+    gemsCount--;
     gemsCounterEl.innerText = gemsCount;
     tile.classList.add("wrong-tap");
     setTimeout(() => tile.classList.remove("wrong-tap"), 450);
   }
+}
+
+function submitRound() {
+  if (isSubmitting || isRoundOver) return;
+  isSubmitting = true;
+  isRoundOver = true;
+  submitBtn.disabled = true;
+
+  // placedWords only ever contains words tapped in the correct position
+  // (tapTile rejects out-of-order taps), so every placed word is correct.
+  const roundCorrect = placedWords.length;
+
+  // Any words the player never got to placing count as wrong. In normal
+  // play this is 0 because Submit only enables once the sentence is
+  // complete, but we still account for it defensively.
+  const unplaced = roundWords.length - placedWords.length;
+  if (unplaced > 0) {
+    wrongCount += unplaced;
+    gemsCount -= unplaced;
+    gemsCounterEl.innerText = gemsCount;
+  }
+
+  // Show results on slots
+  roundWords.forEach((correctWord, i) => {
+    const slot = document.getElementById(`slot-${i}`);
+    if (i < placedWords.length) {
+      // Every placed slot is correct (see note above)
+      slot.style.borderBottomColor = "#9fd66b";
+      slot.style.color = "#9fd66b";
+    } else {
+      // Not placed - show the correct word
+      slot.style.borderBottomColor = "var(--brick)";
+      slot.style.color = "var(--brick)";
+      slot.innerText = correctWord;
+    }
+  });
+
+  if (roundCorrect === roundWords.length) {
+    submitBtn.innerText = "✅ Perfect! Next Round →";
+    submitBtn.style.background = "linear-gradient(135deg, #9fd66b, #7cb342)";
+  } else {
+    submitBtn.innerText = `⚠️ ${roundCorrect}/${roundWords.length} — Next Round →`;
+    submitBtn.style.background = "linear-gradient(135deg, #e2765f, #c0392b)";
+  }
+
+  submitBtn.disabled = false;
+  submitBtn.onclick = () => {
+    submitBtn.style.background = "";
+    submitBtn.onclick = submitRound;
+    loadRound(currentRoundIdx + 1, true);
+  };
 }
 
 function startTimer() {
@@ -591,7 +678,6 @@ const EDGE_FUNCTION_URL = "https://yellow-lab-4999.andrewveda.workers.dev/functi
 
 function showScore() {
   clearInterval(timerInterval);
-  if (roundCheckInterval) clearInterval(roundCheckInterval);
   if (ytPlayer && ytPlayer.pauseVideo) ytPlayer.pauseVideo();
   triggerMegaConfetti();
 

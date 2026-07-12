@@ -527,15 +527,24 @@ function initRoundBank() {
   }
 }
 
-// Picks the next word to display in a slot, prioritizing whichever word
-// the player must tap next (so it's always available somewhere on screen).
+// Picks the next word to display in a slot. If the word text the player
+// needs next isn't currently visible in ANY slot, pull a matching-text
+// token forward from the queue so it's guaranteed available — this also
+// means when the needed word has duplicates elsewhere in the sentence
+// (e.g. "the", "people"), any one of them is a valid, visible choice.
 function pickWordForSlot() {
   const nextNeeded = placedWords.length;
-  if (nextNeeded < roundWords.length &&
-      !slotAssignment.includes(nextNeeded) &&
-      bankQueue.includes(nextNeeded)) {
-    bankQueue = bankQueue.filter(i => i !== nextNeeded);
-    return nextNeeded;
+  if (nextNeeded < roundWords.length) {
+    const neededText = roundWords[nextNeeded];
+    const alreadyVisible = slotAssignment.some(
+      idx => idx !== null && roundWords[idx] === neededText
+    );
+    if (!alreadyVisible) {
+      const matchPos = bankQueue.findIndex(idx => roundWords[idx] === neededText);
+      if (matchPos !== -1) {
+        return bankQueue.splice(matchPos, 1)[0];
+      }
+    }
   }
   return bankQueue.length ? bankQueue.shift() : null;
 }
@@ -573,13 +582,16 @@ function tapTile(tile) {
   const correctIndex = placedWords.length;
   const slotIdx = parseInt(tile.dataset.slot, 10);
 
-  if (wordIndex === correctIndex) {
+  // Match by the word's TEXT, not its original position in the sentence.
+  // Repeated words (e.g. "the", "people") are visually identical, so any
+  // occurrence of the needed word should count as correct here.
+  if (roundWords[wordIndex] === roundWords[correctIndex]) {
     // CORRECT word tapped
     const slot = document.getElementById(`slot-${correctIndex}`);
-    slot.innerText = roundWords[wordIndex];
+    slot.innerText = roundWords[correctIndex];
     slot.classList.add("filled");
 
-    placedWords.push(wordIndex);
+    placedWords.push(correctIndex);
     correctCount++;
     gemsCount++;
     gemsCounterEl.innerText = gemsCount;

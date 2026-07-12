@@ -125,23 +125,31 @@ body {
   align-items: center;
   justify-content: center;
 }
-.word-bank { width: 100%; display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center; align-content: center; }
+.word-bank {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+}
 .word-tile {
-  padding: 0.55rem 0.95rem;
+  display: flex; align-items: center; justify-content: center;
+  min-height: 2.7rem;
+  padding: 0.5rem 0.5rem;
   background: linear-gradient(180deg, #FFFDF7, var(--parchment));
   border: 1.5px solid rgba(184,145,46,0.5);
   border-radius: 10px;
-  font-weight: 600; font-size: 0.92rem; color: var(--ink);
+  font-weight: 600; font-size: 0.9rem; color: var(--ink);
+  text-align: center;
   cursor: pointer; user-select: none;
   box-shadow: 0 3px 8px rgba(90,62,12,0.12);
   touch-action: manipulation;
-  transition: transform 0.12s ease, box-shadow 0.12s ease;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, opacity 0.35s ease;
 }
 .word-tile.tile-enter { animation: tileFadeIn 0.45s ease; }
 @keyframes tileFadeIn { from { opacity: 0; } to { opacity: 1; } }
+.word-tile.tile-swap-out { opacity: 0; }
+.word-tile.tile-empty { opacity: 0; pointer-events: none; border-color: transparent; box-shadow: none; }
 .word-tile:active { transform: scale(0.94); }
-.word-tile.correct-tap { animation: tileAway 0.3s ease forwards; }
-@keyframes tileAway { to { transform: scale(0.5) translateY(-10px); opacity: 0; } }
 .word-tile.wrong-tap { animation: tileShake 0.45s ease; border-color: var(--brick); color: var(--brick); }
 @keyframes tileShake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-7px); } 75% { transform: translateX(7px); } }
 
@@ -369,7 +377,9 @@ const MAX_BANK_WORDS = 7;
 let currentRoundIdx = 0;
 let roundWords = [];
 let placedWords = [];      // words placed by user in order
-let bankPool = [];         // word indices not yet correctly placed (shuffled)
+let slotCount = 0;         // fixed number of tray positions for this round
+let slotAssignment = [];   // wordIndex currently shown in each slot (or null)
+let bankQueue = [];        // word indices waiting to be shown next (shuffled)
 let correctCount = 0;
 let wrongCount = 0;
 let gemsCount = 0;
@@ -459,7 +469,7 @@ function loadRound(idx, animateStrip) {
   const round = questData[idx];
   roundWords = round.sentence.split(" ");
   placedWords = [];
-  bankPool = shuffleArray(roundWords.map((_, i) => i));
+  bankQueue = shuffleArray(roundWords.map((_, i) => i));
 
   // Load the correct video for this round
   if (ytPlayer && ytPlayer.loadVideoById) {
@@ -493,9 +503,10 @@ function loadRound(idx, animateStrip) {
     rebuild();
   }
 
-  // Build word bank: ALL correct words, shuffled, max 7 visible
-  wordBankEl.innerHTML = "";
-  buildWordBank();
+  // Build the word tray: a fixed set of equally-sized slots. Their physical
+  // positions never change again for the rest of the round — only the word
+  // showing inside a slot changes, in place, once it's answered correctly.
+  initRoundBank();
 
   submitBtn.disabled = true;
   submitBtn.innerText = "Submit Answer";
@@ -503,60 +514,64 @@ function loadRound(idx, animateStrip) {
   submitBtn.onclick = submitRound;
 }
 
-function buildWordBank() {
-  // The word at this index is the only one tapTile() will currently accept.
-  const nextNeeded = placedWords.length;
-  const visibleCount = Math.min(MAX_BANK_WORDS, bankPool.length);
-
-  // What's currently on screen (excluding the tile mid-way through its
-  // "correct-tap" exit animation, which removes itself below).
-  const currentTiles = Array.from(wordBankEl.querySelectorAll(".word-tile"));
-  let stillVisible = [];
-  currentTiles.forEach(tile => {
-    const idx = parseInt(tile.dataset.wordIndex, 10);
-    if (bankPool.includes(idx)) {
-      stillVisible.push(idx);
-    } else {
-      tile.remove(); // no longer in the pool (just answered correctly)
-    }
-  });
-
-  // Guarantee the needed word is present, making room if necessary.
-  if (!stillVisible.includes(nextNeeded)) {
-    if (stillVisible.length >= visibleCount && stillVisible.length > 0) {
-      const dropIdx = stillVisible.pop();
-      const dropTile = wordBankEl.querySelector(`.word-tile[data-word-index="${dropIdx}"]`);
-      if (dropTile) dropTile.remove();
-    }
-    stillVisible.push(nextNeeded);
-  }
-
-  // Fill any remaining open slots with other words still left in the pool.
-  const pickable = shuffleArray(bankPool.filter(i => !stillVisible.includes(i)));
-  while (stillVisible.length < visibleCount && pickable.length) {
-    stillVisible.push(pickable.shift());
-  }
-
-  // Only genuinely new words get a DOM node (and a subtle fade-in) —
-  // tiles that were already visible are left completely untouched, so
-  // the tray refresh feels seamless instead of the whole bank re-popping.
-  stillVisible.forEach(wordIndex => {
-    if (wordBankEl.querySelector(`.word-tile[data-word-index="${wordIndex}"]`)) return;
+function initRoundBank() {
+  slotCount = Math.min(MAX_BANK_WORDS, roundWords.length);
+  slotAssignment = new Array(slotCount).fill(null);
+  wordBankEl.innerHTML = "";
+  for (let s = 0; s < slotCount; s++) {
     const tile = document.createElement("div");
     tile.classList.add("word-tile", "tile-enter");
-    tile.innerText = roundWords[wordIndex];
-    tile.dataset.wordIndex = wordIndex;
-    tile.onclick = () => tapTile(tile);
+    tile.dataset.slot = s;
     wordBankEl.appendChild(tile);
-  });
+    fillSlot(s);
+  }
+}
+
+// Picks the next word to display in a slot, prioritizing whichever word
+// the player must tap next (so it's always available somewhere on screen).
+function pickWordForSlot() {
+  const nextNeeded = placedWords.length;
+  if (nextNeeded < roundWords.length &&
+      !slotAssignment.includes(nextNeeded) &&
+      bankQueue.includes(nextNeeded)) {
+    bankQueue = bankQueue.filter(i => i !== nextNeeded);
+    return nextNeeded;
+  }
+  return bankQueue.length ? bankQueue.shift() : null;
+}
+
+// Fills a single, fixed slot with its next word. The slot's DOM element and
+// grid position never change — only its label and click target do.
+function fillSlot(slotIdx) {
+  const wordIndex = pickWordForSlot();
+  const tile = wordBankEl.querySelector(`.word-tile[data-slot="${slotIdx}"]`);
+  if (!tile) return;
+
+  if (wordIndex === null) {
+    // No words left to show here (tail end of the round) — quietly retire
+    // the slot instead of leaving a stray clickable tile.
+    slotAssignment[slotIdx] = null;
+    tile.innerText = "";
+    tile.removeAttribute("data-word-index");
+    tile.onclick = null;
+    tile.classList.add("tile-empty");
+    return;
+  }
+
+  slotAssignment[slotIdx] = wordIndex;
+  tile.innerText = roundWords[wordIndex];
+  tile.dataset.wordIndex = wordIndex;
+  tile.onclick = () => tapTile(tile);
+  tile.classList.remove("tile-empty", "wrong-tap");
 }
 
 function tapTile(tile) {
   if (isSubmitting || isRoundOver) return;
-  if (tile.classList.contains("used")) return;
+  if (!tile.onclick) return; // slot mid-swap or retired
 
   const wordIndex = parseInt(tile.dataset.wordIndex, 10);
   const correctIndex = placedWords.length;
+  const slotIdx = parseInt(tile.dataset.slot, 10);
 
   if (wordIndex === correctIndex) {
     // CORRECT word tapped
@@ -569,12 +584,17 @@ function tapTile(tile) {
     gemsCount++;
     gemsCounterEl.innerText = gemsCount;
 
-    // Remove from the pool and let the next hidden word take its place
-    bankPool = bankPool.filter(i => i !== wordIndex);
-
-    tile.classList.add("used");
-    tile.classList.add("correct-tap");
-    setTimeout(() => { buildWordBank(); }, 260);
+    // Fade this slot's current word out, then swap in whatever comes next —
+    // the tile itself never moves or gets recreated, so the tray layout
+    // stays perfectly still.
+    tile.onclick = null;
+    tile.classList.add("tile-swap-out");
+    setTimeout(() => {
+      fillSlot(slotIdx);
+      tile.classList.remove("tile-swap-out");
+      tile.classList.add("tile-enter");
+      setTimeout(() => tile.classList.remove("tile-enter"), 450);
+    }, 220);
 
     // Enable submit when all words placed
     if (placedWords.length >= roundWords.length) {

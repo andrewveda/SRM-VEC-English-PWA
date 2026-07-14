@@ -82,6 +82,7 @@ body {
 }
 .drag-item:hover { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(0,0,0,0.15); }
 .drag-item.selected { background: var(--accent-main); color: #fff; }
+.drag-item.used { opacity: 0.4; pointer-events: none; }
 
 .drop-container { display: flex; flex-direction: column; gap: 1rem; align-items: center; }
 
@@ -129,11 +130,26 @@ body {
 }
 
 #motivationBox {
-  margin-top: 2rem; min-height: 120px; padding: 1.5rem;
-  font-size: 1.9rem; font-weight: 800; color: var(--accent-main);
+  position: fixed;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 24px);
+  max-width: 520px;
+  margin: 0;
+  min-height: auto;
+  z-index: 9999;
+  font-size: 1.4rem;
+  padding: 1rem 1.2rem;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
   background: linear-gradient(135deg, #fff3e0, #ffe0b2);
-  border-radius: 18px; box-shadow: 0 10px 25px rgba(255,152,0,0.35);
+  color: var(--accent-main);
+  font-weight: 800;
+  cursor: pointer;
+  transition: opacity 0.3s ease;
 }
+#motivationBox.hidden { opacity: 0; pointer-events: none; }
 
 .hero-quote {
   max-width: 94%; margin: 0.6rem auto 1.2rem auto;
@@ -144,11 +160,16 @@ body {
 .hero-author { margin-top: 0.3rem; font-size: 0.95rem; font-weight: 600; color: #d4af37; }
 
 #nameForm {
-  display: flex; flex-direction: column; align-items: center; gap: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
   background: linear-gradient(135deg, #ffffff, #f1f5f9);
-  padding: 2rem 1.5rem; border-radius: 20px;
+  padding: 2rem 1.5rem;
+  border-radius: 20px;
   box-shadow: 0 12px 30px rgba(0,0,0,0.18);
-  max-width: 420px; margin: 2rem auto;
+  max-width: 420px;
+  margin: 2rem auto;
 }
 
 #nameInput, #departmentSelect {
@@ -427,23 +448,8 @@ body {
   transform: scale(0.96);
   box-shadow: 0 2px 10px rgba(56,189,248,0.25);
 }
-
-#motivationBox {
-  position: fixed;
-  bottom: 12px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: calc(100% - 24px);
-  max-width: 520px;
-  margin: 0;
-  min-height: auto;
-  z-index: 9999;
-  font-size: 1.4rem;
-  padding: 1rem 1.2rem;
-  border-radius: 16px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
-}
 </style>
+<base target="_blank">
 </head>
 
 <body>
@@ -501,7 +507,7 @@ body {
 
 </div>
 
-<div id="motivationBox"></div>
+<div id="motivationBox" class="hidden"></div>
 
 <script>
 /* ========== CONFETTI ========== */
@@ -590,8 +596,19 @@ function showMotivation(isCorrect) {
   const list = isCorrect ? rightMessages : wrongMessages;
   let msg = list[Math.floor(Math.random() * list.length)].replace(/'name'/g, playerName);
   box.innerHTML = msg;
-  box.style.opacity = 1;
+  box.classList.remove("hidden");
+
+  // Auto-hide after 4 seconds
+  clearTimeout(window.motivationTimeout);
+  window.motivationTimeout = setTimeout(() => {
+    box.classList.add("hidden");
+  }, 4000);
 }
+
+// Click/tap to dismiss motivation box
+document.getElementById("motivationBox").addEventListener("click", function() {
+  this.classList.add("hidden");
+});
 
 /* ========== SUBJECT-VERB AGREEMENT QUEST DATA ========== */
 const quizData = [
@@ -629,7 +646,7 @@ const quizData = [
   "answers": ["is", "has", "are", "knows"]
 },
 {
-  "rule": "Compound Subjects with \"And\"",
+  "rule": "Compound Subjects with "And"",
   "tip": "Two subjects joined by 'and' are usually plural — except idiomatic pairs seen as a single idea (bread and butter, salt and pepper), which stay singular.",
   "questionItems": [
     { "word": "Tom and Jerry ___ best friends.", "answer": "are" },
@@ -673,6 +690,17 @@ const quizData = [
   "answers": ["is", "are", "is", "are"]
 },
 {
+  "rule": "Here Is / Here Are",
+  "tip": "Like 'there is/are', 'here is/are' follows the same rule — the verb agrees with the noun that comes after it.",
+  "questionItems": [
+    { "word": "Here ___ the keys you were looking for.", "answer": "are" },
+    { "word": "Here ___ the bride, all dressed in white.", "answer": "comes" },
+    { "word": "Here ___ your assignment sheets.", "answer": "are" },
+    { "word": "Here ___ a letter for you.", "answer": "is" }
+  ],
+  "answers": ["are", "comes", "are", "is"]
+},
+{
   "rule": "Amounts, Distances & Titles as Single Units",
   "tip": "Expressions of time, money, distance, and titles are usually treated as one single amount or unit, so they take a singular verb even if they look plural.",
   "questionItems": [
@@ -693,6 +721,149 @@ const quizData = [
     { "word": "This is the only one of the books that ___ interesting.", "answer": "is" }
   ],
   "answers": ["lives", "are", "are", "is"]
+},
+{
+  "rule": "As Well As / Along With / Together With",
+  "tip": "Phrases like 'as well as', 'along with', 'together with', 'accompanied by' do NOT change the number of the subject. The verb agrees with the main subject only.",
+  "questionItems": [
+    { "word": "The politician, along with the newsmen, ___ expected shortly.", "answer": "is" },
+    { "word": "Excitement, as well as nervousness, ___ the cause of her shaking.", "answer": "is" },
+    { "word": "The boys, accompanied by their teacher, ___ planning a tour.", "answer": "are" },
+    { "word": "Matt, together with his mother, ___ expected shortly.", "answer": "is" }
+  ],
+  "answers": ["is", "is", "are", "is"]
+},
+{
+  "rule": "None / No",
+  "tip": "'None' alone is singular. With 'of', it agrees with the noun after 'of' — singular noun = singular verb, plural noun = plural verb. 'No' + plural noun takes a plural verb.",
+  "questionItems": [
+    { "word": "None of the money ___ been used.", "answer": "has" },
+    { "word": "None of the bottles ___ clean enough.", "answer": "are" },
+    { "word": "No men ___ hungry now.", "answer": "are" },
+    { "word": "None ___ willing to help.", "answer": "is" }
+  ],
+  "answers": ["has", "are", "are", "is"]
+},
+{
+  "rule": "A Number of / The Number of",
+  "tip": "'A number of' means 'many' and takes a plural verb. 'The number of' refers to a specific quantity and takes a singular verb.",
+  "questionItems": [
+    { "word": "A number of dancers ___ coming to the party.", "answer": "are" },
+    { "word": "The number of dancers ___ twelve.", "answer": "is" },
+    { "word": "A number of people ___ cricket to football.", "answer": "prefer" },
+    { "word": "The number of days in this month ___ 28.", "answer": "is" }
+  ],
+  "answers": ["are", "is", "prefer", "is"]
+},
+{
+  "rule": "Nouns Ending in -s but Singular",
+  "tip": "Nouns like mathematics, civics, news, politics, economics are plural in form but singular in meaning. They always take a singular verb.",
+  "questionItems": [
+    { "word": "Mathematics ___ very difficult for some people.", "answer": "is" },
+    { "word": "The news ___ very depressing today.", "answer": "is" },
+    { "word": "Economics ___ an easy subject for her.", "answer": "is" },
+    { "word": "Politics ___ a difficult subject to discuss.", "answer": "is" }
+  ],
+  "answers": ["is", "is", "is", "is"]
+},
+{
+  "rule": "Nouns Always Plural (Scissors, Pants, Glasses)",
+  "tip": "Nouns like scissors, pants, glasses, tongs, shorts are always plural and take a plural verb. But 'a pair of' makes them singular.",
+  "questionItems": [
+    { "word": "My pants ___ in the drawer.", "answer": "are" },
+    { "word": "These scissors ___ useless.", "answer": "are" },
+    { "word": "Your eyeglasses ___ dirty.", "answer": "are" },
+    { "word": "A pair of trousers ___ needed for the event.", "answer": "is" }
+  ],
+  "answers": ["are", "are", "are", "is"]
+},
+{
+  "rule": "Gerunds & Infinitives as Subjects",
+  "tip": "When a gerund (verb+ing) or an infinitive (to + verb) is the subject of a sentence, the verb is always singular.",
+  "questionItems": [
+    { "word": "Walking ___ a good habit.", "answer": "is" },
+    { "word": "Swimming ___ a good exercise.", "answer": "is" },
+    { "word": "To sing ___ my favourite activity.", "answer": "is" },
+    { "word": "Eating healthy food ___ you healthy.", "answer": "makes" }
+  ],
+  "answers": ["is", "is", "is", "makes"]
+},
+{
+  "rule": "The + Adjective (The Rich, The Poor)",
+  "tip": "When 'the' + an adjective refers to a group of people (the rich, the poor, the elderly), it is plural and takes a plural verb.",
+  "questionItems": [
+    { "word": "The pious ___ loved by God.", "answer": "are" },
+    { "word": "The industrious ___ always successful.", "answer": "are" },
+    { "word": "The best ___ not lack integrity.", "answer": "do" },
+    { "word": "The elderly ___ special care.", "answer": "need" }
+  ],
+  "answers": ["are", "are", "do", "need"]
+},
+{
+  "rule": "Subjunctive Mood (Wish / Contrary to Fact)",
+  "tip": "In wishes or statements contrary to fact, use 'were' instead of 'was', even with singular subjects. This is the subjunctive mood.",
+  "questionItems": [
+    { "word": "I wish my sister ___ here.", "answer": "were" },
+    { "word": "I wish I ___ on a beach right now.", "answer": "were" },
+    { "word": "If he ___ here, you would be sorry.", "answer": "were" },
+    { "word": "She requested that he ___ his hand.", "answer": "raise" }
+  ],
+  "answers": ["were", "were", "were", "raise"]
+},
+{
+  "rule": "Fractions & Percentages",
+  "tip": "With fractions and percentages, the verb agrees with the noun after 'of'. Singular noun = singular verb; plural noun = plural verb.",
+  "questionItems": [
+    { "word": "One-half of the pie ___ gone.", "answer": "is" },
+    { "word": "Two-thirds of the students ___ here.", "answer": "are" },
+    { "word": "Fifty percent of the work ___ complete.", "answer": "is" },
+    { "word": "A third of the people ___ unemployed.", "answer": "are" }
+  ],
+  "answers": ["is", "are", "is", "are"]
+},
+{
+  "rule": "Every / Each + Compound Subject",
+  "tip": "When 'every' or 'each' joins two subjects with 'and', the verb is singular because each subject is considered individually.",
+  "questionItems": [
+    { "word": "Every man and woman ___ good English here.", "answer": "speaks" },
+    { "word": "Each boy and girl ___ a trophy.", "answer": "gets" },
+    { "word": "Every teacher and student ___ present.", "answer": "is" },
+    { "word": "Each pen and pencil ___ new.", "answer": "is" }
+  ],
+  "answers": ["speaks", "gets", "is", "is"]
+},
+{
+  "rule": "Expressions of Quantity (A lot of, Some of, All of)",
+  "tip": "With 'a lot of', 'some of', 'all of', etc., the verb agrees with the noun after 'of'. Singular noun = singular verb; plural noun = plural verb.",
+  "questionItems": [
+    { "word": "A lot of the cake ___ gone.", "answer": "is" },
+    { "word": "A lot of the cakes ___ gone.", "answer": "are" },
+    { "word": "All of the pie ___ eaten.", "answer": "is" },
+    { "word": "Some of the students ___ missing.", "answer": "are" }
+  ],
+  "answers": ["is", "are", "is", "are"]
+},
+{
+  "rule": "Non-count Nouns",
+  "tip": "Non-count nouns (furniture, equipment, information, education, research) are always singular and take a singular verb.",
+  "questionItems": [
+    { "word": "Education ___ the key to success.", "answer": "is" },
+    { "word": "The furniture in the room ___ rearranged.", "answer": "was" },
+    { "word": "The information obtained ___ relevant.", "answer": "is" },
+    { "word": "Diabetes ___ many people around the world.", "answer": "affects" }
+  ],
+  "answers": ["is", "was", "is", "affects"]
+},
+{
+  "rule": "Inverted Sentences",
+  "tip": "In inverted sentences where the subject comes after the verb, the verb still agrees with the true subject.",
+  "questionItems": [
+    { "word": "In the garden ___ two kids playing.", "answer": "are" },
+    { "word": "Upset ___ the cat when it was woken up.", "answer": "was" },
+    { "word": "On the wall ___ a beautiful painting.", "answer": "hangs" },
+    { "word": "Among the guests ___ the chief guest.", "answer": "was" }
+  ],
+  "answers": ["are", "was", "hangs", "was"]
 },
 {
   "rule": "Mixed Review — Boss Round",
@@ -786,9 +957,10 @@ function placeOption(dropZone) {
     showMotivation(true);
     dropZone.innerHTML = dropZone.innerText.replace("___", `<strong>${answer}</strong>`);
     dropZone.classList.add("correct", "filled");
+    selectedOption.classList.add("used");
     selectedOption.style.display = "none";
   } else {
-    playWrongSound(); totalWrongGuesses--; gemsCount--;
+    playWrongSound(); totalWrongGuesses++; gemsCount--;
     gemsCounterEl.innerText = `💎 ${gemsCount}`;
     showMotivation(false);
     dropZone.classList.add("wrong");
@@ -818,7 +990,7 @@ function startTimer() {
 }
 
 function calculateAccuracy() {
-  const total = correctCount + Math.abs(totalWrongGuesses);
+  const total = correctCount + totalWrongGuesses;
   return total === 0 ? 0 : Math.round((correctCount / total) * 100);
 }
 
@@ -893,7 +1065,7 @@ function showScore() {
       </div>
       <div class="stat-card wrong-card">
         <div class="stat-emoji">❌</div>
-        <div class="stat-value">${Math.abs(totalWrongGuesses)}</div>
+        <div class="stat-value">${totalWrongGuesses}</div>
         <div class="stat-label">Wrong</div>
       </div>
       <div class="stat-card gems-card">
@@ -922,7 +1094,7 @@ function showScore() {
 
   sendViaEdgeFunction({
     student_name: playerName, department: playerDept,
-    correct: correctCount, wrong: Math.abs(totalWrongGuesses),
+    correct: correctCount, wrong: totalWrongGuesses,
     time_spent: totalTime, quest_id: "SVA Quest"
   });
 }
@@ -970,7 +1142,7 @@ function downloadPDFReport() {
     body: [
       ['Total Rule Sets', quizData.length.toString()],
       ['Correct Answers', correctCount.toString()],
-      ['Wrong Attempts', Math.abs(totalWrongGuesses).toString()],
+      ['Wrong Attempts', totalWrongGuesses.toString()],
       ['Final Gems Earned', gemsCount.toString()],
       ['Total Time', `${Math.floor(totalTime/60)}m ${totalTime%60}s`]
     ],

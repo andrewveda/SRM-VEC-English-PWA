@@ -834,10 +834,11 @@ function loadPage() {
   pageFirstTry = true;
 
   const data = quizData[currentPage];
+  // Dynamically reflects the growing queue total
   progressTracker.innerText = `📍 Page ${currentPage + 1} of ${quizData.length}`;
   ruleLabelEl.innerText = `📘 Rule ${currentPage + 1} of ${quizData.length}: ${data.rule}`;
   
-  // Keep rule tip visible from the start of the page
+  // Rule tip stays visible at all times
   tipBoxEl.innerText = `💡 Rule reminder: ${data.tip}`;
   tipBoxEl.classList.add("show");
 
@@ -857,7 +858,6 @@ function loadPage() {
     dropContainerEl.appendChild(drop);
   });
 }
-
 function selectOption(div) {
   if (selectedOption) selectedOption.classList.remove("selected");
   selectedOption = div; div.classList.add("selected");
@@ -869,9 +869,6 @@ function placeOption(dropZone) {
 
   const answer = selectedOption.innerText.trim();
   const correctAnswer = dropZone.dataset.answer.trim();
-
-  // Instant top-right counter update
-  progressTracker.innerText = `📍 Page ${currentPage + 1} of ${quizData.length}`;
 
   if (answer === correctAnswer) {
     triggerConfetti(); 
@@ -889,7 +886,7 @@ function placeOption(dropZone) {
     dropZone.classList.add("correct", "filled");
     dropZone.dataset.filled = "true";
 
-    // Hide specific selected button element so duplicate options remain available
+    // Hide only the specific clicked option so duplicates remain usable
     selectedOption.style.visibility = "hidden";
     selectedOption.style.pointerEvents = "none";
     selectedOption.classList.remove("selected");
@@ -903,8 +900,16 @@ function placeOption(dropZone) {
     playWrongSound();
     pageWrongCount++;
     totalWrongGuesses++;
-    pageFirstTry = false;
     
+    // Re-queue page if this is the first error on this current attempt
+    if (pageFirstTry) {
+      quizData.push(quizData[currentPage]);
+      pageFirstTry = false;
+    }
+
+    // Instantly update top-right tracker with the new queue total
+    progressTracker.innerText = `📍 Page ${currentPage + 1} of ${quizData.length}`;
+
     gemsCount = Math.max(0, gemsCount - 1);
     gemsCounterEl.innerText = `💎 ${gemsCount}`;
     showMotivation(false);
@@ -921,7 +926,6 @@ function placeOption(dropZone) {
     selectedOption = null;
   }
 }
-
 function handlePageComplete() {
   setTimeout(() => {
     if (pageFirstTry) {

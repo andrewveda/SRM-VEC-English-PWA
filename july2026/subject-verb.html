@@ -78,11 +78,12 @@ body {
   padding: 0.7rem 1.2rem;
   background: #f1f5f9; border-radius: 14px;
   cursor: pointer; user-select: none; font-weight: 600;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
 }
 .drag-item:hover { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(0,0,0,0.15); }
 .drag-item.selected { background: var(--accent-main); color: #fff; }
-.drag-item.used { opacity: 0.4; pointer-events: none; }
+.drag-item.used { opacity: 0.3; pointer-events: none; transform: scale(0.95); }
+.drag-item.wrong-pick { animation: wrongShake 0.5s ease; background: #ffebee; color: var(--red-main); }
 
 .drop-container { display: flex; flex-direction: column; gap: 1rem; align-items: center; }
 
@@ -91,8 +92,10 @@ body {
   padding: 0.7rem 1rem; border-radius: 12px;
   border: 2px dashed var(--blue-main);
   cursor: pointer; font-weight: 600; background: #f8fafc;
+  transition: all 0.3s ease;
 }
-.drop-zone.filled { border-style: solid; background: #e3f2fd; }
+.drop-zone.filled { border-style: solid; background: #e3f2fd; border-color: var(--green-main); }
+.drop-zone.wrong-attempt { border-color: var(--red-main); background: #ffebee; }
 
 .correct {
   background-color: #e8f5e9 !important;
@@ -127,6 +130,21 @@ body {
 @keyframes tipFadeIn {
   from { opacity: 0; transform: translateY(-6px); }
   to   { opacity: 1; transform: translateY(0); }
+}
+
+.page-status {
+  max-width: 520px; margin: 0.8rem auto;
+  padding: 0.6rem 1rem;
+  border-radius: 10px;
+  font-size: 0.9rem; font-weight: 600;
+  display: none;
+}
+.page-status.show { display: block; }
+.page-status.first-try {
+  background: #e8f5e9; color: var(--green-main); border: 1px solid var(--green-main);
+}
+.page-status.retry {
+  background: #fff3e0; color: #e65100; border: 1px solid var(--accent-main);
 }
 
 #motivationBox {
@@ -375,6 +393,8 @@ body {
 .stat-card:nth-child(2) { animation-delay: 0.12s; }
 .stat-card:nth-child(3) { animation-delay: 0.19s; }
 .stat-card:nth-child(4) { animation-delay: 0.26s; }
+.stat-card:nth-child(5) { animation-delay: 0.33s; }
+.stat-card:nth-child(6) { animation-delay: 0.40s; }
 
 @keyframes statFloat {
   from { transform: translateY(10px); opacity: 0; }
@@ -396,6 +416,8 @@ body {
 .wrong-card   .stat-value { color: #ff5252; text-shadow: 0 0 10px rgba(255,82,82,0.4); }
 .gems-card    .stat-value { color: #FFD700; text-shadow: 0 0 12px rgba(255,215,0,0.5); }
 .time-card    .stat-value { color: #38bdf8; text-shadow: 0 0 10px rgba(56,189,248,0.4); font-size: 1.1rem; }
+.firsttry-card .stat-value { color: #00e676; text-shadow: 0 0 10px rgba(0,230,118,0.4); }
+.retried-card .stat-value { color: #ff9800; text-shadow: 0 0 10px rgba(255,152,0,0.4); }
 
 .performance-message {
   font-size: 0.88rem; font-weight: 700;
@@ -482,14 +504,13 @@ body {
     <button onclick="beginQuiz()">Start Quiz</button>
   </div>
 
-  <!-- QUIZ SCREEN -->
   <div id="quizContent" style="display:none;">
     <div class="quiz-header">
       <div id="timer">⏳ 0s</div>
       <div id="gemsCounter">💎 0</div>
       <button id="muteBtn" title="Mute / Unmute"
         style="background:none;border:none;font-size:1.2rem;cursor:pointer;">🔊</button>
-      <div id="progressTracker">📍 1 of 1</div>
+      <div id="progressTracker">📍 1 of 24</div>
     </div>
 
     <div class="rule-label" id="ruleLabel"></div>
@@ -497,12 +518,12 @@ body {
     <div class="drag-options" id="dragOptions"></div>
     <div class="drop-container" id="dropContainer"></div>
     <div class="tip-box" id="tipBox"></div>
+    <div class="page-status" id="pageStatus"></div>
 
     <div id="scoreCard"></div>
     <button id="restartBtn" style="display:none;">Restart</button>
   </div>
 
-  <!-- SCORE SCREEN -->
   <div id="scoreScreen" style="display:none; padding-top: 2rem;"></div>
 
 </div>
@@ -597,15 +618,10 @@ function showMotivation(isCorrect) {
   let msg = list[Math.floor(Math.random() * list.length)].replace(/'name'/g, playerName);
   box.innerHTML = msg;
   box.style.display = "block";
-
-  // Auto-hide after 4 seconds
   clearTimeout(window.motivationTimeout);
-  window.motivationTimeout = setTimeout(() => {
-    box.style.display = "none";
-  }, 4000);
+  window.motivationTimeout = setTimeout(() => { box.style.display = "none"; }, 4000);
 }
 
-// Click/tap to dismiss motivation box
 document.getElementById("motivationBox").addEventListener("click", function() {
   this.style.display = "none";
 });
@@ -878,12 +894,25 @@ const quizData = [
 }
 ];
 
-let current = 0, wrongQuestions = [], correctCount = 0, totalWrongGuesses = 0;
-let gemsCount = 0, startTime, timerInterval, playerName = "", playerDept = "", selectedOption = null;
+/* ========== GAME STATE ========== */
+let currentPage = 0;
+let pageWrongCount = 0;
+let pageCorrectCount = 0;
+let pageFirstTry = true;
+let totalFirstTries = 0;
+let totalRetried = 0;
+let totalWrongGuesses = 0;
+let totalCorrectGuesses = 0;
+let gemsCount = 0;
+let startTime, timerInterval;
+let playerName = "", playerDept = "";
+let selectedOption = null;
+let pageAttempts = 0;
 
 const questionEl       = document.getElementById("question");
 const ruleLabelEl      = document.getElementById("ruleLabel");
 const tipBoxEl         = document.getElementById("tipBox");
+const pageStatusEl     = document.getElementById("pageStatus");
 const dragOptionsEl    = document.getElementById("dragOptions");
 const dropContainerEl  = document.getElementById("dropContainer");
 const timerEl          = document.getElementById("timer");
@@ -909,20 +938,30 @@ function beginQuiz() {
 }
 
 function startQuiz() {
-  current = 0; correctCount = 0; totalWrongGuesses = 0; gemsCount = 0;
+  currentPage = 0;
+  pageWrongCount = 0; pageCorrectCount = 0; pageFirstTry = true;
+  totalFirstTries = 0; totalRetried = 0;
+  totalWrongGuesses = 0; totalCorrectGuesses = 0;
+  gemsCount = 0; pageAttempts = 0;
   startTime = Date.now();
-  gemsCounterEl.innerText = "💎 0"; scoreCard.innerHTML = "";
+  gemsCounterEl.innerText = "💎 0";
+  scoreCard.innerHTML = "";
   restartBtn.style.display = "none";
-  loadQuestion(); startTimer();
+  loadPage(); startTimer();
 }
 
-function loadQuestion() {
-  if (current >= quizData.length) return showScore();
+function loadPage() {
+  if (currentPage >= quizData.length) return showScore();
+  pageWrongCount = 0;
+  pageCorrectCount = 0;
+  pageFirstTry = true;
+  pageAttempts++;
   selectedOption = null;
-  const data = quizData[current];
-  progressTracker.innerText = `📍 ${current + 1} of ${quizData.length}`;
-  ruleLabelEl.innerText = `📘 Rule ${current + 1} of ${quizData.length}: ${data.rule}`;
+  const data = quizData[currentPage];
+  progressTracker.innerText = `📍 Page ${currentPage + 1} of ${quizData.length}`;
+  ruleLabelEl.innerText = `📘 Rule ${currentPage + 1} of ${quizData.length}: ${data.rule}`;
   tipBoxEl.classList.remove("show"); tipBoxEl.innerText = "";
+  pageStatusEl.classList.remove("show", "first-try", "retry"); pageStatusEl.innerText = "";
   dragOptionsEl.innerHTML = ""; dropContainerEl.innerHTML = "";
   const shuffled = [...data.answers].sort(() => Math.random() - 0.5);
   shuffled.forEach(ans => {
@@ -934,52 +973,93 @@ function loadQuestion() {
   data.questionItems.forEach(item => {
     const drop = document.createElement("div");
     drop.classList.add("drop-zone"); drop.innerText = item.word;
-    drop.dataset.answer = item.answer; drop.onclick = () => placeOption(drop);
+    drop.dataset.answer = item.answer; drop.dataset.filled = "false";
+    drop.onclick = () => placeOption(drop);
     dropContainerEl.appendChild(drop);
   });
 }
 
 function selectOption(div) {
+  if (div.classList.contains("used")) return;
   if (selectedOption) selectedOption.classList.remove("selected");
   selectedOption = div; div.classList.add("selected");
 }
 
 function placeOption(dropZone) {
   if (!selectedOption) return;
+  if (dropZone.dataset.filled === "true") return;
   const answer = selectedOption.innerText;
   const correctAnswer = dropZone.dataset.answer;
   if (answer === correctAnswer) {
     triggerConfetti(); playApplauseSound();
-    correctCount++; gemsCount++;
+    pageCorrectCount++;
+    totalCorrectGuesses++;
+    gemsCount++;
     gemsCounterEl.innerText = `💎 ${gemsCount}`;
     gemsCounterEl.classList.add('gem-pop');
     setTimeout(() => gemsCounterEl.classList.remove('gem-pop'), 500);
     showMotivation(true);
     dropZone.innerHTML = dropZone.innerText.replace("___", `<strong>${answer}</strong>`);
     dropZone.classList.add("correct", "filled");
+    dropZone.dataset.filled = "true";
     selectedOption.classList.add("used");
     selectedOption.style.display = "none";
+    const allFilled = document.querySelectorAll(".drop-zone").length === document.querySelectorAll(".drop-zone[data-filled='true']").length;
+    if (allFilled) {
+      handlePageComplete();
+    }
   } else {
-    playWrongSound(); totalWrongGuesses++; gemsCount--;
+    playWrongSound();
+    pageWrongCount++;
+    totalWrongGuesses++;
+    pageFirstTry = false;
+    gemsCount = Math.max(0, gemsCount - 1);
     gemsCounterEl.innerText = `💎 ${gemsCount}`;
     showMotivation(false);
     dropZone.classList.add("wrong");
-    setTimeout(() => dropZone.classList.remove("wrong"), 600);
-    const currentQ = quizData[current];
-    if (!wrongQuestions.includes(currentQ)) wrongQuestions.push(currentQ);
+    selectedOption.classList.add("wrong-pick");
+    setTimeout(() => {
+      dropZone.classList.remove("wrong");
+      selectedOption.classList.remove("wrong-pick");
+    }, 600);
+    const currentQ = quizData[currentPage];
     tipBoxEl.innerText = `💡 Rule reminder: ${currentQ.tip}`;
     tipBoxEl.classList.add("show");
+    pageStatusEl.innerText = `⚠️ This page has ${pageWrongCount} wrong guess${pageWrongCount > 1 ? 'es' : ''}. Keep trying — you must get all 4 right to advance!`;
+    pageStatusEl.classList.remove("first-try");
+    pageStatusEl.classList.add("show", "retry");
   }
   selectedOption.classList.remove("selected"); selectedOption = null;
-  if (document.querySelectorAll(".drop-zone:not(.filled)").length === 0) {
+}
+
+function handlePageComplete() {
+  setTimeout(() => {
+    if (pageFirstTry) {
+      totalFirstTries++;
+      pageStatusEl.innerText = `🌟 PAGE PASSED ON FIRST TRY! All 4 answers correct with zero mistakes.`;
+      pageStatusEl.classList.remove("retry");
+      pageStatusEl.classList.add("show", "first-try");
+      triggerConfettiSides();
+      gemsCount += 2;
+      gemsCounterEl.innerText = `💎 ${gemsCount}`;
+      gemsCounterEl.classList.add('gem-pop');
+      setTimeout(() => gemsCounterEl.classList.remove('gem-pop'), 500);
+    } else {
+      totalRetried++;
+      pageStatusEl.innerText = `✅ PAGE PASSED! You got it after ${pageAttempts} attempt${pageAttempts > 1 ? 's' : ''}.`;
+      pageStatusEl.classList.remove("first-try");
+      pageStatusEl.classList.add("show", "retry");
+    }
+    document.querySelectorAll('.drag-item').forEach(item => {
+      item.style.pointerEvents = 'none';
+      item.style.opacity = '0.3';
+    });
     setTimeout(() => {
-      current++;
-      if (current >= quizData.length && wrongQuestions.length > 0) {
-        quizData.push(...wrongQuestions); wrongQuestions = [];
-      }
-      loadQuestion();
-    }, 800);
-  }
+      currentPage++;
+      pageAttempts = 0;
+      loadPage();
+    }, 2500);
+  }, 600);
 }
 
 function startTimer() {
@@ -990,8 +1070,8 @@ function startTimer() {
 }
 
 function calculateAccuracy() {
-  const total = correctCount + totalWrongGuesses;
-  return total === 0 ? 0 : Math.round((correctCount / total) * 100);
+  const total = totalCorrectGuesses + totalWrongGuesses;
+  return total === 0 ? 0 : Math.round((totalCorrectGuesses / total) * 100);
 }
 
 function getAccuracyColor(acc) {
@@ -1016,8 +1096,9 @@ function animateAccuracy(finalAccuracy) {
 
 function generatePerformanceMessage() {
   const acc = calculateAccuracy();
-  if (acc >= 90) return "🌟 Outstanding! You've clearly got a handle on these rules.";
-  if (acc >= 75) return "🔥 Strong work! A couple of tricky rules to revisit.";
+  const firstTryRate = quizData.length === 0 ? 0 : Math.round((totalFirstTries / quizData.length) * 100);
+  if (acc >= 90 && firstTryRate >= 80) return "🌟 Outstanding! You mastered most rules on the first try!";
+  if (acc >= 75) return "🔥 Strong work! A couple of tricky rules needed extra practice.";
   if (acc >= 50) return "💪 Good progress — mastery is close, review the tips above!";
   return "🚀 Every expert was once a beginner. Keep going!";
 }
@@ -1060,13 +1141,23 @@ function showScore() {
     <div class="stats-grid">
       <div class="stat-card correct-card">
         <div class="stat-emoji">✅</div>
-        <div class="stat-value">${correctCount}</div>
+        <div class="stat-value">${totalCorrectGuesses}</div>
         <div class="stat-label">Correct</div>
       </div>
       <div class="stat-card wrong-card">
         <div class="stat-emoji">❌</div>
         <div class="stat-value">${totalWrongGuesses}</div>
         <div class="stat-label">Wrong</div>
+      </div>
+      <div class="stat-card firsttry-card">
+        <div class="stat-emoji">🌟</div>
+        <div class="stat-value">${totalFirstTries}</div>
+        <div class="stat-label">First Try</div>
+      </div>
+      <div class="stat-card retried-card">
+        <div class="stat-emoji">🔄</div>
+        <div class="stat-value">${totalRetried}</div>
+        <div class="stat-label">Retried</div>
       </div>
       <div class="stat-card gems-card">
         <div class="stat-emoji">💎</div>
@@ -1094,7 +1185,8 @@ function showScore() {
 
   sendViaEdgeFunction({
     student_name: playerName, department: playerDept,
-    correct: correctCount, wrong: totalWrongGuesses,
+    correct: totalCorrectGuesses, wrong: totalWrongGuesses,
+    first_tries: totalFirstTries, retried: totalRetried,
     time_spent: totalTime, quest_id: "SVA Quest"
   });
 }
@@ -1106,9 +1198,9 @@ async function sendViaEdgeFunction(payload) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
-    if (!response.ok) { console.error("❌ Edge Function Error:", await response.text()); return; }
-    console.log("✅ Saved to Supabase");
-  } catch (err) { console.error("⚠️ Edge Function Error:", err); }
+    if (!response.ok) { console.error("Edge Function Error:", await response.text()); return; }
+    console.log("Saved to Supabase");
+  } catch (err) { console.error("Edge Function Error:", err); }
 }
 
 function downloadPDFReport() {
@@ -1141,8 +1233,10 @@ function downloadPDFReport() {
     startY: y + 3,
     body: [
       ['Total Rule Sets', quizData.length.toString()],
-      ['Correct Answers', correctCount.toString()],
-      ['Wrong Attempts', totalWrongGuesses.toString()],
+      ['Correct Guesses', totalCorrectGuesses.toString()],
+      ['Wrong Guesses', totalWrongGuesses.toString()],
+      ['Pages Passed on First Try', totalFirstTries.toString()],
+      ['Pages Passed After Retry', totalRetried.toString()],
       ['Final Gems Earned', gemsCount.toString()],
       ['Total Time', `${Math.floor(totalTime/60)}m ${totalTime%60}s`]
     ],

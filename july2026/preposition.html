@@ -1,0 +1,1460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Preposition Quest</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;600;700&family=Orbitron:wght@700;900&family=DM+Sans:wght@400;600&display=swap" rel="stylesheet">
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+<style>
+:root {
+  --bg-main: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
+  --card-bg: #ffffff;
+  --accent-main: #ff9800;
+  --accent-soft: #ffcc80;
+  --blue-main: #2979ff;
+  --green-main: #00c853;
+  --red-main: #e53935;
+  --text-main: #1f2933;
+  --text-muted: #6b7280;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0; padding: 0;
+  font-family: 'DM Sans', 'Segoe UI', sans-serif;
+  background: var(--bg-main);
+  color: var(--text-main);
+  text-align: center;
+}
+
+.container {
+  position: relative;
+  max-width: 900px;
+  margin: 2rem auto;
+  background: var(--card-bg);
+  padding: 2rem;
+  border-radius: 18px;
+  box-shadow: 0 15px 35px rgba(0,0,0,0.12);
+}
+
+.quiz-header {
+  position: absolute;
+  top: 10px; left: 0; right: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 1rem;
+  font-size: 1rem;
+  font-weight: bold;
+  color: var(--blue-main);
+}
+
+.rule-label {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--blue-main);
+  letter-spacing: 0.3px;
+  margin: 2.4rem 0 0.6rem 0;
+}
+
+.question {
+  font-size: 1.6rem; font-weight: 700;
+  margin-bottom: 1.2rem;
+}
+
+.drag-options {
+  display: flex; flex-wrap: wrap; gap: 0.8rem;
+  margin-bottom: 2rem; justify-content: center;
+}
+
+.drag-item {
+  padding: 0.7rem 1.2rem;
+  background: #f1f5f9; border-radius: 14px;
+  cursor: pointer; user-select: none; font-weight: 600;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.drag-item:hover { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(0,0,0,0.15); }
+.drag-item.selected { background: var(--accent-main); color: #fff; }
+
+.drop-container { display: flex; flex-direction: column; gap: 1rem; align-items: center; }
+
+.drop-zone {
+  width: 100%; max-width: 520px; min-height: 44px;
+  padding: 0.7rem 1rem; border-radius: 12px;
+  border: 2px dashed var(--blue-main);
+  cursor: pointer; font-weight: 600; background: #f8fafc;
+}
+.drop-zone.filled { border-style: solid; background: #e3f2fd; }
+
+.correct {
+  background-color: #e8f5e9 !important;
+  border-color: var(--green-main) !important;
+  color: var(--green-main);
+  animation: correctPulse 0.6s ease;
+}
+@keyframes correctPulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.05)} }
+
+.wrong {
+  background-color: #ffebee !important;
+  border-color: var(--red-main) !important;
+  color: var(--red-main);
+  animation: wrongShake 0.5s ease;
+}
+@keyframes wrongShake {
+  0%,100%{transform:translateX(0)} 25%{transform:translateX(-10px)} 75%{transform:translateX(10px)}
+}
+
+@keyframes gemPop {
+  0%{transform:scale(1)} 50%{transform:scale(1.3) rotate(10deg)} 100%{transform:scale(1) rotate(0deg)}
+}
+.gem-pop { animation: gemPop 0.5s ease; }
+
+.tip-box {
+  max-width: 520px; margin: 0.9rem auto 0; padding: 0.85rem 1.1rem;
+  background: #fff8e1; border-left: 4px solid var(--accent-main);
+  border-radius: 10px; font-size: 0.95rem; text-align: left;
+  color: #7c4a03; display: none; line-height: 1.4;
+}
+.tip-box.show { display: block; animation: tipFadeIn 0.4s ease; }
+@keyframes tipFadeIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+#motivationBox {
+  position: fixed;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 24px);
+  max-width: 520px;
+  margin: 0;
+  min-height: auto;
+  z-index: 9999;
+  font-size: 1.4rem;
+  padding: 1rem 1.2rem;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+  background: linear-gradient(135deg, #fff3e0, #ffe0b2);
+  color: var(--accent-main);
+  font-weight: 800;
+  cursor: pointer;
+  transition: opacity 0.3s ease;
+}
+#motivationBox.hidden { opacity: 0; pointer-events: none; }
+
+.hero-quote {
+  max-width: 94%; margin: 0.6rem auto 1.2rem auto;
+  padding: 1rem; background: linear-gradient(135deg, #000000, #1a1a1a);
+  border-radius: 10px;
+}
+.hero-text { font-size: 1.2rem; font-weight: 700; color: #FFD700; line-height: 1.3; }
+.hero-author { margin-top: 0.3rem; font-size: 0.95rem; font-weight: 600; color: #d4af37; }
+
+#nameForm {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  background: linear-gradient(135deg, #ffffff, #f1f5f9);
+  padding: 2rem 1.5rem;
+  border-radius: 20px;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.18);
+  max-width: 420px;
+  margin: 2rem auto;
+}
+
+#nameInput, #departmentSelect {
+  width: 100%; padding: 0.9rem 1rem;
+  background: #ffffff; border: 2px solid #cbd5e1;
+  border-radius: 12px; font-size: 1rem; outline: none;
+}
+#nameInput:focus, #departmentSelect:focus {
+  border-color: var(--blue-main);
+  box-shadow: 0 0 0 3px rgba(41,121,255,0.25);
+}
+
+#nameForm button {
+  width: 100%; padding: 1rem;
+  background: linear-gradient(135deg, var(--accent-main), #ffb300);
+  color: #000; font-size: 1.1rem; font-weight: bold;
+  border: none; border-radius: 14px; cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+#nameForm button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 25px rgba(255,152,0,0.45);
+}
+
+#restartBtn {
+  margin-top: 1.5rem; padding: 0.8rem 2.2rem;
+  background: linear-gradient(135deg, #2979ff, #00b0ff);
+  color: #fff; border: none; border-radius: 14px;
+  font-weight: bold; cursor: pointer;
+}
+
+@media (max-width: 600px) {
+  .question { font-size: 1.3rem; }
+  .hero-text { font-size: 1.4rem; }
+  .container {
+    margin: 0;
+    border-radius: 0;
+    min-height: 100dvh;
+    padding: 1rem 0.9rem;
+    box-shadow: none;
+  }
+}
+
+/* SCORE PORTAL */
+.score-portal {
+  position: relative;
+  overflow: hidden;
+  margin-top: 0.5rem;
+  padding: 1.1rem 1rem 1.2rem;
+  border-radius: 20px;
+  background: #060d1a;
+  color: #e2e8f0;
+  box-shadow: 0 0 0 1px rgba(255,215,0,0.14), 0 20px 50px rgba(0,0,0,0.6);
+  animation: portalEntrance 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.score-portal::before {
+  content: "";
+  position: absolute; inset: 0; z-index: 0; border-radius: 20px;
+  background-image:
+    radial-gradient(1px 1px at 15% 25%, rgba(255,255,255,0.22) 0%, transparent 100%),
+    radial-gradient(1px 1px at 50% 12%, rgba(255,255,255,0.18) 0%, transparent 100%),
+    radial-gradient(1px 1px at 82% 60%, rgba(255,255,255,0.16) 0%, transparent 100%),
+    radial-gradient(1px 1px at 8%  80%, rgba(255,255,255,0.20) 0%, transparent 100%),
+    radial-gradient(1px 1px at 92% 35%, rgba(255,255,255,0.14) 0%, transparent 100%),
+    radial-gradient(2px  2px at 38% 90%, rgba(255,215,0,0.28) 0%, transparent 100%),
+    radial-gradient(2px  2px at 68% 8%,  rgba(255,215,0,0.22) 0%, transparent 100%);
+  pointer-events: none;
+}
+
+.score-portal::after {
+  content: "";
+  position: absolute; top: -30px; right: -30px; z-index: 0;
+  width: 140px; height: 140px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,140,0,0.2) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.score-portal > * { position: relative; z-index: 1; }
+
+@keyframes portalEntrance {
+  from { opacity: 0; transform: translateY(22px) scale(0.95); }
+  to   { opacity: 1; transform: translateY(0)    scale(1); }
+}
+
+.portal-header {
+  display: flex; flex-direction: column; align-items: center; gap: 0.35rem; margin-bottom: 0.85rem;
+}
+
+.portal-title {
+  font-family: 'Orbitron', monospace; font-size: 0.85rem; font-weight: 900;
+  letter-spacing: 2.5px; text-transform: uppercase; color: #FFD700;
+  text-shadow: 0 0 14px rgba(255,215,0,0.55); white-space: nowrap;
+}
+
+.portal-player {
+  width: 100%; font-size: 0.95rem; font-weight: 700; color: #e2e8f0;
+  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,215,0,0.25);
+  padding: 0.55rem 0.8rem; border-radius: 12px; text-align: center;
+  word-break: break-word; line-height: 1.35; box-shadow: 0 0 18px rgba(255,215,0,0.18);
+}
+
+.portal-body { display: flex; flex-direction: column; align-items: center; gap: 1rem; margin-bottom: 0.9rem; }
+.accuracy-wrapper { display: flex; justify-content: center; }
+
+.accuracy-ring {
+  width: 160px; height: 160px; border-radius: 50%; position: relative;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.05), 0 6px 18px rgba(0,0,0,0.5);
+  animation: ringReveal 0.8s cubic-bezier(0.16, 1, 0.3, 1); flex-shrink: 0;
+}
+.accuracy-ring::before {
+  content: ""; position: absolute; inset: 0; border-radius: 50%;
+  background: conic-gradient(var(--ring-color) calc(var(--progress) * 1%), rgba(255,255,255,0.05) 0);
+}
+@keyframes ringReveal {
+  from { transform: scale(0.55) rotate(-30deg); opacity: 0; }
+  to   { transform: scale(1)    rotate(0deg);   opacity: 1; }
+}
+
+.accuracy-inner {
+  width: 110px; height: 110px; border-radius: 50%; background: #060d1a;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.05); z-index: 1;
+}
+
+.accuracy-value {
+  font-family: 'Orbitron', monospace; font-size: 2.1rem; font-weight: 900;
+  color: var(--ring-color); line-height: 1; animation: accuracyPulse 2.2s ease-in-out infinite;
+}
+@keyframes accuracyPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.07); } }
+
+.accuracy-label { font-size: 0.5rem; letter-spacing: 1.5px; text-transform: uppercase; color: #475569; margin-top: 2px; }
+
+.stats-grid { width: 100%; max-width: 360px; display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+
+.stat-card {
+  background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 12px; padding: 0.6rem 0.65rem 0.55rem; display: flex;
+  flex-direction: column; align-items: flex-start; animation: statFloat 0.45s ease both;
+}
+.stat-card:nth-child(1) { animation-delay: 0.05s; }
+.stat-card:nth-child(2) { animation-delay: 0.12s; }
+.stat-card:nth-child(3) { animation-delay: 0.19s; }
+.stat-card:nth-child(4) { animation-delay: 0.26s; }
+
+@keyframes statFloat { from { transform: translateY(10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+.stat-emoji { font-size: 0.85rem; line-height: 1; margin-bottom: 0.15rem; opacity: 0.75; }
+.stat-value { font-family: 'Orbitron', monospace; font-size: 1.45rem; font-weight: 900; line-height: 1; margin-bottom: 0.12rem; }
+.stat-label { font-size: 0.58rem; letter-spacing: 1px; text-transform: uppercase; color: #475569; }
+
+.correct-card .stat-value { color: #00e676; text-shadow: 0 0 10px rgba(0,230,118,0.4); }
+.wrong-card   .stat-value { color: #ff5252; text-shadow: 0 0 10px rgba(255,82,82,0.4); }
+.gems-card    .stat-value { color: #FFD700; text-shadow: 0 0 12px rgba(255,215,0,0.5); }
+.time-card    .stat-value { color: #38bdf8; text-shadow: 0 0 10px rgba(56,189,248,0.4); font-size: 1.1rem; }
+
+.performance-message {
+  font-size: 0.88rem; font-weight: 700; color: #fbbf24; background: rgba(251,191,36,0.07);
+  border: 1px solid rgba(251,191,36,0.2); border-radius: 10px; padding: 0.5rem 0.75rem;
+  margin-bottom: 0.8rem; text-align: left; line-height: 1.4;
+}
+
+.portal-actions { display: flex; flex-direction: column; gap: 0.6rem; }
+
+.next-quest-btn {
+  padding: 0.9rem 1rem; font-family: 'Orbitron', monospace; font-size: 0.78rem; font-weight: 700;
+  letter-spacing: 1px; text-transform: uppercase; border-radius: 14px; border: none; cursor: pointer;
+  background: linear-gradient(135deg, #ff9800, #ffb300); color: #000;
+  box-shadow: 0 4px 18px rgba(255,152,0,0.4); transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.next-quest-btn:active { transform: scale(0.96); box-shadow: 0 2px 10px rgba(255,152,0,0.3); }
+
+.report-btn {
+  width: 100%; padding: 0.9rem 1rem; font-family: 'Orbitron', monospace; font-size: 0.78rem; font-weight: 700;
+  letter-spacing: 1px; text-transform: uppercase; border-radius: 14px; border: none;
+  background: linear-gradient(135deg, #38bdf8, #0ea5e9); color: #021018;
+  box-shadow: 0 4px 18px rgba(56,189,248,0.35); cursor: pointer; transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.report-btn:active { transform: scale(0.96); box-shadow: 0 2px 10px rgba(56,189,248,0.25); }
+</style>
+<base target="_blank">
+</head>
+
+<body>
+<div class="container" id="quizContainer">
+  <div id="nameForm">
+    <div class="hero-quote">
+      <div class="hero-text">Tense Timeline Quest</div>
+      <div class="hero-author">⏪ Past · Present · Future ⏩</div>
+    </div>
+    <input type="text" id="nameInput" placeholder="Enter your name"/>
+    <select id="departmentSelect">
+      <option value="">-- Select Department --</option>
+      <option value="Cyber Security">Cyber Security</option>
+      <option value="EIE">EIE</option>
+      <option value="CSE-1">CSE-1</option>
+      <option value="CSE-2">CSE-2</option>
+      <option value="CSE-3">CSE-3</option>
+      <option value="Mechanical Engineering">Mechanical Engineering</option>
+      <option value="ECE-1">ECE-1</option>
+      <option value="ECE-2">ECE-2</option>
+      <option value="ECE-3">ECE-3</option>
+      <option value="AI DS-1">AI DS-1</option>
+      <option value="AI DS-2">AI DS-2</option>
+      <option value="Agri and Civil">Agri and Civil</option>
+      <option value="EEE">EEE</option>
+      <option value="Medical Electronics">Medical Electronics</option>
+      <option value="IT-1">IT-1</option>
+      <option value="IT-2">IT-2</option>
+    </select>
+    <button onclick="beginQuiz()">Start Quiz</button>
+  </div>
+
+  <div id="quizContent" style="display:none;">
+    <div class="quiz-header">
+      <div id="timer">⏳ 0s</div>
+      <div id="gemsCounter">💎 0</div>
+      <button id="muteBtn" title="Mute / Unmute" style="background:none;border:none;font-size:1.2rem;cursor:pointer;">🔊</button>
+      <div id="progressTracker">📍 1 of 24</div>
+    </div>
+
+    <div class="rule-label" id="ruleLabel"></div>
+    <div class="question" id="question">Fill in the correct verb form</div>
+    <div class="drag-options" id="dragOptions"></div>
+    <div class="drop-container" id="dropContainer"></div>
+    <div class="tip-box" id="tipBox"></div>
+
+    <div id="scoreCard"></div>
+    <button id="restartBtn" style="display:none;">Restart</button>
+  </div>
+
+  <div id="scoreScreen" style="display:none; padding-top: 2rem;"></div>
+
+</div>
+
+<div id="motivationBox" class="hidden"></div>
+
+<script>
+/* ========== CONFETTI ========== */
+function triggerConfetti() { confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } }); }
+function triggerConfettiSides() {
+  const end = Date.now() + 1000;
+  (function frame() {
+    confetti({ particleCount: 2, angle: 60, spread: 55, origin: { x: 0 }, colors: ['#ff9800','#2979ff','#00c853','#FFD700'] });
+    confetti({ particleCount: 2, angle: 120, spread: 55, origin: { x: 1 }, colors: ['#ff9800','#2979ff','#00c853','#FFD700'] });
+    if (Date.now() < end) requestAnimationFrame(frame);
+  }());
+}
+function triggerMegaConfetti() {
+  const duration = 3000, animationEnd = Date.now() + duration;
+  const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
+  function randomInRange(min, max) { return Math.random() * (max - min) + min; }
+  const interval = setInterval(function() {
+    const timeLeft = animationEnd - Date.now();
+    if (timeLeft <= 0) return clearInterval(interval);
+    const particleCount = 50 * (timeLeft / duration);
+    confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } }));
+    confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } }));
+  }, 250);
+}
+
+/* ========== AUDIO ========== */
+let isMuted = localStorage.getItem("questMuted") === "true";
+const applauseSound = new Audio('https://andrewveda.github.io/SRM-VEC-English-PWA/sounds/crowd.mp3');
+const wrongSound    = new Audio('https://assets.mixkit.co/active_storage/sfx/2955/2955-preview.mp3');
+applauseSound.volume = 0.4; wrongSound.volume = 0.3;
+applauseSound.load(); wrongSound.load();
+applauseSound.muted = isMuted; wrongSound.muted = isMuted;
+
+const muteBtn = document.getElementById("muteBtn");
+muteBtn.innerText = isMuted ? "🔇" : "🔊";
+muteBtn.onclick = () => {
+  isMuted = !isMuted;
+  localStorage.setItem("questMuted", isMuted);
+  applauseSound.muted = isMuted; wrongSound.muted = isMuted;
+  muteBtn.innerText = isMuted ? "🔇" : "🔊";
+};
+
+function playApplauseSound() {
+  if (isMuted) return;
+  try { applauseSound.currentTime = 0; applauseSound.play().catch(() => {}); } catch(e) {}
+}
+function playWrongSound() {
+  if (isMuted) return;
+  try { wrongSound.currentTime = 0; wrongSound.play().catch(() => {}); } catch(e) {}
+}
+
+/* ========== AUTO-RESTORE ========== */
+window.addEventListener("load", () => {
+  const savedName = localStorage.getItem("questPlayerName");
+  const savedDept = localStorage.getItem("questPlayerDept");
+  if (savedName) document.getElementById("nameInput").value = savedName;
+  if (savedDept) document.getElementById("departmentSelect").value = savedDept;
+});
+
+/* ========== MOTIVATION ========== */
+const rightMessages = [
+  "'name' is unstoppable!",
+  "'name' is awesome because 'name' has grit!",
+  "'name' has got the right answer because 'name' loves trying!",
+  "Nothing can slow 'name' down today!",
+  "'name' learns fast because 'name' never gives up!",
+  "Who is awesome? 'name'!",
+  "'name' proves that effort beats talent every time!",
+  "Every correct answer takes 'name' one step closer to greatness!",
+  "'name' shines brighter with every question!"
+];
+const wrongMessages = [
+  "'name' loves failures because 'name', like Edison, knows failure is the stepping stone to success.",
+  "'name''s favourite quote: 'Ever tried. Ever failed. No matter. Try again. Fail again. Fail better.'",
+  "Every mistake makes 'name' stronger.",
+  "Mistakes guide 'name' towards victory!",
+  "Failure is feedback, and 'name' takes feedback like a champion.",
+  "Every wrong attempt brings 'name' closer to the right one.",
+  "'name' believes in trying again and again and again!"
+];
+
+function showMotivation(isCorrect) {
+  const box = document.getElementById("motivationBox");
+  const list = isCorrect ? rightMessages : wrongMessages;
+  let msg = list[Math.floor(Math.random() * list.length)].replace(/'name'/g, playerName);
+  box.innerHTML = msg;
+  box.classList.remove("hidden");
+
+  clearTimeout(window.motivationTimeout);
+  window.motivationTimeout = setTimeout(() => { box.classList.add("hidden"); }, 4000);
+}
+
+document.getElementById("motivationBox").addEventListener("click", function() {
+  this.classList.add("hidden");
+});
+
+/* ========== TENSE TIMELINE QUEST DATA ========== */
+/* Each page keeps ONE subject + ONE verb fixed, and moves it across time.
+   Section 1: Basic timelines (past simple / present continuous / future simple) — 3 lines
+   Section 2: Extended timelines (past continuous / simple past / present perfect /
+              present continuous / future continuous / simple future) — 6 lines
+   Section 3: Negative timelines — 3 lines
+   Section 4: Question timelines — 3 lines                                          */
+// ============================================================
+// PREPOSITIONS — COMPREHENSIVE QUIZ DATA
+// Organized into progressive tiers:
+//   Tier 1: Foundations (Time & Place)
+//   Tier 2: Movement & Direction
+//   Tier 3: Confusable Pairs
+//   Tier 4: Grammatical Roles
+//   Tier 5: Dependent Prepositions (adjectives, verbs, gerunds, phrasal verbs)
+//   Tier 6: Complex/Compound Prepositions
+//   Tier 7: Fixed Expressions & Idioms
+//   Tier 8: Advanced & Nuanced Usage
+// ============================================================
+
+const quizData = [
+
+  // ===================== TIER 1: FOUNDATIONS =====================
+
+  {
+    "tier": "1. Foundations",
+    "rule": "Prepositions of Time — IN (long periods)",
+    "tip": "Use 'in' for longer periods of time: months, years, seasons, centuries, and parts of the day.",
+    "questionItems": [
+      { "word": "Harry was born ___ July.", "answer": "in" },
+      { "word": "The war ended ___ 1945.", "answer": "in" },
+      { "word": "Flowers bloom ___ spring.", "answer": "in" },
+      { "word": "She reads ___ the evening.", "answer": "in" }
+    ],
+    "answers": ["in", "in", "in", "in"]
+  },
+  {
+    "tier": "1. Foundations",
+    "rule": "Prepositions of Time — ON (days and dates)",
+    "tip": "Use 'on' for specific days, dates, and named days of the week.",
+    "questionItems": [
+      { "word": "The meeting is ___ Monday.", "answer": "on" },
+      { "word": "She was born ___ the 5th of May.", "answer": "on" },
+      { "word": "We celebrate ___ Christmas Day.", "answer": "on" },
+      { "word": "I have an exam ___ my birthday.", "answer": "on" }
+    ],
+    "answers": ["on", "on", "on", "on"]
+  },
+  {
+    "tier": "1. Foundations",
+    "rule": "Prepositions of Time — AT (precise times and exceptions)",
+    "tip": "Use 'at' for precise clock times, and for a few fixed expressions like 'at night', 'at noon', 'at the weekend'.",
+    "questionItems": [
+      { "word": "The train leaves ___ 9 o'clock.", "answer": "at" },
+      { "word": "Owls hunt ___ night.", "answer": "at" },
+      { "word": "We usually relax ___ the weekend.", "answer": "at" },
+      { "word": "Let's meet ___ noon.", "answer": "at" }
+    ],
+    "answers": ["at", "at", "at", "at"]
+  },
+  {
+    "tier": "1. Foundations",
+    "rule": "Prepositions of Place — IN (enclosed spaces)",
+    "tip": "Use 'in' for enclosed spaces: rooms, buildings, cities, countries, containers.",
+    "questionItems": [
+      { "word": "The book is ___ the drawer.", "answer": "in" },
+      { "word": "She lives ___ London.", "answer": "in" },
+      { "word": "There is milk ___ the fridge.", "answer": "in" },
+      { "word": "They met ___ the classroom.", "answer": "in" }
+    ],
+    "answers": ["in", "in", "in", "in"]
+  },
+  {
+    "tier": "1. Foundations",
+    "rule": "Prepositions of Place — ON (surfaces)",
+    "tip": "Use 'on' for things resting on a surface, and for streets, floors, and means of transport like buses or trains.",
+    "questionItems": [
+      { "word": "The cup is ___ the table.", "answer": "on" },
+      { "word": "Her office is ___ the third floor.", "answer": "on" },
+      { "word": "He lives ___ Baker Street.", "answer": "on" },
+      { "word": "We chatted ___ the bus.", "answer": "on" }
+    ],
+    "answers": ["on", "on", "on", "on"]
+  },
+  {
+    "tier": "1. Foundations",
+    "rule": "Prepositions of Place — AT (specific points)",
+    "tip": "Use 'at' for a specific point or location, such as an address, an event, or a building treated as a point.",
+    "questionItems": [
+      { "word": "I'll meet you ___ the bus stop.", "answer": "at" },
+      { "word": "She works ___ the hospital.", "answer": "at" },
+      { "word": "We arrived ___ the airport early.", "answer": "at" },
+      { "word": "He lives ___ 221B Baker Street.", "answer": "at" }
+    ],
+    "answers": ["at", "at", "at", "at"]
+  },
+
+  // ===================== TIER 2: MOVEMENT & DIRECTION =====================
+
+  {
+    "tier": "2. Movement & Direction",
+    "rule": "Movement — TO / INTO / ONTO",
+    "tip": "'To' shows direction towards a destination; 'into' shows movement from outside to inside; 'onto' shows movement to a surface.",
+    "questionItems": [
+      { "word": "She walked ___ school.", "answer": "to" },
+      { "word": "The cat jumped ___ the room.", "answer": "into" },
+      { "word": "He climbed ___ the roof.", "answer": "onto" },
+      { "word": "We drove ___ the city centre.", "answer": "to" }
+    ],
+    "answers": ["to", "into", "onto", "to"]
+  },
+  {
+    "tier": "2. Movement & Direction",
+    "rule": "Movement — THROUGH / ACROSS / OVER",
+    "tip": "'Through' means moving inside something and out the other side; 'across' means moving from one side of a flat surface to another; 'over' means moving above something or across a barrier.",
+    "questionItems": [
+      { "word": "They walked ___ the tunnel.", "answer": "through" },
+      { "word": "She swam ___ the river.", "answer": "across" },
+      { "word": "The plane flew ___ the mountains.", "answer": "over" },
+      { "word": "He jumped ___ the fence.", "answer": "over" }
+    ],
+    "answers": ["through", "across", "over", "over"]
+  },
+  {
+    "tier": "2. Movement & Direction",
+    "rule": "Movement — UP / DOWN",
+    "tip": "'Up' shows movement to a higher position; 'down' shows movement to a lower position — both used with stairs, hills, streets, rivers.",
+    "questionItems": [
+      { "word": "She ran ___ the stairs to answer the door.", "answer": "down" },
+      { "word": "He climbed ___ the hill slowly.", "answer": "up" },
+      { "word": "The boat drifted ___ the river.", "answer": "down" },
+      { "word": "They hiked ___ the mountain trail.", "answer": "up" }
+    ],
+    "answers": ["down", "up", "down", "up"]
+  },
+  {
+    "tier": "2. Movement & Direction",
+    "rule": "Movement — ALONG / PAST",
+    "tip": "'Along' means moving in a line following the length of something (a road, river, path). 'Past' means moving beyond or by something.",
+    "questionItems": [
+      { "word": "We walked ___ the beach at sunset.", "answer": "along" },
+      { "word": "The bus drove ___ the old church.", "answer": "past" },
+      { "word": "She jogged ___ the river every morning.", "answer": "along" },
+      { "word": "He ran ___ me without saying hello.", "answer": "past" }
+    ],
+    "answers": ["along", "past", "along", "past"]
+  },
+  {
+    "tier": "2. Movement & Direction",
+    "rule": "Movement — TOWARDS / AWAY FROM",
+    "tip": "'Towards' shows movement in the direction of something. 'Away from' shows movement in the opposite direction, leaving a place or person.",
+    "questionItems": [
+      { "word": "The dog ran ___ its owner.", "answer": "towards" },
+      { "word": "She stepped ___ the edge of the cliff.", "answer": "away from" },
+      { "word": "The ship sailed ___ the harbour.", "answer": "towards" },
+      { "word": "He backed ___ the growling dog.", "answer": "away from" }
+    ],
+    "answers": ["towards", "away from", "towards", "away from"]
+  },
+  {
+    "tier": "2. Movement & Direction",
+    "rule": "Movement — AROUND",
+    "tip": "'Around' describes movement in a circular path, or moving in various directions within an area.",
+    "questionItems": [
+      { "word": "The earth moves ___ the sun.", "answer": "around" },
+      { "word": "The children ran ___ the playground.", "answer": "around" },
+      { "word": "We walked ___ the old town for hours.", "answer": "around" },
+      { "word": "She turned ___ to see who called her.", "answer": "around" }
+    ],
+    "answers": ["around", "around", "around", "around"]
+  },
+
+  // ===================== TIER 3: CONFUSABLE PAIRS =====================
+
+  {
+    "tier": "3. Confusable Pairs",
+    "rule": "AMONG vs. BETWEEN",
+    "tip": "Use 'between' for two distinct things or people. Use 'among' for three or more, when they are part of a group rather than individually distinguished.",
+    "questionItems": [
+      { "word": "The secret stayed ___ the two friends.", "answer": "between" },
+      { "word": "The prize was shared ___ the five winners.", "answer": "among" },
+      { "word": "She sat ___ her brother and her sister.", "answer": "between" },
+      { "word": "He felt at home ___ strangers.", "answer": "among" }
+    ],
+    "answers": ["between", "among", "between", "among"]
+  },
+  {
+    "tier": "3. Confusable Pairs",
+    "rule": "BESIDE vs. BESIDES",
+    "tip": "'Beside' means 'next to' (location). 'Besides' means 'in addition to' or 'apart from'.",
+    "questionItems": [
+      { "word": "She sat ___ him on the bench.", "answer": "beside" },
+      { "word": "___ math, she also studies physics.", "answer": "Besides" },
+      { "word": "The lamp stood ___ the bed.", "answer": "beside" },
+      { "word": "Who else is coming ___ you?", "answer": "besides" }
+    ],
+    "answers": ["beside", "Besides", "beside", "besides"]
+  },
+  {
+    "tier": "3. Confusable Pairs",
+    "rule": "UNDER vs. BELOW vs. BENEATH",
+    "tip": "'Under' is used for something directly beneath another object, often with contact or covering. 'Below' is used for a lower level or position, often without direct contact. 'Beneath' is more formal/literary and similar to 'under'.",
+    "questionItems": [
+      { "word": "The cat is hiding ___ the bed.", "answer": "under" },
+      { "word": "The temperature dropped ___ zero.", "answer": "below" },
+      { "word": "He knelt ___ the ancient tree.", "answer": "beneath" },
+      { "word": "The valley lies ___ the mountain.", "answer": "below" }
+    ],
+    "answers": ["under", "below", "beneath", "below"]
+  },
+  {
+    "tier": "3. Confusable Pairs",
+    "rule": "ABOVE vs. OVER",
+    "tip": "'Above' and 'over' both mean 'higher than', but 'over' often implies direct vertical contact, movement across, or covering, while 'above' is more general and used for levels/measurements.",
+    "questionItems": [
+      { "word": "The picture hangs ___ the fireplace.", "answer": "over" },
+      { "word": "The plane flew ___ the clouds.", "answer": "above" },
+      { "word": "She held the umbrella ___ her head.", "answer": "over" },
+      { "word": "Temperatures rose ___ average this week.", "answer": "above" }
+    ],
+    "answers": ["over", "above", "over", "above"]
+  },
+  {
+    "tier": "3. Confusable Pairs",
+    "rule": "IN FRONT OF vs. BEHIND",
+    "tip": "'In front of' means positioned before or ahead of something. 'Behind' means positioned at the back of something.",
+    "questionItems": [
+      { "word": "The car is parked ___ the house.", "answer": "in front of" },
+      { "word": "The garden is ___ the house.", "answer": "behind" },
+      { "word": "She stood ___ the mirror.", "answer": "in front of" },
+      { "word": "The dog hid ___ the sofa.", "answer": "behind" }
+    ],
+    "answers": ["in front of", "behind", "in front of", "behind"]
+  },
+  {
+    "tier": "3. Confusable Pairs",
+    "rule": "OPPOSITE vs. AGAINST",
+    "tip": "'Opposite' means facing something from the other side. 'Against' means in physical contact/pressed to something, or in opposition to an idea.",
+    "questionItems": [
+      { "word": "The bakery is ___ the bank.", "answer": "opposite" },
+      { "word": "He leaned ___ the wall.", "answer": "against" },
+      { "word": "She sat ___ me at the table.", "answer": "opposite" },
+      { "word": "Many people voted ___ the new law.", "answer": "against" }
+    ],
+    "answers": ["opposite", "against", "opposite", "against"]
+  },
+  {
+    "tier": "3. Confusable Pairs",
+    "rule": "LIKE vs. AS",
+    "tip": "Use 'like' before a noun or pronoun to compare things (means 'similar to'). Use 'as' before a clause or when describing a role or function.",
+    "questionItems": [
+      { "word": "She sings ___ an angel.", "answer": "like" },
+      { "word": "He works ___ a teacher.", "answer": "as" },
+      { "word": "This cake tastes ___ chocolate.", "answer": "like" },
+      { "word": "He treated me ___ an equal, not a subordinate.", "answer": "as" }
+    ],
+    "answers": ["like", "as", "like", "as"]
+  },
+  {
+    "tier": "3. Confusable Pairs",
+    "rule": "UNLIKE vs. AS OPPOSED TO",
+    "tip": "'Unlike' highlights a difference between two things directly. 'As opposed to' is used to explicitly contrast one choice or option against another, often in formal writing.",
+    "questionItems": [
+      { "word": "___ her sister, she loves spicy food.", "answer": "Unlike" },
+      { "word": "We chose the train ___ driving.", "answer": "as opposed to" },
+      { "word": "___ most students, he enjoys exams.", "answer": "Unlike" },
+      { "word": "She prefers tea ___ coffee.", "answer": "as opposed to" }
+    ],
+    "answers": ["Unlike", "as opposed to", "Unlike", "as opposed to"]
+  },
+  {
+    "tier": "3. Confusable Pairs",
+    "rule": "WITHIN vs. WITHOUT",
+    "tip": "'Within' means inside a boundary of space or time (e.g. within a week, within the walls). 'Without' means lacking or in the absence of something.",
+    "questionItems": [
+      { "word": "Please reply ___ 24 hours.", "answer": "within" },
+      { "word": "He left ___ saying goodbye.", "answer": "without" },
+      { "word": "The treasure is hidden ___ the castle walls.", "answer": "within" },
+      { "word": "She can't work ___ her laptop.", "answer": "without" }
+    ],
+    "answers": ["within", "without", "within", "without"]
+  },
+  {
+    "tier": "3. Confusable Pairs",
+    "rule": "IN TIME vs. ON TIME",
+    "tip": "'On time' means punctual, at the exact scheduled time. 'In time' means early enough or with enough time to spare for something.",
+    "questionItems": [
+      { "word": "The train arrived ___ time, right on schedule.", "answer": "on" },
+      { "word": "We got to the station just ___ time to catch the bus.", "answer": "in" },
+      { "word": "Please submit the report ___ time tomorrow.", "answer": "on" },
+      { "word": "She arrived ___ time to see the sunset.", "answer": "in" }
+    ],
+    "answers": ["on", "in", "on", "in"]
+  },
+
+  // ===================== TIER 4: GRAMMATICAL ROLES =====================
+
+  {
+    "tier": "4. Grammatical Roles",
+    "rule": "BY vs. WITH (agent and instrument)",
+    "tip": "Use 'by' to introduce the agent (who does the action) in passive sentences. Use 'with' to introduce the instrument or tool used.",
+    "questionItems": [
+      { "word": "The letter was written ___ Hermione.", "answer": "by" },
+      { "word": "She cut the paper ___ scissors.", "answer": "with" },
+      { "word": "The window was broken ___ the storm.", "answer": "by" },
+      { "word": "He fixed the leak ___ tape.", "answer": "with" }
+    ],
+    "answers": ["by", "with", "by", "with"]
+  },
+  {
+    "tier": "4. Grammatical Roles",
+    "rule": "FOR vs. SINCE (duration and starting point)",
+    "tip": "Use 'for' with a period of time (duration). Use 'since' with a specific starting point in time.",
+    "questionItems": [
+      { "word": "She has lived here ___ ten years.", "answer": "for" },
+      { "word": "He has worked here ___ 2015.", "answer": "since" },
+      { "word": "They have waited ___ two hours.", "answer": "for" },
+      { "word": "I haven't seen her ___ last Monday.", "answer": "since" }
+    ],
+    "answers": ["for", "since", "for", "since"]
+  },
+  {
+    "tier": "4. Grammatical Roles",
+    "rule": "TO vs. FOR (purpose and recipient)",
+    "tip": "Use 'to' with verbs of giving/communication to show the receiver of an action (give something to someone). Use 'for' to show purpose or who benefits from something.",
+    "questionItems": [
+      { "word": "She gave the book ___ her friend.", "answer": "to" },
+      { "word": "I bought this gift ___ you.", "answer": "for" },
+      { "word": "He explained the rules ___ the new students.", "answer": "to" },
+      { "word": "This medicine is ___ headaches.", "answer": "for" }
+    ],
+    "answers": ["to", "for", "to", "for"]
+  },
+  {
+    "tier": "4. Grammatical Roles",
+    "rule": "OF vs. FROM (origin and possession)",
+    "tip": "Use 'from' to indicate origin, source, or starting point. Use 'of' to show possession, relation, or composition.",
+    "questionItems": [
+      { "word": "She comes ___ Spain.", "answer": "from" },
+      { "word": "This ring is made ___ gold.", "answer": "of" },
+      { "word": "He is a friend ___ mine.", "answer": "of" },
+      { "word": "The letter was sent ___ Paris.", "answer": "from" }
+    ],
+    "answers": ["from", "of", "of", "from"]
+  },
+  {
+    "tier": "4. Grammatical Roles",
+    "rule": "Prepositions with Means of Transport — BY vs. ON/IN",
+    "tip": "Use 'by' for general modes of transport (by car, by bus, by plane). Use 'in' for cars/taxis and 'on' for larger vehicles like buses, trains, planes, and bikes when describing being physically inside/on them.",
+    "questionItems": [
+      { "word": "He travels to work ___ train.", "answer": "by" },
+      { "word": "She was ___ the car when it happened.", "answer": "in" },
+      { "word": "They were sitting ___ the plane for hours.", "answer": "on" },
+      { "word": "We usually go ___ bike.", "answer": "by" }
+    ],
+    "answers": ["by", "in", "on", "by"]
+  },
+
+  // ===================== TIER 5: DEPENDENT PREPOSITIONS =====================
+
+  {
+    "tier": "5. Dependent Prepositions",
+    "rule": "Prepositions After Adjectives",
+    "tip": "Many adjectives are followed by fixed prepositions: afraid of, interested in, good at, proud of, married to, similar to.",
+    "questionItems": [
+      { "word": "She is afraid ___ spiders.", "answer": "of" },
+      { "word": "He is interested ___ history.", "answer": "in" },
+      { "word": "They are good ___ chess.", "answer": "at" },
+      { "word": "We are proud ___ our team.", "answer": "of" }
+    ],
+    "answers": ["of", "in", "at", "of"]
+  },
+  {
+    "tier": "5. Dependent Prepositions",
+    "rule": "Prepositions After Verbs (Dependent Prepositions)",
+    "tip": "Certain verbs are always paired with a specific preposition: depend on, listen to, believe in, apologise for, wait for, rely on.",
+    "questionItems": [
+      { "word": "It all depends ___ the weather.", "answer": "on" },
+      { "word": "Please listen ___ me carefully.", "answer": "to" },
+      { "word": "He apologised ___ being late.", "answer": "for" },
+      { "word": "She believes ___ hard work.", "answer": "in" }
+    ],
+    "answers": ["on", "to", "for", "in"]
+  },
+  {
+    "tier": "5. Dependent Prepositions",
+    "rule": "Preposition + Gerund (verb-ing)",
+    "tip": "When a verb follows a preposition, it must take the -ing form (gerund), not the infinitive: 'good at swimming', 'interested in learning', 'tired of waiting'.",
+    "questionItems": [
+      { "word": "She is good at ___ (paint).", "answer": "painting" },
+      { "word": "He is tired of ___ (wait).", "answer": "waiting" },
+      { "word": "They are excited about ___ (travel).", "answer": "travelling" },
+      { "word": "I look forward to ___ (see) you soon.", "answer": "seeing" }
+    ],
+    "answers": ["painting", "waiting", "travelling", "seeing"]
+  },
+  {
+    "tier": "5. Dependent Prepositions",
+    "rule": "Phrasal Verbs with Prepositions",
+    "tip": "Phrasal verbs combine a verb with a preposition to create new meanings: look after (care for), look for (search), put up with (tolerate), get along with (have a good relationship).",
+    "questionItems": [
+      { "word": "She looks ___ her little brother every day.", "answer": "after" },
+      { "word": "He is looking ___ his lost keys.", "answer": "for" },
+      { "word": "I can't put up ___ this noise anymore.", "answer": "with" },
+      { "word": "They get along ___ each other very well.", "answer": "with" }
+    ],
+    "answers": ["after", "for", "with", "with"]
+  },
+
+  // ===================== TIER 6: COMPLEX / COMPOUND PREPOSITIONS =====================
+
+  {
+    "tier": "6. Complex Prepositions",
+    "rule": "BECAUSE OF vs. DUE TO vs. OWING TO",
+    "tip": "'Because of', 'due to', and 'owing to' all introduce a reason and are followed by a noun or noun phrase (not a full clause). 'Due to' is traditionally used after a form of 'be'.",
+    "questionItems": [
+      { "word": "The match was cancelled ___ the rain.", "answer": "because of" },
+      { "word": "The delay was ___ bad weather.", "answer": "due to" },
+      { "word": "___ the strike, flights were grounded.", "answer": "Owing to" },
+      { "word": "She missed the bus ___ traffic.", "answer": "because of" }
+    ],
+    "answers": ["because of", "due to", "Owing to", "because of"]
+  },
+  {
+    "tier": "6. Complex Prepositions",
+    "rule": "DESPITE / IN SPITE OF",
+    "tip": "Both 'despite' and 'in spite of' introduce a contrast and are followed by a noun, pronoun, or gerund — never 'despite of'.",
+    "questionItems": [
+      { "word": "___ the rain, they went hiking.", "answer": "Despite" },
+      { "word": "He passed the exam ___ his lack of sleep.", "answer": "in spite of" },
+      { "word": "___ feeling tired, she finished the race.", "answer": "Despite" },
+      { "word": "They played outside ___ the cold.", "answer": "in spite of" }
+    ],
+    "answers": ["Despite", "in spite of", "Despite", "in spite of"]
+  },
+  {
+    "tier": "6. Complex Prepositions",
+    "rule": "INSTEAD OF",
+    "tip": "'Instead of' introduces an alternative or substitute, followed by a noun, pronoun, or gerund.",
+    "questionItems": [
+      { "word": "She had tea ___ coffee.", "answer": "instead of" },
+      { "word": "He walked to work ___ driving.", "answer": "instead of" },
+      { "word": "Use honey ___ sugar in this recipe.", "answer": "instead of" },
+      { "word": "___ complaining, he offered a solution.", "answer": "Instead of" }
+    ],
+    "answers": ["instead of", "instead of", "instead of", "Instead of"]
+  },
+  {
+    "tier": "6. Complex Prepositions",
+    "rule": "ACCORDING TO",
+    "tip": "'According to' is used to introduce information from a specific source, such as a person, report, or document.",
+    "questionItems": [
+      { "word": "___ the weather forecast, it will rain tomorrow.", "answer": "According to" },
+      { "word": "___ the manager, the project is on schedule.", "answer": "According to" },
+      { "word": "___ this article, the study included 500 people.", "answer": "According to" },
+      { "word": "___ my calculations, we need more supplies.", "answer": "According to" }
+    ],
+    "answers": ["According to", "According to", "According to", "According to"]
+  },
+  {
+    "tier": "6. Complex Prepositions",
+    "rule": "IN ADDITION TO / AS WELL AS",
+    "tip": "Both phrases add extra information about something. They are followed by a noun, pronoun, or gerund, and add to the main point of the sentence.",
+    "questionItems": [
+      { "word": "___ maths, she teaches science.", "answer": "In addition to" },
+      { "word": "He speaks French ___ English.", "answer": "as well as" },
+      { "word": "___ being late, he forgot his notes.", "answer": "In addition to" },
+      { "word": "She enjoys hiking ___ swimming.", "answer": "as well as" }
+    ],
+    "answers": ["In addition to", "as well as", "In addition to", "as well as"]
+  },
+  {
+    "tier": "6. Complex Prepositions",
+    "rule": "EXCEPT / EXCEPT FOR / APART FROM",
+    "tip": "These phrases introduce an exclusion — something not included in a general statement.",
+    "questionItems": [
+      { "word": "Everyone came to the party ___ Sam.", "answer": "except" },
+      { "word": "The room was empty ___ a single chair.", "answer": "except for" },
+      { "word": "___ one small mistake, the essay was excellent.", "answer": "Apart from" },
+      { "word": "All the shops were open ___ Sundays.", "answer": "except" }
+    ],
+    "answers": ["except", "except for", "Apart from", "except"]
+  },
+  {
+    "tier": "6. Complex Prepositions",
+    "rule": "IN CASE OF",
+    "tip": "'In case of' means 'if there is/happens' and is typically used in formal or emergency instructions, followed by a noun.",
+    "questionItems": [
+      { "word": "___ fire, use the stairs, not the lift.", "answer": "In case of" },
+      { "word": "___ an emergency, call this number.", "answer": "In case of" },
+      { "word": "___ rain, the event will move indoors.", "answer": "In case of" },
+      { "word": "___ doubt, ask a staff member.", "answer": "In case of" }
+    ],
+    "answers": ["In case of", "In case of", "In case of", "In case of"]
+  },
+
+  // ===================== TIER 7: FIXED EXPRESSIONS & IDIOMS =====================
+
+  {
+    "tier": "7. Fixed Expressions & Idioms",
+    "rule": "Prepositions in Fixed Phrases",
+    "tip": "Many common expressions use fixed prepositions that must be memorised: on purpose, in general, at least, by chance, in fact, at first.",
+    "questionItems": [
+      { "word": "He didn't break it ___ purpose.", "answer": "on" },
+      { "word": "___ general, the weather here is mild.", "answer": "In" },
+      { "word": "They met ___ chance at the airport.", "answer": "by" },
+      { "word": "___ first, she was nervous.", "answer": "At" }
+    ],
+    "answers": ["on", "In", "by", "At"]
+  },
+  {
+    "tier": "7. Fixed Expressions & Idioms",
+    "rule": "More Fixed Idiomatic Phrases",
+    "tip": "Additional fixed expressions: in the end, out of order, under control, in charge of.",
+    "questionItems": [
+      { "word": "___ the end, everything worked out fine.", "answer": "In" },
+      { "word": "The lift is ___ order today.", "answer": "out of" },
+      { "word": "The situation is finally ___ control.", "answer": "under" },
+      { "word": "She is ___ charge of the whole department.", "answer": "in" }
+    ],
+    "answers": ["In", "out of", "under", "in"]
+  },
+
+  // ===================== TIER 8: ADVANCED & NUANCED USAGE =====================
+
+  {
+    "tier": "8. Advanced & Nuanced Usage",
+    "rule": "Preposition Stranding in Questions and Relative Clauses",
+    "tip": "In everyday English, prepositions are often placed at the end of questions and relative clauses rather than before the wh-word (e.g. 'Who are you waiting for?' instead of the very formal 'For whom are you waiting?').",
+    "questionItems": [
+      { "word": "Who is this present ___?", "answer": "for" },
+      { "word": "What are you looking ___?", "answer": "for" },
+      { "word": "Who did you go to the concert ___?", "answer": "with" },
+      { "word": "This is the book I told you ___.", "answer": "about" }
+    ],
+    "answers": ["for", "for", "with", "about"]
+  },
+  {
+    "tier": "8. Advanced & Nuanced Usage",
+    "rule": "WITH vs. WITHOUT (possession/accompanying description)",
+    "tip": "'With' can describe a feature or accompanying detail ('the man with the hat'). 'Without' shows the absence of that feature or accompaniment.",
+    "questionItems": [
+      { "word": "The girl ___ the red umbrella is my sister.", "answer": "with" },
+      { "word": "He walked into the cold ___ a coat.", "answer": "without" },
+      { "word": "Do you know the man ___ the beard?", "answer": "with" },
+      { "word": "She left the meeting ___ saying a word.", "answer": "without" }
+    ],
+    "answers": ["with", "without", "with", "without"]
+  }
+];
+
+/* ========== GAME STATE ========== */
+let currentPage = 0;
+let pageWrongCount = 0;
+let pageCorrectCount = 0;
+let pageFirstTry = true;
+let firstTryPages = 0;
+let retriedPages = 0;
+let totalWrongGuesses = 0;
+let totalCorrectGuesses = 0;
+let gemsCount = 0;
+let startTime, timerInterval;
+let playerName = "", playerDept = "";
+let selectedOption = null;
+
+const questionEl       = document.getElementById("question");
+const ruleLabelEl      = document.getElementById("ruleLabel");
+const tipBoxEl         = document.getElementById("tipBox");
+const dragOptionsEl    = document.getElementById("dragOptions");
+const dropContainerEl  = document.getElementById("dropContainer");
+const timerEl          = document.getElementById("timer");
+const gemsCounterEl    = document.getElementById("gemsCounter");
+const progressTracker  = document.getElementById("progressTracker");
+const scoreCard        = document.getElementById("scoreCard");
+const restartBtn       = document.getElementById("restartBtn");
+// TODO: update this to the actual URL of your next quest in the sequence
+const NEXT_QUEST_URL   = "https://andrewveda.github.io/SRM-VEC-English-PWA/semII/13";
+
+function goToNextQuest() { window.location.href = NEXT_QUEST_URL; }
+
+/* ========== QUIZ FLOW ========== */
+function beginQuiz() {
+  const nameField = document.getElementById("nameInput");
+  const deptField = document.getElementById("departmentSelect");
+  if (!nameField.value.trim()) { alert("Please enter your name!"); return; }
+  if (!deptField.value) { alert("Please select your department!"); return; }
+  playerName = nameField.value.trim(); playerDept = deptField.value;
+  localStorage.setItem("questPlayerName", playerName);
+  localStorage.setItem("questPlayerDept", playerDept);
+  document.getElementById("nameForm").style.display = "none";
+  document.getElementById("quizContent").style.display = "block";
+  startQuiz();
+}
+
+function startQuiz() {
+  currentPage = 0;
+  pageWrongCount = 0; pageCorrectCount = 0; pageFirstTry = true;
+  firstTryPages = 0; retriedPages = 0;
+  totalWrongGuesses = 0; totalCorrectGuesses = 0;
+  gemsCount = 0;
+  startTime = Date.now();
+  gemsCounterEl.innerText = "💎 0";
+  scoreCard.innerHTML = "";
+  restartBtn.style.display = "none";
+  loadPage(); startTimer();
+}
+
+function loadPage() {
+  if (currentPage >= quizData.length) return showScore();
+  selectedOption = null;
+
+  pageWrongCount = 0;
+  pageCorrectCount = 0;
+  pageFirstTry = true;
+
+  const data = quizData[currentPage];
+  // Dynamically reflects the growing queue total
+  progressTracker.innerText = `📍 Page ${currentPage + 1} of ${quizData.length}`;
+  ruleLabelEl.innerText = `📘 Rule ${currentPage + 1} of ${quizData.length}: ${data.rule}`;
+  
+  // Rule tip stays visible at all times
+  tipBoxEl.innerText = `💡 Rule reminder: ${data.tip}`;
+  tipBoxEl.classList.add("show");
+
+  dragOptionsEl.innerHTML = ""; dropContainerEl.innerHTML = "";
+
+  const shuffled = [...data.answers].sort(() => Math.random() - 0.5);
+  shuffled.forEach(ans => {
+    const div = document.createElement("div");
+    div.classList.add("drag-item"); div.innerText = ans;
+    div.onclick = () => selectOption(div);
+    dragOptionsEl.appendChild(div);
+  });
+  data.questionItems.forEach(item => {
+    const drop = document.createElement("div");
+    drop.classList.add("drop-zone"); drop.innerText = item.word;
+    drop.dataset.answer = item.answer; drop.onclick = () => placeOption(drop);
+    dropContainerEl.appendChild(drop);
+  });
+}
+function selectOption(div) {
+  if (selectedOption) selectedOption.classList.remove("selected");
+  selectedOption = div; div.classList.add("selected");
+}
+
+function placeOption(dropZone) {
+  if (!selectedOption) return;
+  if (dropZone.dataset.filled === "true") return;
+
+  const answer = selectedOption.innerText.trim();
+  const correctAnswer = dropZone.dataset.answer.trim();
+
+  if (answer === correctAnswer) {
+    triggerConfetti(); 
+    playApplauseSound();
+    pageCorrectCount++;
+    totalCorrectGuesses++;
+    gemsCount++;
+    gemsCounterEl.innerText = `💎 ${gemsCount}`;
+    gemsCounterEl.classList.add('gem-pop');
+    setTimeout(() => gemsCounterEl.classList.remove('gem-pop'), 500);
+    
+    showMotivation(true);
+
+    dropZone.innerHTML = dropZone.innerText.replace("___", `<strong>${answer}</strong>`);
+    dropZone.classList.add("correct", "filled");
+    dropZone.dataset.filled = "true";
+
+    // Hide only the specific clicked option so duplicates remain usable
+    selectedOption.style.visibility = "hidden";
+    selectedOption.style.pointerEvents = "none";
+    selectedOption.classList.remove("selected");
+    selectedOption = null;
+
+    const allFilled = document.querySelectorAll(".drop-zone[data-filled='true']").length === quizData[currentPage].questionItems.length;
+    if (allFilled) {
+      handlePageComplete();
+    }
+  } else {
+    playWrongSound();
+    pageWrongCount++;
+    totalWrongGuesses++;
+    
+    // Re-queue page if this is the first error on this current attempt
+    if (pageFirstTry) {
+      quizData.push(quizData[currentPage]);
+      pageFirstTry = false;
+    }
+
+    // Instantly update top-right tracker with the new queue total
+    progressTracker.innerText = `📍 Page ${currentPage + 1} of ${quizData.length}`;
+
+    gemsCount = Math.max(0, gemsCount - 1);
+    gemsCounterEl.innerText = `💎 ${gemsCount}`;
+    showMotivation(false);
+
+    dropZone.classList.add("wrong");
+    selectedOption.classList.add("wrong-pick");
+    
+    const targetOption = selectedOption;
+    setTimeout(() => {
+      dropZone.classList.remove("wrong");
+      if (targetOption) targetOption.classList.remove("wrong-pick", "selected");
+    }, 600);
+
+    selectedOption = null;
+  }
+}
+function handlePageComplete() {
+  setTimeout(() => {
+    if (pageFirstTry) {
+      firstTryPages++;
+      triggerConfettiSides();
+      gemsCount += 2;
+      gemsCounterEl.innerText = `💎 ${gemsCount}`;
+      gemsCounterEl.classList.add('gem-pop');
+      setTimeout(() => gemsCounterEl.classList.remove('gem-pop'), 500);
+    } else {
+      retriedPages++;
+    }
+
+    document.querySelectorAll('.drag-item').forEach(item => {
+      item.style.pointerEvents = 'none';
+      item.style.opacity = '0.3';
+    });
+
+    setTimeout(() => {
+      currentPage++;
+      loadPage();
+    }, 1200);
+  }, 400);
+}
+
+function startTimer() {
+  timerInterval = setInterval(() => {
+    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+    timerEl.innerText = `⏳ ${elapsed}s`;
+  }, 1000);
+}
+
+function calculateAccuracy() {
+  const total = totalCorrectGuesses + totalWrongGuesses;
+  return total === 0 ? 0 : Math.round((totalCorrectGuesses / total) * 100);
+}
+
+function getAccuracyColor(acc) {
+  if (acc >= 85) return "#00e676";
+  if (acc >= 60) return "#ffcc00";
+  return "#ff5252";
+}
+
+function animateAccuracy(finalAccuracy) {
+  const ring = document.querySelector(".accuracy-ring");
+  const valueEl = document.getElementById("accuracyValue");
+  if (!ring || !valueEl) return;
+  ring.style.setProperty("--ring-color", getAccuracyColor(finalAccuracy));
+  let cur = 0;
+  const anim = setInterval(() => {
+    if (cur >= finalAccuracy) { clearInterval(anim); return; }
+    cur++;
+    ring.style.setProperty("--progress", cur);
+    valueEl.innerText = `${cur}%`;
+  }, 14);
+}
+
+function generatePerformanceMessage() {
+  const acc = calculateAccuracy();
+  if (acc >= 90) return "🌟 Outstanding! You've clearly got a handle on these timelines.";
+  if (acc >= 75) return "🔥 Strong work! A couple of tricky timelines to revisit.";
+  if (acc >= 50) return "💪 Good progress — mastery is close, review the tips above!";
+  return "🚀 Every expert was once a beginner. Keep going!";
+}
+
+const EDGE_FUNCTION_URL = "https://yellow-lab-4999.andrewveda.workers.dev/functions/v1/logQuest";
+
+function showScore() {
+  clearInterval(timerInterval);
+  const totalTime = Math.floor((Date.now() - startTime) / 1000);
+  triggerMegaConfetti();
+
+  document.getElementById("quizContent").style.display = "none";
+  document.getElementById("motivationBox").style.display = "none";
+  window.scrollTo({ top: 0, behavior: "smooth" });
+
+  const accuracy = calculateAccuracy();
+  const mins = Math.floor(totalTime / 60), secs = totalTime % 60;
+  const timeStr = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+
+  const scoreScreen = document.getElementById("scoreScreen");
+  scoreScreen.style.display = "block";
+  scoreScreen.innerHTML = `
+<div class="score-portal">
+
+  <div class="portal-header">
+    <div class="portal-title">MISSION COMPLETE</div>
+    <div class="portal-player">👤 ${playerName} · ${playerDept}</div>
+  </div>
+
+  <div class="portal-body">
+    <div class="accuracy-wrapper">
+      <div class="accuracy-ring" style="--progress:0; --ring-color:#00e676;">
+        <div class="accuracy-inner">
+          <div class="accuracy-value" id="accuracyValue">0%</div>
+          <div class="accuracy-label">Accuracy</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card correct-card">
+        <div class="stat-emoji">✅</div>
+        <div class="stat-value">${totalCorrectGuesses}</div>
+        <div class="stat-label">Correct</div>
+      </div>
+      <div class="stat-card wrong-card">
+        <div class="stat-emoji">❌</div>
+        <div class="stat-value">${totalWrongGuesses}</div>
+        <div class="stat-label">Wrong</div>
+      </div>
+      <div class="stat-card correct-card">
+        <div class="stat-emoji">🌟</div>
+        <div class="stat-value">${firstTryPages}</div>
+        <div class="stat-label">First Try</div>
+      </div>
+      <div class="stat-card wrong-card">
+        <div class="stat-emoji">🔄</div>
+        <div class="stat-value">${retriedPages}</div>
+        <div class="stat-label">Retried</div>
+      </div>
+      <div class="stat-card gems-card">
+        <div class="stat-emoji">💎</div>
+        <div class="stat-value">${gemsCount}</div>
+        <div class="stat-label">Gems</div>
+      </div>
+      <div class="stat-card time-card">
+        <div class="stat-emoji">⏱️</div>
+        <div class="stat-value">${timeStr}</div>
+        <div class="stat-label">Time</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="performance-message">${generatePerformanceMessage()}</div>
+
+  <div class="portal-actions">
+    <button class="next-quest-btn" onclick="goToNextQuest()">🚀 NEXT QUEST</button>
+    <button onclick="downloadPDFReport()" class="report-btn" title="Download PDF Report">Download Quest report📥</button>
+  </div>
+
+</div>`;
+
+  setTimeout(() => animateAccuracy(accuracy), 80);
+
+  sendViaEdgeFunction({
+    student_name: playerName, department: playerDept,
+    correct: totalCorrectGuesses, wrong: totalWrongGuesses,
+    first_tries: firstTryPages, retried: retriedPages,
+    time_spent: totalTime, quest_id: "Tense Quest"
+  });
+}
+
+async function sendViaEdgeFunction(payload) {
+  try {
+    const response = await fetch(EDGE_FUNCTION_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) { console.error("❌ Edge Function Error:", await response.text()); return; }
+    console.log("✅ Saved to Supabase");
+  } catch (err) { console.error("⚠️ Edge Function Error:", err); }
+}
+
+function downloadPDFReport() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  const totalTime = Math.floor((Date.now() - startTime) / 1000);
+  const reportDate = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+
+  doc.setFillColor(25, 25, 60); doc.rect(0, 0, 210, 45, 'F');
+  doc.setTextColor(255, 255, 255); doc.setFont('times', 'bold'); doc.setFontSize(18);
+  doc.text('SRM VALLIAMMAI ENGINEERING COLLEGE', 105, 16, { align: 'center' });
+  doc.setFontSize(12); doc.setFont('times', 'italic'); doc.text('(Autonomous)', 105, 23, { align: 'center' });
+  doc.setFontSize(15); doc.setFont('times', 'normal'); doc.text('Department of English', 105, 31, { align: 'center' });
+  doc.setFontSize(14); doc.setFont('times', 'bold'); doc.setTextColor(212, 175, 55);
+  doc.text('Tense Timeline Quest Report', 105, 39, { align: 'center' });
+
+  doc.setTextColor(0,0,0); doc.setFontSize(11); doc.text('CANDIDATE INFORMATION', 20, 55);
+  doc.autoTable({
+    startY: 58,
+    body: [['Student Name', playerName], ['Department', playerDept], ['Quest', 'Tense Timeline Quest'], ['Completed On', reportDate]],
+    theme: 'plain',
+    styles: { fontSize: 10, font: 'times', cellPadding: 3 },
+    columnStyles: { 0: { fontStyle: 'bold', cellWidth: 60, textColor: [70,70,70] }, 1: { cellWidth: 120 } },
+    margin: { left: 20, right: 20 }
+  });
+
+  let y = doc.lastAutoTable.finalY + 10;
+  doc.setFont('times', 'bold'); doc.text('PERFORMANCE SUMMARY', 20, y); y += 4;
+  doc.autoTable({
+    startY: y + 3,
+    body: [
+      ['Total Rule Sets', quizData.length.toString()],
+      ['Correct Answers', totalCorrectGuesses.toString()],
+      ['Wrong Attempts', totalWrongGuesses.toString()],
+      ['Pages Passed on First Try', firstTryPages.toString()],
+      ['Pages Passed After Retry', retriedPages.toString()],
+      ['Final Gems Earned', gemsCount.toString()],
+      ['Total Time', `${Math.floor(totalTime/60)}m ${totalTime%60}s`]
+    ],
+    theme: 'grid',
+    styles: { fontSize: 10, font: 'times', cellPadding: 3 },
+    margin: { left: 20, right: 20 }
+  });
+
+  y = doc.lastAutoTable.finalY + 12;
+  if (y > 250) { doc.addPage(); y = 20; }
+  doc.setFont('times', 'bold'); doc.text('RULE SETS WITH CORRECT ANSWERS', 20, y); y += 6;
+  quizData.forEach((item, i) => {
+    if (y > 255) { doc.addPage(); y = 20; }
+    doc.setFontSize(11); doc.setFont('times', 'bold'); doc.setTextColor(25,25,60);
+    doc.text(`Set ${i + 1}: ${item.rule}`, 20, y); y += 6;
+    doc.setTextColor(0,0,0); doc.setFont('times', 'normal');
+    item.questionItems.forEach((qItem, j) => {
+      const lines = doc.splitTextToSize(`${j+1}. ${qItem.word} `, 160);
+      doc.text(lines, 25, y); y += lines.length * 5;
+      doc.setTextColor(0,128,0); doc.text(`Answer: ${qItem.answer}`, 30, y);
+      doc.setTextColor(0,0,0); y += 7;
+      if (y > 270) { doc.addPage(); y = 20; }
+    });
+    doc.setFontSize(9); doc.setFont('times', 'italic'); doc.setTextColor(90,90,90);
+    const tipLines = doc.splitTextToSize(`Rule: ${item.tip}`, 160);
+    doc.text(tipLines, 25, y); y += tipLines.length * 4.5 + 3;
+    doc.setTextColor(0,0,0);
+    doc.setDrawColor(230,230,230); doc.setLineWidth(0.3); doc.line(20, y, 190, y); y += 5;
+  });
+
+  doc.setDrawColor(184,134,11); doc.setLineWidth(0.5); doc.line(20, 280, 190, 280);
+  doc.setFontSize(8); doc.setTextColor(128,128,128); doc.setFont('times','italic');
+  doc.text('This is a system-generated report', 105, 287, { align: 'center' });
+  doc.save(`${playerName.replace(/[^a-zA-Z0-9]/g,'_')}_Tense_Timeline_Quest_Report.pdf`);
+}
+
+function playAgain() {
+  document.getElementById("scoreScreen").style.display = "none";
+  document.getElementById("scoreScreen").innerHTML = "";
+  document.getElementById("quizContent").style.display = "none";
+  document.getElementById("motivationBox").style.display = "";
+  document.getElementById("nameForm").style.display = "block";
+  document.getElementById("nameInput").value = "";
+}
+
+restartBtn.onclick = playAgain;
+</script>
+</body>
+</html>

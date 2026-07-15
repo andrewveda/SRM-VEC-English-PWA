@@ -1,0 +1,1402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Tenses Quest</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;600;700&family=Orbitron:wght@700;900&family=DM+Sans:wght@400;600&display=swap" rel="stylesheet">
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+<style>
+:root {
+  --bg-main: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
+  --card-bg: #ffffff;
+  --accent-main: #ff9800;
+  --accent-soft: #ffcc80;
+  --blue-main: #2979ff;
+  --green-main: #00c853;
+  --red-main: #e53935;
+  --text-main: #1f2933;
+  --text-muted: #6b7280;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0; padding: 0;
+  font-family: 'DM Sans', 'Segoe UI', sans-serif;
+  background: var(--bg-main);
+  color: var(--text-main);
+  text-align: center;
+}
+
+.container {
+  position: relative;
+  max-width: 900px;
+  margin: 2rem auto;
+  background: var(--card-bg);
+  padding: 2rem;
+  border-radius: 18px;
+  box-shadow: 0 15px 35px rgba(0,0,0,0.12);
+}
+
+.quiz-header {
+  position: absolute;
+  top: 10px; left: 0; right: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 1rem;
+  font-size: 1rem;
+  font-weight: bold;
+  color: var(--blue-main);
+}
+
+.rule-label {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--blue-main);
+  letter-spacing: 0.3px;
+  margin: 2.4rem 0 0.6rem 0;
+}
+
+.question {
+  font-size: 1.6rem; font-weight: 700;
+  margin-bottom: 1.2rem;
+}
+
+.drag-options {
+  display: flex; flex-wrap: wrap; gap: 0.8rem;
+  margin-bottom: 2rem; justify-content: center;
+}
+
+.drag-item {
+  padding: 0.7rem 1.2rem;
+  background: #f1f5f9; border-radius: 14px;
+  cursor: pointer; user-select: none; font-weight: 600;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.drag-item:hover { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(0,0,0,0.15); }
+.drag-item.selected { background: var(--accent-main); color: #fff; }
+
+.drop-container { display: flex; flex-direction: column; gap: 1rem; align-items: center; }
+
+.drop-zone {
+  width: 100%; max-width: 520px; min-height: 44px;
+  padding: 0.7rem 1rem; border-radius: 12px;
+  border: 2px dashed var(--blue-main);
+  cursor: pointer; font-weight: 600; background: #f8fafc;
+}
+.drop-zone.filled { border-style: solid; background: #e3f2fd; }
+
+.correct {
+  background-color: #e8f5e9 !important;
+  border-color: var(--green-main) !important;
+  color: var(--green-main);
+  animation: correctPulse 0.6s ease;
+}
+@keyframes correctPulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.05)} }
+
+.wrong {
+  background-color: #ffebee !important;
+  border-color: var(--red-main) !important;
+  color: var(--red-main);
+  animation: wrongShake 0.5s ease;
+}
+@keyframes wrongShake {
+  0%,100%{transform:translateX(0)} 25%{transform:translateX(-10px)} 75%{transform:translateX(10px)}
+}
+
+@keyframes gemPop {
+  0%{transform:scale(1)} 50%{transform:scale(1.3) rotate(10deg)} 100%{transform:scale(1) rotate(0deg)}
+}
+.gem-pop { animation: gemPop 0.5s ease; }
+
+.tip-box {
+  max-width: 520px; margin: 0.9rem auto 0; padding: 0.85rem 1.1rem;
+  background: #fff8e1; border-left: 4px solid var(--accent-main);
+  border-radius: 10px; font-size: 0.95rem; text-align: left;
+  color: #7c4a03; display: none; line-height: 1.4;
+}
+.tip-box.show { display: block; animation: tipFadeIn 0.4s ease; }
+@keyframes tipFadeIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+#motivationBox {
+  position: fixed;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 24px);
+  max-width: 520px;
+  margin: 0;
+  min-height: auto;
+  z-index: 9999;
+  font-size: 1.4rem;
+  padding: 1rem 1.2rem;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+  background: linear-gradient(135deg, #fff3e0, #ffe0b2);
+  color: var(--accent-main);
+  font-weight: 800;
+  cursor: pointer;
+  transition: opacity 0.3s ease;
+}
+#motivationBox.hidden { opacity: 0; pointer-events: none; }
+
+.hero-quote {
+  max-width: 94%; margin: 0.6rem auto 1.2rem auto;
+  padding: 1rem; background: linear-gradient(135deg, #000000, #1a1a1a);
+  border-radius: 10px;
+}
+.hero-text { font-size: 1.2rem; font-weight: 700; color: #FFD700; line-height: 1.3; }
+.hero-author { margin-top: 0.3rem; font-size: 0.95rem; font-weight: 600; color: #d4af37; }
+
+#nameForm {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  background: linear-gradient(135deg, #ffffff, #f1f5f9);
+  padding: 2rem 1.5rem;
+  border-radius: 20px;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.18);
+  max-width: 420px;
+  margin: 2rem auto;
+}
+
+#nameInput, #departmentSelect {
+  width: 100%; padding: 0.9rem 1rem;
+  background: #ffffff; border: 2px solid #cbd5e1;
+  border-radius: 12px; font-size: 1rem; outline: none;
+}
+#nameInput:focus, #departmentSelect:focus {
+  border-color: var(--blue-main);
+  box-shadow: 0 0 0 3px rgba(41,121,255,0.25);
+}
+
+#nameForm button {
+  width: 100%; padding: 1rem;
+  background: linear-gradient(135deg, var(--accent-main), #ffb300);
+  color: #000; font-size: 1.1rem; font-weight: bold;
+  border: none; border-radius: 14px; cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+#nameForm button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 25px rgba(255,152,0,0.45);
+}
+
+#restartBtn {
+  margin-top: 1.5rem; padding: 0.8rem 2.2rem;
+  background: linear-gradient(135deg, #2979ff, #00b0ff);
+  color: #fff; border: none; border-radius: 14px;
+  font-weight: bold; cursor: pointer;
+}
+
+@media (max-width: 600px) {
+  .question { font-size: 1.3rem; }
+  .hero-text { font-size: 1.4rem; }
+  .container {
+    margin: 0;
+    border-radius: 0;
+    min-height: 100dvh;
+    padding: 1rem 0.9rem;
+    box-shadow: none;
+  }
+}
+
+/* SCORE PORTAL */
+.score-portal {
+  position: relative;
+  overflow: hidden;
+  margin-top: 0.5rem;
+  padding: 1.1rem 1rem 1.2rem;
+  border-radius: 20px;
+  background: #060d1a;
+  color: #e2e8f0;
+  box-shadow: 0 0 0 1px rgba(255,215,0,0.14), 0 20px 50px rgba(0,0,0,0.6);
+  animation: portalEntrance 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.score-portal::before {
+  content: "";
+  position: absolute; inset: 0; z-index: 0; border-radius: 20px;
+  background-image:
+    radial-gradient(1px 1px at 15% 25%, rgba(255,255,255,0.22) 0%, transparent 100%),
+    radial-gradient(1px 1px at 50% 12%, rgba(255,255,255,0.18) 0%, transparent 100%),
+    radial-gradient(1px 1px at 82% 60%, rgba(255,255,255,0.16) 0%, transparent 100%),
+    radial-gradient(1px 1px at 8%  80%, rgba(255,255,255,0.20) 0%, transparent 100%),
+    radial-gradient(1px 1px at 92% 35%, rgba(255,255,255,0.14) 0%, transparent 100%),
+    radial-gradient(2px  2px at 38% 90%, rgba(255,215,0,0.28) 0%, transparent 100%),
+    radial-gradient(2px  2px at 68% 8%,  rgba(255,215,0,0.22) 0%, transparent 100%);
+  pointer-events: none;
+}
+
+.score-portal::after {
+  content: "";
+  position: absolute; top: -30px; right: -30px; z-index: 0;
+  width: 140px; height: 140px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,140,0,0.2) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.score-portal > * { position: relative; z-index: 1; }
+
+@keyframes portalEntrance {
+  from { opacity: 0; transform: translateY(22px) scale(0.95); }
+  to   { opacity: 1; transform: translateY(0)    scale(1); }
+}
+
+.portal-header {
+  display: flex; flex-direction: column; align-items: center; gap: 0.35rem; margin-bottom: 0.85rem;
+}
+
+.portal-title {
+  font-family: 'Orbitron', monospace; font-size: 0.85rem; font-weight: 900;
+  letter-spacing: 2.5px; text-transform: uppercase; color: #FFD700;
+  text-shadow: 0 0 14px rgba(255,215,0,0.55); white-space: nowrap;
+}
+
+.portal-player {
+  width: 100%; font-size: 0.95rem; font-weight: 700; color: #e2e8f0;
+  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,215,0,0.25);
+  padding: 0.55rem 0.8rem; border-radius: 12px; text-align: center;
+  word-break: break-word; line-height: 1.35; box-shadow: 0 0 18px rgba(255,215,0,0.18);
+}
+
+.portal-body { display: flex; flex-direction: column; align-items: center; gap: 1rem; margin-bottom: 0.9rem; }
+.accuracy-wrapper { display: flex; justify-content: center; }
+
+.accuracy-ring {
+  width: 160px; height: 160px; border-radius: 50%; position: relative;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.05), 0 6px 18px rgba(0,0,0,0.5);
+  animation: ringReveal 0.8s cubic-bezier(0.16, 1, 0.3, 1); flex-shrink: 0;
+}
+.accuracy-ring::before {
+  content: ""; position: absolute; inset: 0; border-radius: 50%;
+  background: conic-gradient(var(--ring-color) calc(var(--progress) * 1%), rgba(255,255,255,0.05) 0);
+}
+@keyframes ringReveal {
+  from { transform: scale(0.55) rotate(-30deg); opacity: 0; }
+  to   { transform: scale(1)    rotate(0deg);   opacity: 1; }
+}
+
+.accuracy-inner {
+  width: 110px; height: 110px; border-radius: 50%; background: #060d1a;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.05); z-index: 1;
+}
+
+.accuracy-value {
+  font-family: 'Orbitron', monospace; font-size: 2.1rem; font-weight: 900;
+  color: var(--ring-color); line-height: 1; animation: accuracyPulse 2.2s ease-in-out infinite;
+}
+@keyframes accuracyPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.07); } }
+
+.accuracy-label { font-size: 0.5rem; letter-spacing: 1.5px; text-transform: uppercase; color: #475569; margin-top: 2px; }
+
+.stats-grid { width: 100%; max-width: 360px; display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+
+.stat-card {
+  background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 12px; padding: 0.6rem 0.65rem 0.55rem; display: flex;
+  flex-direction: column; align-items: flex-start; animation: statFloat 0.45s ease both;
+}
+.stat-card:nth-child(1) { animation-delay: 0.05s; }
+.stat-card:nth-child(2) { animation-delay: 0.12s; }
+.stat-card:nth-child(3) { animation-delay: 0.19s; }
+.stat-card:nth-child(4) { animation-delay: 0.26s; }
+
+@keyframes statFloat { from { transform: translateY(10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+.stat-emoji { font-size: 0.85rem; line-height: 1; margin-bottom: 0.15rem; opacity: 0.75; }
+.stat-value { font-family: 'Orbitron', monospace; font-size: 1.45rem; font-weight: 900; line-height: 1; margin-bottom: 0.12rem; }
+.stat-label { font-size: 0.58rem; letter-spacing: 1px; text-transform: uppercase; color: #475569; }
+
+.correct-card .stat-value { color: #00e676; text-shadow: 0 0 10px rgba(0,230,118,0.4); }
+.wrong-card   .stat-value { color: #ff5252; text-shadow: 0 0 10px rgba(255,82,82,0.4); }
+.gems-card    .stat-value { color: #FFD700; text-shadow: 0 0 12px rgba(255,215,0,0.5); }
+.time-card    .stat-value { color: #38bdf8; text-shadow: 0 0 10px rgba(56,189,248,0.4); font-size: 1.1rem; }
+
+.performance-message {
+  font-size: 0.88rem; font-weight: 700; color: #fbbf24; background: rgba(251,191,36,0.07);
+  border: 1px solid rgba(251,191,36,0.2); border-radius: 10px; padding: 0.5rem 0.75rem;
+  margin-bottom: 0.8rem; text-align: left; line-height: 1.4;
+}
+
+.portal-actions { display: flex; flex-direction: column; gap: 0.6rem; }
+
+.next-quest-btn {
+  padding: 0.9rem 1rem; font-family: 'Orbitron', monospace; font-size: 0.78rem; font-weight: 700;
+  letter-spacing: 1px; text-transform: uppercase; border-radius: 14px; border: none; cursor: pointer;
+  background: linear-gradient(135deg, #ff9800, #ffb300); color: #000;
+  box-shadow: 0 4px 18px rgba(255,152,0,0.4); transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.next-quest-btn:active { transform: scale(0.96); box-shadow: 0 2px 10px rgba(255,152,0,0.3); }
+
+.report-btn {
+  width: 100%; padding: 0.9rem 1rem; font-family: 'Orbitron', monospace; font-size: 0.78rem; font-weight: 700;
+  letter-spacing: 1px; text-transform: uppercase; border-radius: 14px; border: none;
+  background: linear-gradient(135deg, #38bdf8, #0ea5e9); color: #021018;
+  box-shadow: 0 4px 18px rgba(56,189,248,0.35); cursor: pointer; transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.report-btn:active { transform: scale(0.96); box-shadow: 0 2px 10px rgba(56,189,248,0.25); }
+</style>
+<base target="_blank">
+</head>
+
+<body>
+<div class="container" id="quizContainer">
+  <div id="nameForm">
+    <div class="hero-quote">
+      <div class="hero-text">Tenses Quest</div>
+      <div class="hero-author">⏳✨ Master all 12 tenses</div>
+    </div>
+    <input type="text" id="nameInput" placeholder="Enter your name"/>
+    <select id="departmentSelect">
+      <option value="">-- Select Department --</option>
+      <option value="Cyber Security">Cyber Security</option>
+      <option value="EIE">EIE</option>
+      <option value="CSE-1">CSE-1</option>
+      <option value="CSE-2">CSE-2</option>
+      <option value="CSE-3">CSE-3</option>
+      <option value="Mechanical Engineering">Mechanical Engineering</option>
+      <option value="ECE-1">ECE-1</option>
+      <option value="ECE-2">ECE-2</option>
+      <option value="ECE-3">ECE-3</option>
+      <option value="AI DS-1">AI DS-1</option>
+      <option value="AI DS-2">AI DS-2</option>
+      <option value="Agri and Civil">Agri and Civil</option>
+      <option value="EEE">EEE</option>
+      <option value="Medical Electronics">Medical Electronics</option>
+      <option value="IT-1">IT-1</option>
+      <option value="IT-2">IT-2</option>
+    </select>
+    <button onclick="beginQuiz()">Start Quiz</button>
+  </div>
+
+  <div id="quizContent" style="display:none;">
+    <div class="quiz-header">
+      <div id="timer">⏳ 0s</div>
+      <div id="gemsCounter">💎 0</div>
+      <button id="muteBtn" title="Mute / Unmute" style="background:none;border:none;font-size:1.2rem;cursor:pointer;">🔊</button>
+      <div id="progressTracker">📍 1 of 24</div>
+    </div>
+
+    <div class="rule-label" id="ruleLabel"></div>
+    <div class="question" id="question">Fill in the correct verb form</div>
+    <div class="drag-options" id="dragOptions"></div>
+    <div class="drop-container" id="dropContainer"></div>
+    <div class="tip-box" id="tipBox"></div>
+
+    <div id="scoreCard"></div>
+    <button id="restartBtn" style="display:none;">Restart</button>
+  </div>
+
+  <div id="scoreScreen" style="display:none; padding-top: 2rem;"></div>
+
+</div>
+
+<div id="motivationBox" class="hidden"></div>
+
+<script>
+/* ========== CONFETTI ========== */
+function triggerConfetti() { confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } }); }
+function triggerConfettiSides() {
+  const end = Date.now() + 1000;
+  (function frame() {
+    confetti({ particleCount: 2, angle: 60, spread: 55, origin: { x: 0 }, colors: ['#ff9800','#2979ff','#00c853','#FFD700'] });
+    confetti({ particleCount: 2, angle: 120, spread: 55, origin: { x: 1 }, colors: ['#ff9800','#2979ff','#00c853','#FFD700'] });
+    if (Date.now() < end) requestAnimationFrame(frame);
+  }());
+}
+function triggerMegaConfetti() {
+  const duration = 3000, animationEnd = Date.now() + duration;
+  const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
+  function randomInRange(min, max) { return Math.random() * (max - min) + min; }
+  const interval = setInterval(function() {
+    const timeLeft = animationEnd - Date.now();
+    if (timeLeft <= 0) return clearInterval(interval);
+    const particleCount = 50 * (timeLeft / duration);
+    confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } }));
+    confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } }));
+  }, 250);
+}
+
+/* ========== AUDIO ========== */
+let isMuted = localStorage.getItem("questMuted") === "true";
+const applauseSound = new Audio('https://andrewveda.github.io/SRM-VEC-English-PWA/sounds/crowd.mp3');
+const wrongSound    = new Audio('https://assets.mixkit.co/active_storage/sfx/2955/2955-preview.mp3');
+applauseSound.volume = 0.4; wrongSound.volume = 0.3;
+applauseSound.load(); wrongSound.load();
+applauseSound.muted = isMuted; wrongSound.muted = isMuted;
+
+const muteBtn = document.getElementById("muteBtn");
+muteBtn.innerText = isMuted ? "🔇" : "🔊";
+muteBtn.onclick = () => {
+  isMuted = !isMuted;
+  localStorage.setItem("questMuted", isMuted);
+  applauseSound.muted = isMuted; wrongSound.muted = isMuted;
+  muteBtn.innerText = isMuted ? "🔇" : "🔊";
+};
+
+function playApplauseSound() {
+  if (isMuted) return;
+  try { applauseSound.currentTime = 0; applauseSound.play().catch(() => {}); } catch(e) {}
+}
+function playWrongSound() {
+  if (isMuted) return;
+  try { wrongSound.currentTime = 0; wrongSound.play().catch(() => {}); } catch(e) {}
+}
+
+/* ========== AUTO-RESTORE ========== */
+window.addEventListener("load", () => {
+  const savedName = localStorage.getItem("questPlayerName");
+  const savedDept = localStorage.getItem("questPlayerDept");
+  if (savedName) document.getElementById("nameInput").value = savedName;
+  if (savedDept) document.getElementById("departmentSelect").value = savedDept;
+});
+
+/* ========== MOTIVATION ========== */
+const rightMessages = [
+  "'name' is unstoppable!",
+  "'name' is awesome because 'name' has grit!",
+  "'name' has got the right answer because 'name' loves trying!",
+  "Nothing can slow 'name' down today!",
+  "'name' learns fast because 'name' never gives up!",
+  "Who is awesome? 'name'!",
+  "'name' proves that effort beats talent every time!",
+  "Every correct answer takes 'name' one step closer to greatness!",
+  "'name' shines brighter with every question!"
+];
+const wrongMessages = [
+  "'name' loves failures because 'name', like Edison, knows failure is the stepping stone to success.",
+  "'name''s favourite quote: 'Ever tried. Ever failed. No matter. Try again. Fail again. Fail better.'",
+  "Every mistake makes 'name' stronger.",
+  "Mistakes guide 'name' towards victory!",
+  "Failure is feedback, and 'name' takes feedback like a champion.",
+  "Every wrong attempt brings 'name' closer to the right one.",
+  "'name' believes in trying again and again and again!"
+];
+
+function showMotivation(isCorrect) {
+  const box = document.getElementById("motivationBox");
+  const list = isCorrect ? rightMessages : wrongMessages;
+  let msg = list[Math.floor(Math.random() * list.length)].replace(/'name'/g, playerName);
+  box.innerHTML = msg;
+  box.classList.remove("hidden");
+
+  clearTimeout(window.motivationTimeout);
+  window.motivationTimeout = setTimeout(() => { box.classList.add("hidden"); }, 4000);
+}
+
+document.getElementById("motivationBox").addEventListener("click", function() {
+  this.classList.add("hidden");
+});
+
+/* ========== TENSES QUEST DATA ========== */
+const quizData = [
+
+/* ---------- SIMPLE PRESENT ---------- */
+{
+  "rule": "Simple Present – Affirmative",
+  "tip": "Use the simple present for habits, routines, and general facts. Add -s/-es for he/she/it; use the base form for I/you/we/they.",
+  "questionItems": [
+    { "word": "Minerva ___ tea every morning.", "answer": "drinks" },
+    { "word": "Albus and Severus ___ tea every morning.", "answer": "drink" },
+    { "word": "You ___ tea every morning.", "answer": "drink" },
+    { "word": "They ___ tea every morning.", "answer": "drink" }
+  ],
+  "answers": ["drinks", "drink", "drink", "drink"]
+},
+{
+  "rule": "Simple Present – Negative",
+  "tip": "Use does not (doesn't) with he/she/it and do not (don't) with I/you/we/they, followed by the base verb.",
+  "questionItems": [
+    { "word": "Minerva ___ coffee in the evening.", "answer": "doesn't drink" },
+    { "word": "Albus and Severus ___ coffee in the evening.", "answer": "don't drink" },
+    { "word": "You ___ coffee in the evening.", "answer": "don't drink" },
+    { "word": "They ___ coffee in the evening.", "answer": "don't drink" }
+  ],
+  "answers": ["doesn't drink", "don't drink", "don't drink", "don't drink"]
+},
+{
+  "rule": "Simple Present – Question",
+  "tip": "Use Does with he/she/it and Do with I/you/we/they, followed by the subject and base verb.",
+  "questionItems": [
+    { "word": "___ Minerva drink tea every morning?", "answer": "Does" },
+    { "word": "___ Albus and Severus drink tea every morning?", "answer": "Do" },
+    { "word": "___ you drink tea every morning?", "answer": "Do" },
+    { "word": "___ they drink tea every morning?", "answer": "Do" }
+  ],
+  "answers": ["Does", "Do", "Do", "Do"]
+},
+
+/* ---------- PRESENT CONTINUOUS ---------- */
+{
+  "rule": "Present Continuous – Affirmative",
+  "tip": "Use am/is/are + verb-ing for actions happening right now or temporary situations.",
+  "questionItems": [
+    { "word": "Minerva ___ a letter right now.", "answer": "is writing" },
+    { "word": "Albus and Severus ___ a letter right now.", "answer": "are writing" },
+    { "word": "I ___ a letter right now.", "answer": "am writing" },
+    { "word": "You ___ a letter right now.", "answer": "are writing" }
+  ],
+  "answers": ["is writing", "are writing", "am writing", "are writing"]
+},
+{
+  "rule": "Present Continuous – Negative",
+  "tip": "Use isn't/aren't/am not + verb-ing to negate an action in progress.",
+  "questionItems": [
+    { "word": "Minerva ___ to music at the moment.", "answer": "isn't listening" },
+    { "word": "Albus and Severus ___ to music at the moment.", "answer": "aren't listening" },
+    { "word": "I ___ to music at the moment.", "answer": "am not listening" },
+    { "word": "You ___ to music at the moment.", "answer": "aren't listening" }
+  ],
+  "answers": ["isn't listening", "aren't listening", "am not listening", "aren't listening"]
+},
+{
+  "rule": "Present Continuous – Question",
+  "tip": "Invert the subject and the be-verb (Is/Are/Am) before verb-ing to form a question.",
+  "questionItems": [
+    { "word": "___ Minerva writing a letter right now?", "answer": "Is" },
+    { "word": "___ Albus and Severus writing a letter right now?", "answer": "Are" },
+    { "word": "___ you writing a letter right now?", "answer": "Are" },
+    { "word": "___ I disturbing you right now?", "answer": "Am" }
+  ],
+  "answers": ["Is", "Are", "Are", "Am"]
+},
+
+/* ---------- PRESENT PERFECT ---------- */
+{
+  "rule": "Present Perfect – Affirmative",
+  "tip": "Use has/have + past participle for actions with a connection to the present (experience, result, or unfinished time).",
+  "questionItems": [
+    { "word": "Minerva ___ visited Paris twice.", "answer": "has" },
+    { "word": "Albus and Severus ___ visited Paris twice.", "answer": "have" },
+    { "word": "You ___ visited Paris twice.", "answer": "have" },
+    { "word": "I ___ visited Paris twice.", "answer": "have" }
+  ],
+  "answers": ["has", "have", "have", "have"]
+},
+{
+  "rule": "Present Perfect – Negative",
+  "tip": "Use hasn't with he/she/it and haven't with I/you/we/they + past participle.",
+  "questionItems": [
+    { "word": "Minerva ___ finished her homework yet.", "answer": "hasn't" },
+    { "word": "Albus and Severus ___ finished their homework yet.", "answer": "haven't" },
+    { "word": "You ___ finished your homework yet.", "answer": "haven't" },
+    { "word": "I ___ finished my homework yet.", "answer": "haven't" }
+  ],
+  "answers": ["hasn't", "haven't", "haven't", "haven't"]
+},
+{
+  "rule": "Present Perfect – Question",
+  "tip": "Invert the subject and has/have before the past participle to ask a present perfect question.",
+  "questionItems": [
+    { "word": "___ Minerva finished her homework yet?", "answer": "Has" },
+    { "word": "___ Albus and Severus finished their homework yet?", "answer": "Have" },
+    { "word": "___ you finished your homework yet?", "answer": "Have" },
+    { "word": "___ they arrived yet?", "answer": "Have" }
+  ],
+  "answers": ["Has", "Have", "Have", "Have"]
+},
+
+/* ---------- PRESENT PERFECT CONTINUOUS ---------- */
+{
+  "rule": "Present Perfect Continuous – Affirmative",
+  "tip": "Use has/have been + verb-ing for actions that started in the past and continue into the present, emphasising duration.",
+  "questionItems": [
+    { "word": "Minerva ___ been studying since morning.", "answer": "has" },
+    { "word": "Albus and Severus ___ been studying since morning.", "answer": "have" },
+    { "word": "You ___ been studying since morning.", "answer": "have" },
+    { "word": "We ___ been studying since morning.", "answer": "have" }
+  ],
+  "answers": ["has", "have", "have", "have"]
+},
+{
+  "rule": "Present Perfect Continuous – Negative",
+  "tip": "Use hasn't/haven't been + verb-ing to negate a continuing action.",
+  "questionItems": [
+    { "word": "Minerva ___ been sleeping well lately.", "answer": "hasn't" },
+    { "word": "Albus and Severus ___ been sleeping well lately.", "answer": "haven't" },
+    { "word": "You ___ been sleeping well lately.", "answer": "haven't" },
+    { "word": "They ___ been sleeping well lately.", "answer": "haven't" }
+  ],
+  "answers": ["hasn't", "haven't", "haven't", "haven't"]
+},
+{
+  "rule": "Present Perfect Continuous – Question",
+  "tip": "Invert the subject and has/have before been + verb-ing.",
+  "questionItems": [
+    { "word": "___ Minerva been waiting long?", "answer": "Has" },
+    { "word": "___ Albus and Severus been waiting long?", "answer": "Have" },
+    { "word": "___ you been waiting long?", "answer": "Have" },
+    { "word": "___ they been waiting long?", "answer": "Have" }
+  ],
+  "answers": ["Has", "Have", "Have", "Have"]
+},
+
+/* ---------- SIMPLE PAST ---------- */
+{
+  "rule": "Simple Past – Affirmative",
+  "tip": "Use the past form of the verb (regular -ed or irregular) for completed actions at a specific past time. The past form never changes with the subject.",
+  "questionItems": [
+    { "word": "Minerva ___ to Hogwarts last year.", "answer": "went" },
+    { "word": "Albus and Severus ___ to Hogwarts last year.", "answer": "went" },
+    { "word": "You ___ to Hogwarts last year.", "answer": "went" },
+    { "word": "They ___ to Hogwarts last year.", "answer": "went" }
+  ],
+  "answers": ["went", "went", "went", "went"]
+},
+{
+  "rule": "Simple Past – Negative",
+  "tip": "Use did not (didn't) + base verb for every subject; the main verb returns to its base form.",
+  "questionItems": [
+    { "word": "Minerva ___ go to the party.", "answer": "didn't" },
+    { "word": "Albus and Severus ___ go to the party.", "answer": "didn't" },
+    { "word": "You ___ go to the party.", "answer": "didn't" },
+    { "word": "They ___ go to the party.", "answer": "didn't" }
+  ],
+  "answers": ["didn't", "didn't", "didn't", "didn't"]
+},
+{
+  "rule": "Simple Past – Question",
+  "tip": "Use Did + subject + base verb for every subject to form a simple past question.",
+  "questionItems": [
+    { "word": "___ Minerva go to the party?", "answer": "Did" },
+    { "word": "___ Albus and Severus go to the party?", "answer": "Did" },
+    { "word": "___ you go to the party?", "answer": "Did" },
+    { "word": "___ they go to the party?", "answer": "Did" }
+  ],
+  "answers": ["Did", "Did", "Did", "Did"]
+},
+
+/* ---------- PAST CONTINUOUS ---------- */
+{
+  "rule": "Past Continuous – Affirmative",
+  "tip": "Use was/were + verb-ing for an action in progress at a specific time in the past.",
+  "questionItems": [
+    { "word": "Minerva ___ reading at 8 p.m. yesterday.", "answer": "was" },
+    { "word": "Albus and Severus ___ reading at 8 p.m. yesterday.", "answer": "were" },
+    { "word": "You ___ reading at 8 p.m. yesterday.", "answer": "were" },
+    { "word": "I ___ reading at 8 p.m. yesterday.", "answer": "was" }
+  ],
+  "answers": ["was", "were", "were", "was"]
+},
+{
+  "rule": "Past Continuous – Negative",
+  "tip": "Use wasn't with I/he/she/it and weren't with you/we/they + verb-ing.",
+  "questionItems": [
+    { "word": "Minerva ___ sleeping when the phone rang.", "answer": "wasn't" },
+    { "word": "Albus and Severus ___ sleeping when the phone rang.", "answer": "weren't" },
+    { "word": "You ___ sleeping when the phone rang.", "answer": "weren't" },
+    { "word": "I ___ sleeping when the phone rang.", "answer": "wasn't" }
+  ],
+  "answers": ["wasn't", "weren't", "weren't", "wasn't"]
+},
+{
+  "rule": "Past Continuous – Question",
+  "tip": "Invert the subject and was/were before verb-ing to form a past continuous question.",
+  "questionItems": [
+    { "word": "___ Minerva sleeping when the phone rang?", "answer": "Was" },
+    { "word": "___ Albus and Severus sleeping when the phone rang?", "answer": "Were" },
+    { "word": "___ you sleeping when the phone rang?", "answer": "Were" },
+    { "word": "___ they sleeping when the phone rang?", "answer": "Were" }
+  ],
+  "answers": ["Was", "Were", "Were", "Were"]
+},
+
+/* ---------- PAST PERFECT ---------- */
+{
+  "rule": "Past Perfect – Affirmative",
+  "tip": "Use had + past participle for an action completed before another past action or time — had never changes with the subject.",
+  "questionItems": [
+    { "word": "Minerva ___ already left when we arrived.", "answer": "had" },
+    { "word": "Albus and Severus ___ already left when we arrived.", "answer": "had" },
+    { "word": "You ___ already left when we arrived.", "answer": "had" },
+    { "word": "They ___ already left when we arrived.", "answer": "had" }
+  ],
+  "answers": ["had", "had", "had", "had"]
+},
+{
+  "rule": "Past Perfect – Negative",
+  "tip": "Use hadn't + past participle for every subject to negate the earlier of two past actions.",
+  "questionItems": [
+    { "word": "Minerva ___ finished eating before the film started.", "answer": "hadn't" },
+    { "word": "Albus and Severus ___ finished eating before the film started.", "answer": "hadn't" },
+    { "word": "You ___ finished eating before the film started.", "answer": "hadn't" },
+    { "word": "They ___ finished eating before the film started.", "answer": "hadn't" }
+  ],
+  "answers": ["hadn't", "hadn't", "hadn't", "hadn't"]
+},
+{
+  "rule": "Past Perfect – Question",
+  "tip": "Use Had + subject + past participle for every subject to form a past perfect question.",
+  "questionItems": [
+    { "word": "___ Minerva finished eating before the film started?", "answer": "Had" },
+    { "word": "___ Albus and Severus finished eating before the film started?", "answer": "Had" },
+    { "word": "___ you finished eating before the film started?", "answer": "Had" },
+    { "word": "___ they finished eating before the film started?", "answer": "Had" }
+  ],
+  "answers": ["Had", "Had", "Had", "Had"]
+},
+
+/* ---------- PAST PERFECT CONTINUOUS ---------- */
+{
+  "rule": "Past Perfect Continuous – Affirmative",
+  "tip": "Use had been + verb-ing for an action that continued up to a point in the past, emphasising duration — had never changes.",
+  "questionItems": [
+    { "word": "Minerva ___ been working for hours before she took a break.", "answer": "had" },
+    { "word": "Albus and Severus ___ been working for hours before they took a break.", "answer": "had" },
+    { "word": "You ___ been working for hours before you took a break.", "answer": "had" },
+    { "word": "They ___ been working for hours before they took a break.", "answer": "had" }
+  ],
+  "answers": ["had", "had", "had", "had"]
+},
+{
+  "rule": "Past Perfect Continuous – Negative",
+  "tip": "Use hadn't been + verb-ing for every subject to negate a continuing past action.",
+  "questionItems": [
+    { "word": "Minerva ___ been sleeping well before the exam.", "answer": "hadn't" },
+    { "word": "Albus and Severus ___ been sleeping well before the exam.", "answer": "hadn't" },
+    { "word": "You ___ been sleeping well before the exam.", "answer": "hadn't" },
+    { "word": "They ___ been sleeping well before the exam.", "answer": "hadn't" }
+  ],
+  "answers": ["hadn't", "hadn't", "hadn't", "hadn't"]
+},
+{
+  "rule": "Past Perfect Continuous – Question",
+  "tip": "Use Had + subject + been + verb-ing for every subject to form the question.",
+  "questionItems": [
+    { "word": "___ Minerva been waiting long before you arrived?", "answer": "Had" },
+    { "word": "___ Albus and Severus been waiting long before you arrived?", "answer": "Had" },
+    { "word": "___ you been waiting long before we arrived?", "answer": "Had" },
+    { "word": "___ they been waiting long before we arrived?", "answer": "Had" }
+  ],
+  "answers": ["Had", "Had", "Had", "Had"]
+},
+
+/* ---------- SIMPLE FUTURE ---------- */
+{
+  "rule": "Simple Future (will) – Affirmative",
+  "tip": "Use will + base verb for predictions, spontaneous decisions, and promises — will never changes with the subject.",
+  "questionItems": [
+    { "word": "Minerva ___ pass the exam next week.", "answer": "will" },
+    { "word": "Albus and Severus ___ pass the exam next week.", "answer": "will" },
+    { "word": "You ___ pass the exam next week.", "answer": "will" },
+    { "word": "They ___ pass the exam next week.", "answer": "will" }
+  ],
+  "answers": ["will", "will", "will", "will"]
+},
+{
+  "rule": "Simple Future (will) – Negative",
+  "tip": "Use won't (will not) + base verb for every subject.",
+  "questionItems": [
+    { "word": "Minerva ___ pass the exam without studying.", "answer": "won't" },
+    { "word": "Albus and Severus ___ pass the exam without studying.", "answer": "won't" },
+    { "word": "You ___ pass the exam without studying.", "answer": "won't" },
+    { "word": "They ___ pass the exam without studying.", "answer": "won't" }
+  ],
+  "answers": ["won't", "won't", "won't", "won't"]
+},
+{
+  "rule": "Simple Future (will) – Question",
+  "tip": "Use Will + subject + base verb for every subject to form a future question.",
+  "questionItems": [
+    { "word": "___ Minerva pass the exam next week?", "answer": "Will" },
+    { "word": "___ Albus and Severus pass the exam next week?", "answer": "Will" },
+    { "word": "___ you pass the exam next week?", "answer": "Will" },
+    { "word": "___ they pass the exam next week?", "answer": "Will" }
+  ],
+  "answers": ["Will", "Will", "Will", "Will"]
+},
+
+/* ---------- FUTURE CONTINUOUS ---------- */
+{
+  "rule": "Future Continuous – Affirmative",
+  "tip": "Use will be + verb-ing for an action that will be in progress at a specific future time.",
+  "questionItems": [
+    { "word": "Minerva ___ be studying at 9 p.m. tonight.", "answer": "will" },
+    { "word": "Albus and Severus ___ be studying at 9 p.m. tonight.", "answer": "will" },
+    { "word": "You ___ be studying at 9 p.m. tonight.", "answer": "will" },
+    { "word": "They ___ be studying at 9 p.m. tonight.", "answer": "will" }
+  ],
+  "answers": ["will", "will", "will", "will"]
+},
+{
+  "rule": "Future Continuous – Negative",
+  "tip": "Use won't be + verb-ing for every subject to negate a future action in progress.",
+  "questionItems": [
+    { "word": "Minerva ___ be studying tonight; she has already finished.", "answer": "won't" },
+    { "word": "Albus and Severus ___ be studying tonight; they have already finished.", "answer": "won't" },
+    { "word": "You ___ be studying tonight; you have already finished.", "answer": "won't" },
+    { "word": "They ___ be studying tonight; they have already finished.", "answer": "won't" }
+  ],
+  "answers": ["won't", "won't", "won't", "won't"]
+},
+{
+  "rule": "Future Continuous – Question",
+  "tip": "Use Will + subject + be + verb-ing for every subject.",
+  "questionItems": [
+    { "word": "___ Minerva be studying at 9 p.m. tonight?", "answer": "Will" },
+    { "word": "___ Albus and Severus be studying at 9 p.m. tonight?", "answer": "Will" },
+    { "word": "___ you be studying at 9 p.m. tonight?", "answer": "Will" },
+    { "word": "___ they be studying at 9 p.m. tonight?", "answer": "Will" }
+  ],
+  "answers": ["Will", "Will", "Will", "Will"]
+},
+
+/* ---------- FUTURE PERFECT ---------- */
+{
+  "rule": "Future Perfect – Affirmative",
+  "tip": "Use will have + past participle for an action that will be completed before a specific future time.",
+  "questionItems": [
+    { "word": "Minerva ___ finished the project by Friday.", "answer": "will have" },
+    { "word": "Albus and Severus ___ finished the project by Friday.", "answer": "will have" },
+    { "word": "You ___ finished the project by Friday.", "answer": "will have" },
+    { "word": "They ___ finished the project by Friday.", "answer": "will have" }
+  ],
+  "answers": ["will have", "will have", "will have", "will have"]
+},
+{
+  "rule": "Future Perfect – Negative",
+  "tip": "Use won't have + past participle for every subject to negate a future perfect action.",
+  "questionItems": [
+    { "word": "Minerva ___ finished the project by Friday if she doesn't hurry.", "answer": "won't have" },
+    { "word": "Albus and Severus ___ finished the project by Friday if they don't hurry.", "answer": "won't have" },
+    { "word": "You ___ finished the project by Friday if you don't hurry.", "answer": "won't have" },
+    { "word": "They ___ finished the project by Friday if they don't hurry.", "answer": "won't have" }
+  ],
+  "answers": ["won't have", "won't have", "won't have", "won't have"]
+},
+{
+  "rule": "Future Perfect – Question",
+  "tip": "Use Will + subject + have + past participle to form a future perfect question.",
+  "questionItems": [
+    { "word": "___ Minerva have finished the project by Friday?", "answer": "Will" },
+    { "word": "___ Albus and Severus have finished the project by Friday?", "answer": "Will" },
+    { "word": "___ you have finished the project by Friday?", "answer": "Will" },
+    { "word": "___ they have finished the project by Friday?", "answer": "Will" }
+  ],
+  "answers": ["Will", "Will", "Will", "Will"]
+},
+
+/* ---------- FUTURE PERFECT CONTINUOUS ---------- */
+{
+  "rule": "Future Perfect Continuous – Affirmative",
+  "tip": "Use will have been + verb-ing for an action continuing up to a specific point in the future, emphasising duration.",
+  "questionItems": [
+    { "word": "Minerva ___ been working here for ten years by next June.", "answer": "will have" },
+    { "word": "Albus and Severus ___ been working here for ten years by next June.", "answer": "will have" },
+    { "word": "You ___ been working here for ten years by next June.", "answer": "will have" },
+    { "word": "They ___ been working here for ten years by next June.", "answer": "will have" }
+  ],
+  "answers": ["will have", "will have", "will have", "will have"]
+},
+{
+  "rule": "Future Perfect Continuous – Negative",
+  "tip": "Use won't have been + verb-ing for every subject to negate a continuing future action.",
+  "questionItems": [
+    { "word": "Minerva ___ been resting; she will still be working by midnight.", "answer": "won't have" },
+    { "word": "Albus and Severus ___ been resting; they will still be working by midnight.", "answer": "won't have" },
+    { "word": "You ___ been resting; you will still be working by midnight.", "answer": "won't have" },
+    { "word": "They ___ been resting; they will still be working by midnight.", "answer": "won't have" }
+  ],
+  "answers": ["won't have", "won't have", "won't have", "won't have"]
+},
+{
+  "rule": "Future Perfect Continuous – Question",
+  "tip": "Use Will + subject + have been + verb-ing to form the question.",
+  "questionItems": [
+    { "word": "___ Minerva have been working here for ten years by next June?", "answer": "Will" },
+    { "word": "___ Albus and Severus have been working here for ten years by next June?", "answer": "Will" },
+    { "word": "___ you have been working here for ten years by next June?", "answer": "Will" },
+    { "word": "___ they have been working here for ten years by next June?", "answer": "Will" }
+  ],
+  "answers": ["Will", "Will", "Will", "Will"]
+},
+
+/* ---------- TENSE CONTRAST & SIGNAL WORDS ---------- */
+{
+  "rule": "Contrast: Simple Past vs. Present Perfect",
+  "tip": "Use simple past with a finished time (last year, in 2020). Use present perfect with signal words like already, before, or ever, where no specific time is given.",
+  "questionItems": [
+    { "word": "Minerva ___ Paris last year.", "answer": "visited" },
+    { "word": "Minerva ___ Paris already.", "answer": "has visited" },
+    { "word": "Minerva ___ Paris in 2020.", "answer": "visited" },
+    { "word": "Minerva ___ Paris before.", "answer": "has visited" }
+  ],
+  "answers": ["visited", "has visited", "visited", "has visited"]
+},
+{
+  "rule": "Contrast: Past Continuous vs. Simple Past (Interrupted Action)",
+  "tip": "Use past continuous for the longer background action in progress, and simple past for the shorter action that interrupted it — often joined by 'when' or 'while'.",
+  "questionItems": [
+    { "word": "Minerva ___ dinner when the phone rang.", "answer": "was cooking" },
+    { "word": "The phone ___ while Minerva was cooking dinner.", "answer": "rang" },
+    { "word": "Albus and Severus ___ chess when the lights went out.", "answer": "were playing" },
+    { "word": "The lights ___ while Albus and Severus were playing chess.", "answer": "went out" }
+  ],
+  "answers": ["was cooking", "rang", "were playing", "went out"]
+},
+{
+  "rule": "Contrast: Present Perfect vs. Present Perfect Continuous",
+  "tip": "Use present perfect continuous to emphasise the duration of an action; use present perfect to emphasise the completed result or count.",
+  "questionItems": [
+    { "word": "Minerva ___ this book five times.", "answer": "has read" },
+    { "word": "Minerva ___ this book for three hours.", "answer": "has been reading" },
+    { "word": "Albus and Severus ___ their rooms already.", "answer": "have cleaned" },
+    { "word": "Albus and Severus ___ all morning.", "answer": "have been cleaning" }
+  ],
+  "answers": ["has read", "has been reading", "have cleaned", "have been cleaning"]
+},
+{
+  "rule": "Contrast: Past Perfect vs. Simple Past (Sequence of Events)",
+  "tip": "Use past perfect for the earlier of two past actions, and simple past for the later one — this clarifies which event happened first.",
+  "questionItems": [
+    { "word": "By the time we arrived, Minerva ___ already left.", "answer": "had" },
+    { "word": "We ___ at 6 p.m., but Minerva had already left.", "answer": "arrived" },
+    { "word": "Albus and Severus ___ before the teacher entered.", "answer": "had finished" },
+    { "word": "The teacher ___ after Albus and Severus had finished.", "answer": "entered" }
+  ],
+  "answers": ["had", "arrived", "had finished", "entered"]
+},
+{
+  "rule": "Contrast: Will vs. Going to (Future Intentions)",
+  "tip": "Use 'going to' for pre-planned intentions decided before the moment of speaking, and 'will' for spontaneous decisions or predictions made right now.",
+  "questionItems": [
+    { "word": "I ___ study medicine — I decided last year.", "answer": "am going to" },
+    { "word": "It's cold in here — I ___ close the window.", "answer": "will" },
+    { "word": "Minerva ___ visit her grandmother this weekend; it's already arranged.", "answer": "is going to" },
+    { "word": "The phone is ringing — I ___ answer it.", "answer": "will" }
+  ],
+  "answers": ["am going to", "will", "is going to", "will"]
+},
+{
+  "rule": "Contrast: Present Continuous (Future Arrangements) vs. Simple Present (Schedules)",
+  "tip": "Use present continuous for personal arrangements already fixed with another person; use simple present for fixed timetables and schedules.",
+  "questionItems": [
+    { "word": "The train ___ at 6 p.m. every day.", "answer": "leaves" },
+    { "word": "Minerva ___ her doctor at 6 p.m. tomorrow.", "answer": "is meeting" },
+    { "word": "The shop ___ at 9 a.m. on weekdays.", "answer": "opens" },
+    { "word": "Albus and Severus ___ their cousins this weekend.", "answer": "are visiting" }
+  ],
+  "answers": ["leaves", "is meeting", "opens", "are visiting"]
+}
+
+];
+
+/* ========== GAME STATE ========== */
+let currentPage = 0;
+let pageWrongCount = 0;
+let pageCorrectCount = 0;
+let pageFirstTry = true;
+let firstTryPages = 0;
+let retriedPages = 0;
+let totalWrongGuesses = 0;
+let totalCorrectGuesses = 0;
+let gemsCount = 0;
+let startTime, timerInterval;
+let playerName = "", playerDept = "";
+let selectedOption = null;
+
+const questionEl       = document.getElementById("question");
+const ruleLabelEl      = document.getElementById("ruleLabel");
+const tipBoxEl         = document.getElementById("tipBox");
+const dragOptionsEl    = document.getElementById("dragOptions");
+const dropContainerEl  = document.getElementById("dropContainer");
+const timerEl          = document.getElementById("timer");
+const gemsCounterEl    = document.getElementById("gemsCounter");
+const progressTracker  = document.getElementById("progressTracker");
+const scoreCard        = document.getElementById("scoreCard");
+const restartBtn       = document.getElementById("restartBtn");
+// TODO: update this to the actual URL of your next quest in the sequence
+const NEXT_QUEST_URL   = "https://andrewveda.github.io/SRM-VEC-English-PWA/semII/12";
+
+function goToNextQuest() { window.location.href = NEXT_QUEST_URL; }
+
+/* ========== QUIZ FLOW ========== */
+function beginQuiz() {
+  const nameField = document.getElementById("nameInput");
+  const deptField = document.getElementById("departmentSelect");
+  if (!nameField.value.trim()) { alert("Please enter your name!"); return; }
+  if (!deptField.value) { alert("Please select your department!"); return; }
+  playerName = nameField.value.trim(); playerDept = deptField.value;
+  localStorage.setItem("questPlayerName", playerName);
+  localStorage.setItem("questPlayerDept", playerDept);
+  document.getElementById("nameForm").style.display = "none";
+  document.getElementById("quizContent").style.display = "block";
+  startQuiz();
+}
+
+function startQuiz() {
+  currentPage = 0;
+  pageWrongCount = 0; pageCorrectCount = 0; pageFirstTry = true;
+  firstTryPages = 0; retriedPages = 0;
+  totalWrongGuesses = 0; totalCorrectGuesses = 0;
+  gemsCount = 0;
+  startTime = Date.now();
+  gemsCounterEl.innerText = "💎 0";
+  scoreCard.innerHTML = "";
+  restartBtn.style.display = "none";
+  loadPage(); startTimer();
+}
+
+function loadPage() {
+  if (currentPage >= quizData.length) return showScore();
+  selectedOption = null;
+
+  pageWrongCount = 0;
+  pageCorrectCount = 0;
+  pageFirstTry = true;
+
+  const data = quizData[currentPage];
+  // Dynamically reflects the growing queue total
+  progressTracker.innerText = `📍 Page ${currentPage + 1} of ${quizData.length}`;
+  ruleLabelEl.innerText = `📘 Rule ${currentPage + 1} of ${quizData.length}: ${data.rule}`;
+  
+  // Rule tip stays visible at all times
+  tipBoxEl.innerText = `💡 Rule reminder: ${data.tip}`;
+  tipBoxEl.classList.add("show");
+
+  dragOptionsEl.innerHTML = ""; dropContainerEl.innerHTML = "";
+
+  const shuffled = [...data.answers].sort(() => Math.random() - 0.5);
+  shuffled.forEach(ans => {
+    const div = document.createElement("div");
+    div.classList.add("drag-item"); div.innerText = ans;
+    div.onclick = () => selectOption(div);
+    dragOptionsEl.appendChild(div);
+  });
+  data.questionItems.forEach(item => {
+    const drop = document.createElement("div");
+    drop.classList.add("drop-zone"); drop.innerText = item.word;
+    drop.dataset.answer = item.answer; drop.onclick = () => placeOption(drop);
+    dropContainerEl.appendChild(drop);
+  });
+}
+function selectOption(div) {
+  if (selectedOption) selectedOption.classList.remove("selected");
+  selectedOption = div; div.classList.add("selected");
+}
+
+function placeOption(dropZone) {
+  if (!selectedOption) return;
+  if (dropZone.dataset.filled === "true") return;
+
+  const answer = selectedOption.innerText.trim();
+  const correctAnswer = dropZone.dataset.answer.trim();
+
+  if (answer === correctAnswer) {
+    triggerConfetti(); 
+    playApplauseSound();
+    pageCorrectCount++;
+    totalCorrectGuesses++;
+    gemsCount++;
+    gemsCounterEl.innerText = `💎 ${gemsCount}`;
+    gemsCounterEl.classList.add('gem-pop');
+    setTimeout(() => gemsCounterEl.classList.remove('gem-pop'), 500);
+    
+    showMotivation(true);
+
+    dropZone.innerHTML = dropZone.innerText.replace("___", `<strong>${answer}</strong>`);
+    dropZone.classList.add("correct", "filled");
+    dropZone.dataset.filled = "true";
+
+    // Hide only the specific clicked option so duplicates remain usable
+    selectedOption.style.visibility = "hidden";
+    selectedOption.style.pointerEvents = "none";
+    selectedOption.classList.remove("selected");
+    selectedOption = null;
+
+    const allFilled = document.querySelectorAll(".drop-zone[data-filled='true']").length === quizData[currentPage].questionItems.length;
+    if (allFilled) {
+      handlePageComplete();
+    }
+  } else {
+    playWrongSound();
+    pageWrongCount++;
+    totalWrongGuesses++;
+    
+    // Re-queue page if this is the first error on this current attempt
+    if (pageFirstTry) {
+      quizData.push(quizData[currentPage]);
+      pageFirstTry = false;
+    }
+
+    // Instantly update top-right tracker with the new queue total
+    progressTracker.innerText = `📍 Page ${currentPage + 1} of ${quizData.length}`;
+
+    gemsCount = Math.max(0, gemsCount - 1);
+    gemsCounterEl.innerText = `💎 ${gemsCount}`;
+    showMotivation(false);
+
+    dropZone.classList.add("wrong");
+    selectedOption.classList.add("wrong-pick");
+    
+    const targetOption = selectedOption;
+    setTimeout(() => {
+      dropZone.classList.remove("wrong");
+      if (targetOption) targetOption.classList.remove("wrong-pick", "selected");
+    }, 600);
+
+    selectedOption = null;
+  }
+}
+function handlePageComplete() {
+  setTimeout(() => {
+    if (pageFirstTry) {
+      firstTryPages++;
+      triggerConfettiSides();
+      gemsCount += 2;
+      gemsCounterEl.innerText = `💎 ${gemsCount}`;
+      gemsCounterEl.classList.add('gem-pop');
+      setTimeout(() => gemsCounterEl.classList.remove('gem-pop'), 500);
+    } else {
+      retriedPages++;
+    }
+
+    document.querySelectorAll('.drag-item').forEach(item => {
+      item.style.pointerEvents = 'none';
+      item.style.opacity = '0.3';
+    });
+
+    setTimeout(() => {
+      currentPage++;
+      loadPage();
+    }, 1200);
+  }, 400);
+}
+
+function startTimer() {
+  timerInterval = setInterval(() => {
+    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+    timerEl.innerText = `⏳ ${elapsed}s`;
+  }, 1000);
+}
+
+function calculateAccuracy() {
+  const total = totalCorrectGuesses + totalWrongGuesses;
+  return total === 0 ? 0 : Math.round((totalCorrectGuesses / total) * 100);
+}
+
+function getAccuracyColor(acc) {
+  if (acc >= 85) return "#00e676";
+  if (acc >= 60) return "#ffcc00";
+  return "#ff5252";
+}
+
+function animateAccuracy(finalAccuracy) {
+  const ring = document.querySelector(".accuracy-ring");
+  const valueEl = document.getElementById("accuracyValue");
+  if (!ring || !valueEl) return;
+  ring.style.setProperty("--ring-color", getAccuracyColor(finalAccuracy));
+  let cur = 0;
+  const anim = setInterval(() => {
+    if (cur >= finalAccuracy) { clearInterval(anim); return; }
+    cur++;
+    ring.style.setProperty("--progress", cur);
+    valueEl.innerText = `${cur}%`;
+  }, 14);
+}
+
+function generatePerformanceMessage() {
+  const acc = calculateAccuracy();
+  if (acc >= 90) return "🌟 Outstanding! You've clearly got a handle on these tenses.";
+  if (acc >= 75) return "🔥 Strong work! A couple of tricky tenses to revisit.";
+  if (acc >= 50) return "💪 Good progress — mastery is close, review the tips above!";
+  return "🚀 Every expert was once a beginner. Keep going!";
+}
+
+const EDGE_FUNCTION_URL = "https://yellow-lab-4999.andrewveda.workers.dev/functions/v1/logQuest";
+
+function showScore() {
+  clearInterval(timerInterval);
+  const totalTime = Math.floor((Date.now() - startTime) / 1000);
+  triggerMegaConfetti();
+
+  document.getElementById("quizContent").style.display = "none";
+  document.getElementById("motivationBox").style.display = "none";
+  window.scrollTo({ top: 0, behavior: "smooth" });
+
+  const accuracy = calculateAccuracy();
+  const mins = Math.floor(totalTime / 60), secs = totalTime % 60;
+  const timeStr = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+
+  const scoreScreen = document.getElementById("scoreScreen");
+  scoreScreen.style.display = "block";
+  scoreScreen.innerHTML = `
+<div class="score-portal">
+
+  <div class="portal-header">
+    <div class="portal-title">MISSION COMPLETE</div>
+    <div class="portal-player">👤 ${playerName} · ${playerDept}</div>
+  </div>
+
+  <div class="portal-body">
+    <div class="accuracy-wrapper">
+      <div class="accuracy-ring" style="--progress:0; --ring-color:#00e676;">
+        <div class="accuracy-inner">
+          <div class="accuracy-value" id="accuracyValue">0%</div>
+          <div class="accuracy-label">Accuracy</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card correct-card">
+        <div class="stat-emoji">✅</div>
+        <div class="stat-value">${totalCorrectGuesses}</div>
+        <div class="stat-label">Correct</div>
+      </div>
+      <div class="stat-card wrong-card">
+        <div class="stat-emoji">❌</div>
+        <div class="stat-value">${totalWrongGuesses}</div>
+        <div class="stat-label">Wrong</div>
+      </div>
+      <div class="stat-card correct-card">
+        <div class="stat-emoji">🌟</div>
+        <div class="stat-value">${firstTryPages}</div>
+        <div class="stat-label">First Try</div>
+      </div>
+      <div class="stat-card wrong-card">
+        <div class="stat-emoji">🔄</div>
+        <div class="stat-value">${retriedPages}</div>
+        <div class="stat-label">Retried</div>
+      </div>
+      <div class="stat-card gems-card">
+        <div class="stat-emoji">💎</div>
+        <div class="stat-value">${gemsCount}</div>
+        <div class="stat-label">Gems</div>
+      </div>
+      <div class="stat-card time-card">
+        <div class="stat-emoji">⏱️</div>
+        <div class="stat-value">${timeStr}</div>
+        <div class="stat-label">Time</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="performance-message">${generatePerformanceMessage()}</div>
+
+  <div class="portal-actions">
+    <button class="next-quest-btn" onclick="goToNextQuest()">🚀 NEXT QUEST</button>
+    <button onclick="downloadPDFReport()" class="report-btn" title="Download PDF Report">Download Quest report📥</button>
+  </div>
+
+</div>`;
+
+  setTimeout(() => animateAccuracy(accuracy), 80);
+
+  sendViaEdgeFunction({
+    student_name: playerName, department: playerDept,
+    correct: totalCorrectGuesses, wrong: totalWrongGuesses,
+    first_tries: firstTryPages, retried: retriedPages,
+    time_spent: totalTime, quest_id: "Quest 3"
+  });
+}
+
+async function sendViaEdgeFunction(payload) {
+  try {
+    const response = await fetch(EDGE_FUNCTION_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) { console.error("❌ Edge Function Error:", await response.text()); return; }
+    console.log("✅ Saved to Supabase");
+  } catch (err) { console.error("⚠️ Edge Function Error:", err); }
+}
+
+function downloadPDFReport() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  const totalTime = Math.floor((Date.now() - startTime) / 1000);
+  const reportDate = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+
+  doc.setFillColor(25, 25, 60); doc.rect(0, 0, 210, 45, 'F');
+  doc.setTextColor(255, 255, 255); doc.setFont('times', 'bold'); doc.setFontSize(18);
+  doc.text('SRM VALLIAMMAI ENGINEERING COLLEGE', 105, 16, { align: 'center' });
+  doc.setFontSize(12); doc.setFont('times', 'italic'); doc.text('(Autonomous)', 105, 23, { align: 'center' });
+  doc.setFontSize(15); doc.setFont('times', 'normal'); doc.text('Department of English', 105, 31, { align: 'center' });
+  doc.setFontSize(14); doc.setFont('times', 'bold'); doc.setTextColor(212, 175, 55);
+  doc.text('Tenses Quest Report', 105, 39, { align: 'center' });
+
+  doc.setTextColor(0,0,0); doc.setFontSize(11); doc.text('CANDIDATE INFORMATION', 20, 55);
+  doc.autoTable({
+    startY: 58,
+    body: [['Student Name', playerName], ['Department', playerDept], ['Quest', 'Tenses Quest'], ['Completed On', reportDate]],
+    theme: 'plain',
+    styles: { fontSize: 10, font: 'times', cellPadding: 3 },
+    columnStyles: { 0: { fontStyle: 'bold', cellWidth: 60, textColor: [70,70,70] }, 1: { cellWidth: 120 } },
+    margin: { left: 20, right: 20 }
+  });
+
+  let y = doc.lastAutoTable.finalY + 10;
+  doc.setFont('times', 'bold'); doc.text('PERFORMANCE SUMMARY', 20, y); y += 4;
+  doc.autoTable({
+    startY: y + 3,
+    body: [
+      ['Total Rule Sets', quizData.length.toString()],
+      ['Correct Answers', totalCorrectGuesses.toString()],
+      ['Wrong Attempts', totalWrongGuesses.toString()],
+      ['Pages Passed on First Try', firstTryPages.toString()],
+      ['Pages Passed After Retry', retriedPages.toString()],
+      ['Final Gems Earned', gemsCount.toString()],
+      ['Total Time', `${Math.floor(totalTime/60)}m ${totalTime%60}s`]
+    ],
+    theme: 'grid',
+    styles: { fontSize: 10, font: 'times', cellPadding: 3 },
+    margin: { left: 20, right: 20 }
+  });
+
+  y = doc.lastAutoTable.finalY + 12;
+  if (y > 250) { doc.addPage(); y = 20; }
+  doc.setFont('times', 'bold'); doc.text('RULE SETS WITH CORRECT ANSWERS', 20, y); y += 6;
+  quizData.forEach((item, i) => {
+    if (y > 255) { doc.addPage(); y = 20; }
+    doc.setFontSize(11); doc.setFont('times', 'bold'); doc.setTextColor(25,25,60);
+    doc.text(`Set ${i + 1}: ${item.rule}`, 20, y); y += 6;
+    doc.setTextColor(0,0,0); doc.setFont('times', 'normal');
+    item.questionItems.forEach((qItem, j) => {
+      const lines = doc.splitTextToSize(`${j+1}. ${qItem.word} `, 160);
+      doc.text(lines, 25, y); y += lines.length * 5;
+      doc.setTextColor(0,128,0); doc.text(`Answer: ${qItem.answer}`, 30, y);
+      doc.setTextColor(0,0,0); y += 7;
+      if (y > 270) { doc.addPage(); y = 20; }
+    });
+    doc.setFontSize(9); doc.setFont('times', 'italic'); doc.setTextColor(90,90,90);
+    const tipLines = doc.splitTextToSize(`Rule: ${item.tip}`, 160);
+    doc.text(tipLines, 25, y); y += tipLines.length * 4.5 + 3;
+    doc.setTextColor(0,0,0);
+    doc.setDrawColor(230,230,230); doc.setLineWidth(0.3); doc.line(20, y, 190, y); y += 5;
+  });
+
+  doc.setDrawColor(184,134,11); doc.setLineWidth(0.5); doc.line(20, 280, 190, 280);
+  doc.setFontSize(8); doc.setTextColor(128,128,128); doc.setFont('times','italic');
+  doc.text('This is a system-generated report', 105, 287, { align: 'center' });
+  doc.save(`${playerName.replace(/[^a-zA-Z0-9]/g,'_')}_Tenses_Quest_Report.pdf`);
+}
+
+function playAgain() {
+  document.getElementById("scoreScreen").style.display = "none";
+  document.getElementById("scoreScreen").innerHTML = "";
+  document.getElementById("quizContent").style.display = "none";
+  document.getElementById("motivationBox").style.display = "";
+  document.getElementById("nameForm").style.display = "block";
+  document.getElementById("nameInput").value = "";
+}
+
+restartBtn.onclick = playAgain;
+</script>
+</body>
+</html>

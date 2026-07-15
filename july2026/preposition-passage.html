@@ -1,0 +1,1142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>The Preposition Quest 🎯</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+
+<style>
+  :root{
+    --page-padding-x: 1.5rem;
+    --top-strip-bg: rgba(255, 255, 240, 0.96);
+    --top-strip-border: #d2b48c;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: radial-gradient(ellipse at center, #f4ecd8 0%, #e8d9b5 100%);
+    color: #3b2f1e;
+    text-align: center;
+    width: 100vw;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  .container {
+    position: relative;
+    background: rgba(255, 255, 240, 0.85);
+    width: 100vw;
+    min-height: 100vh;
+    margin: 0;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    padding: 0;
+  }
+
+  /* Name form */
+  #nameForm {
+    padding: 3rem var(--page-padding-x) 2rem;
+  }
+  #nameInput, #departmentSelect {
+    display: block;
+    width: 90%;
+    max-width: 320px;
+    margin: 1rem auto;
+    padding: 0.8rem;
+    font-size: 1rem;
+    border-radius: 8px;
+    border: 1px solid #c2a677;
+    background: #fffdf6;
+    color: #3b2f1e;
+  }
+  #startQuizBtn {
+    padding: 0.8rem 2.5rem;
+    font-size: 1.15rem;
+    background-color: #8b7355;
+    border: 1px solid #5b442a;
+    border-radius: 12px;
+    cursor: pointer;
+    color: #ffffff;
+    transition: background-color 0.2s ease, transform 0.15s ease;
+  }
+  #startQuizBtn:hover { background-color: #6b5a43; transform: scale(1.03); }
+
+  /* Top Strip */
+  .top-strip {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    background: var(--top-strip-bg);
+    border-bottom: 1px solid var(--top-strip-border);
+    padding: 0.5rem 0.8rem;
+    z-index: 30;
+    backdrop-filter: blur(4px);
+  }
+  .top-strip-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.95rem;
+    color: #5b442a;
+    margin-bottom: 0.35rem;
+    padding: 0 var(--page-padding-x);
+  }
+  #timer, #gemsCounter, #progressTracker {
+    font-size: 1.05rem;
+    color: #6b4f33;
+    font-weight: 500;
+  }
+  .top-strip-answers {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    justify-content: center;
+    align-items: center;
+    padding-top: 0.5rem;
+    border-top: 1px solid #d2b48c;
+  }
+
+  .drag-item {
+    display: inline-block;
+    padding: 0.35rem 0.7rem;
+    font-size: 0.92rem;
+    background: #f7e7c4;
+    border: 1px solid #d2b48c;
+    border-radius: 6px;
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.2s ease-in-out;
+    color: #3b2f1e;
+    white-space: nowrap;
+  }
+  .drag-item:hover { background: #f5deb3; transform: scale(1.05); }
+  .drag-item.selected { border: 2px solid #8b7355; background: #f0dba5; transform: scale(1.02); }
+  .drag-item.used { display: none; }
+
+  /* Passage area */
+  .passage-title {
+    font-size: 1.3rem;
+    font-weight: bold;
+    color: #5b442a;
+    margin-bottom: 1rem;
+    text-align: center;
+  }
+  .drop-container {
+    padding: 0.8rem var(--page-padding-x) 2rem;
+    overflow-y: auto;
+    text-align: justify;
+    line-height: 2.0;
+    font-size: 1.25rem;
+    color: #3b2f1e;
+  }
+
+  /* Blanks */
+  .drop-zone {
+    display: inline-block;
+    border: 2px dashed #a1886f;
+    padding: 0.15rem 0.7rem;
+    margin: 0 0.15rem;
+    cursor: pointer;
+    background: #fffdf6;
+    color: #5b442a;
+    font-size: 1.15rem;
+    font-family: 'Courier New', Courier, monospace;
+    border-radius: 5px;
+    min-width: 55px;
+    text-align: center;
+    transition: all 0.2s ease;
+    vertical-align: middle;
+  }
+  .drop-zone:hover { background: #f7e7c4; }
+  .drop-zone.filled {
+    border: 1px solid transparent;
+    background: none;
+    color: #228b22;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-weight: bold;
+    padding: 0.15rem 0.15rem;
+    min-width: unset;
+    cursor: default;
+  }
+  .correct { color: #228b22 !important; }
+  .wrong { border-color: #b22222 !important; animation: shake 0.5s ease-in-out; }
+
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+  }
+
+  /* Gems FX */
+  @keyframes sparkle {
+    0% { transform: translate(0, 0) scale(1); opacity: 1; }
+    100% { transform: translate(var(--random-x, 0), -100px) scale(1.5); opacity: 0; }
+  }
+  @keyframes gemPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.3); }
+  }
+  .gem-spark { position: absolute; pointer-events: none; font-size: 1.5rem; animation: sparkle 1s ease-out forwards; z-index: 20; }
+  .gem-counter-pulse { animation: gemPulse 0.4s ease-in-out; }
+
+  /* Buttons */
+  #nextPageBtn {
+    margin: 1.5rem auto;
+    padding: 0.7rem 2rem;
+    font-size: 1.1rem;
+    background-color: #4CAF50;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    color: white;
+    transition: background-color 0.2s ease;
+    font-weight: bold;
+    display: block;
+  }
+  #nextPageBtn:hover { background-color: #45a049; }
+
+  #restartBtn {
+    margin: 2rem auto;
+    padding: 0.7rem 2rem;
+    font-size: 1.1rem;
+    background-color: #d2b48c;
+    border: 1px solid #a1886f;
+    border-radius: 10px;
+    cursor: pointer;
+    color: #3b2f1e;
+    transition: background-color 0.2s ease;
+    display: block;
+  }
+  #restartBtn:hover { background-color: #c9a96b; }
+
+  #scoreCard {
+    margin-top: 2rem;
+    font-size: 1.2rem;
+    color: #4b3b2a;
+  }
+
+  #timer { visibility: hidden; position: relative; }
+  #timer::after { content: "📚"; visibility: visible; position: absolute; left: 0; top: 0; }
+</style>
+<base target="_blank">
+</head>
+
+<body>
+<div class="container" id="quizContainer">
+
+  <!-- Name Entry Page -->
+  <div id="nameForm">
+    <h1 id="quizTitle" style="font-size:2.2rem; margin-bottom:0.3rem; color:#4a3b2a;">🎯 The Preposition Quest</h1>
+    <p style="font-size:1rem; color:#6b4f33; margin-bottom:1.5rem;">
+      Master 50+ Prepositions Through Immersive Cloze Passages<br>
+      <span style="font-size:0.9rem;">30 Passages | 5 Blanks Per Page | Full Explanations in PDF</span>
+    </p>
+
+    <input type="text" id="nameInput" placeholder="Enter your name" />
+    <select id="departmentSelect">
+      <option value="">-- Select Department --</option>
+      <option value="Cyber Security">Cyber Security</option>
+      <option value="CSE-1">CSE-1</option>
+      <option value="CSE-2">CSE-2</option>
+      <option value="CSE-3">CSE-3</option>
+      <option value="Mechanical Engineering">Mechanical Engineering</option>
+      <option value="ECE-1">ECE-1</option>
+      <option value="ECE-2">ECE-2</option>
+      <option value="ECE-3">ECE-3</option>
+      <option value="AI DS-1">AI DS-1</option>
+      <option value="AI DS-2">AI DS-2</option>
+      <option value="Civil">Civil</option>
+      <option value="Agri">Agri</option>
+      <option value="EEE">EEE</option>
+      <option value="EIE">EIE</option>
+      <option value="Medical Electronics">Medical Electronics</option>
+      <option value="IT-1">IT-1</option>
+      <option value="IT-2">IT-2</option>
+    </select>
+    <button id="startQuizBtn" onclick="beginQuiz()">Start Preposition Quest</button>
+  </div>
+
+  <!-- Quiz Content -->
+  <div id="quizContent" style="display:none;">
+    <div class="top-strip" id="topStrip">
+      <div class="top-strip-header">
+        <div id="timer">📚 </div>
+        <div id="gemsCounter">💎 0</div>
+        <div id="progressTracker">📍 1 / 1</div>
+      </div>
+      <div class="top-strip-answers" id="dragOptions"></div>
+    </div>
+
+    <div class="drop-container" id="dropContainer"></div>
+    <div id="scoreCard"></div>
+    <button id="nextPageBtn" style="display: none;">Next &rarr;</button>
+    <button id="restartBtn" style="display: none;">Restart</button>
+  </div>
+</div>
+
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+const supabase = createClient(
+  'https://yellow-lab-4999.andrewveda.workers.dev',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoZXpzc29jenZwYmt0ZWZmY2d6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI4NTk1ODUsImV4cCI6MjA3ODQzNTU4NX0.2ZlqXnZxv0opkhynAT7OlK4S-xPygcc7ETUyTXRfGHE'
+);
+
+// ============================================================
+// PREPOSITION PASSAGES — 30 passages, manually crafted blanks
+// ============================================================
+
+const quizDataStore = [
+  {
+    title: "The Morning Routine",
+    passage: "I wake up **at** 6 AM and look **at** the clock. I get **out of** bed and walk **into** the bathroom. I brush my teeth **with** a new toothbrush and wash my face **with** cold water. After that, I put **on** my clothes and sit **at** the table **for** breakfast. I eat toast **with** butter and drink coffee **from** my favorite mug. I leave **for** work **at** 7:30 and arrive **at** the office **by** 8.",
+    answers: ["at","at","out of","into","with","with","on","at","for","with","from","for","at","by","at"]
+  },
+  {
+    title: "A Day at the Park",
+    passage: "The children ran **around** the playground while their parents sat **on** benches **under** the trees. A dog ran **after** a ball and jumped **over** a small fence. A girl fell **off** the swing but landed **on** soft grass. Her mother rushed **to** her and helped her get **up**. They walked **along** the path **beside** the lake and looked **at** the ducks swimming **in** the water. The sun shone **through** the leaves **above** them.",
+    answers: ["around","on","under","after","over","off","on","to","up","along","beside","at","in","through","above"]
+  },
+  {
+    title: "The Library Visit",
+    passage: "I went **to** the library **to** borrow some books. I searched **for** a novel **by** my favorite author **among** the shelves. I found it **between** two thick dictionaries. I sat **at** a desk **near** the window and read **for** an hour. The librarian walked **past** me **with** a stack **of** books. I looked **through** the pages carefully. **By** the end **of** the day, I had read three chapters **out of** ten.",
+    answers: ["to","to","for","by","among","between","at","near","for","past","with","of","through","By","of","out of"]
+  },
+  {
+    title: "Cooking Dinner",
+    passage: "I stood **in** the kitchen and took ingredients **from** the fridge. I cut vegetables **with** a sharp knife **on** a wooden board. I put them **into** a hot pan and stirred them **with** a wooden spoon. I added salt **to** the soup and tasted it **with** a spoon. The aroma filled **throughout** the house. I set the table **for** four people and placed the dish **in** the center. Everyone gathered **around** the table.",
+    answers: ["in","from","with","on","into","with","to","with","throughout","for","in","around"]
+  },
+  {
+    title: "Travel Plans",
+    passage: "We are traveling **to** Paris **by** train. We will stay **at** a hotel **near** the Eiffel Tower. The journey takes **about** three hours. We will arrive **in** Paris **at** noon. **During** the trip, we will look **at** the scenery **through** the window. We plan to walk **around** the city and take photos **of** famous landmarks. We will stay **until** Sunday and return **on** Monday morning.",
+    answers: ["to","by","at","near","about","in","at","During","at","through","around","of","until","on"]
+  },
+  {
+    title: "The Birthday Party",
+    passage: "The party was held **at** Sarah's house. Guests arrived **between** 5 and 6 PM. We sat **on** cushions **around** a low table. Balloons hung **from** the ceiling and streamers were taped **to** the walls. We ate pizza **with** our hands and drank juice **from** paper cups. The cake was placed **in** the center. Sarah blew **out** the candles **with** one breath. We sang **to** her and cheered **for** her success.",
+    answers: ["at","between","on","around","from","to","with","from","in","out","with","to","for"]
+  },
+  {
+    title: "Shopping Trip",
+    passage: "I went **to** the mall **to** buy shoes. I looked **in** several stores **for** the perfect pair. I tried **on** many shoes before finding the right ones. I paid **for** them **with** my credit card. The cashier put them **into** a bag and handed it **to** me. I walked **out of** the store **with** my purchase. I bumped **into** an old friend **outside** the cafe. We talked **for** a while **about** our plans.",
+    answers: ["to","to","in","for","on","for","with","into","to","out of","with","into","outside","for","about"]
+  },
+  {
+    title: "At the Beach",
+    passage: "We spent the day **at** the beach. The sand was warm **under** our feet. We walked **along** the shore and collected shells **from** the water's edge. Children built castles **out of** wet sand. Some people swam **in** the ocean while others lay **on** towels **beneath** umbrellas. A boat sailed **past** us **toward** the horizon. We stayed **until** sunset and then drove **back** home.",
+    answers: ["at","under","along","from","out of","in","on","beneath","past","toward","until","back"]
+  },
+  {
+    title: "The Office Meeting",
+    passage: "The meeting started **at** 10 AM **in** the conference room. Everyone sat **around** the table **except** John, who joined **via** video call. We discussed the project **for** two hours. The manager wrote notes **on** a whiteboard. We agreed **on** a deadline **by** Friday. After the meeting, I walked **to** my desk and worked **on** the report **until** lunch. I ate **with** my colleagues **in** the cafeteria.",
+    answers: ["at","in","around","except","via","for","on","on","by","to","on","until","with","in"]
+  },
+  {
+    title: "A Rainy Day",
+    passage: "It rained **throughout** the morning. I stayed **inside** the house and looked **out of** the window **at** the falling rain. Water dripped **from** the roof **into** a bucket. I read a book **by** the fireplace **until** the rain stopped. Then I put **on** my raincoat and stepped **outside**. I walked **through** puddles **toward** the garden. The flowers smelled fresh **after** the rain. Birds sang **from** the trees **above** me.",
+    answers: ["throughout","inside","out of","at","from","into","by","until","on","outside","through","toward","after","from","above"]
+  },
+  {
+    title: "Visiting a Friend",
+    passage: "I drove **to** my friend's house **in** the evening. I parked my car **in front of** her building and walked **up** the stairs **to** the third floor. I knocked **on** the door and she invited me **in**. We sat **on** the sofa and talked **about** our week. She served tea **in** delicate cups. We looked **through** old photos **from** our college days. Time passed quickly. **By** midnight, I had **to** leave **for** home.",
+    answers: ["to","in","in front of","up","to","on","in","on","about","in","through","from","By","to","for"]
+  },
+  {
+    title: "The Classroom",
+    passage: "Students sat **at** their desks **in** rows. The teacher stood **at** the front **of** the room **beside** the whiteboard. She wrote a problem **on** the board and asked **for** volunteers. A boy **at** the back raised his hand. He walked **to** the front and solved it **with** chalk. The class clapped **for** him. He returned **to** his seat **between** two friends. The lesson continued **until** the bell rang **at** 3 PM.",
+    answers: ["at","in","at","of","beside","on","for","at","to","with","for","to","between","until","at"]
+  },
+  {
+    title: "Sports and Games",
+    passage: "The team practiced **on** the field **for** two hours. They ran **around** the track and stretched **before** the game. The match started **at** 4 PM. One player kicked the ball **into** the goal. The crowd cheered **for** their team. **During** halftime, players rested **on** benches and drank water **from** bottles. The coach spoke **to** them **about** strategy. **In** the end, they won **by** two points.",
+    answers: ["on","for","around","before","at","into","for","During","on","from","to","about","In","by"]
+  },
+  {
+    title: "Describing a Picture",
+    passage: "**In** the picture, a cat sits **on** a chair **beside** a window. **Through** the window, we can see trees **outside**. **On** the table **near** the chair, there is a vase **with** flowers **in** it. A book lies **under** the table. **Above** the chair, a painting hangs **on** the wall. The cat looks **at** a bird **outside** the window. The room feels warm **because of** the sunlight streaming **in**.",
+    answers: ["In","on","beside","Through","outside","On","near","with","in","under","Above","on","at","outside","because of","in"]
+  },
+  {
+    title: "Making a Phone Call",
+    passage: "I picked **up** the phone and dialed the number. I waited **for** someone **to** answer. A voice **on** the other end said hello. I spoke **to** the manager **about** my complaint. He listened **to** me carefully and apologized **for** the mistake. He promised **to** fix it **by** tomorrow. I thanked him **for** his help and hung **up**. I felt better **after** the call.",
+    answers: ["up","for","to","on","to","about","to","for","to","by","for","up","after"]
+  },
+  {
+    title: "The Hospital Visit",
+    passage: "I went **to** the hospital **to** visit my grandmother. She was lying **in** bed **in** Room 302. I sat **beside** her and held her hand. A nurse came **in** **with** medicine. She checked **on** my grandmother and wrote notes **in** a chart. The doctor arrived **at** 2 PM and looked **at** the test results. He spoke **to** us **about** the treatment. We stayed **with** her **until** visiting hours ended **at** 8 PM.",
+    answers: ["to","to","in","in","beside","in","with","on","in","at","at","to","about","with","until","at"]
+  },
+  {
+    title: "Writing a Letter",
+    passage: "I sat **at** my desk and took out a pen. I wrote the date **at** the top **of** the page. I began **with** \"Dear Friend\" and wrote **about** my trip **to** London. I described walking **through** the streets **of** the city and visiting museums **with** my family. I ended the letter **with** \"Yours sincerely\" and signed my name **at** the bottom. I put the letter **into** an envelope and stuck a stamp **on** it.",
+    answers: ["at","at","of","with","about","to","through","of","with","with","at","into","on"]
+  },
+  {
+    title: "The Concert Night",
+    passage: "We arrived **at** the concert hall **before** 7 PM. We found our seats **in** the balcony **above** the stage. The band came **on** stage **at** 8 sharp. Music filled **throughout** the hall. People danced **in** their seats and sang **along** **with** the songs. My friend stood **up** and cheered **for** the guitarist. **After** the show, we went **to** a cafe **for** snacks. We talked **about** the concert **until** midnight.",
+    answers: ["at","before","in","above","on","at","throughout","in","along","with","up","for","After","to","for","about","until"]
+  },
+  {
+    title: "Fixing a Bicycle",
+    passage: "I took my bicycle **out of** the garage. I noticed a flat tire **on** the back wheel. I turned the bike **upside down** and removed the wheel **from** the frame. I took the old tube **out of** the tire and checked **for** holes. I found a small cut **in** the rubber. I put a new tube **into** the tire and pumped air **into** it. I attached the wheel **to** the bike again and tested it **by** riding **around** the block.",
+    answers: ["out of","on","upside down","from","out of","for","in","into","into","to","by","around"]
+  },
+  {
+    title: "The Art Gallery",
+    passage: "We entered **through** the main door **of** the gallery. Paintings hung **on** every wall. We walked **from** room **to** room, admiring the art. A sculpture stood **in** the center **of** the hall. We looked **at** a painting **of** a sunset **over** the mountains. The artist had signed his name **at** the bottom **of** the canvas. We sat **on** a bench **near** the exit and discussed what we had seen. We left **through** the same door.",
+    answers: ["through","of","on","from","to","in","of","at","of","over","at","of","on","near","through"]
+  },
+  {
+    title: "Nuance: Time Prepositions",
+    passage: "I prefer studying **in** the morning **at** dawn when the house is quiet. My exam is **on** Monday **at** 9 AM. I finished the project **in** two days but started it **on** Tuesday. I have lived here **since** 2020, **for** six years now. I will graduate **in** 2027. The library is open **from** 8 AM **to** 10 PM **except** **on** Sundays. I usually sleep **during** the afternoon **on** weekends.",
+    answers: ["in","at","on","at","in","on","since","for","in","from","to","except","on","during","on"]
+  },
+  {
+    title: "Nuance: Place Prepositions",
+    passage: "I live **in** Chennai **at** 42 MG Road. My office is **on** the third floor **of** a tall building. I wait **at** the bus stop **on** Main Street. The cafe is **between** the bank and the bookstore. I sat **in** a corner **at** the back **of** the room. There is a garden **behind** my house **with** flowers **in** it. The cat sleeps **under** the table **beside** the window.",
+    answers: ["in","at","on","of","at","on","between","in","at","of","behind","with","in","under","beside"]
+  },
+  {
+    title: "Nuance: Movement Prepositions",
+    passage: "I walked **across** the bridge **over** the river. I climbed **up** the hill and ran **down** the other side. I jumped **over** the fence and crawled **under** the gate. I swam **across** the pool and dived **into** the deep end. I drove **through** the tunnel and came **out of** it **into** the sunlight. I flew **from** Delhi **to** Mumbai **via** Hyderabad.",
+    answers: ["across","over","up","down","over","under","across","into","through","out of","into","from","to","via"]
+  },
+  {
+    title: "Nuance: Confusing Pairs",
+    passage: "I am interested **in** art but good **at** math. I am afraid **of** spiders but fond **of** dogs. I am married **to** my work and devoted **to** my family. I am responsible **for** the project and proud **of** the results. I am similar **to** my sister but different **from** my brother. I am tired **of** waiting and ready **for** action. I am familiar **with** this place and aware **of** the rules.",
+    answers: ["in","at","of","of","to","to","for","of","to","from","of","for","with","of"]
+  },
+  {
+    title: "Nuance: Phrasal Prepositions",
+    passage: "I sat **in front of** the TV **instead of** studying. The cat hid **in spite of** my calling. I succeeded **by means of** hard work. We arrived **by way of** the highway. She spoke **on behalf of** her team. He left **in place of** his colleague. I finished **ahead of** schedule **because of** my planning. We met **in addition to** our regular session.",
+    answers: ["in front of","instead of","in spite of","by means of","by way of","on behalf of","in place of","ahead of","because of","in addition to"]
+  },
+  {
+    title: "Nuance: Prepositions with Verbs",
+    passage: "I agree **with** you **on** this point. I depend **on** you **for** support. I insist **on** leaving **at** once. I object **to** waiting **in** line. I belong **to** this club and participate **in** its events. I listen **to** music **while** working. I look **forward to** meeting you. I apologize **for** being late. I congratulate you **on** your success.",
+    answers: ["with","on","on","for","on","at","to","in","to","in","to","while","forward to","for","on"]
+  },
+  {
+    title: "Nuance: Prepositions with Nouns",
+    passage: "I have a talent **for** music and a passion **for** art. I have respect **for** elders and admiration **for** heroes. I have a reason **for** leaving and an excuse **for** being late. I have a solution **to** the problem and an answer **to** the question. I have access **to** the files and a key **to** the door. I have confidence **in** myself and faith **in** my team.",
+    answers: ["for","for","for","for","for","for","to","to","to","to","in","in"]
+  },
+  {
+    title: "Nuance: Prepositions with Adjectives",
+    passage: "I am angry **with** him **for** lying. I am sorry **for** the delay. I am grateful **to** you **for** helping. I am jealous **of** her success. I am keen **on** learning. India is **famous for** its culture. I am satisfied **with** the result. I am surprised **at** the news. I am shocked **by** the accident. I am worried **about** the exam.",
+    answers: ["with","for","for","to","for","of","on","famous for","with","at","by","about"]
+  },
+  {
+    title: "Nuance: Prepositions in Idioms",
+    passage: "I am **in** trouble and **at** a loss. I did it **by** accident, not **on** purpose. I am **on** time but **in** a hurry. I am **out of** order and **out of** control. I am **under** pressure and **in** charge. I am **on** fire **with** enthusiasm. I am **in** love **with** life. I take pride **in** my work. I keep **in** touch **with** old friends.",
+    answers: ["in","at","by","on","on","in","out of","out of","under","in","on","with","in","with","in","in","with"]
+  },
+  {
+    title: "Final Review: Mixed Prepositions",
+    passage: "I woke up **at** dawn and looked **out of** my window. The sun was rising **above** the horizon. I got **out of** bed and walked **into** the kitchen. I poured coffee **into** a mug and sat **at** the table. I thought **about** my plans **for** the day. I had a meeting **at** 10 AM **in** the city center. I drove **through** traffic and arrived **before** time. **During** the meeting, I took notes **on** my laptop. **After** lunch, I worked **on** a report **until** 5 PM. I went **to** the gym **for** exercise and returned **home** **by** 8. I read a book **before** bed and fell asleep **within** minutes.",
+    answers: ["at","out of","above","out of","into","into","at","about","for","at","in","through","before","During","on","After","on","until","to","for","home","by","before","within"]
+  }
+];
+
+// ============================================================
+// EXPLANATIONS for PDF report
+// ============================================================
+
+const explanations = {
+  "at": "Used for specific times (at 6 AM), specific places (at the door), and precise points (at the top).",
+  "on": "Used for surfaces (on the table), days (on Monday), and specific floors (on the third floor).",
+  "in": "Used for enclosed spaces (in the room), periods (in the morning), and cities/countries (in Chennai).",
+  "to": "Shows direction/movement toward something (go to school), or infinitive marker.",
+  "from": "Shows origin/source (from the fridge, from Delhi).",
+  "with": "Shows accompaniment or instrument (with a pen, with my friend).",
+  "for": "Shows purpose, duration, or recipient (for breakfast, for two hours).",
+  "by": "Shows agent, means, or deadline (by train, by Friday).",
+  "about": "Concerning a topic (talk about, think about).",
+  "of": "Shows possession, relation, or part (top of the page, a cup of tea).",
+  "into": "Movement to the inside (walk into, pour into).",
+  "out of": "Movement from inside to outside (get out of, take out of).",
+  "through": "Movement from one side to the other (through the window, through the tunnel).",
+  "over": "Above and across (over the fence, over the river).",
+  "under": "Below something (under the table, under pressure).",
+  "above": "Higher than (above the horizon, above the stage).",
+  "below": "Lower than (below the line).",
+  "between": "In the middle of two things (between the bank and the bookstore).",
+  "among": "In the middle of three or more things (among the shelves).",
+  "beside": "Next to (beside the window, beside the whiteboard).",
+  "near": "Close to (near the window, near the exit).",
+  "around": "In a circle or nearby (around the playground, around the city).",
+  "along": "Following a line (along the shore, along the path).",
+  "across": "From one side to another (across the bridge, across the pool).",
+  "up": "Toward a higher position (get up, walk up).",
+  "down": "Toward a lower position (run down, sit down).",
+  "off": "Away from a surface (fall off, take off).",
+  "past": "Beyond a point in space or time (walk past, half past).",
+  "toward": "In the direction of (toward the garden, toward the horizon).",
+  "throughout": "In every part of (throughout the morning, throughout the house).",
+  "during": "Within a period of time (during the trip, during the meeting).",
+  "before": "Earlier than (before the game, before time).",
+  "after": "Later than (after the rain, after lunch).",
+  "until": "Up to a point in time (until Sunday, until 5 PM).",
+  "since": "From a specific time until now (since 2020).",
+  "while": "At the same time as (while working).",
+  "within": "Inside a limit (within minutes, within reach).",
+  "because of": "Due to (because of my planning, because of the rain).",
+  "instead of": "In place of (instead of studying).",
+  "in spite of": "Despite (in spite of my calling).",
+  "in front of": "Before, facing (in front of the TV).",
+  "in place of": "Replacing (in place of his colleague).",
+  "on behalf of": "Representing (on behalf of her team).",
+  "by means of": "Using (by means of hard work).",
+  "by way of": "Via, through (by way of the highway).",
+  "ahead of": "Before in time or position (ahead of schedule).",
+  "in addition to": "As well as (in addition to our regular session).",
+  "outside": "Not inside (outside the cafe, outside the window).",
+  "inside": "Within (inside the house).",
+  "beneath": "Directly under (beneath umbrellas).",
+  "behind": "At the back of (behind my house).",
+  "except": "Excluding (except John).",
+  "via": "By way of (via video call, via Hyderabad).",
+  "home": "To one's home (return home).",
+  "back": "To the original place (drive back home).",
+  "upside down": "Inverted position (turned upside down).",
+  "famous for": "Known for (famous for its culture).",
+  "forward to": "Anticipating (look forward to meeting).",
+  "on purpose": "Intentionally (not on purpose).",
+  "in charge": "Responsible (in charge).",
+  "in touch": "In communication (keep in touch).",
+  "in love": "Romantically attached (in love with).",
+  "on fire": "Burning or enthusiastic (on fire with enthusiasm).",
+  "at a loss": "Confused, unsure (at a loss).",
+  "in trouble": "In difficulty (in trouble).",
+  "out of control": "Unmanageable (out of control).",
+  "out of order": "Not working (out of order).",
+  "under pressure": "Stressed (under pressure).",
+  "about": "Concerning (think about, talk about).",
+  "among": "In the middle of three or more (among the shelves).",
+  "along": "Following a line (along the shore).",
+  "after": "Later than (after the rain).",
+  "against": "In opposition to (against the wall).",
+  "as": "In the role of (work as a teacher).",
+  "at": "Specific point (at 6 AM, at the door).",
+  "before": "Earlier than (before the game).",
+  "behind": "At the back of (behind my house).",
+  "below": "Lower than (below the line).",
+  "beneath": "Directly under (beneath umbrellas).",
+  "beside": "Next to (beside the window).",
+  "between": "In the middle of two (between the bank and bookstore).",
+  "beyond": "On the far side (beyond the mountains).",
+  "but": "Except (all but one).",
+  "by": "Agent/means/deadline (by train, by Friday).",
+  "concerning": "About (concerning the matter).",
+  "despite": "In spite of (despite the rain).",
+  "down": "Toward lower (run down).",
+  "during": "Within a period (during the meeting).",
+  "except": "Excluding (except John).",
+  "for": "Purpose/duration (for breakfast, for two hours).",
+  "from": "Origin (from Delhi).",
+  "in": "Enclosed space/period (in the room, in the morning).",
+  "inside": "Within (inside the house).",
+  "into": "To the inside (walk into).",
+  "like": "Similar to (like a dream).",
+  "near": "Close to (near the window).",
+  "of": "Possession/relation (top of the page).",
+  "off": "Away from (fall off).",
+  "on": "Surface/day/floor (on the table, on Monday).",
+  "onto": "To a surface (jump onto).",
+  "opposite": "Facing (opposite the bank).",
+  "out": "Away from inside (go out).",
+  "outside": "Not inside (outside the cafe).",
+  "over": "Above/across (over the fence).",
+  "past": "Beyond (walk past).",
+  "regarding": "About (regarding your request).",
+  "round": "Around (round the corner).",
+  "since": "From a time until now (since 2020).",
+  "through": "From side to side (through the tunnel).",
+  "throughout": "In every part (throughout the house).",
+  "till": "Until (till tomorrow).",
+  "to": "Direction/infinitive (go to school).",
+  "toward": "In the direction of (toward the garden).",
+  "under": "Below (under the table).",
+  "underneath": "Directly below (underneath the rug).",
+  "until": "Up to a time (until Sunday).",
+  "up": "Toward higher (get up).",
+  "upon": "On (once upon a time).",
+  "via": "By way of (via Hyderabad).",
+  "with": "Accompaniment/instrument (with a pen).",
+  "within": "Inside a limit (within minutes).",
+  "without": "Lacking (without help)."
+};
+
+// ============================================================
+// STATE VARIABLES
+// ============================================================
+
+let quizData = [];
+let current = 0;
+let wrongQuestions = [];
+let correctCount = 0;
+let totalWrongGuesses = 0;
+let gemsCount = 0;
+let startTime;
+let timerInterval;
+let playerName = "";
+let playerDept = "";
+let selectedOption = null;
+let totalQuestionsInQuiz = 0;
+
+const blanksPerPage = 5;
+const currentQuestID = "Preposition Quest 001";
+
+// ============================================================
+// DOM ELEMENTS
+// ============================================================
+
+const quizContainer   = document.getElementById("quizContainer");
+const dragOptionsEl   = document.getElementById("dragOptions");
+const dropContainerEl = document.getElementById("dropContainer");
+const timerEl         = document.getElementById("timer");
+const gemsCounterEl   = document.getElementById("gemsCounter");
+const progressTracker = document.getElementById("progressTracker");
+const scoreCard       = document.getElementById("scoreCard");
+const restartBtn      = document.getElementById("restartBtn");
+const nextPageBtn     = document.getElementById("nextPageBtn");
+const quizContentEl   = document.getElementById("quizContent");
+const nameFormEl      = document.getElementById("nameForm");
+const nameInputEl     = document.getElementById("nameInput");
+const deptSelectEl    = document.getElementById("departmentSelect");
+const topStripEl      = document.getElementById("topStrip");
+
+// ============================================================
+// HELPER: Split passages into pages of 5 blanks each
+// ============================================================
+
+function buildQuizPages() {
+  const pages = [];
+  quizDataStore.forEach((passage, pIdx) => {
+    const totalBlanks = passage.answers.length;
+    const totalPages = Math.ceil(totalBlanks / blanksPerPage);
+    for (let i = 0; i < totalPages; i++) {
+      const start = i * blanksPerPage;
+      const end = Math.min(start + blanksPerPage, totalBlanks);
+      pages.push({
+        passageIndex: pIdx,
+        pageIndex: i,
+        totalPages: totalPages,
+        title: passage.title,
+        passage: passage.passage,
+        answers: passage.answers,
+        start: start,
+        end: end,
+        pageId: `p${pIdx}-pg${i}`
+      });
+    }
+  });
+  return pages;
+}
+
+// ============================================================
+// LAYOUT HELPERS
+// ============================================================
+
+function adjustForTopStrip() {
+  const h = topStripEl ? topStripEl.offsetHeight : 0;
+  dropContainerEl.style.marginTop = h + "px";
+  dropContainerEl.style.maxHeight = `calc(100vh - ${h}px - 2rem)`;
+}
+
+function autoFillFromStorage() {
+  try {
+    const storedName = localStorage.getItem('playerName');
+    const storedDept = localStorage.getItem('playerDept');
+    if (storedName) nameInputEl.value = storedName;
+    if (storedDept) deptSelectEl.value = storedDept;
+  } catch (e) { console.log('localStorage unavailable'); }
+}
+
+// ============================================================
+// QUIZ FLOW
+// ============================================================
+
+function beginQuiz() {
+  if (!nameInputEl.value.trim()) { nameInputEl.style.borderColor = "red"; return; }
+  if (!deptSelectEl.value) { deptSelectEl.style.borderColor = "red"; return; }
+  nameInputEl.style.borderColor = "#c2a677";
+  deptSelectEl.style.borderColor = "#c2a677";
+
+  playerName = nameInputEl.value.trim();
+  playerDept = deptSelectEl.value;
+  try {
+    localStorage.setItem('playerName', playerName);
+    localStorage.setItem('playerDept', playerDept);
+  } catch (e) {}
+
+  document.getElementById("quizTitle").style.display = "none";
+  nameFormEl.style.display = "none";
+  quizContentEl.style.display = "block";
+  startQuiz();
+}
+window.beginQuiz = beginQuiz;
+
+function startQuiz() {
+  quizData = buildQuizPages();
+  wrongQuestions = [];
+  current = 0;
+  correctCount = 0;
+  totalWrongGuesses = 0;
+  gemsCount = 0;
+  startTime = Date.now();
+  totalQuestionsInQuiz = quizData.length;
+
+  timerEl.innerText = `📚 `;
+  gemsCounterEl.innerText = `💎 0`;
+  scoreCard.innerHTML = "";
+  restartBtn.style.display = "none";
+  nextPageBtn.style.display = "none";
+
+  loadQuestion();
+  startTimer();
+}
+
+function updateProgress() {
+  const currentQuestionNumber = current + 1;
+  if (quizData[current]) {
+    progressTracker.innerText = `📍 ${currentQuestionNumber} / ${totalQuestionsInQuiz}`;
+  } else if (current > 0) {
+    progressTracker.innerText = "Done!";
+  } else {
+    progressTracker.innerText = `📍 1 / ${totalQuestionsInQuiz}`;
+  }
+}
+
+// ============================================================
+// RENDER QUESTION
+// ============================================================
+
+function loadQuestion() {
+  if (current >= quizData.length) {
+    return showScore();
+  }
+
+  selectedOption = null;
+  const d = quizData[current];
+
+  updateProgress();
+  dragOptionsEl.innerHTML = "";
+  dropContainerEl.innerHTML = "";
+  nextPageBtn.style.display = "none";
+
+  // Show passage title
+  const titleEl = document.createElement("div");
+  titleEl.className = "passage-title";
+  titleEl.innerText = `${d.title} — Page ${d.pageIndex + 1}/${d.totalPages}`;
+  dropContainerEl.appendChild(titleEl);
+
+  // Slice answers for this page
+  const pageAnswers = d.answers.slice(d.start, d.end);
+  const shuffled = [...pageAnswers].sort(() => Math.random() - 0.5);
+
+  shuffled.forEach(ans => {
+    const div = document.createElement("div");
+    div.classList.add("drag-item");
+    div.innerText = ans;
+    div.onclick = () => selectOption(div);
+    dragOptionsEl.appendChild(div);
+  });
+
+  // Build the passage with blanks for this page only
+  const fullText = d.passage;
+  const allMatches = [];
+  const regex = /\*\*([^*]+)\*\*/g;
+  let match;
+  while ((match = regex.exec(fullText)) !== null) {
+    allMatches.push(match[1]);
+  }
+
+  const parts = fullText.split(/\*\*[^*]+\*\*/);
+  let blankIdx = 0;
+  let globalBlankIdx = 0;
+
+  for (let i = 0; i < parts.length; i++) {
+    if (parts[i]) {
+      dropContainerEl.appendChild(document.createTextNode(parts[i]));
+    }
+    if (blankIdx < allMatches.length) {
+      const isInPage = (globalBlankIdx >= d.start && globalBlankIdx < d.end);
+      if (isInPage) {
+        const b = document.createElement("button");
+        b.classList.add("drop-zone");
+        b.innerText = "___";
+        b.dataset.answer = allMatches[blankIdx];
+        b.dataset.blankIdx = globalBlankIdx;
+        b.onclick = () => placeOption(b);
+        dropContainerEl.appendChild(b);
+      } else {
+        const span = document.createElement("span");
+        span.style.fontWeight = "bold";
+        span.style.color = "#888";
+        span.innerText = allMatches[blankIdx];
+        dropContainerEl.appendChild(span);
+      }
+      blankIdx++;
+      globalBlankIdx++;
+    }
+  }
+
+  adjustForTopStrip();
+}
+
+function selectOption(div) {
+  if (div.classList.contains("used")) return;
+  if (selectedOption) selectedOption.classList.remove("selected");
+  selectedOption = div;
+  div.classList.add("selected");
+}
+
+function placeOption(dz) {
+  if (!selectedOption || dz.classList.contains("filled")) return;
+
+  const ans = selectedOption.innerText;
+  const correct = dz.dataset.answer;
+
+  if (ans === correct) {
+    correctCount++;
+    gemsCount++;
+    gemsCounterEl.innerText = `💎 ${gemsCount}`;
+
+    createSparkleEffect(dz);
+    gemsCounterEl.classList.add('gem-counter-pulse');
+    setTimeout(() => gemsCounterEl.classList.remove('gem-counter-pulse'), 400);
+
+    dz.innerText = ans;
+    dz.classList.add("correct", "filled");
+    dz.disabled = true;
+    selectedOption.classList.add("used");
+  } else {
+    totalWrongGuesses++;
+    gemsCount--;
+    gemsCounterEl.innerText = `💎 ${gemsCount}`;
+    dz.classList.add("wrong");
+    setTimeout(() => dz.classList.remove("wrong"), 600);
+
+    const currentData = quizData[current];
+    if (!wrongQuestions.some(w => w.pageId === currentData.pageId)) {
+      wrongQuestions.push(currentData);
+      totalQuestionsInQuiz++;
+      updateProgress();
+    }
+  }
+
+  if (selectedOption) {
+    selectedOption.classList.remove("selected");
+    selectedOption = null;
+  }
+
+  if (!dropContainerEl.querySelector(".drop-zone:not(.filled)")) {
+    nextPageBtn.style.display = "block";
+  }
+}
+
+function createSparkleEffect(element) {
+  const rect = element.getBoundingClientRect();
+  const containerRect = quizContainer.getBoundingClientRect();
+  for (let i = 0; i < 8; i++) {
+    const spark = document.createElement('div');
+    spark.className = 'gem-spark';
+    spark.innerText = ['💎', '✨', '⭐'][Math.floor(Math.random() * 3)];
+    spark.style.left = `${rect.left - containerRect.left + rect.width / 2}px`;
+    spark.style.top  = `${rect.top  - containerRect.top  + rect.height / 2}px`;
+    spark.style.setProperty('--random-x', `${(Math.random() - 0.5) * 100}px`);
+    quizContainer.appendChild(spark);
+    setTimeout(() => spark.remove(), 1000);
+  }
+}
+
+// ============================================================
+// SCORE & PDF
+// ============================================================
+
+async function showScore() {
+  clearInterval(timerInterval);
+  const totalTime = Math.floor((Date.now() - startTime) / 1000);
+
+  dragOptionsEl.innerHTML = "";
+  dropContainerEl.innerHTML = "<h2 style='text-align:center;'>🎉 Preposition Quest Completed!</h2>";
+  progressTracker.innerText = "Done!";
+  nextPageBtn.style.display = "none";
+
+  const successMessage = (totalWrongGuesses === 0)
+    ? "<p>✅ Flawless! All prepositions mastered on the first attempt!</p>"
+    : `<p>✅ Correct Answers (total): ${correctCount}</p>
+       <p>❌ Wrong Attempts (total): ${totalWrongGuesses}</p>`;
+
+  scoreCard.innerHTML = `
+    <p>👤 Player: <strong>${playerName}</strong> (${playerDept})</p>
+    ${successMessage}
+    <p>💎 Final Gems: ${gemsCount}</p>
+    <p>⏱️ Time Taken: ${totalTime} seconds</p>
+    <button onclick="downloadPDFReport()" style="margin-top: 1rem; padding: 0.7rem 2rem; background-color: #4CAF50; border: none; border-radius: 10px; cursor: pointer; color: white; font-size: 1rem;">📥 Download PDF Report with Explanations</button>
+  `;
+  restartBtn.style.display = "block";
+
+  try {
+    const { error } = await supabase.from('Quests').insert([{
+      student_name: playerName,
+      department: playerDept,
+      correct: correctCount,
+      wrong: totalWrongGuesses,
+      time_spent: totalTime,
+      quest_id: currentQuestID
+    }]);
+    if (error) console.error('Supabase error:', error);
+    else console.log('✅ Saved to Supabase');
+  } catch (err) {
+    console.error('Supabase insert error:', err);
+  }
+}
+
+function startTimer() {
+  clearInterval(timerInterval);
+  timerInterval = setInterval(() => {
+    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+    timerEl.innerText = `⏳ ${elapsed}s`;
+  }, 1000);
+}
+
+// ============================================================
+// PDF REPORT WITH EXPLANATIONS
+// ============================================================
+
+function downloadPDFReport() {
+  if (!window.jspdf || !window.jspdf.jsPDF) {
+    alert("PDF library not loaded yet. Please try again.");
+    return;
+  }
+  const doc = new window.jspdf.jsPDF({ unit: "mm", format: "a4" });
+  if (typeof doc.autoTable !== "function") {
+    alert("AutoTable plugin not loaded.");
+    return;
+  }
+
+  const pageHeight = doc.internal.pageSize.height;
+  const marginLeft = 20;
+  const usableWidth = 170;
+  const topMargin = 20;
+  const bottomSafeMargin = 30;
+  const totalTime = Math.floor((Date.now() - startTime) / 1000);
+  const reportDate = new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
+
+  // Header
+  doc.setFillColor(25, 25, 60);
+  doc.rect(0, 0, 210, 45, "F");
+  doc.setTextColor(255, 255, 255);
+  doc.setFont("times", "bold");
+  doc.setFontSize(18);
+  doc.text("SRM VALLIAMMAI ENGINEERING COLLEGE", 105, 16, { align: "center" });
+  doc.setFontSize(12);
+  doc.setFont("times", "italic");
+  doc.text("(Autonomous)", 105, 23, { align: "center" });
+  doc.setFontSize(15);
+  doc.setFont("times", "normal");
+  doc.text("Department of English", 105, 31, { align: "center" });
+  doc.setFontSize(14);
+  doc.setFont("times", "bold");
+  doc.setTextColor(212, 175, 55);
+  doc.text(`${currentQuestID} — Performance Report`, 105, 39, { align: "center" });
+
+  // Student Info
+  doc.setTextColor(0, 0, 0);
+  doc.setFontSize(11);
+  doc.text("CANDIDATE INFORMATION", marginLeft, 55);
+  doc.autoTable({
+    startY: 58,
+    body: [
+      ["Student Name", playerName],
+      ["Department", playerDept],
+      ["Quest ID", currentQuestID],
+      ["Completed On", reportDate],
+    ],
+    theme: "plain",
+    styles: { fontSize: 10, font: "times", cellPadding: 3 },
+    columnStyles: {
+      0: { fontStyle: "bold", cellWidth: 60, textColor: [70, 70, 70] },
+      1: { cellWidth: 120 },
+    },
+    margin: { left: marginLeft, right: marginLeft },
+  });
+
+  // Performance Summary
+  let y = doc.lastAutoTable.finalY + 10;
+  if (y > pageHeight - bottomSafeMargin) { doc.addPage(); y = topMargin; }
+
+  doc.setFont("times", "bold");
+  doc.setFontSize(11);
+  doc.text("PERFORMANCE SUMMARY", marginLeft, y);
+  y += 6;
+
+  doc.autoTable({
+    startY: y,
+    body: [
+      ["Total Question Pages", quizData.length.toString()],
+      ["Correct Answers (Total)", correctCount.toString()],
+      ["Wrong Attempts (Total)", totalWrongGuesses.toString()],
+      ["Final Gems Earned", gemsCount.toString()],
+      ["Total Time", `${Math.floor(totalTime / 60)}m ${totalTime % 60}s`],
+    ],
+    theme: "grid",
+    styles: { fontSize: 10, font: "times", cellPadding: 3 },
+    margin: { left: marginLeft, right: marginLeft },
+  });
+
+  y = doc.lastAutoTable.finalY + 12;
+
+  // Preposition Explanations
+  if (y > pageHeight - bottomSafeMargin) { doc.addPage(); y = topMargin; }
+  doc.setFont("times", "bold");
+  doc.setFontSize(11);
+  doc.text("PREPOSITION REFERENCE GUIDE", marginLeft, y);
+  y += 8;
+
+  const uniquePreps = new Set();
+  quizDataStore.forEach(p => p.answers.forEach(a => uniquePreps.add(a)));
+
+  doc.setFont("times", "normal");
+  doc.setFontSize(9);
+  doc.setLineHeightFactor(1.3);
+
+  const sortedPreps = Array.from(uniquePreps).sort();
+  sortedPreps.forEach(prep => {
+    const exp = explanations[prep] || `Usage of "${prep}" in context.`;
+    const line = `• ${prep}: ${exp}`;
+    const lines = doc.splitTextToSize(line, usableWidth);
+    const lineHeight = doc.getFontSize() * 1.3;
+    const blockHeight = lines.length * lineHeight + 2;
+
+    if (y + blockHeight > pageHeight - bottomSafeMargin) {
+      doc.addPage();
+      y = topMargin;
+    }
+
+    doc.text(lines, marginLeft, y);
+    y += lines.length * lineHeight + 2;
+  });
+
+  y += 8;
+
+  // Question Bank with Answers
+  if (y > pageHeight - bottomSafeMargin) { doc.addPage(); y = topMargin; }
+  doc.setFont("times", "bold");
+  doc.setFontSize(11);
+  doc.text("QUESTION BANK WITH CORRECT ANSWERS", marginLeft, y);
+  y += 8;
+
+  quizDataStore.forEach((item, i) => {
+    let fullPassage = item.passage;
+    item.answers.forEach(ans => {
+      fullPassage = fullPassage.replace("**" + ans + "**", ` [${ans}] `);
+    });
+
+    doc.setFont("times", "normal");
+    doc.setFontSize(9);
+    doc.setLineHeightFactor(1.15);
+
+    const lines = doc.splitTextToSize(fullPassage, usableWidth);
+    const lineHeight = doc.getFontSize() * 1.15;
+    const blockHeight = lines.length * lineHeight + 10;
+
+    if (y + blockHeight > pageHeight - bottomSafeMargin) {
+      doc.addPage();
+      y = topMargin;
+    }
+
+    doc.setFont("times", "bold");
+    doc.setTextColor(25, 25, 60);
+    doc.text(`Passage ${i + 1}: ${item.title}`, marginLeft, y);
+    y += 6;
+
+    doc.setFont("times", "normal");
+    doc.setTextColor(0, 0, 0);
+    doc.text(lines, marginLeft + 5, y, { align: "left" });
+    y += lines.length * lineHeight + 5;
+
+    doc.setDrawColor(230, 230, 230);
+    doc.setLineWidth(0.3);
+    doc.line(marginLeft, y, 190, y);
+    y += 6;
+  });
+
+  // Footer
+  const totalPages = doc.getNumberOfPages();
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i);
+    doc.setFontSize(8);
+    doc.setTextColor(128, 128, 128);
+    doc.setFont("times", "italic");
+    doc.text(`Page ${i} of ${totalPages}`, 105, pageHeight - 10, { align: "center" });
+  }
+
+  const cleanName = playerName.replace(/[^a-zA-Z0-9]/g, "_");
+  const cleanQuest = currentQuestID.replace(/[^a-zA-Z0-9]/g, "_");
+  doc.save(`${cleanName}_${cleanQuest}_Report.pdf`);
+}
+
+// ============================================================
+// EVENT LISTENERS
+// ============================================================
+
+window.addEventListener('DOMContentLoaded', autoFillFromStorage);
+window.addEventListener('resize', adjustForTopStrip);
+
+restartBtn.onclick = () => {
+  quizContentEl.style.display = "none";
+  nameFormEl.style.display = "block";
+  nameInputEl.value = "";
+  deptSelectEl.value = "";
+  try {
+    localStorage.removeItem('playerName');
+    localStorage.removeItem('playerDept');
+  } catch(e) {}
+  nextPageBtn.style.display = "none";
+  document.getElementById("quizTitle").style.display = "block";
+};
+
+nextPageBtn.onclick = () => {
+  current++;
+  if (current >= quizData.length && wrongQuestions.length > 0) {
+    quizData.push(...wrongQuestions);
+    wrongQuestions = [];
+  }
+  loadQuestion();
+};
+
+</script>
+
+<script>
+document.addEventListener("click", function (e) {
+  const target = e.target.closest("a");
+  if (!target) return;
+  const url = target.href;
+  const internalDomains = [
+    window.location.origin,
+    "andrewveda.github.io",
+    "sites.google.com/view/cys-english/",
+    "sites.google.com/view/srm-vec-english/"
+  ];
+  const isInternal = internalDomains.some(domain => url.includes(domain));
+  if (isInternal) {
+    if (window.matchMedia("(display-mode: standalone)").matches ||
+        window.matchMedia("(display-mode: fullscreen)").matches) {
+      e.preventDefault();
+      window.location.href = url;
+    }
+  } else {
+    target.setAttribute("target", "_blank");
+  }
+});
+</script>
+</body>
+</html>

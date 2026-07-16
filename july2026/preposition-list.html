@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>P for Prepositions</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=EB+Garamond:ital,wght@0,400;0,600;1,400&family=Fredoka+One&display=swap" rel="stylesheet">
+<style>
+:root {
+  --gold: #c9a84c; --gold-light: #e8c97a; --gold-dim: rgba(201,168,76,0.12);
+  --deep: #faf7f2; --surface: #fff; --text: #2a2a2a;
+  --text-muted: #7a766f; --text-dim: #b0a99f; --border-dim: rgba(0,0,0,0.06);
+  --green: #2d7a4f; --green-light: #3da367; --ui-accent: #6c63ff;
+  --teal: #1a9d8d; --teal-light: #22b5a4; --lime: #8dc63f;
+  --streak: #ff6b35;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'EB Garamond', serif; background: var(--deep); color: var(--text); display: flex; justify-content: center; min-height: 100vh; padding: 16px 16px 80px; }
+
+/* ── NAME SCREEN ── */
+#name-screen { width:100%; max-width:520px; margin:auto; background:linear-gradient(160deg,#1a1a2e,#0a0a18); border-radius:20px; padding:30px 24px; border:2px solid rgba(108,99,255,0.4); box-shadow:0 0 40px rgba(108,99,255,0.2); color:white; text-align:center; display:flex; flex-direction:column; align-items:center; }
+#name-screen h1 { font-family:'Playfair Display',serif; font-size:2rem; color:var(--gold); margin-bottom:6px; }
+#name-screen .sub { font-style:italic; color:rgba(255,255,255,0.5); font-size:.9rem; margin-bottom:24px; }
+.hero-quote { background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:14px; padding:20px; margin-bottom:24px; width:100%; }
+.hero-text { font-family:'Playfair Display',serif; font-size:1.1rem; line-height:1.6; color:#ffe082; text-shadow:0 0 20px rgba(255,224,130,0.4); font-style:italic; }
+.hero-author { margin-top:10px; font-size:.82rem; color:rgba(255,255,255,0.45); font-style:italic; }
+#name-screen select, #name-screen input { display:block; width:100%; max-width:320px; margin:8px auto; padding:12px 16px; font-size:1rem; font-family:'EB Garamond',serif; border-radius:10px; border:2px solid rgba(108,99,255,0.4); background:rgba(255,255,255,0.08); color:white; outline:none; transition:border .2s; }
+#name-screen select option { background:#1a1a2e; }
+#name-screen input::placeholder { color:rgba(255,255,255,0.4); }
+#name-screen select:focus, #name-screen input:focus { border-color:var(--ui-accent); }
+#start-btn { margin-top:18px; padding:14px 40px; font-family:'Playfair Display',serif; font-size:1.2rem; letter-spacing:1px; border:none; border-radius:14px; background:linear-gradient(135deg,var(--gold),var(--gold-light)); color:#2a1a00; cursor:pointer; box-shadow:0 6px 20px rgba(201,168,76,0.5); transition:transform .2s,box-shadow .2s; font-weight:700; }
+#start-btn:hover { transform:scale(1.05); box-shadow:0 8px 30px rgba(201,168,76,0.7); }
+
+/* ── MAIN APP ── */
+.dictionary-container { width:100%; max-width:520px; margin:auto; padding:28px 24px; background:linear-gradient(145deg,#fff,#f8f2e8); border-radius:14px; border:1px solid var(--border-dim); box-shadow:0 12px 35px rgba(0,0,0,0.06); display:none; }
+.subheading { text-align:center; font-size:.88em; color:var(--text-muted); margin-bottom:4px; font-style:italic; }
+.student-tag { text-align:center; font-size:.82em; color:var(--gold); margin-bottom:18px; font-style:italic; opacity:.85; }
+
+/* ── CATEGORY HEADERS ── */
+.category-block-title { font-family: 'Playfair Display', serif; font-size: 1.45em; color: var(--text); border-bottom: 2px solid var(--gold-light); padding-bottom: 4px; margin: 24px 0 14px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+.category-block-title span { font-size: 0.85em; opacity: 0.8; }
+
+/* ── REVEAL HINT BANNER ── */
+.reveal-hint { display: flex; align-items: center; justify-content: center; gap: 8px; background: linear-gradient(135deg, rgba(108,99,255,0.1), rgba(201,168,76,0.1)); border: 1.5px dashed rgba(108,99,255,0.3); border-radius: 12px; padding: 10px 16px; margin-bottom: 16px; font-size: .88em; color: var(--ui-accent); font-style: italic; animation: hint-pulse 2.5s ease-in-out infinite; }
+@keyframes hint-pulse { 0%,100% { opacity:.8; } 50% { opacity:1; } }
+.reveal-hint-icon { font-size:1.1em; animation: tap-bounce 1.5s ease-in-out infinite; }
+@keyframes tap-bounce { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-3px); } }
+
+/* ── REVEAL COUNTER ── */
+.reveal-counter { text-align: center; font-size: .82em; color: var(--text-muted); font-style: italic; margin-bottom: 16px; letter-spacing:.02em; transition: color .3s; }
+.reveal-counter.all-done { color: var(--green); font-weight: 600; }
+
+/* ── REVEAL CARD ── */
+.word-cards-grid { display: flex; flex-direction: column; gap: 14px; margin-bottom: 10px; }
+.word-card { position: relative; border-radius: 14px; overflow: hidden; cursor: pointer; min-height: 100px; box-shadow: 0 4px 18px rgba(0,0,0,0.07); transition: transform .15s, box-shadow .2s; -webkit-tap-highlight-color: transparent; }
+.word-card:hover:not(.revealed) { transform: translateY(-2px) scale(1.01); box-shadow: 0 8px 28px rgba(201,168,76,0.25); }
+.word-card.revealed { cursor: default; }
+.word-card.revealed:hover { transform: none; box-shadow: 0 4px 18px rgba(0,0,0,0.07); }
+
+.word-card-cover { position: absolute; inset: 0; z-index: 2; background: linear-gradient(135deg, #1a1a2e 0%, #2a1f4e 50%, #1a2e2a 100%); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; border-radius: 14px; transition: opacity .05s, transform .5s cubic-bezier(0.4, 0, 0.2, 1); transform-origin: top center; backface-visibility: hidden; }
+.cover-shimmer { position: absolute; inset: 0; border-radius: 14px; overflow: hidden; }
+.cover-shimmer::after { content: ''; position: absolute; top: 0; left: -100%; width: 60%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent); animation: shimmer-slide 2.2s ease-in-out infinite; }
+@keyframes shimmer-slide { 0% { left: -100%; } 100% { left: 160%; } }
+.cover-sentence { font-family: 'Playfair Display', serif; font-size: 1.02em; color: #f4ecff; text-align: center; line-height: 1.55; padding: 0 20px; max-width: 100%; }
+.cover-sentence .blank { color: var(--gold-light); font-weight: 800; border-bottom: 2px dashed rgba(232,201,122,0.6); padding: 0 3px; }
+.category-tag { display: inline-block; font-size: .7em; text-transform: uppercase; letter-spacing: .05em; color: var(--teal); background: rgba(26,157,141,0.1); padding: 2px 9px; border-radius: 20px; margin: 3px 0 6px; font-family: 'EB Garamond', serif; }
+.filled-prep { color: #8a5a00; background: rgba(201,168,76,0.18); padding: 1px 7px; border-radius: 6px; font-weight: 700; }
+.cover-tap-label { font-family: 'EB Garamond', serif; font-size: .82em; font-style: italic; color: rgba(255,255,255,0.45); display: flex; align-items: center; gap: 5px; }
+.cover-tap-icon { font-size: 1em; animation: tap-bounce 1.5s ease-in-out infinite; }
+.cover-stars { position: absolute; top: 8px; right: 12px; font-size: .75em; opacity: .3; letter-spacing: 2px; }
+
+.word-card-cover.unveiling { animation: card-unveil 0.52s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+@keyframes card-unveil { 0% { transform: scaleY(1); opacity: 1; } 60% { transform: scaleY(0.1); opacity: 0.5; } 100% { transform: scaleY(0); opacity: 0; pointer-events: none; } }
+
+.particle { position: absolute; width: 7px; height: 7px; border-radius: 50%; pointer-events: none; z-index: 10; animation: particle-burst 0.6s ease-out forwards; }
+@keyframes particle-burst { 0% { transform: translate(0,0) scale(1); opacity: 1; } 100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; } }
+
+.word-card-content { position: relative; z-index: 1; padding: 16px 18px; background: linear-gradient(145deg, #fff, #f8f2e8); border: 1px solid var(--border-dim); border-radius: 14px; opacity: 0; transition: opacity .3s ease .2s; display: flex; gap: 12px; align-items: flex-start; }
+.word-card.revealed .word-card-content { opacity: 1; }
+
+.auto-check { flex-shrink: 0; margin-top: 4px; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: .8em; color: white; background: linear-gradient(135deg, var(--green), var(--green-light)); box-shadow: 0 2px 8px rgba(45,122,79,0.35); transform: scale(0); transition: transform .4s cubic-bezier(0.34,1.56,0.64,1) .35s; }
+.word-card.revealed .auto-check { transform: scale(1); }
+
+.entry-body { flex:1; }
+.word-row { display:flex; align-items:center; gap:8px; }
+.word { font-weight:bold; font-size:1.2em; color:var(--gold); font-family:'Playfair Display',serif; }
+.speak-btn { background:none; border:none; cursor:pointer; font-size:1em; opacity:.6; transition:opacity .2s,transform .15s; padding:2px 4px; border-radius:6px; }
+.speak-btn:hover { opacity:1; transform:scale(1.2); }
+.speak-btn.speaking { opacity:1; animation:pulse-icon .6s ease-in-out infinite; }
+.meaning { margin-top:5px; line-height:1.55; font-size:.97em; }
+
+/* ── MASTER CHECK BUTTON ── */
+.master-check-wrap { display:none; justify-content:center; margin:14px 0 4px; animation:master-appear 0.5s cubic-bezier(0.34,1.56,0.64,1); }
+@keyframes master-appear { from{opacity:0;transform:scale(0.7) translateY(8px);} to{opacity:1;transform:scale(1) translateY(0);} }
+.master-check-btn { display:inline-flex; align-items:center; gap:7px; padding:8px 20px; border:none; border-radius:30px; background:linear-gradient(135deg,var(--green),var(--green-light)); color:white; font-family:'EB Garamond',serif; font-size:.88rem; font-style:italic; font-weight:600; letter-spacing:.02em; cursor:pointer; box-shadow:0 3px 12px rgba(45,122,79,0.35); transition:transform .2s,box-shadow .2s; }
+.master-check-btn:hover { transform:scale(1.05); box-shadow:0 5px 18px rgba(45,122,79,0.5); }
+.master-check-btn .mc-icon { font-size:1em; animation:star-spin 1.8s ease-in-out infinite; }
+@keyframes star-spin { 0%,100%{transform:rotate(0deg) scale(1);} 50%{transform:rotate(15deg) scale(1.2);} }
+.master-check-btn.mastered { background:linear-gradient(135deg,#b8860b,var(--gold-light)); box-shadow:0 3px 14px rgba(201,168,76,0.5); cursor:default; pointer-events:none; }
+.master-check-btn.mastered .mc-icon { animation:none; }
+
+/* ── QUIZ BUTTON ── */
+.quiz-launch-wrap { margin:18px 0 0; }
+.quiz-launch-btn { display:flex; align-items:center; justify-content:center; gap:10px; width:100%; padding:15px; border:none; border-radius:12px; background:linear-gradient(135deg,#6c63ff,#4a43cc); color:white; font-family:'Playfair Display',serif; font-size:1.1rem; font-weight:700; cursor:pointer; box-shadow:0 6px 20px rgba(108,99,255,0.35); transition:all .25s; opacity:.45; pointer-events:none; }
+.quiz-launch-btn.ready { opacity:1; pointer-events:all; animation:quiz-pulse 2s ease-in-out infinite; }
+@keyframes quiz-pulse { 0%,100%{box-shadow:0 6px 20px rgba(108,99,255,0.35);} 50%{box-shadow:0 8px 28px rgba(108,99,255,0.6);} }
+.quiz-launch-btn.ready:hover { transform:translateY(-2px); }
+.quiz-launch-hint { text-align:center; font-size:.8em; color:var(--text-muted); font-style:italic; margin-top:6px; }
+
+/* ── QUIZ MODAL ── */
+#quiz-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); backdrop-filter:blur(4px); z-index:10000; align-items:center; justify-content:center; padding:16px; }
+#quiz-modal.open { display:flex; }
+.quiz-box { background:linear-gradient(145deg,#fff,#f8f2e8); border-radius:20px; padding:28px 24px; width:100%; max-width:500px; box-shadow:0 20px 60px rgba(0,0,0,0.25); position:relative; max-height:90vh; overflow-y:auto; }
+.quiz-close { position:absolute; top:14px; right:16px; background:none; border:none; font-size:1.4em; cursor:pointer; color:var(--text-muted); transition:color .2s; }
+.quiz-close:hover { color:var(--text); }
+.quiz-progress-wrap { height:5px; background:var(--border-dim); border-radius:5px; margin-bottom:20px; overflow:hidden; }
+.quiz-progress-fill { height:100%; background:linear-gradient(90deg,var(--ui-accent),#a78bfa); border-radius:5px; transition:width .4s ease; }
+.quiz-type-badge { display:inline-block; font-size:.72em; padding:3px 10px; border-radius:20px; font-style:italic; margin-bottom:12px; font-family:'EB Garamond',serif; }
+.badge-flashcard { background:rgba(108,99,255,0.12); color:var(--ui-accent); }
+.badge-mcq { background:rgba(201,168,76,0.15); color:#8a6a00; }
+.badge-fillin { background:rgba(45,122,79,0.12); color:var(--green); }
+.quiz-q-num { font-size:.8em; color:var(--text-muted); margin-bottom:6px; }
+.quiz-sentence-display { font-family:'Playfair Display',serif; font-size:1.22em; font-weight:600; color:var(--text); text-align:center; line-height:1.55; margin:14px 0 6px; padding:0 4px; }
+.quiz-sentence-display .blank { color:var(--gold); font-weight:800; border-bottom:2px dashed rgba(201,168,76,0.6); padding:0 4px; }
+.quiz-category-pill { display:block; text-align:center; font-size:.78em; color:var(--teal); text-transform:uppercase; letter-spacing:.05em; margin-bottom:16px; font-family:'EB Garamond',serif; font-style:italic; }
+.flashcard-back .filled-prep { background:rgba(255,255,255,0.25); color:#fff; }
+.quiz-speak-btn { display:block; margin:0 auto 16px; background:rgba(201,168,76,0.1); border:1px solid rgba(201,168,76,0.3); border-radius:8px; padding:6px 16px; cursor:pointer; font-size:.9em; color:var(--gold); font-family:'EB Garamond',serif; transition:all .2s; }
+.quiz-speak-btn:hover { background:rgba(201,168,76,0.2); }
+.flashcard-wrap { perspective:800px; cursor:pointer; margin-bottom:16px; }
+.flashcard { width:100%; min-height:140px; border-radius:14px; transform-style:preserve-3d; transition:transform .5s; position:relative; }
+.flashcard.flipped { transform:rotateY(180deg); }
+.flashcard-front, .flashcard-back { position:absolute; inset:0; border-radius:14px; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px; backface-visibility:hidden; }
+.flashcard-front { background:linear-gradient(135deg,var(--ui-accent),#4a43cc); color:white; }
+.flashcard-back { background:linear-gradient(135deg,var(--green),var(--green-light)); color:white; transform:rotateY(180deg); }
+.flashcard-hint { font-size:.75em; opacity:.7; margin-top:8px; font-style:italic; }
+.flashcard-meaning { font-size:1em; line-height:1.5; text-align:center; }
+.flashcard-nav { display:flex; gap:10px; margin-top:10px; }
+.fc-btn { flex:1; padding:10px; border:none; border-radius:10px; cursor:pointer; font-family:'EB Garamond',serif; font-size:.95em; font-weight:600; transition:all .2s; }
+.fc-knew { background:linear-gradient(135deg,var(--green),var(--green-light)); color:white; }
+.fc-unknown { background:rgba(0,0,0,0.08); color:var(--text-muted); }
+.mcq-choices { display:flex; flex-direction:column; gap:10px; margin-bottom:10px; }
+.mcq-choice { padding:12px 16px; border-radius:10px; border:2px solid var(--border-dim); background:white; cursor:pointer; font-family:'EB Garamond',serif; font-size:1em; line-height:1.4; transition:all .2s; text-align:left; }
+.mcq-choice:hover:not(:disabled) { border-color:var(--ui-accent); background:rgba(108,99,255,0.05); }
+.mcq-choice.correct { border-color:var(--green); background:rgba(45,122,79,0.1); color:var(--green); pointer-events:none; }
+.mcq-choice.wrong { border-color:#e53935; background:rgba(229,57,53,0.07); color:#c62828; pointer-events:none; }
+.mcq-choice.reveal { border-color:var(--green); background:rgba(45,122,79,0.06); pointer-events:none; }
+.fillin-wrap { display:flex; flex-direction:column; gap:10px; margin-bottom:10px; }
+.fillin-input { width:100%; padding:12px 16px; border-radius:10px; border:2px solid var(--border-dim); font-family:'Playfair Display',serif; font-size:1.1em; outline:none; transition:border .2s; text-align:center; }
+.fillin-input:focus { border-color:var(--ui-accent); }
+.fillin-input.correct { border-color:var(--green); background:rgba(45,122,79,0.06); color:var(--green); }
+.fillin-input.wrong { border-color:#e53935; background:rgba(229,57,53,0.05); }
+.fillin-submit { padding:11px; border:none; border-radius:10px; background:linear-gradient(135deg,var(--ui-accent),#4a43cc); color:white; font-family:'EB Garamond',serif; font-size:1em; font-weight:600; cursor:pointer; transition:all .2s; }
+.fillin-submit:hover { transform:translateY(-1px); }
+.fillin-feedback { text-align:center; font-size:.9em; font-style:italic; padding:6px; border-radius:8px; }
+.quiz-result { text-align:center; padding:10px 0; }
+.quiz-result-emoji { font-size:3em; margin-bottom:8px; }
+.quiz-result-score { font-family:'Playfair Display',serif; font-size:1.8em; font-weight:700; color:var(--gold); }
+.quiz-result-msg { color:var(--text-muted); font-style:italic; margin:6px 0 16px; }
+.quiz-next-btn { padding:12px 32px; border:none; border-radius:12px; background:linear-gradient(135deg,var(--ui-accent),#4a43cc); color:white; font-family:'Playfair Display',serif; font-size:1rem; font-weight:700; cursor:pointer; box-shadow:0 4px 16px rgba(108,99,255,0.35); transition:all .2s; }
+.quiz-next-btn:hover { transform:translateY(-1px); }
+
+/* ── SHARE ── */
+.share-section { margin-top:20px; display:flex; flex-direction:column; gap:10px; }
+.share-btn { display:flex; align-items:center; justify-content:center; gap:10px; width:100%; padding:13px 16px; border:none; border-radius:10px; cursor:pointer; font-family:'EB Garamond',serif; font-size:1em; font-weight:600; letter-spacing:.02em; transition:all .25s; }
+.share-btn svg { flex-shrink:0; }
+.btn-words { background:linear-gradient(135deg,#25d366,#1da851); color:white; box-shadow:0 4px 14px rgba(37,211,102,0.3); }
+.btn-words:hover { box-shadow:0 6px 20px rgba(37,211,102,0.4); transform:translateY(-1px); }
+.btn-completion { background:linear-gradient(135deg,var(--green),var(--green-light)); color:white; box-shadow:0 4px 14px rgba(45,122,79,0.25); opacity:.5; cursor:not-allowed; transition:all .3s; }
+.btn-completion.active { opacity:1; cursor:pointer; }
+.btn-completion.active:hover { transform:translateY(-1px); }
+.completion-hint { text-align:center; font-size:.82em; color:var(--text-muted); font-style:italic; }
+
+/* ── PROGRESS BAR ── */
+.progress-bar-wrap { height:4px; background:var(--border-dim); border-radius:4px; margin-bottom:16px; overflow:hidden; }
+.progress-bar-fill { height:100%; background:linear-gradient(90deg,var(--green),var(--green-light)); border-radius:4px; transition:width .4s ease; width:0%; }
+
+#share-canvas { display:none; }
+#study-timer { display: none !important; }
+</style>
+</head>
+<body>
+
+<canvas id="share-canvas"></canvas>
+
+<!-- QUIZ MODAL -->
+<div id="quiz-modal">
+  <div class="quiz-box">
+    <button class="quiz-close" onclick="closeQuiz()">✕</button>
+    <div class="quiz-progress-wrap"><div class="quiz-progress-fill" id="quiz-progress-fill"></div></div>
+    <div id="quiz-content"></div>
+  </div>
+</div>
+
+<!-- NAME SCREEN -->
+<div id="name-screen">
+  <h1>P for Prepositions</h1>
+  <p class="sub">Curated by Ms. Roshan Fathima</p>
+  <div class="hero-quote">
+    <div class="hero-text">Little words.<br>Big direction.</div>
+    <div class="hero-author">— every preposition, ever</div>
+  </div>
+  <select id="dept-select">
+    <option value="">-- Select Department --</option>
+    <option>Cyber Security</option><option>CSE-1</option><option>CSE-2</option>
+    <option>CSE-3</option><option>Mechanical Engineering</option><option>ECE-1</option>
+    <option>ECE-2</option><option>ECE-3</option><option>AI DS-1</option>
+    <option>AI DS-2</option><option>Civil</option><option>Agri</option>
+    <option>EEE</option><option>EIE</option><option>Medical Electronics</option>
+    <option>IT-1</option><option>IT-2</option>
+  </select>
+  <input type="text" id="name-input" placeholder="Enter your name" />
+  <button id="start-btn">📖 Open Prepositions</button>
+</div>
+
+<!-- MAIN APP -->
+<div class="dictionary-container" id="main-app">
+  <div class="subheading">Curated by Ms. Roshan Fathima, Assistant Professor, Department of English</div>
+  <div class="student-tag" id="student-tag"></div>
+
+  <div class="progress-bar-wrap" id="progress-wrap" style="display:none">
+    <div class="progress-bar-fill" id="progress-fill"></div>
+  </div>
+
+  <!-- Reveal hint + counter -->
+  <div class="reveal-hint" id="reveal-hint" style="display:none">
+    <span class="reveal-hint-icon">👉</span>
+    Tap each card to reveal the missing preposition and mark it as learned
+  </div>
+  <div class="reveal-counter" id="reveal-counter" style="display:none"></div>
+
+  <!-- CONTAINER FOR CATEGORY SORTED BLOCKS -->
+  <div id="word-list"></div>
+
+  <!-- MASTER CHECK BUTTON -->
+  <div class="master-check-wrap" id="master-check-wrap">
+    <button class="master-check-btn" id="master-check-btn" onclick="masterCheck()">
+      <span class="mc-icon">⭐</span> All prepositions mastered for today!
+    </button>
+  </div>
+
+  <!-- QUIZ LAUNCH -->
+  <div class="quiz-launch-wrap" id="quiz-launch-wrap" style="display:none">
+    <button class="quiz-launch-btn" id="quiz-launch-btn" onclick="launchQuiz()">
+      🧠 Take the Grammar Quiz
+    </button>
+    <div class="quiz-launch-hint" id="quiz-launch-hint">Reveal all prepositions above to unlock the quiz</div>
+  </div>
+
+  <div class="share-section" id="share-section" style="display:none">
+    <button class="share-btn btn-words" onclick="shareWords()">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+      Share List Configuration
+    </button>
+    <button class="share-btn btn-completion" id="btn-share-completion" onclick="shareCompletion()">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+      Share Completion Badge
+    </button>
+    <div class="completion-hint" id="completion-hint">Reveal all prepositions above to unlock the share ✓</div>
+  </div>
+</div>
+
+<script>
+// ── CONSTANTS ──
+const SUPABASE_URL = "https://ahezssoczvpbkteffcgz.supabase.co/functions/v1/logQuest";
+const SHARE_LINK = "andrewveda.github.io/SRM-VEC-English-PWA";
+const BLANK_RE = /_{2,}|\{blank\}/gi;
+
+const CORE_PREPS = [
+  "in","on","at","under","over","above","below","between","among","behind",
+  "in front of","beside","next to","near","by","inside","outside","against",
+  "opposite","around","before","after","during","since","for","until","from",
+  "to","into","onto","out of","through","across","along","towards","up","down",
+  "past","with","without","despite","because of","like","as","of"
+];
+
+// HARDCODED TRADITIONAL GRAMMAR CATEGORY POOL
+const allWords = [
+  // Prepositions of Place
+  { word: "in", category: "Place", meaning: "The keys are left _____ the drawer." },
+  { word: "on", category: "Place", meaning: "The textbook is waiting _____ the desk." },
+  { word: "at", category: "Place", meaning: "She met her classmates _____ the entrance gate." },
+  { word: "under", category: "Place", meaning: "The cat slept quietly _____ the wooden bench." },
+  { word: "between", category: "Place", meaning: "The library sits neatly _____ the two academic blocks." },
+  { word: "among", category: "Place", meaning: "Distribute these course files _____ all the class representatives." },
+
+  // Prepositions of Time
+  { word: "at", category: "Time", meaning: "The lecture will start strictly _____ 9:00 AM." },
+  { word: "on", category: "Time", meaning: "We will hold the project presentation _____ Monday." },
+  { word: "in", category: "Time", meaning: "The technical symposium takes place _____ October." },
+  { word: "during", category: "Time", meaning: "No questions were allowed _____ the examination." },
+
+  // Prepositions of Direction
+  { word: "to", category: "Direction", meaning: "They walked together _____ the new computer laboratory." },
+  { word: "into", category: "Direction", meaning: "The students walked systematically _____ the seminar hall." },
+  { word: "towards", category: "Direction", meaning: "Run directly _____ the main pavilion if it rains." },
+  { word: "across", category: "Direction", meaning: "A fresh asphalt pathway was laid _____ the campus grounds." },
+  { word: "through", category: "Direction", meaning: "Light filters brightly _____ the classroom glass window panels." },
+  { word: "along", category: "Direction", meaning: "Shade trees are planted _____ the perimeter fencing." }
+];
+
+function escapeHtml(str) {
+  return (str||'').replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/'/g,"&#39;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+function sentenceWithBlankHTML(sentence) {
+  const esc = escapeHtml(sentence);
+  return esc.replace(BLANK_RE, '<span class="blank">_____</span>');
+}
+function sentenceFilledHTML(sentence, prep) {
+  const esc = escapeHtml(sentence);
+  const safePrep = escapeHtml(prep);
+  return esc.replace(BLANK_RE, `<strong class="filled-prep">${safePrep}</strong>`);
+}
+function sentencePlainFilled(sentence, prep) {
+  return (sentence||'').replace(BLANK_RE, prep||'');
+}
+
+// ── STATE ──
+let playerName = "", playerDept = "";
+let checkedWords = new Set();
+let completionLogged = false;
+let streakData = { current: 0, best: 0, completedDates: [] };
+let quizWords = [], quizQueue = [], quizIndex = 0, quizScore = 0;
+let quizFlipped = false;
+
+// ── STREAK HELPERS ──
+function loadStreak() { try { const s=localStorage.getItem('streak_v3'); if(s) streakData=JSON.parse(s); } catch(e){} }
+function saveStreak() { try { localStorage.setItem('streak_v3',JSON.stringify(streakData)); } catch(e){} }
+function markQuizDone() {
+  const dStr = new Date().toDateString();
+  if (streakData.completedDates.includes(dStr)) return;
+  streakData.completedDates.push(dStr);
+  streakData.current += 1;
+  streakData.best = Math.max(streakData.best, streakData.current);
+  saveStreak();
+}
+
+// ── TTS ──
+function speak(text, btn) {
+  if (!window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(text);
+  u.lang='en-US'; u.rate=0.85; u.pitch=1;
+  if(btn){ btn.classList.add('speaking'); u.onend=()=>btn.classList.remove('speaking'); u.onerror=()=>btn.classList.remove('speaking'); }
+  window.speechSynthesis.speak(u);
+}
+
+function startApp(name, dept) {
+  playerName=name; playerDept=dept;
+  try { localStorage.setItem('pName',name); localStorage.setItem('pDept',dept); } catch(e){}
+  document.getElementById('name-screen').style.display='none';
+  document.getElementById('main-app').style.display='block';
+  document.getElementById('student-tag').textContent=`👤 ${name} · ${dept}`;
+  loadStreak(); 
+  completionLogged=false;
+  displayWords();
+}
+
+try {
+  const sn=localStorage.getItem('pName'), sd=localStorage.getItem('pDept');
+  if(sn&&sd){ document.getElementById('name-input').value=sn; document.getElementById('dept-select').value=sd; startApp(sn,sd); }
+} catch(e){}
+
+document.getElementById('start-btn').onclick=()=>{
+  const n=document.getElementById('name-input').value.trim();
+  const d=document.getElementById('dept-select').value;
+  if(!d){alert('Please select your department!');return;}
+  if(!n){alert('Please enter your name!');return;}
+  startApp(n,d);
+};
+
+// ── PARTICLE BURST ──
+function burstParticles(card) {
+  const rect = card.getBoundingClientRect();
+  const colors = ['#c9a84c','#e8c97a','#3da367','#6c63ff','#ff6b35','#22b5a4'];
+  for (let i = 0; i < 10; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    const angle = (Math.PI * 2 / 10) * i + Math.random() * 0.5;
+    const dist = 30 + Math.random() * 40;
+    p.style.cssText = `
+      left: ${rect.left + rect.width/2 - 3.5}px;
+      top:  ${rect.top  + rect.height/2 - 3.5}px;
+      position: fixed;
+      background: ${colors[i % colors.length]};
+      --tx: ${Math.cos(angle) * dist}px;
+      --ty: ${Math.sin(angle) * dist}px;
+    `;
+    document.body.appendChild(p);
+    setTimeout(() => p.remove(), 700);
+  }
+}
+
+// ── REVEAL CARD ──
+function revealCard(globalIdx, total, card) {
+  if (card.classList.contains('revealed')) return;
+
+  const cover = card.querySelector('.word-card-cover');
+  burstParticles(card);
+
+  cover.classList.add('unveiling');
+  setTimeout(() => {
+    card.classList.add('revealed');
+    cover.style.display = 'none';
+    const contentEl = card.querySelector('.word-card-content[data-full-sentence]');
+    if (contentEl) speak(contentEl.dataset.fullSentence, null);
+  }, 480);
+
+  checkedWords.add(globalIdx);
+  progressFill.style.width = (checkedWords.size / total * 100) + "%";
+  updateRevealCounter(total);
+  updateCompletionState(total);
+}
+
+function updateRevealCounter(total) {
+  const done = checkedWords.size;
+  revealCounter.style.display = 'block';
+  if (done === total) {
+    revealCounter.textContent = `✅ All ${total} traditional structural prepositions revealed & learned!`;
+    revealCounter.classList.add('all-done');
+  } else {
+    revealCounter.textContent = `${done} of ${total} prepositions revealed`;
+    revealCounter.classList.remove('all-done');
+  }
+}
+
+// ── RENDER WORDS CATEGORIZED ──
+function displayWords() {
+  wordListDiv.innerHTML = ""; 
+  checkedWords.clear();
+
+  masterCheckWrap.style.display='none';
+  masterCheckBtn.className='master-check-btn';
+  masterCheckBtn.innerHTML='<span class="mc-icon">⭐</span> All units mastered!';
+  revealHint.style.display='flex';
+  revealCounter.style.display='block';
+  revealCounter.classList.remove('all-done');
+  progressWrap.style.display="block"; 
+  progressFill.style.width="0%";
+  shareSection.style.display="flex"; 
+  quizLaunchWrap.style.display="block";
+
+  // Map and sort entries cleanly across traditional categories
+  const categories = ["Place", "Time", "Direction"];
+  const categoryTitles = {
+    "Place": "📍 Prepositions of Place",
+    "Time": "⏱️ Prepositions of Time",
+    "Direction": "➡️ Prepositions of Direction"
+  };
+
+  let totalValidWords = allWords.filter(w => w.word).length;
+  updateRevealCounter(totalValidWords);
+  updateCompletionState(totalValidWords);
+
+  categories.forEach(cat => {
+    const subset = allWords.filter(w => w.category === cat && w.word);
+    if(subset.length === 0) return;
+
+    // Add category title banner
+    const titleBlock = document.createElement('div');
+    titleBlock.className = 'category-block-title';
+    titleBlock.innerHTML = `${categoryTitles[cat]} <span>(${subset.length} items)</span>`;
+    wordListDiv.appendChild(titleBlock);
+
+    const grid = document.createElement('div');
+    grid.className = 'word-cards-grid';
+
+    subset.forEach((w) => {
+      // Find global context index references safely
+      const globalIdx = allWords.indexOf(w);
+      const safeWord = escapeHtml(w.word);
+      const sentenceRaw = w.meaning || '';
+      const coverSentenceHTML = sentenceWithBlankHTML(sentenceRaw);
+      const filledSentenceHTML = sentenceFilledHTML(sentenceRaw, w.word);
+      const plainFilledSentence = sentencePlainFilled(sentenceRaw, w.word);
+
+      const card = document.createElement('div');
+      card.className = 'word-card';
+
+      card.innerHTML = `
+        <!-- COVER -->
+        <div class="word-card-cover">
+          <div class="cover-shimmer"></div>
+          <div class="cover-stars">✦ ✦ ✦</div>
+          <div class="cover-sentence">${coverSentenceHTML}</div>
+          <div class="cover-tap-label">
+            <span class="cover-tap-icon">👉</span> Tap to structural reveal
+          </div>
+        </div>
+        <!-- CONTENT -->
+        <div class="word-card-content" data-full-sentence="${escapeHtml(plainFilledSentence)}">
+          <div class="auto-check">✓</div>
+          <div class="entry-body">
+            <div class="word-row">
+              <div class="word">${safeWord}</div>
+              <button class="speak-btn" title="Hear the sentence" data-sentence="${escapeHtml(plainFilledSentence)}" onclick="event.stopPropagation(); speak(this.dataset.sentence, this)">🔊</button>
+            </div>
+            <div class="meaning">${filledSentenceHTML}</div>
+          </div>
+        </div>
+      `;
+
+      card.addEventListener('click', () => revealCard(globalIdx, totalValidWords, card));
+      grid.appendChild(card);
+    });
+
+    wordListDiv.appendChild(grid);
+  });
+}
+
+function updateCompletionState(total) {
+  const allDone = checkedWords.size === total && total > 0;
+  completionBtn.classList.toggle("active", allDone);
+  completionHint.style.display = allDone ? "none" : "block";
+  masterCheckWrap.style.display = allDone ? 'flex' : 'none';
+
+  if (allDone) {
+    revealHint.style.display = 'none';
+    quizLaunchBtn.classList.add('ready');
+    quizLaunchHint.textContent = 'Quiz unlocked! Test your understanding across all modules 🔥';
+  }
+
+  if (allDone && !completionLogged) {
+    completionLogged = true;
+    sendToSupabase({ student_name:playerName, department:playerDept, correct:total, wrong:0, time_spent:0, quest_id:`PrepCategorized_All` });
+  }
+}
+
+// ── MASTER CHECK ──
+function masterCheck() {
+  const btn=document.getElementById('master-check-btn');
+  btn.classList.add('mastered');
+  btn.innerHTML='🏅 Categorized Matrix Mastered!';
+}
+
+// ── QUIZ ENGINE ──
+function buildQuizQueue(words) {
+  const types=['flashcard','mcq','fillin'];
+  const shuffled=[...words].sort(()=>Math.random()-.5);
+  return shuffled.map((w,i)=>({word:w,type:types[i%types.length]}));
+}
+function launchQuiz() {
+  quizWords = allWords.filter(w => w.word);
+  if(!quizWords.length) return;
+  quizQueue=buildQuizQueue(quizWords);
+  quizIndex=0; quizScore=0;
+  document.getElementById('quiz-modal').classList.add('open');
+  renderQuizQuestion();
+}
+function closeQuiz() { document.getElementById('quiz-modal').classList.remove('open'); window.speechSynthesis&&window.speechSynthesis.cancel(); }
+function renderQuizProgress() { document.getElementById('quiz-progress-fill').style.width=(quizIndex/quizQueue.length*100)+"%"; }
+function renderQuizQuestion() {
+  if(quizIndex>=quizQueue.length){ renderQuizResult(); return; }
+  renderQuizProgress();
+  const q=quizQueue[quizIndex];
+  const content=document.getElementById('quiz-content');
+  const typeLabels={flashcard:'🃏 Flashcard',mcq:'🎯 Multiple Choice',fillin:'✍️ Fill in the Blank'};
+  const typeBadges={flashcard:'badge-flashcard',mcq:'badge-mcq',fillin:'badge-fillin'};
+  const header=`<div class="quiz-q-num">Question ${quizIndex+1} of ${quizQueue.length}</div><span class="quiz-type-badge ${typeBadges[q.type]}">${typeLabels[q.type]}</span>`;
+  if(q.type==='flashcard') renderFlashcard(content,q,header);
+  else if(q.type==='mcq')  renderMCQ(content,q,header);
+  else                      renderFillIn(content,q,header);
+}
+function renderFlashcard(content,q,header) {
+  quizFlipped=false;
+  const w = q.word;
+  const sentenceHTML = sentenceWithBlankHTML(w.meaning||'');
+  const filledHTML = sentenceFilledHTML(w.meaning||'', w.word);
+  const plainFilled = sentencePlainFilled(w.meaning||'', w.word);
+  content.innerHTML=header+`
+    <div class="quiz-sentence-display">${sentenceHTML}</div>
+    <div class="quiz-category-pill">Preposition of ${escapeHtml(w.category)}</div>
+    <div class="flashcard-wrap" onclick="flipCard()">
+      <div class="flashcard" id="fc-card">
+        <div class="flashcard-front"><div style="font-size:1.05em;font-weight:bold">Which preposition fits?</div><div class="flashcard-hint">Tap to reveal the answer</div></div>
+        <div class="flashcard-back">
+          <div class="flashcard-meaning">${filledHTML}</div>
+          <button class="quiz-speak-btn" style="margin-top:12px;background:rgba(255,255,255,0.2);border-color:rgba(255,255,255,0.4);color:#fff" data-sentence="${escapeHtml(plainFilled)}" onclick="event.stopPropagation(); speak(this.dataset.sentence,this)">🔊 Hear it</button>
+        </div>
+      </div>
+    </div>
+    <div class="flashcard-nav" id="fc-nav" style="display:none">
+      <button class="fc-btn fc-knew" onclick="fcAnswer(true)">✓ Got it!</button>
+      <button class="fc-btn fc-unknown" onclick="fcAnswer(false)">✗ Still learning</button>
+    </div>`;
+}
+function flipCard() { const card=document.getElementById('fc-card'); if(!card) return; quizFlipped=!quizFlipped; card.classList.toggle('flipped',quizFlipped); if(quizFlipped) document.getElementById('fc-nav').style.display='flex'; }
+function fcAnswer(knew) { if(knew) quizScore++; quizIndex++; renderQuizQuestion(); }
+function renderMCQ(content,q,header) {
+  const correct = q.word.word;
+  const pool = CORE_PREPS.filter(p=>p.toLowerCase()!==correct.toLowerCase());
+  const distractors = [...pool].sort(()=>Math.random()-.5).slice(0,3);
+  const choices = [...distractors, correct].sort(()=>Math.random()-.5);
+  const sentenceHTML = sentenceWithBlankHTML(q.word.meaning||'');
+  const choicesHTML=choices.map((c,i)=>{
+    const isCorrect=c.toLowerCase()===correct.toLowerCase()?"true":"false";
+    return `<button class="mcq-choice" id="mcq-${i}" data-correct="${isCorrect}" data-idx="${i}" onclick="mcqAnswer(${i})">${escapeHtml(c)}</button>`;
+  }).join('');
+  content.innerHTML=header+`
+    <div style="font-size:.9em;color:var(--text-muted);text-align:center;margin-bottom:8px;font-style:italic">Which preposition completes the sentence?</div>
+    <div class="quiz-sentence-display">${sentenceHTML}</div>
+    <div class="quiz-category-pill">Preposition of ${escapeHtml(q.word.category)}</div>
+    <div class="mcq-choices">${choicesHTML}</div>`;
+}
+function mcqAnswer(idx) {
+  const btns=document.querySelectorAll('.mcq-choice'); btns.forEach(b=>b.disabled=true);
+  const clicked=document.getElementById(`mcq-${idx}`);
+  const isCorrect=clicked&&clicked.dataset.correct==='true';
+  if(isCorrect){ clicked.classList.add('correct'); quizScore++; }
+  else{ clicked.classList.add('wrong'); btns.forEach(b=>{ if(b.dataset.correct==='true') b.classList.add('reveal'); }); }
+  setTimeout(()=>{ quizIndex++; renderQuizQuestion(); },1200);
+}
+function renderFillIn(content,q,header) {
+  const safeWord=escapeHtml(q.word.word);
+  const sentenceHTML = sentenceWithBlankHTML(q.word.meaning||'');
+  content.innerHTML=header+`
+    <div style="font-size:.9em;color:var(--text-muted);text-align:center;margin-bottom:8px;font-style:italic">Type the missing preposition:</div>
+    <div class="quiz-sentence-display">${sentenceHTML}</div>
+    <div class="quiz-category-pill">Preposition of ${escapeHtml(q.word.category)}</div>
+    <div class="fillin-wrap">
+      <input class="fillin-input" id="fillin-input" placeholder="Type the preposition…" autocomplete="off" spellcheck="false" data-answer="${safeWord}" onkeydown="if(event.key==='Enter') checkFillIn()">
+      <button class="fillin-submit" onclick="checkFillIn()">Check ✓</button>
+      <div class="fillin-feedback" id="fillin-feedback"></div>
+    </div>`;
+  setTimeout(()=>document.getElementById('fillin-input')?.focus(),100);
+}
+function checkFillIn() {
+  const inp=document.getElementById('fillin-input'), fb=document.getElementById('fillin-feedback');
+  if(!inp) return;
+  const val=inp.value.trim().toLowerCase(), correctWord=(inp.dataset.answer||'').trim(), correct=correctWord.toLowerCase();
+  if(!val){ fb.textContent='Please type a word first.'; fb.style.color='var(--text-muted)'; return; }
+  if(val===correct){ inp.classList.add('correct'); fb.textContent='✓ Correct!'; fb.style.color='var(--green)'; quizScore++; setTimeout(()=>{ quizIndex++; renderQuizQuestion(); },900); }
+  else{ inp.classList.add('wrong'); fb.innerHTML=`✗ The answer was <strong>${correctWord}</strong>`; fb.style.color='#c62828'; setTimeout(()=>{ quizIndex++; renderQuizQuestion(); },1400); }
+}
+function renderQuizResult() {
+  renderQuizProgress();
+  const pct=Math.round(quizScore/quizQueue.length*100);
+  const emoji=pct===100?'🏆':pct>=70?'🌟':pct>=50?'👍':'📖';
+  const msg=pct===100?"Perfect score! You're a preposition master!":pct>=70?"Great job! Keep it up!":pct>=50?"Good effort — try again!":"Every attempt builds your grammar sense. Keep going!";
+  markQuizDone();
+  document.getElementById('quiz-content').innerHTML=`
+    <div class="quiz-result">
+      <div class="quiz-result-emoji">${emoji}</div>
+      <div class="quiz-result-score">${quizScore}/${quizQueue.length}</div>
+      <div class="quiz-result-msg">${msg}</div>
+      <div style="font-size:.85em;color:var(--streak);font-weight:bold;margin-bottom:16px">🔥 ${streakData.current} structural sets completed!</div>
+      <button class="quiz-next-btn" onclick="closeQuiz()">Done</button>
+    </div>`;
+  quizLaunchBtn.textContent='✅ Quiz Completed!';
+  quizLaunchHint.textContent=`Score: ${quizScore}/${quizQueue.length} · Dynamic Profile Updated`;
+}
+
+// ── CANVAS IMAGE GENERATION ──
+function roundRect(ctx,x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r); ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h); ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r); ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y); ctx.closePath(); }
+function buildTealCard(headerFn,HEADER_H){
+  const W=900,OUTER=40,INNER=36,GAP=14,ROW_H=90;
+  const validWords = allWords.filter(w => w.word);
+  const rows=Math.ceil(validWords.length/2),FOOTER_H=136;
+  const H=OUTER*2+HEADER_H+rows*(ROW_H+GAP)-GAP+INNER+FOOTER_H;
+  const canvas=document.getElementById("share-canvas"); canvas.width=W; canvas.height=H;
+  const ctx=canvas.getContext("2d");
+  ctx.fillStyle="#8dc63f"; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle="#1a9d8d"; roundRect(ctx,OUTER,OUTER,W-OUTER*2,H-OUTER*2,30); ctx.fill();
+  headerFn(ctx,W,OUTER,HEADER_H);
+  const colW=(W-OUTER*2-INNER*2-GAP)/2, gridTop=OUTER+HEADER_H;
+  for(let row=0;row<rows;row++){
+    for(let col=0;col<2;col++){
+      const wi=row*2+col; if(wi>=validWords.length) continue;
+      const x=OUTER+INNER+col*(colW+GAP), y=gridTop+row*(ROW_H+GAP);
+      ctx.fillStyle="#22b5a4"; roundRect(ctx,x,y,colW,ROW_H,18); ctx.fill();
+      ctx.fillStyle="#0d2b28"; ctx.font="bold 38px 'Fredoka One','Georgia',sans-serif"; ctx.textAlign="center";
+      ctx.fillText(validWords[wi].word,x+colW/2,y+ROW_H/2+14);
+    }
+  }
+  const footerTop=gridTop+rows*(ROW_H+GAP)-GAP+INNER;
+  ctx.textAlign="center"; ctx.fillStyle="rgba(255,255,255,0.9)"; ctx.font="italic 26px 'Georgia',serif";
+  ctx.fillText("Curious how these prepositions work",W/2,footerTop+30);
+  ctx.fillText("in structural setups? 🤔✨",W/2,footerTop+62);
+  ctx.fillStyle="#ffffff"; ctx.font="bold 23px 'Georgia',serif";
+  ctx.fillText("🔗  "+SHARE_LINK,W/2,footerTop+100);
+  return canvas.toDataURL("image/png");
+}
+async function generateWordsImage(){ await document.fonts.ready; return buildTealCard((ctx,W,OUTER)=>{ ctx.textAlign="center"; ctx.fillStyle="#ffffff"; ctx.font="bold 64px 'Fredoka One','Georgia',sans-serif"; ctx.fillText("Prepositions Overview",W/2,OUTER+82); ctx.fillStyle="rgba(255,255,255,0.65)"; ctx.font="italic 28px 'Georgia',serif"; ctx.fillText("Categorized Library",W/2,OUTER+120); },150); }
+async function generateCompletionImage(){
+  await document.fonts.ready;
+  const W=900,OUTER=40,INNER=36,GAP=14,ROW_H=90;
+  const validWords = allWords.filter(w => w.word);
+  const rows=Math.ceil(validWords.length/2),HEADER_H=220,FOOTER_H=136;
+  const H=OUTER*2+HEADER_H+rows*(ROW_H+GAP)-GAP+INNER+FOOTER_H;
+  const canvas=document.getElementById("share-canvas"); canvas.width=W; canvas.height=H;
+  const ctx=canvas.getContext("2d");
+  ctx.fillStyle="#8dc63f"; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle="#1a9d8d"; roundRect(ctx,OUTER,OUTER,W-OUTER*2,H-OUTER*2,30); ctx.fill();
+  ctx.textAlign="center"; ctx.fillStyle="#ffffff"; ctx.font="bold 62px 'Fredoka One','Georgia',sans-serif"; ctx.fillText("Prepositions Conquered! 🏆",W/2,OUTER+80);
+  ctx.fillStyle="rgba(255,255,255,0.68)"; ctx.font="italic 28px 'Georgia',serif"; ctx.fillText("Structural Categories Matrix",W/2,OUTER+116);
+  const colW=(W-OUTER*2-INNER*2-GAP)/2, gridTop=OUTER+HEADER_H;
+  for(let row=0;row<rows;row++){
+    for(let col=0;col<2;col++){
+      const wi=row*2+col; if(wi>=validWords.length) continue;
+      const x=OUTER+INNER+col*(colW+GAP), y=gridTop+row*(ROW_H+GAP);
+      ctx.fillStyle="#22b5a4"; roundRect(ctx,x,y,colW,ROW_H,18); ctx.fill();
+      ctx.fillStyle="#5dde8a"; ctx.font="bold 24px 'Georgia',serif"; ctx.textAlign="left"; ctx.fillText("✓",x+16,y+ROW_H/2+9);
+      ctx.fillStyle="#0d2b28"; ctx.font="bold 36px 'Fredoka One','Georgia',sans-serif"; ctx.textAlign="center"; ctx.fillText(validWords[wi].word,x+colW/2+16,y+ROW_H/2+13);
+    }
+  }
+  const footerTop=gridTop+rows*(ROW_H+GAP)-GAP+INNER;
+  ctx.textAlign="center"; ctx.fillStyle="rgba(255,255,255,0.9)"; ctx.font="italic 26px 'Georgia',serif";
+  ctx.fillText("Curious how these prepositions work",W/2,footerTop+30); ctx.fillText("in traditional structural units? 🤔✨",W/2,footerTop+62);
+  ctx.fillStyle="#ffffff"; ctx.font="bold 23px 'Georgia',serif"; ctx.fillText("🔗  "+SHARE_LINK,W/2,footerTop+100);
+  return canvas.toDataURL("image/png");
+}
+function shareImageToWhatsApp(dataUrl,text){ const blob=dataURItoBlob(dataUrl),file=new File([blob],"prepositions.png",{type:"image/png"}); if(navigator.canShare&&navigator.canShare({files:[file]})){ navigator.share({files:[file],text}).catch(()=>fallbackShare(dataUrl,text)); } else{ fallbackShare(dataUrl,text); } }
+function fallbackShare(dataUrl,text){ const link=document.createElement("a"); link.href=dataUrl; link.download="prepositions.png"; link.click(); setTimeout(()=>{ window.open(`https://wa.me/?text=${encodeURIComponent(text)}`,"_blank"); },800); }
+function dataURItoBlob(dataURI){ const byteStr=atob(dataURI.split(',')[1]),mimeStr=dataURI.split(',')[0].split(':')[1].split(';')[0]; const ab=new ArrayBuffer(byteStr.length),ia=new Uint8Array(ab); for(let i=0;i<byteStr.length;i++) ia[i]=byteStr.charCodeAt(i); return new Blob([ab],{type:mimeStr}); }
+async function shareWords(){ const validWords = allWords.filter(w => w.word); if(!validWords.length) return; const img=await generateWordsImage(); const text=`📚 *Traditional Structural Prepositions Matrix*\n\n${validWords.map((w,i)=>`${i+1}. *${w.word}* (${w.category})`).join('\n')}\n\nCurious how they map structural definitions? 🤔✨\n🔗 https://${SHARE_LINK}\n\n_Curated by Ms. Roshan Fathima, Department of English_`; shareImageToWhatsApp(img,text); }
+async function shareCompletion(){ if(!completionBtn.classList.contains("active")) return; const img=await generateCompletionImage(); const text=`🏆 I've mapped out all traditional structural preposition blocks!\n\n🔗 https://${SHARE_LINK}\n\n_P for Prepositions by Ms. Roshan Fathima, Department of English_`; shareImageToWhatsApp(img,text); }
+</script>
+</body>
+</html>

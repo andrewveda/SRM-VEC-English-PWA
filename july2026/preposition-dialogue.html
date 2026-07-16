@@ -391,6 +391,18 @@ body::before {
   0% { background-color: rgba(122, 155, 122, 0.6); }
   100% { background-color: transparent; }
 }
+  @keyframes screenFlashGreen {
+  0% { opacity: 0.7; }
+  100% { opacity: 0; }
+}
+.screen-flash-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: var(--sage);
+  z-index: 9999;
+  pointer-events: none;
+  animation: screenFlashGreen 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
 </style>
 <base target="_blank">
 </head>
@@ -755,14 +767,16 @@ function placeAnswer(dz) {
   const chosen = selectedCard.textContent;
   const correct = dz.dataset.answer;
 
-  if (chosen === correct) {
-    // Check if this was a clean first-try correct answer
-    if (wrongThisRound === 0) {
+  if (wrongThisRound === 0) {
       // Clean correct — proceed as normal
       correctCount++; gemsCount++;
       gemsCounterEl.textContent = `💎 ${gemsCount}`; animatePill(gemsCounterEl);
       dz.textContent = chosen;
-      dz.style.animation = 'correctFlash 0.4s ease-out';
+      const flash = document.createElement('div');
+      flash.className = 'screen-flash-overlay';
+      document.body.appendChild(flash);
+      setTimeout(() => flash.remove(), 450); 
+
       dz.classList.remove('ready', 'wrong'); dz.classList.add('filled'); dz.disabled = true;
       const ring = document.createElement('div');
       ring.className = 'glow-ring'; dz.style.position = 'relative'; dz.appendChild(ring);

@@ -233,7 +233,7 @@
     <h1 id="quizTitle" style="font-size:2.2rem; margin-bottom:0.3rem; color:#4a3b2a;">🎯 The Preposition Quest</h1>
     <p style="font-size:1rem; color:#6b4f33; margin-bottom:1.5rem;">
       Master Prepositions Through an Immersive Cloze Passage<br>
-      <span style="font-size:0.9rem;">1 Passage | 5 Blanks Per Page | Full Explanations in PDF</span>
+      <span style="font-size:0.9rem;">1 Passage | 10 Blanks Per Page | Full Explanations in PDF</span>
     </p>
 
     <input type="text" id="nameInput" placeholder="Enter your name" />
@@ -279,12 +279,19 @@
 </div>
 
 <script type="module">
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-
-const supabase = createClient(
-  'https://yellow-lab-4999.andrewveda.workers.dev',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoZXpzc29jenZwYmt0ZWZmY2d6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI4NTk1ODUsImV4cCI6MjA3ODQzNTU4NX0.2ZlqXnZxv0opkhynAT7OlK4S-xPygcc7ETUyTXRfGHE'
-);
+// Supabase is loaded dynamically and wrapped in try/catch so that a network
+// hiccup, CORS block, or offline environment can never take down the rest
+// of the quiz (which must keep working regardless of logging/analytics).
+let supabase = null;
+try {
+  const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
+  supabase = createClient(
+    'https://yellow-lab-4999.andrewveda.workers.dev',
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoZXpzc29jenZwYmt0ZWZmY2d6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI4NTk1ODUsImV4cCI6MjA3ODQzNTU4NX0.2ZlqXnZxv0opkhynAT7OlK4S-xPygcc7ETUyTXRfGHE'
+  );
+} catch (e) {
+  console.warn('Supabase unavailable — quiz will run without result logging.', e);
+}
 
 // ============================================================
 // PREPOSITION PASSAGE — Carpe Diem / Productivity theme
@@ -301,11 +308,14 @@ During breakfast, he listened to a productivity podcast at double speed, hungry 
 
 He walked along the hallway, paused by the door, glanced around, looked through the peephole and out of the window towards the street, aware that the day would not wait for him. He stepped across the doorstep, locked the door behind him, walked past the gate, round the corner, and headed towards college via the shortest route, moving with the urgency of someone who understood that time, once spent, could never be reclaimed.
 
-Since every minute mattered, he ignored everything besides his goals, worked throughout the day, pushed beyond his limits, powered through fatigue, and never looked back — for he lived by a single unshakeable rule: seize the day, or lose it forever.`
+Since every minute mattered, he ignored everything besides his goals, worked throughout the day, pushed beyond his limits, powered through fatigue, and never looked back — for he lived by a single unshakeable rule: seize the day, or lose it forever.
+
+At college, he sat down near the front row, opposite the whiteboard, and placed his notebook next to his laptop. His mentor stood in front of the class, distributing handouts among the students. Aarav skimmed his notes, worked until the bell rang, and kept his eyes off his phone, determined not to waste a single moment. Walking home over the hill as the sun dipped low, he reminded himself that a life half-lived was worse than no life at all — only today, seized fully, would ever be enough.`
       .replace(/\bBefore\b(?= dawn)/, "**Before**")
       .replace(/\babout\b(?= five-thirty)/, "**about**")
       .replace(/\bat\b(?= home)/, "**at**")
       .replace(/\bafter\b(?= seven hours)/, "**after**")
+      .replace(/\bof\b(?= sleep)/, "**of**")
       .replace(/\bof\b(?= the day ahead)/, "**of**")
       .replace(/\bup\b(?= in bed)/, "**up**")
       .replace(/\bin\b(?= bed)/, "**in**")
@@ -331,6 +341,7 @@ Since every minute mattered, he ignored everything besides his goals, worked thr
       .replace(/\bbefore\b(?= six)/, "**before**")
       .replace(/\bof\b(?= himself)/, "**of**")
       .replace(/\bfor\b(?= not surrendering)/, "**for**")
+      .replace(/\bto\b(?= comfort)/, "**to**")
       .replace(/\bDuring\b(?= breakfast)/, "**During**")
       .replace(/\bto\b(?= a productivity podcast)/, "**to**")
       .replace(/\bat\b(?= double speed)/, "**at**")
@@ -343,6 +354,7 @@ Since every minute mattered, he ignored everything besides his goals, worked thr
       .replace(/\bto\b(?= himself)/, "**to**")
       .replace(/\bas\b(?= a commitment)/, "**as**")
       .replace(/\bsince\b(?= a goal)/, "**since**")
+      .replace(/\bwithout\b(?= accountability)/, "**without**")
       .replace(/\bwithin\b(?= his bag)/, "**within**")
       .replace(/\boutside\b(?=,)/, "**outside**")
       .replace(/\bexcept\b(?= one)/, "**except**")
@@ -354,6 +366,7 @@ Since every minute mattered, he ignored everything besides his goals, worked thr
       .replace(/\bthrough\b(?= the peephole)/, "**through**")
       .replace(/\bout of\b(?= the window)/, "**out of**")
       .replace(/\btowards\b(?= the street)/, "**towards**")
+      .replace(/\bfor\b(?= him\.)/, "**for**")
       .replace(/\bacross\b(?= the doorstep)/, "**across**")
       .replace(/\bbehind\b(?= him)/, "**behind**")
       .replace(/\bpast\b(?= the gate)/, "**past**")
@@ -361,18 +374,30 @@ Since every minute mattered, he ignored everything besides his goals, worked thr
       .replace(/\btowards\b(?= college)/, "**towards**")
       .replace(/\bvia\b(?= the shortest route)/, "**via**")
       .replace(/\bwith\b(?= the urgency)/, "**with**")
+      .replace(/\bof\b(?= someone)/, "**of**")
       .replace(/\bSince\b(?= every minute)/, "**Since**")
       .replace(/\bbesides\b(?= his goals)/, "**besides**")
       .replace(/\bthroughout\b(?= the day)/, "**throughout**")
       .replace(/\bbeyond\b(?= his limits)/, "**beyond**")
       .replace(/\bthrough\b(?= fatigue)/, "**through**")
-      .replace(/\bby\b(?= a single unshakeable rule)/, "**by**"),
+      .replace(/\bby\b(?= a single unshakeable rule)/, "**by**")
+      .replace(/\bAt\b(?= college)/, "**At**")
+      .replace(/\bdown\b(?= near)/, "**down**")
+      .replace(/\bnear\b(?= the front row)/, "**near**")
+      .replace(/\bopposite\b(?= the whiteboard)/, "**opposite**")
+      .replace(/\bnext to\b(?= his laptop)/, "**next to**")
+      .replace(/\bin front of\b(?= the class)/, "**in front of**")
+      .replace(/\bamong\b(?= the students)/, "**among**")
+      .replace(/\buntil\b(?= the bell rang)/, "**until**")
+      .replace(/\boff\b(?= his phone)/, "**off**")
+      .replace(/\bover\b(?= the hill)/, "**over**"),
     answers: [
-      "Before","about","at","after","of","up","in","for","about","above","at","on","behind","below","beside","with","inside",
-      "onto","between","against","beneath","under","for","without","for","Despite","before","of","for",
-      "During","to","at","for","as","as","After","from","into","to","as","since","within","outside","except","into","for",
-      "along","by","around","through","out of","towards","across","behind","past","round","towards","via","with",
-      "Since","besides","throughout","beyond","through","by"
+      "Before","about","at","after","of","of","up","in","for","about","above","at","on","behind","below","beside","with","inside",
+      "onto","between","against","beneath","under","for","without","for","Despite","before","of","for","to",
+      "During","to","at","for","as","as","After","from","into","to","as","since","without","within","outside","except","into","for",
+      "along","by","around","through","out of","towards","for","across","behind","past","round","towards","via","with","of",
+      "Since","besides","throughout","beyond","through","by",
+      "At","down","near","opposite","next to","in front of","among","until","off","over"
     ]
   }
 ];
@@ -485,7 +510,7 @@ let playerDept = "";
 let selectedOption = null;
 let totalQuestionsInQuiz = 0;
 
-const blanksPerPage = 5;
+const blanksPerPage = 10;
 const currentQuestID = "Preposition Quest 001";
 
 // ============================================================
@@ -626,12 +651,6 @@ function loadQuestion() {
   dropContainerEl.innerHTML = "";
   nextPageBtn.style.display = "none";
 
-  // Show passage title
-  const titleEl = document.createElement("div");
-  titleEl.className = "passage-title";
-  titleEl.innerText = `${d.title} — Page ${d.pageIndex + 1}/${d.totalPages}`;
-  dropContainerEl.appendChild(titleEl);
-
   // Slice answers for this page
   const pageAnswers = d.answers.slice(d.start, d.end);
   const shuffled = [...pageAnswers].sort(() => Math.random() - 0.5);
@@ -644,7 +663,7 @@ function loadQuestion() {
     dragOptionsEl.appendChild(div);
   });
 
-  // Build the passage with blanks for this page only
+  // Parse the full passage into its text segments and bracketed answers
   const fullText = d.passage;
   const allMatches = [];
   const regex = /\*\*([^*]+)\*\*/g;
@@ -652,35 +671,28 @@ function loadQuestion() {
   while ((match = regex.exec(fullText)) !== null) {
     allMatches.push(match[1]);
   }
-
   const parts = fullText.split(/\*\*[^*]+\*\*/);
-  let blankIdx = 0;
-  let globalBlankIdx = 0;
 
-  for (let i = 0; i < parts.length; i++) {
-    if (parts[i]) {
-      dropContainerEl.appendChild(document.createTextNode(parts[i]));
+  // Render ONLY this page's slice of the passage: the text/blank tokens
+  // from d.start up to (but not including) d.end. Earlier text already
+  // shown on prior pages is not repeated, and later text is not shown yet.
+  for (let j = d.start; j < d.end; j++) {
+    if (parts[j]) {
+      dropContainerEl.appendChild(document.createTextNode(parts[j]));
     }
-    if (blankIdx < allMatches.length) {
-      const isInPage = (globalBlankIdx >= d.start && globalBlankIdx < d.end);
-      if (isInPage) {
-        const b = document.createElement("button");
-        b.classList.add("drop-zone");
-        b.innerText = "___";
-        b.dataset.answer = allMatches[blankIdx];
-        b.dataset.blankIdx = globalBlankIdx;
-        b.onclick = () => placeOption(b);
-        dropContainerEl.appendChild(b);
-      } else {
-        const span = document.createElement("span");
-        span.style.fontWeight = "bold";
-        span.style.color = "#888";
-        span.innerText = allMatches[blankIdx];
-        dropContainerEl.appendChild(span);
-      }
-      blankIdx++;
-      globalBlankIdx++;
-    }
+    const b = document.createElement("button");
+    b.classList.add("drop-zone");
+    b.innerText = "___";
+    b.dataset.answer = allMatches[j];
+    b.dataset.blankIdx = j;
+    b.onclick = () => placeOption(b);
+    dropContainerEl.appendChild(b);
+  }
+
+  // Only the very last page of this passage also shows the trailing text
+  // that comes after the final blank.
+  if (d.pageIndex === d.totalPages - 1 && parts[d.end]) {
+    dropContainerEl.appendChild(document.createTextNode(parts[d.end]));
   }
 
   adjustForTopStrip();
@@ -779,19 +791,23 @@ async function showScore() {
   `;
   restartBtn.style.display = "block";
 
-  try {
-    const { error } = await supabase.from('Quests').insert([{
-      student_name: playerName,
-      department: playerDept,
-      correct: correctCount,
-      wrong: totalWrongGuesses,
-      time_spent: totalTime,
-      quest_id: currentQuestID
-    }]);
-    if (error) console.error('Supabase error:', error);
-    else console.log('✅ Saved to Supabase');
-  } catch (err) {
-    console.error('Supabase insert error:', err);
+  if (supabase) {
+    try {
+      const { error } = await supabase.from('Quests').insert([{
+        student_name: playerName,
+        department: playerDept,
+        correct: correctCount,
+        wrong: totalWrongGuesses,
+        time_spent: totalTime,
+        quest_id: currentQuestID
+      }]);
+      if (error) console.error('Supabase error:', error);
+      else console.log('✅ Saved to Supabase');
+    } catch (err) {
+      console.error('Supabase insert error:', err);
+    }
+  } else {
+    console.log('Supabase not available — skipping result logging.');
   }
 }
 

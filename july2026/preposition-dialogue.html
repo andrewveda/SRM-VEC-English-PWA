@@ -387,11 +387,8 @@ body::before {
 
 @keyframes confettiFall { 0% { transform: translateY(-20px) rotate(0deg); opacity: 1; } 100% { transform: translateY(110vh) rotate(540deg); opacity: 0; } }
 .confetti-piece { position: fixed; border-radius: 1px; pointer-events: none; z-index: 300; animation: confettiFall linear forwards; }
-@keyframes correctFlash {
-  0% { background-color: rgba(122, 155, 122, 0.6); }
-  100% { background-color: transparent; }
-}
-  @keyframes screenFlashGreen {
+
+@keyframes screenFlashGreen {
   0% { opacity: 0.7; }
   100% { opacity: 0; }
 }
@@ -414,16 +411,13 @@ body::before {
 
 <div class="container" id="quizContainer">
 
-<div id="nameForm">
-    <div class="form-card" style="max-width: 460px;"> <!-- Slightly widened to elegantly accommodate instructions -->
+  <div id="nameForm">
+    <div class="form-card" style="max-width: 460px;">
       <p class="form-eyebrow">English</p>
       <h1 class="form-title">The Story Quest</h1>
       <p class="form-subtitle">A conversation to complete.</p>
       <div class="form-rule"></div>
 
-      <!-- ══════════════════════════════════════════════
-           THE GROWTH LOOP ARCHITECTURE (STUDENT NOTICE)
-           ══════════════════════════════════════════════ -->
       <div style="background: var(--paper); border: 1px solid var(--border-soft); border-radius: 10px; padding: 1.1rem; margin-bottom: 1.8rem; font-size: 0.85rem; line-height: 1.6; color: var(--ink-mid); position: relative; overflow: hidden;">
         <div style="position: absolute; top: 0; left: 0; bottom: 0; width: 3px; background: var(--rose-gold);"></div>
         
@@ -443,8 +437,6 @@ body::before {
           <strong>This is not a bug.</strong> It is a conscious cognitive layout designed to test your focus until you achieve a flawless sequence. Pause, adjust your perspective, and try again.
         </p>
       </div>
-      <!-- ══════════════════════════════════════════════ -->
-
       <label class="field-label" for="nameInput">Your Name</label>
       <input type="text" id="nameInput" placeholder="Enter your name" autocomplete="name" />
 
@@ -578,6 +570,7 @@ const conversation = [
   { speaker: 'teacher', text: 'Try cultivating raw grit ___ worrying about the hollow validation of a perfect, bug-free launch.', answer: 'instead of' },
   { speaker: 'scholar', text: 'I am going to ship this application and face the real world ___ my lingering fear of rejection.', answer: 'despite' }
 ];
+
 const quizDataStore = [{ passage: conversation.map(l=>l.text).join(' '), answers: conversation.filter(l=>l.answer).map(l=>l.answer) }];
 const currentQuestID = "Quest 206";
 
@@ -767,11 +760,14 @@ function placeAnswer(dz) {
   const chosen = selectedCard.textContent;
   const correct = dz.dataset.answer;
 
-  if (wrongThisRound === 0) {
+  if (chosen === correct) {
+    if (wrongThisRound === 0) {
       // Clean correct — proceed as normal
       correctCount++; gemsCount++;
       gemsCounterEl.textContent = `💎 ${gemsCount}`; animatePill(gemsCounterEl);
       dz.textContent = chosen;
+      
+      // Inject the dynamic full-screen green flash overlay
       const flash = document.createElement('div');
       flash.className = 'screen-flash-overlay';
       document.body.appendChild(flash);
@@ -792,8 +788,7 @@ function placeAnswer(dz) {
         else setTimeout(showNextLine, 420);
       }, 520);
     } else {
-      // Had wrong picks before this correct — trigger retry loop
-      // Fade out the current line and reappear with reshuffled choices
+      // Correct after a prior wrong attempt — trigger line reset
       selectedCard.classList.remove('selected'); selectedCard = null;
       const row = chatAreaEl.querySelector(`.bubble-row[data-line-index="${currentLine}"]`);
       if (row) {

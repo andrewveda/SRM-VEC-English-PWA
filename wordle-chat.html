@@ -1,0 +1,1809 @@
+<!doctype html>
+
+<html lang="en">    
+<head>    
+<meta charset="utf-8" />    
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />    
+<title>Wordle Embed</title>    
+<style>    
+:root{    
+  --bg:#0b1220; --card:#0f1724; --text:#e6eef8;    
+  --absent:#3a3a3c; --present:#b59f3b; --correct:#538d4e;    
+  --key:#818384; --key-pressed:#565758;    
+  font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;    
+}    
+*{box-sizing:border-box;margin:0;padding:0}    
+html,body{height:100%;background:var(--bg);color:var(--text);overflow:hidden}    
+.wrap{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;height:100%;padding:10px;position:relative;overflow-y:auto}    
+.board{display:grid;grid-template-rows:repeat(6,64px);gap:6px;width:100%;max-width:400px}    
+.row{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}    
+.tile{display:flex;align-items:center;justify-content:center;font-weight:700;font-size:24px;border-radius:6px;background:#121826;color:var(--text)}    
+.tile.absent{background:var(--absent)}    
+.tile.present{background:var(--present)}    
+.tile.correct{background:var(--correct)}    
+.keyboard{display:flex;flex-direction:column;gap:6px;margin-top:10px;width:100%;max-width:400px}    
+.krow{display:flex;gap:4px;justify-content:center}    
+.key{flex:1;padding:10px 0;border-radius:6px;text-align:center;user-select:none;background:var(--key);color:white;font-weight:700;cursor:pointer}    
+.key.enter {    
+  background: var(--correct); /* green */    
+}  .key.back {  
+background: #b91c1c; /* red */  
+}  .key.wide{flex:1.5}
+.hint{color:#9fb7db;margin-top:6px;font-size:14px;text-align:center}
+.rules{font-family:'Cursive', sans-serif; text-align:center; margin-top:10px; color:#a0c4ff; font-size:14px;}
+@media (min-width: 1024px) {
+.container {width: 90vw; margin: 0 auto; height: auto;}
+.keyboard {position: relative; max-height: 30vh; overflow-y: auto;}
+.scorecard {position: fixed; top: 10px; right: 10px;}
+}
+
+/* ==== OVERLAY (Instructions Full Screen) ==== */
+.overlay {
+position: fixed;
+top: 0; left: 0;
+width: 100%; height: 100%;
+background: linear-gradient(180deg, #0b1220 0%, #111a2d 100%);
+display: flex;
+justify-content: center;
+align-items: center;
+z-index: 30;
+text-align: center;
+padding: 30px;
+}
+
+.overlayContent {
+background: var(--card);
+padding: 60px 40px;
+border-radius: 30px;
+max-width: 800px;
+width: 100%;
+box-shadow: 0 0 40px rgba(0,0,0,0.6);
+animation: fadeIn 0.6s ease-out;
+}
+
+.overlayContent h1 {
+font-size: 3rem;
+color: #fff;
+margin-bottom: 20px;
+text-shadow: 0 0 20px #1f6feb;
+}
+
+.overlayContent p {
+font-size: 1.5rem;
+line-height: 2rem;
+margin: 10px 0;
+color: #bcd3ef;
+}
+
+.overlayContent strong {
+color: #ffd700;
+}
+
+#startBtn {
+margin-top: 40px;
+padding: 18px 36px;
+font-size: 1.5rem;
+font-weight: 700;
+background: #1f6feb;
+color: white;
+border: none;
+border-radius: 14px;
+cursor: pointer;
+transition: background 0.3s ease;
+}
+
+#startBtn:hover {
+background: #2c8eff;
+}
+
+@keyframes fadeIn {
+from {opacity: 0; transform: scale(0.8);}
+to {opacity: 1; transform: scale(1);}
+}
+
+/* Scorecard popup */
+.scorecard{position:absolute;top:50%;left:50%;transform:translate(-50%, -50%);background:var(--card);padding:40px 60px;border-radius:20px;box-shadow:0 10px 40px rgba(0,0,0,0.8);text-align:center;display:none;z-index:20;animation:pop 0.6s ease-out;}
+.scorecard h1{font-size:48px;margin-bottom:20px;color:#fff;animation:scaleUp 1s ease-in-out;}
+.scorecard p{font-size:24px;margin-bottom:20px;color:#bcd3ef;}
+.scorecard input{padding:10px 12px;border-radius:8px;border:none;font-size:16px;margin-bottom:12px;width:80%;text-align:center;}
+.scorecard button{padding:16px 24px;border:none;border-radius:12px;background:#1f6feb;color:white;font-weight:700;font-size:18px;cursor:pointer}
+@keyframes pop{0%{transform:translate(-50%,-50%) scale(0.5);opacity:0;}50%{transform:translate(-50%,-50%) scale(1.1);opacity:1;}100%{transform:translate(-50%,-50%) scale(1);}}
+@keyframes scaleUp{0%{transform:scale(0.3);opacity:0}50%{transform:scale(1.2);opacity:1}100%{transform:scale(1);opacity:1}}
+.sparkle{position:absolute;width:10px;height:10px;background:radial-gradient(circle,#fff,#f0f0f0 70%);border-radius:50%;pointer-events:none;animation:fly 1.5s linear infinite;}
+@keyframes fly{0%{transform:translate(0,0) scale(1);}50%{transform:translate(0,-200px) scale(0.5);}100%{transform:translate(200px,-400px) scale(0);opacity:0;}}
+@media (max-width:520px){
+.overlayContent {padding: 40px 20px;}
+.overlayContent h1 {font-size: 2.2rem;}
+.overlayContent p {font-size: 1.2rem;}
+#startBtn {font-size: 1.2rem; padding: 14px 28px;}
+}
+
+/* Chatbot styles */
+.chat-container {
+  width: 100%;
+  max-width: 400px;
+  margin-top: 20px;
+  margin-bottom: 20px;
+  border-radius: 16px;
+  background: #121826;
+  box-shadow: 0 5px 25px rgba(0,0,0,0.5);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  height: 300px;
+}
+
+.chat-header {
+  background: linear-gradient(135deg, #1f6feb 0%, #04395e 100%);
+  color: white;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.chat-avatar {
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.2);
+  margin-right: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+}
+
+.chat-messages {
+  flex: 1;
+  padding: 16px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.message {
+  max-width: 80%;
+  padding: 10px 14px;
+  border-radius: 18px;
+  font-size: 14px;
+  line-height: 1.4;
+  position: relative;
+  animation: messageAppear 0.3s ease-out;
+}
+
+@keyframes messageAppear {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.message.alien {
+  background: #1e293b;
+  color: #e6eef8;
+  align-self: flex-start;
+  border-bottom-left-radius: 4px;
+}
+
+.message.user {
+  background: #1f6feb;
+  color: white;
+  align-self: flex-end;
+  border-bottom-right-radius: 4px;
+}
+
+.message-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-self: flex-start;
+  width: 100%;
+}
+
+.option-btn {
+  background: #1e293b;
+  border: 1px solid #334155;
+  color: #e6eef8;
+  padding: 10px 14px;
+  border-radius: 18px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+}
+
+.option-btn:hover {
+  background: #253348;
+  border-color: #1f6feb;
+}
+
+.chat-input-container {
+  display: flex;
+  padding: 10px;
+  background: #0f1724;
+  border-top: 1px solid #1e293b;
+}
+
+.chat-input {
+  flex: 1;
+  background: #1e293b;
+  border: none;
+  border-radius: 24px;
+  padding: 10px 16px;
+  color: #e6eef8;
+  font-size: 14px;
+  outline: none;
+}
+
+.chat-send-btn {
+  background: #1f6feb;
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  margin-left: 8px;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease;
+}
+
+.chat-send-btn:hover {
+  background: #2c8eff;
+}
+
+.typing-indicator {
+  display: flex;
+  align-items: center;
+  padding: 10px 14px;
+  background: #1e293b;
+  border-radius: 18px;
+  border-bottom-left-radius: 4px;
+  align-self: flex-start;
+  width: fit-content;
+}
+
+.typing-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #64748b;
+  margin: 0 2px;
+  animation: typing 1.4s infinite;
+}
+
+.typing-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.typing-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes typing {
+  0%, 60%, 100% { transform: translateY(0); }
+  30% { transform: translateY(-5px); }
+}
+</style>
+
+</head>    
+<body>    
+  <div id="introOverlay" class="overlay">    
+    <div class="overlayContent">    
+      <h1>🎯 How to Play Wordle</h1>    
+      <p>Guess the <strong>5-letter word</strong> in <strong>6 tries</strong>.</p>    
+      <p>🟩 <strong>Green</strong> = correct letter, correct place</p>    
+      <p>🟨 <strong>Yellow</strong> = letter is in the word, but wrong place</p>    
+      <p>⬛ <strong>Gray</strong> = letter not in the word</p>    
+      <p style="margin-top:20px; color:#9fb7db; font-size:1.3rem;">    
+        Type letters on your keyboard or tap the on-screen keys.      
+        Press <strong>Enter</strong> to submit your guess.    
+      </p>    
+      <button id="startBtn">🚀 Start Game</button>    
+    </div>    
+  </div>    <div class="wrap">    
+    <div id="board" class="board" aria-live="polite"></div>    
+    <div class="keyboard" id="keyboard"></div>    
+    <div class="hint" id="hint"></div>    
+    <div class="rules">    
+      Green = correct, Yellow = present, Gray = absent. <br>Good luck!    
+    </div>
+    
+    <!-- Chatbot Interface -->
+    <div class="chat-container" id="chatContainer">
+      <div class="chat-header">
+        <div class="chat-avatar">👽</div>
+        <div>Alien Word Coach</div>
+      </div>
+      <div class="chat-messages" id="chatMessages">
+        <!-- Messages will be added here -->
+      </div>
+      <div class="chat-input-container">
+        <input type="text" class="chat-input" id="chatInput" placeholder="Type a message...">
+        <button class="chat-send-btn" id="chatSendBtn">➤</button>
+      </div>
+    </div>
+    
+    <div id="scorecard" class="scorecard">    
+      <h1 id="scoreTitle"></h1>    
+      <p id="scoreMsg"></p>    
+      <input id="playerName" type="text" placeholder="Enter your name" />   
+      <select id="playerDept">
+  <option value="">-- Select Department --</option>
+  <option value="Cyber Security">Cyber Security</option>
+  <option value="EIE">EIE</option>
+  <option value="CSE-1">CSE-1</option>
+  <option value="CSE-2">CSE-2</option>
+  <option value="CSE-3">CSE-3</option>
+  <option value="Mechanical Engineering">Mechanical Engineering</option>
+  <option value="ECE-1">ECE-1</option>
+  <option value="ECE-2">ECE-2</option>
+  <option value="ECE-3">ECE-3</option>
+  <option value="AI DS-1">AI DS-1</option>
+  <option value="AI DS-2">AI DS-2</option>
+  <option value="Agri and Civil">Agri and Civil</option>
+  <option value="EEE">EEE</option>
+  <option value="Medical Electronics">Medical Electronics</option>
+  <option value="IT-1">IT-1</option>
+  <option value="IT-2">IT-2</option>
+</select>
+
+      <p id="leaderboardText" style="margin-bottom:12px; color:#bcd3ef; font-size:18px;"></p>    
+      <button id="leaderboardBtn" style="display:none;">Check Leaderboard</button>    
+      <button id="shareBtn">Share on WhatsApp</button>    
+    </div>    
+  </div>    <!-- Keep your full JS code here (unchanged) -->    <!-- Paste your original <script> content below this line -->  <script>    
+const EDGE_FUNCTION_URL =    
+  "https://yellow-lab-4999.andrewveda.workers.dev/functions/v1/logQuest";    async function sendViaEdgeFunction(payload) {
+try {
+const response = await fetch(EDGE_FUNCTION_URL, {
+method: "POST",
+headers: { "Content-Type": "application/json" },
+body: JSON.stringify(payload),
+});
+
+if (!response.ok) {    
+  console.error("❌ Edge function error:", await response.text());    
+  return false;    
+}    
+
+await response.json().catch(() => ({}));    
+return true;
+
+} catch (err) {
+console.error("⚠️ Error calling edge function:", err);
+return false;
+}
+}
+const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ5Z6lmXH4jxHYMKUcimj_M-IV1pwtBUF72YKJIi_BO-KD_NYwWBJBQqni7m4NmQyU9NMdve4vGZ7rh/pub?gid=0&single=true&output=csv';
+let WORDS=[],ANSWER='',guesses=[],current='',MAX_GUESSES=6;
+let startTime = Date.now(); // start timer
+const boardEl=document.getElementById('board');
+const keyboardEl=document.getElementById('keyboard');
+const hintEl=document.getElementById('hint');
+const scorecard=document.getElementById('scorecard');
+const scoreTitle=document.getElementById('scoreTitle');
+const scoreMsg=document.getElementById('scoreMsg');
+const shareBtn = document.getElementById('shareBtn');
+const introOverlay = document.getElementById('introOverlay');
+const startBtn = document.getElementById('startBtn');
+const NAME_KEY = "questPlayerName";
+const DEPT_KEY = "questPlayerDept";
+startBtn.addEventListener('click', () => {
+introOverlay.style.display = 'none';
+document.addEventListener('keydown', keydownHandler); // enable keyboard after overlay
+initChat();
+});
+
+// --- Save/Load progress ---
+const STORAGE_KEY = 'wordle-progress';
+function saveProgress() {
+const data = { date: new Date().toDateString(), guesses, answer: ANSWER };
+localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+function loadProgress() {
+const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+return data;
+}
+
+// --- CSV parsing ---
+function parseCSV(text){
+const lines=text.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
+return Array.from(new Set(lines.map(l=>l.split(/,|\t/)[0].trim().toLowerCase()))).filter(w=>/^[a-z]{5}$/.test(w));
+}
+
+// --- Board & Keyboard ---
+function createBoard(){boardEl.innerHTML='';for(let r=0;r<MAX_GUESSES;r++){const row=document.createElement('div');row.className='row';for(let c=0;c<5;c++){const tile=document.createElement('div');tile.className='tile';row.appendChild(tile);}boardEl.appendChild(row);}}
+function renderKeyboard(){keyboardEl.innerHTML='';const KEYS=['qwertyuiop','asdfghjkl','zxcvbnm'];KEYS.forEach(rowStr=>{const r=document.createElement('div');r.className='krow';for(const ch of rowStr){const k=document.createElement('div');k.className='key';k.textContent=ch;k.dataset.key=ch;k.addEventListener('click',()=>onKey(ch));r.appendChild(k);}if(rowStr==='asdfghjkl'){const enter=document.createElement('div');enter.className = 'key wide back';
+;enter.textContent='⌫';enter.addEventListener('click',()=>onKey('Backspace'));r.appendChild(enter);}if(rowStr==='zxcvbnm'){const back=document.createElement('div');back.className = 'key wide enter';back.textContent='Enter';back.addEventListener('click',()=>onKey('Enter'));r.appendChild(back);}keyboardEl.appendChild(r);});}
+
+// --- Key handling ---
+function onKey(k){if(k==='Enter')return submitGuess();if(k==='Backspace')return deleteLetter();if(current.length<5 && /^[a-zA-Z]$/.test(k)){current+=k.toLowerCase();updateBoard();}}
+function deleteLetter(){if(current.length>0){current=current.slice(0,-1);updateBoard();}}
+function updateBoard(){const row=boardEl.children[guesses.length];for(let c=0;c<5;c++){const tile=row.children[c];tile.textContent=current[c]||'';tile.className='tile';}}
+function submitGuess() {
+if (current.length !== 5) { hintEl.textContent = 'Guess must be 5 letters.'; return; }
+if (!WORDS.includes(current.toLowerCase())) { hintEl.textContent = 'Not a valid English word.'; return; }
+evaluateGuess(current);
+current = '';
+}
+function evaluateGuess(guess){
+const row=boardEl.children[guesses.length];
+const answerArr=ANSWER.split('');
+const guessArr=guess.split('');
+const result=Array(5).fill('absent');
+const answerFreq={};
+for(let i=0;i<5;i++){answerFreq[answerArr[i]]=(answerFreq[answerArr[i]]||0)+1;}
+for(let i=0;i<5;i++){if(guessArr[i]===answerArr[i]){result[i]='correct';answerFreq[guessArr[i]]--;}}
+for(let i=0;i<5;i++){if(result[i]!=='correct' && answerFreq[guessArr[i]]>0){result[i]='present';answerFreq[guessArr[i]]--;}}
+for(let i=0;i<5;i++){const tile=row.children[i];tile.textContent=guessArr[i];tile.classList.add(result[i]);}
+updateKeys(guessArr,result);
+guesses.push(guess);
+saveProgress();
+
+// Trigger chatbot response based on guess
+processGuessResult(guess, result);
+
+if(guess===ANSWER){showScore(true);document.removeEventListener('keydown',keydownHandler);return;}
+if(guesses.length>=MAX_GUESSES){showScore(false);document.removeEventListener('keydown',keydownHandler);return;}
+hintEl.textContent='';
+}
+function updateKeys(letters,results){letters.forEach((ch,i)=>{
+
+const keyEls = keyboardEl.querySelectorAll('[data-key]');
+keyEls.forEach(k=>{if(k.dataset.key===ch){if(results[i]==='correct'){k.style.backgroundColor='var(--correct)';}else if(results[i]==='present'){if(k.style.backgroundColor!=='var(--correct)')k.style.backgroundColor='var(--present)';}else{if(!k.style.backgroundColor)k.style.backgroundColor='var(--absent)';}}});});}
+function keydownHandler(e){const k=e.key;if(k==='Enter')onKey('Enter');else if(k==='Backspace')onKey('Backspace');else if(/^[a-zA-Z]$/.test(k))onKey(k);}
+function createSparkles(){for(let i=0;i<30;i++){const s=document.createElement('div');s.className='sparkle';s.style.left=Math.random()*window.innerWidth+'px';s.style.top=Math.random()*window.innerHeight+'px';s.style.animationDelay=Math.random()+'s';s.style.width=s.style.height=(5+Math.random()*10)+'px';document.body.appendChild(s);}}
+
+function fetchToSheet(playerName){
+
+const totalTime = Math.floor((Date.now() - startTime) / 1000);
+
+sendViaEdgeFunction({
+student_name: playerName,
+tries: guesses.length,
+time_spent: totalTime,
+department: localStorage.getItem(DEPT_KEY) || "Unknown",
+quest_id: "Wordle", 
+  answer: ANSWER
+});
+}
+function showScore(win) {
+  scorecard.style.display = 'block';
+  createSparkles();
+
+  // Clear daily progress
+  localStorage.removeItem(STORAGE_KEY);
+
+  const nameInput = document.getElementById('playerName');
+  const leaderboardText = document.getElementById('leaderboardText');
+  const leaderboardBtn = document.getElementById('leaderboardBtn');
+
+  const savedName = localStorage.getItem(NAME_KEY);
+const savedDept = localStorage.getItem(DEPT_KEY);
+const deptSelect = document.getElementById('playerDept');
+
+if (savedName && savedDept) {
+
+  /* ✅ Known identity */
+
+  nameInput.value = savedName;
+  deptSelect.value = savedDept;
+
+  nameInput.style.display = "none";
+  deptSelect.style.display = "none";
+
+  leaderboardText.textContent =
+     `Score recorded for ${savedName}`;
+
+  fetchToSheet(savedName);
+
+} else {
+
+  /* ✅ New identity */
+
+  leaderboardText.textContent = "Enter details to join leaderboard";
+
+}
+
+
+  // 3️⃣ Leaderboard button
+  leaderboardBtn.style.display = "inline-block";
+  leaderboardBtn.onclick = () => {
+    window.open(
+      "https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/leaderboard_live",
+      "_blank"
+    );
+  };
+
+  // 4️⃣ When user enters/changes name
+function saveIdentity(){
+
+  const name = nameInput.value.trim();
+  const dept = document.getElementById('playerDept').value;
+
+  if (!name || !dept) return;
+
+  localStorage.setItem(NAME_KEY, name);
+  localStorage.setItem(DEPT_KEY, dept);
+
+  fetchToSheet(name);
+
+  leaderboardText.textContent =
+     `Thanks ${name}, score recorded!`;
+
+}
+
+nameInput.addEventListener('change', saveIdentity);
+document.getElementById('playerDept').addEventListener('change', saveIdentity);
+
+
+  // 5️⃣ Result message
+  if (win) {
+    const tries = guesses.length;
+    if (tries === 1) {
+      scoreTitle.textContent = '🎉 Genius!';
+      scoreMsg.textContent = `You got it in one try! The word was ${ANSWER.toUpperCase()}!`;
+      // Add special chat message for genius
+      addAlienMessage("Wow! You're a true word wizard! 🧙‍♂️ One guess? That's legendary!");
+    } else if (tries === 2) {
+      scoreTitle.textContent = '✨ Excellent!';
+      scoreMsg.textContent = `Got it in 2 tries! The word was ${ANSWER.toUpperCase()}!`;
+      // Add special chat message for excellent
+      addAlienMessage("Incredible performance! Two guesses shows both intuition and logic! 🌟");
+    } else if (tries <= 4) {
+      scoreTitle.textContent = '🌟 Great!';
+      scoreMsg.textContent = `Solved in ${tries} tries! The word was ${ANSWER.toUpperCase()}!`;
+      // Add special chat message for great
+      addAlienMessage("Well done! Your persistence paid off beautifully! 🎯");
+    } else {
+      scoreTitle.textContent = '👍 Good!';
+      scoreMsg.textContent = `You solved it in ${tries} tries! The word was ${ANSWER.toUpperCase()}!`;
+      // Add special chat message for good
+      addAlienMessage("You did it! Sometimes the journey matters more than the destination! 🛤️");
+    }
+  } else {
+    scoreTitle.textContent = '💔 Hard Luck';
+    scoreMsg.textContent =
+      `Hard luck. I could not crack today's Wordle. ` +
+      `The word was ${ANSWER.toUpperCase()}! 😎 ` +
+      `Check it out: https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/wordle`;
+    
+    // Add special chat message for losing
+    addAlienMessage("Don't let this defeat define you. As Marcus Aurelius said, 'The impediment to action advances action.' Try again tomorrow with renewed vigor! 💪");
+  }
+
+  // 6️⃣ WhatsApp share
+  shareBtn.onclick = () => {
+    let grid = guesses.map((guess) => {
+      const answerArr = ANSWER.split('');
+      const guessArr = guess.split('');
+      const result = Array(5).fill('⬜');
+      const answerFreq = {};
+
+      answerArr.forEach(ch => answerFreq[ch] = (answerFreq[ch] || 0) + 1);
+
+      for (let i = 0; i < 5; i++) {
+        if (guessArr[i] === answerArr[i]) {
+          result[i] = '🟩';
+          answerFreq[guessArr[i]]--;
+        }
+      }
+
+      for (let i = 0; i < 5; i++) {
+        if (result[i] === '⬜' && answerFreq[guessArr[i]] > 0) {
+          result[i] = '🟨';
+          answerFreq[guessArr[i]]--;
+        }
+      }
+
+      return result.join('');
+    }).join('\n');
+
+    const msg = win
+      ? `I solved today's Wordle in ${guesses.length} tries! 🎉\n${grid}\n😎 Check it out: https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/wordle`
+      : `Hard luck. I could not crack today's Wordle. 😢\n${grid}\nLet us see if you can get it! 😎 Check it out: https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/wordle`;
+
+    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+  };
+}
+function chooseDailyWord() {
+const today = new Date();
+const start = new Date(today.getFullYear(), 0, 1);
+const diff = today - start;
+const dayOfYear = Math.floor(diff / (1000 * 60 * 60 * 24));
+const index = dayOfYear % WORDS.length;
+ANSWER = WORDS[index];
+}
+
+async function init() {
+try {
+const r = await fetch(CSV_URL);
+const txt = await r.text();
+WORDS = parseCSV(txt);
+if (!WORDS.length) {
+hintEl.textContent = 'No valid 5-letter words found.';
+return;
+}
+
+chooseDailyWord();    
+createBoard();    
+renderKeyboard();    
+
+// 🔥 Always start fresh    
+guesses = [];    
+current = "";    
+localStorage.removeItem(STORAGE_KEY);    
+
+
+} catch (e) {
+hintEl.textContent = 'Failed to load word list.';
+console.error(e);
+}
+}
+
+// ===== CHATBOT IMPLEMENTATION =====
+const chatMessages = document.getElementById('chatMessages');
+const chatInput = document.getElementById('chatInput');
+const chatSendBtn = document.getElementById('chatSendBtn');
+
+// Chat conversation trees
+const conversations = {
+  // Initial greeting
+  greeting: {
+    message: "Greetings, Earthling! 👽 I'm your alien word coach. Ready to embrace the challenge of Wordle with amor fati - love of fate?",
+    options: [
+      { text: "Absolutely! I'm prepared for any challenge!", next: "motivation1" },
+      { text: "What's amor fati?", next: "philosophy1" },
+      { text: "I'm feeling a bit nervous", next: "nervous1" }
+    ]
+  },
+  
+  // Motivation conversations
+  motivation1: {
+    message: "That's the spirit! Remember Nietzsche's words: 'He who has a why to live can bear almost any how.' Your why is mastering this word challenge!",
+    options: [
+      { text: "I love that quote!", next: "motivation2" },
+      { text: "I'm ready to begin!", next: "ready1" },
+      { text: "Got any other wisdom?", next: "wisdom1" }
+    ]
+  },
+  
+  motivation2: {
+    message: "Nietzsche understood that purpose gives us strength. As you face each guess, remember you're not just finding letters - you're building resilience!",
+    options: [
+      { text: "That's a powerful perspective", next: "ready1" },
+      { text: "I want more motivation!", next: "motivation3" }
+    ]
+  },
+  
+  motivation3: {
+    message: "Consider this from Marcus Aurelius: 'The soul becomes dyed with the color of its thoughts.' Focus on the possibility of success, not the fear of failure!",
+    options: [
+      { text: "My thoughts are now positively charged!", next: "ready1" },
+      { text: "How do I maintain that focus?", next: "focus1" }
+    ]
+  },
+  
+  // Philosophy conversations
+  philosophy1: {
+    message: "Amor fati is a Stoic concept meaning 'love of fate' - embracing everything that happens, both good and bad, as necessary and even beneficial. It's about finding joy in the challenge itself!",
+    options: [
+      { text: "That resonates with me", next: "philosophy2" },
+      { text: "How does that apply to Wordle?", next: "apply1" },
+      { text: "Tell me more about Stoicism", next: "stoicism1" }
+    ]
+  },
+  
+  philosophy2: {
+    message: "When you embrace amor fati, every wrong guess becomes a teacher, not a failure. As Epictetus said, 'It's not what happens to you, but how you react to it that matters.'",
+    options: [
+      { text: "I'll try to embrace that mindset", next: "ready1" },
+      { text: "Any other philosophical insights?", next: "wisdom1" }
+    ]
+  },
+  
+  philosophy3: {
+    message: "The Stoics believed that obstacles become the way forward. In Wordle, each incorrect letter is actually guiding you toward the solution - turning the obstacle into the path!",
+    options: [
+      { text: "That's a beautiful perspective", next: "ready1" },
+      { text: "I want to hear more", next: "philosophy4" }
+    ]
+  },
+  
+  philosophy4: {
+    message: "As Seneca wrote, 'The fates lead the willing and drag the unwilling.' Willingly engage with each puzzle, and you'll find not just words but wisdom!",
+    options: [
+      { text: "I'm willing and ready!", next: "ready1" },
+      { text: "How can I apply this beyond Wordle?", next: "beyond1" }
+    ]
+  },
+  
+  // Nervous conversations
+  nervous1: {
+    message: "Nervousness shows you care! As Ralph Waldo Emerson said, 'What lies behind us and what lies before us are tiny matters compared to what lies within us.' Your potential is greater than your anxiety!",
+    options: [
+      { text: "That helps me feel braver", next: "nervous2" },
+      { text: "But what if I fail?", next: "fear1" },
+      { text: "How can I calm down?", next: "calm1" }
+    ]
+  },
+  
+  nervous2: {
+    message: "Courage isn't the absence of fear but acting despite it. Each guess you make is an act of bravery, regardless of the outcome!",
+    options: [
+      { text: "You're right, let's do this!", next: "ready1" },
+      { text: "I still have some doubts", next: "doubt1" }
+    ]
+  },
+  
+  nervous3: {
+    message: "Remember, even the greatest minds felt uncertainty. Einstein said, 'If we knew what we were doing, it wouldn't be called research.' Your uncertainty is the birthplace of discovery!",
+    options: [
+      { text: "I'll embrace the uncertainty", next: "ready1" },
+      { text: "That's surprisingly comforting", next: "nervous4" }
+    ]
+  },
+  
+  nervous4: {
+    message: "Sometimes the most profound growth comes from stepping into uncertainty. As Rilke wrote, 'Have patience with everything unresolved in your heart.' Let the answers unfold!",
+    options: [
+      { text: "I'm ready to let it unfold", next: "ready1" },
+      { text: "Tell me more about patience", next: "patience1" }
+    ]
+  },
+  
+  // Fear conversations
+  fear1: {
+    message: "As Franklin D. Roosevelt famously said, 'The only thing we have to fear is fear itself.' In Wordle, there are no real consequences - only learning opportunities!",
+    options: [
+      { text: "You're right, it's just a game", next: "fear2" },
+      { text: "But I want to do well", next: "performance1" }
+    ]
+  },
+  
+  fear2: {
+    message: "Exactly! And consider this Buddhist wisdom: 'Fear is a natural reaction to moving closer to the truth.' Each guess brings you closer to the truth of today's word!",
+    options: [
+      { text: "I'll face my fear head-on", next: "ready1" },
+      { text: "How do I stay focused despite fear?", next: "focus1" }
+    ]
+  },
+  
+  // Performance conversations
+  performance1: {
+    message: "The desire to do well is admirable! But remember what Carol Dweck teaches about the growth mindset - it's not about being perfect but about growing through the process!",
+    options: [
+      { text: "I'll focus on growth, not perfection", next: "performance2" },
+      { text: "But I want to win!", next: "winning1" }
+    ]
+  },
+  
+  performance2: {
+    message: "Beautiful mindset! As Aristotle said, 'We are what we repeatedly do. Excellence, then, is not an act but a habit.' Each game, regardless of outcome, builds your excellence habit!",
+    options: [
+      { text: "I'm developing my excellence habit now", next: "ready1" },
+      { text: "How can I track my growth?", next: "growth1" }
+    ]
+  },
+  
+  // Winning conversations
+  winning1: {
+    message: "Of course you want to win! But consider this paradox from Taoism: 'By letting it go it all gets done. The world is won by those who let it go.' Sometimes trying too hard creates resistance!",
+    options: [
+      { text: "I'll find that balance between effort and flow", next: "ready1" },
+      { text: "How do I achieve that state of flow?", next: "flow1" }
+    ]
+  },
+  
+  // Calm conversations
+  calm1: {
+    message: "Try this breathing technique: inhale for 4 counts, hold for 7, exhale for 8. As the Stoics practiced, focus only on what you can control - your next guess - not the outcome!",
+    options: [
+      { text: "That helps, I feel calmer now", next: "ready1" },
+      { text: "Any other calming techniques?", next: "calm2" }
+    ]
+  },
+  
+  calm2: {
+    message: "Marcus Aurelius would often remind himself: 'This moment is all I have.' Bring your full attention to the present puzzle. Anxiety lives in the future, calm lives in the present!",
+    options: [
+      { text: "I'm bringing my attention to now", next: "ready1" },
+      { text: "How do I stay present?", next: "present1" }
+    ]
+  },
+  
+  // Doubt conversations
+  doubt1: {
+    message: "Doubts are natural visitors to the mind. As Rumi wrote, 'The wound is the place where the light enters you.' Your doubts are actually illuminating areas for growth!",
+    options: [
+      { text: "I never thought of it that way", next: "doubt2" },
+      { text: "But my doubts feel overwhelming", next: "overwhelm1" }
+    ]
+  },
+  
+  doubt2: {
+    message: "Every master was once a disaster! Consider Thomas Edison: 'I have not failed. I've just found 10,000 ways that won't work.' Each doubt overcome is progress!",
+    options: [
+      { text: "I'm turning my doubts into determination", next: "ready1" },
+      { text: "How do successful people handle doubt?", next: "success1" }
+    ]
+  },
+  
+  // Overwhelm conversations
+  overwhelm1: {
+    message: "When overwhelmed, break it down. The Zen proverb reminds us: 'When walking, walk. When eating, eat.' Focus only on one letter, one possibility at a time!",
+    options: [
+      { text: "One letter at a time, I can do that", next: "ready1" },
+      { text: "I need more help with overwhelm", next: "overwhelm2" }
+    ]
+  },
+  
+  overwhelm2: {
+    message: "As Lao Tzu said, 'A journey of a thousand miles begins with a single step.' Your single step is choosing one letter. Don't look at the whole puzzle, just the next possibility!",
+    options: [
+      { text: "I'm focusing on just the next step", next: "ready1" },
+      { text: "That's a relief, thanks!", next: "ready1" }
+    ]
+  },
+  
+  // Focus conversations
+  focus1: {
+    message: "The Stoics practiced 'prosoche' - the art of attention. Notice when your mind wanders to worry, then gently bring it back to the letters in front of you. This is the essence of mindfulness!",
+    options: [
+      { text: "I'll practice prosoche", next: "ready1" },
+      { text: "Any tips for maintaining focus?", next: "focus2" }
+    ]
+  },
+  
+  focus2: {
+    message: "Try this: before each guess, take one conscious breath and ask yourself, 'What do I know for certain?' This anchors you in facts rather than fears!",
+    options: [
+      { text: "That's a practical technique I can use", next: "ready1" },
+      { text: "How can I improve my concentration long-term?", next: "concentration1" }
+    ]
+  },
+  
+  // Concentration conversations
+  concentration1: {
+    message: "Concentration is like a muscle that strengthens with practice. As Samuel Johnson said, 'What we hope ever to do with ease, we must first learn to do with diligence.' Your daily Wordle is concentration training!",
+    options: [
+      { text: "I'm building my concentration muscle", next: "ready1" },
+      { text: "Any other concentration tips?", next: "concentration2" }
+    ]
+  },
+  
+  concentration2: {
+    message: "Create a ritual before playing - a specific breath, a clearing of your space, a moment of intention. Rituals signal to your brain it's time to focus. The Stoics called this 'premeditatio malorum' - preparing the mind!",
+    options: [
+      { text: "I'll create a pre-Wordle ritual", next: "ready1" },
+      { text: "That's fascinating, tell me more", next: "ritual1" }
+    ]
+  },
+  
+  // Ritual conversations
+  ritual1: {
+    message: "Rituals have guided humans for millennia. They transform ordinary actions into meaningful ceremonies. Your Wordle ritual could be: three deep breaths, stating your intention, then beginning with purpose!",
+    options: [
+      { text: "I love that idea", next: "ready1" },
+      { text: "Can you suggest a complete ritual?", next: "ritual2" }
+    ]
+  },
+  
+  ritual2: {
+    message: "Try this: 1) Close eyes, take 3 deep breaths. 2) Open eyes, gaze at the empty board. 3) Silently say, 'I approach this with curiosity, not judgment.' 4) Begin! This creates a sacred space for learning!",
+    options: [
+      { text: "That feels meaningful, I'll try it", next: "ready1" },
+      { text: "I'll adapt it to make it my own", next: "ready1" }
+    ]
+  },
+  
+  // Wisdom conversations
+  wisdom1: {
+    message: "Here's wisdom from Seneca: 'It is not that we have a short time to live, but that we waste a lot of it.' Each Wordle is an opportunity to use time wisely by training your mind!",
+    options: [
+      { text: "I'll make each game count", next: "wisdom2" },
+      { text: "That's a profound thought", next: "wisdom3" }
+    ]
+  },
+  
+  wisdom2: {
+    message: "Indeed! And consider this from the Talmud: 'Who is wise? One who learns from everyone.' Each guess, whether right or wrong, has something to teach you if you're open to learning!",
+    options: [
+      { text: "I'm open to learning from every outcome", next: "ready1" },
+      { text: "How do I recognize the lessons?", next: "lessons1" }
+    ]
+  },
+  
+  wisdom3: {
+    message: "Profound thoughts often lead to profound actions. As Carl Jung noted, 'Who looks outside, dreams; who looks inside, awakes.' Wordle can be a meditation that awakens your inner observer!",
+    options: [
+      { text: "I'll use Wordle as a meditation", next: "ready1" },
+      { text: "How do I develop that inner observer?", next: "observer1" }
+    ]
+  },
+  
+  // Observer conversations
+  observer1: {
+    message: "The inner observer notices your thoughts without being controlled by them. When frustrated, it says 'Ah, frustration is present' without becoming frustrated. This transforms your Wordle experience!",
+    options: [
+      { text: "I want to develop that skill", next: "observer2" },
+      { text: "That sounds like mindfulness", next: "mindfulness1" }
+    ]
+  },
+  
+  observer2: {
+    message: "Start small: after each guess, notice your emotional reaction without judgment. 'I notice disappointment.' 'I notice excitement.' This simple practice builds the observer muscle!",
+    options: [
+      { text: "I'll practice that after each guess", next: "ready1" },
+      { text: "Any other observer practices?", next: "observer3" }
+    ]
+  },
+  
+  observer3: {
+    message: "Try the 'double arrow' technique: notice the external event (a wrong letter) and your internal reaction (frustration). Seeing this connection gives you freedom to choose your response rather than react automatically!",
+    options: [
+      { text: "That's powerful, I'll try it", next: "ready1" },
+      { text: "This is changing how I see Wordle", next: "ready1" }
+    ]
+  },
+  
+  // Mindfulness conversations
+  mindfulness1: {
+    message: "Exactly! Mindfulness is paying attention on purpose, without judgment. When playing Wordle, notice the shape of letters, the colors that appear, the thoughts that arise - all without trying to change them!",
+    options: [
+      { text: "Wordle as mindfulness practice, I love it", next: "ready1" },
+      { text: "How does mindfulness help with problem-solving?", next: "solve1" }
+    ]
+  },
+  
+  // Solving conversations
+  solve1: {
+    message: "Mindfulness reduces the 'noise' of anxiety and overthinking, allowing your natural problem-solving abilities to emerge. As Einstein said, 'The intuitive mind is a sacred gift.' Mindfulness helps you access it!",
+    options: [
+      { text: "I'll trust my intuition more", next: "solve2" },
+      { text: "How do I balance intuition with logic?", next: "balance1" }
+    ]
+  },
+  
+  solve2: {
+    message: "Beautiful! Intuition often recognizes patterns before conscious logic does. After your logical analysis, try 'listening' for a hunch about the word. The best solutions often combine both!",
+    options: [
+      { text: "I'll honor both my logic and intuition", next: "ready1" },
+      { text: "That's a new approach for me", next: "ready1" }
+    ]
+  },
+  
+  // Balance conversations
+  balance1: {
+    message: "The Taoists teach about yin and yang - complementary forces. Logic (yang) analyzes and eliminates. Intuition (yin) senses and integrates. The master problem-solver dances between both!",
+    options: [
+      { text: "I want to learn that dance", next: "balance2" },
+      { text: "How do I know when to use which?", next: "when1" }
+    ]
+  },
+  
+  balance2: {
+    message: "Start with logic to eliminate impossibilities, then pause and let intuition suggest possibilities. As the saying goes, 'Chance favors the prepared mind.' Your logic prepares, intuition seizes the opportunity!",
+    options: [
+      { text: "That's a clear framework I can follow", next: "ready1" },
+      { text: "I'll experiment with that approach", next: "ready1" }
+    ]
+  },
+  
+  // When conversations
+  when1: {
+    message: "Signs it's time for intuition: when logic has narrowed options but can't decide; when you feel 'stuck' in analysis; when a word 'feels right' despite no logical reason to prefer it. Trust these signals!",
+    options: [
+      { text: "I'll watch for those signals", next: "ready1" },
+      { text: "What if my intuition is wrong?", next: "wrong1" }
+    ]
+  },
+  
+  // Wrong conversations
+  wrong1: {
+    message: "Intuition, like any skill, improves with practice and reflection. Thomas Edison's intuition about light bulbs failed many times before succeeding. Wrong intuitions still teach you something about your thinking patterns!",
+    options: [
+      { text: "I'll see wrong intuitions as data, not failures", next: "ready1" },
+      { text: "How do I improve my intuition?", next: "improve1" }
+    ]
+  },
+  
+  // Improve conversations
+  improve1: {
+    message: "After each game, reflect: 'What was my first hunch? What did I end up discovering?' Over time, you'll notice patterns in when your intuition was accurate. This feedback loop strengthens intuitive abilities!",
+    options: [
+      { text: "I'll create that feedback loop for myself", next: "ready1" },
+      { text: "Any other ways to develop intuition?", next: "develop1" }
+    ]
+  },
+  
+  // Develop conversations
+  develop1: {
+    message: "Expose yourself to diverse words, read widely, play with language. Intuition draws from a rich internal library. The more 'books' in your mental library, the more connections your intuition can make!",
+    options: [
+      { text: "I'll expand my word library", next: "ready1" },
+      { text: "That makes sense, thanks for the insight", next: "ready1" }
+    ]
+  },
+  
+  // Apply conversations
+  apply1: {
+    message: "In Wordle, amor fati means embracing each result - even gray letters - as essential information rather than frustration. Every 'wrong' guess eliminates possibilities and brings you closer to the solution!",
+    options: [
+      { text: "I'll see gray letters as helpful guides", next: "apply2" },
+      { text: "That changes how I'll approach the game", next: "ready1" }
+    ]
+  },
+  
+  apply2: {
+    message: "Exactly! Consider this: without knowing what's NOT in the word, you can't know what IS. The gray letters are just as valuable as green ones - they're the negative space that defines the solution!",
+    options: [
+      { text: "I've never thought about it that way", next: "ready1" },
+      { text: "That's a beautiful perspective on problem-solving", next: "ready1" }
+    ]
+  },
+  
+  // Stoicism conversations
+  stoicism1: {
+    message: "Stoicism teaches that we can't control external events (the word), only our responses to them (our guesses and attitudes). This creates remarkable freedom even in constrained situations like Wordle!",
+    options: [
+      { text: "I want that kind of freedom", next: "stoicism2" },
+      { text: "How do I practice Stoicism in daily life?", next: "daily1" }
+    ]
+  },
+  
+  stoicism2: {
+    message: "Start with the 'dichotomy of control' - before each guess, ask: 'Can I control the outcome?' No. 'Can I control my process?' Yes. Focus your energy where you have power!",
+    options: [
+      { text: "I'll focus on my process, not just results", next: "ready1" },
+      { text: "Any other Stoic practices for Wordle?", next: "stoic3" }
+    ]
+  },
+  
+  stoic3: {
+    message: "Try 'negative visualization' - briefly imagine not solving the puzzle. This seems counterintuitive, but it actually reduces anxiety by preparing you for all outcomes and increasing gratitude when you do succeed!",
+    options: [
+      { text: "I'll try that before my next guess", next: "ready1" },
+      { text: "That's a fascinating technique", next: "ready1" }
+    ]
+  },
+  
+  // Daily conversations
+  daily1: {
+    message: "Start your day with intention. Marcus Aurelius began each morning by reminding himself of principles to guide him. Your Wordle can become a daily practice of applying wisdom to challenges!",
+    options: [
+      { text: "I'll make Wordle part of my daily wisdom practice", next: "ready1" },
+      { text: "How do I create a daily wisdom routine?", next: "routine1" }
+    ]
+  },
+  
+  // Routine conversations
+  routine1: {
+    message: "Consider the 'bookend' method: begin each day with a few minutes of reflection on a philosophical principle, then apply it to your first challenge (Wordle!). End the day reviewing how you applied it!",
+    options: [
+      { text: "I'll create that bookend routine", next: "ready1" },
+      { text: "What principles should I focus on?", next: "principles1" }
+    ]
+  },
+  
+  // Principles conversations
+  principles1: {
+    message: "Start with these three: 1) Focus on what you can control 2) See obstacles as opportunities 3) Practice gratitude for the learning process. These three transform any challenge, including Wordle!",
+    options: [
+      { text: "Those three are perfect starting points", next: "ready1" },
+      { text: "Can you elaborate on seeing obstacles as opportunities?", next: "obstacles1" }
+    ]
+  },
+  
+  // Obstacles conversations
+  obstacles1: {
+    message: "The Stoic principle of 'the obstacle is the way' means that the very thing blocking you IS the path forward. In Wordle, a wrong letter isn't blocking you - it's guiding you by eliminating wrong paths!",
+    options: [
+      { text: "I'll reframe obstacles as guidance", next: "ready1" },
+      { text: "That's a powerful reframe", next: "ready1" }
+    ]
+  },
+  
+  // Patience conversations
+  patience1: {
+    message: "As Lao Tzu wrote, 'Nature does not hurry, yet everything is accomplished.' Patience isn't passive waiting but active trust in the process. Each guess brings you closer, even when progress seems slow!",
+    options: [
+      { text: "I'll practice active patience", next: "ready1" },
+      { text: "How do I stay patient when stuck?", next: "stuck1" }
+    ]
+  },
+  
+  // Stuck conversations
+  stuck1: {
+    message: "When stuck, try the 'beginner's mind' approach from Zen Buddhism - pretend you're seeing the puzzle for the first time, without assumptions from previous guesses. Fresh eyes often see new possibilities!",
+    options: [
+      { text: "I'll try that beginner's mind approach", next: "ready1" },
+      { text: "Any other strategies for being stuck?", next: "stuck2" }
+    ]
+  },
+  
+  stuck2: {
+    message: "Change your physical position, take three deep breaths, or look away for a moment. Sometimes shifting your state breaks the mental pattern. Einstein got his best insights while taking walks!",
+    options: [
+      { text: "I'll remember to shift my state when stuck", next: "ready1" },
+      { text: "That's practical advice I can use", next: "ready1" }
+    ]
+  },
+  
+  // Present conversations
+  present1: {
+    message: "Presence comes from anchoring attention in sensory experience. Feel the keys as you type, notice the colors as they appear, hear the sounds of your environment. This brings you fully into the now!",
+    options: [
+      { text: "I'll use my senses to stay present", next: "ready1" },
+      { text: "How does presence help with Wordle?", next: "presence2" }
+    ]
+  },
+  
+  presence2: {
+    message: "Presence eliminates the anxiety of 'Will I solve it?' and the frustration of 'I should have gotten it sooner.' It connects you with the pure experience of the puzzle, where your best thinking emerges!",
+    options: [
+      { text: "I'll focus on the experience, not the outcome", next: "ready1" },
+      { text: "That's a liberating approach", next: "ready1" }
+    ]
+  },
+  
+  // Flow conversations
+  flow1: {
+    message: "Flow happens when challenge meets skill - not too easy (boredom) or too hard (anxiety). If stuck, try a simpler analysis. If bored, add self-imposed challenges like 'solve with fewer vowels'!",
+    options: [
+      { text: "I'll adjust to find my flow zone", next: "ready1" },
+      { text: "How do I recognize when I'm in flow?", next: "flow2" }
+    ]
+  },
+  
+  flow2: {
+    message: "Flow feels like: losing track of time, effortless attention, intrinsic enjoyment, and actions feeling automatic yet conscious. When you're in flow with Wordle, the words almost reveal themselves!",
+    options: [
+      { text: "I've felt that sometimes, now I understand it", next: "ready1" },
+      { text: "How can I get into flow more reliably?", next: "reliable1" }
+    ]
+  },
+  
+  // Reliable conversations
+  reliable1: {
+    message: "Create optimal conditions: minimize distractions, ensure you're neither too tired nor too caffeinated, and approach with curiosity rather than pressure. Flow follows favorable conditions like water follows gravity!",
+    options: [
+      { text: "I'll set up flow-friendly conditions", next: "ready1" },
+      { text: "That makes sense, environment matters", next: "ready1" }
+    ]
+  },
+  
+  // Success conversations
+  success1: {
+    message: "Successful people share a common trait: they don't eliminate doubt but act despite it. As Richard Branson says, 'If somebody offers you an amazing opportunity but you are not sure you can do it, say yes - then learn how to do it later!'",
+    options: [
+      { text: "I'll say yes to the Wordle challenge despite doubts", next: "ready1" },
+      { text: "How do successful people handle failure?", next: "failure1" }
+    ]
+  },
+  
+  // Failure conversations
+  failure1: {
+    message: "They redefine it! Thomas Edison didn't fail 10,000 times - he found 10,000 ways that didn't work. Each 'failure' in Wordle eliminates possibilities and teaches you something about the word!",
+    options: [
+      { text: "I'm reframing failure as feedback", next: "ready1" },
+      { text: "That takes the sting out of wrong guesses", next: "ready1" }
+    ]
+  },
+  
+  // Growth conversations
+  growth1: {
+    message: "Growth isn't always linear or obvious. Keep a simple Wordle journal: date, number of guesses, one thing learned. Over weeks, you'll see patterns and progress invisible in the moment!",
+    options: [
+      { text: "I'll start a Wordle journal", next: "ready1" },
+      { text: "What should I track specifically?", next: "track1" }
+    ]
+  },
+  
+  // Track conversations
+  track1: {
+    message: "Track: 1) Guesses used 2) Letters that tricked you 3) Strategies that worked 4) Emotional patterns 5) Insights about your thinking. This data becomes wisdom over time!",
+    options: [
+      { text: "That's a comprehensive tracking system", next: "ready1" },
+      { text: "I'll start with just guesses and insights", next: "ready1" }
+    ]
+  },
+  
+  // Beyond conversations
+  beyond1: {
+    message: "The principles you're learning - embracing challenges, focusing on process, managing emotions - apply to everything! As the saying goes, 'How you do anything is how you do everything.' Wordle becomes life practice!",
+    options: [
+      { text: "I see Wordle as training for life now", next: "ready1" },
+      { text: "That gives the game deeper meaning", next: "ready1" }
+    ]
+  },
+  
+  // Lessons conversations
+  lessons1: {
+    message: "Lessons often hide in unexpected places. After each game, ask: 'What might this be teaching me beyond word patterns?' Perhaps patience, or humility, or the value of diverse perspectives (trying different letters)!",
+    options: [
+      { text: "I'll look for the hidden lessons", next: "ready1" },
+      { text: "That's a profound way to approach the game", next: "ready1" }
+    ]
+  },
+  
+  // Ready conversations
+  ready1: {
+    message: "Wonderful! Remember, as you play: embrace each result, stay present, balance logic with intuition, and see obstacles as guides. Your journey matters as much as your destination. Begin!",
+    options: [
+      { text: "I'm ready with purpose and presence!", next: null }, // End of conversation tree
+      { text: "One last piece of wisdom?", next: "final1" }
+    ]
+  },
+  
+  // Final conversations
+  final1: {
+    message: "As you play, remember Rilke's advice: 'Be patient toward all that is unsolved in your heart and try to love the questions themselves.' The questions in Wordle are as valuable as the answers. Now go play with wisdom!",
+    options: [
+      { text: "I'm playing with wisdom now!", next: null }, // End of conversation tree
+      { text: "Thank you, alien coach!", next: null } // End of conversation tree
+    ]
+  }
+};
+
+// Guess response conversations
+const guessResponses = {
+  // First guess responses
+  firstGuess: [
+    {
+      message: "Interesting first choice! Remember, the first guess is about gathering information, not being perfect. What are you noticing?",
+      options: [
+        { text: "I found some green letters!", next: "firstGreen" },
+        { text: "I have some yellow letters", next: "firstYellow" },
+        { text: "Mostly gray letters", next: "firstGray" }
+      ]
+    },
+    {
+      message: "The journey begins! As Seneca said, 'Every new beginning comes from some other beginning's end.' Your first guess ends the uncertainty of not starting!",
+      options: [
+        { text: "I'm glad I started!", next: "firstGreen" },
+        { text: "Not sure about my start", next: "firstGray" }
+      ]
+    }
+  ],
+  
+  // First guess green responses
+  firstGreen: {
+    message: "Excellent! Green letters are like finding treasure - they confirm part of the path. As the Stoics would say, 'Use what you have with excellence.' How does it feel?",
+    options: [
+      { text: "Encouraging! I'm on the right track", next: "encouraged1" },
+      { text: "Good, but I still have work to do", next: "worktodo1" }
+    ]
+  },
+  
+  // First guess yellow responses
+  firstYellow: {
+    message: "Yellow letters are like riddles - you have part of the answer but not the full picture. This is where creativity meets logic! What's your next approach?",
+    options: [
+      { text: "I'll try rearranging the yellow letters", next: "rearrange1" },
+      { text: "I need to find new letters too", next: "newletters1" }
+    ]
+  },
+  
+  // First guess gray responses
+  firstGray: {
+    message: "Gray letters might seem disappointing, but they're actually valuable - they've eliminated wrong paths! As Edison might say, 'I now know thousands of letters that aren't in this word!' What's your strategy?",
+    options: [
+      { text: "I'll try completely different letters", next: "different1" },
+      { text: "I feel discouraged", next: "discouraged1" }
+    ]
+  },
+  
+  // Mid-game responses
+  midGame: [
+    {
+      message: "You're making progress! Remember, mastery isn't about speed but about the quality of your attention. What patterns are emerging?",
+      options: [
+        { text: "I'm seeing possible words form", next: "forming1" },
+        { text: "I'm still unclear", next: "unclear1" }
+      ]
+    },
+    {
+      message: "The middle of the puzzle is often the most challenging - you have some information but not enough. This is where perseverance matters most! How are you approaching it?",
+      options: [
+        { text: "I'm systematically testing options", next: "systematic1" },
+        { text: "I'm following my intuition", next: "intuition1" },
+        { text: "I'm feeling stuck", next: "stuck3" }
+      ]
+    }
+  ],
+  
+  // Late-game responses
+  lateGame: [
+    {
+      message: "We're in the crucial phase! As the saying goes, 'It's always darkest before the dawn.' Your previous guesses have prepared you for this moment. What are you focusing on?",
+      options: [
+        { text: "The remaining letter positions", next: "positions1" },
+        { text: "Words that fit all the clues", next: "words1" },
+        { text: "I'm feeling the pressure", next: "pressure1" }
+      ]
+    },
+    {
+      message: "This is where calm clarity becomes essential. Take a breath and look at what you know with fresh eyes. Sometimes the answer is hiding in plain sight! What do you see?",
+      options: [
+        { text: "I think I see a possibility!", next: "possibility1" },
+        { text: "I'm still searching", next: "searching1" }
+      ]
+    }
+  ],
+  
+  // Additional response nodes
+  encouraged1: {
+    message: "That encouragement is fuel for your brain! Positive emotions enhance cognitive flexibility, helping you see more possibilities. Ride that wave of motivation!",
+    options: [
+      { text: "I'm energized to continue!", next: null },
+      { text: "How do I maintain this energy?", next: "energy1" }
+    ]
+  },
+  
+  worktodo1: {
+    message: "Recognizing the work ahead shows wisdom! As the Taoists teach, 'The journey of a thousand miles begins with a single step.' What's your next step?",
+    options: [
+      { text: "I'll focus on the unfilled positions", next: null },
+      { text: "I'll try to find more letters first", next: null }
+    ]
+  },
+  
+  rearrange1: {
+    message: "Smart strategy! Sometimes the right letters are just in the wrong places. This is like rearranging furniture - the same elements can create entirely different spaces!",
+    options: [
+      { text: "I'll experiment with different arrangements", next: null },
+      { text: "Any tips for rearranging effectively?", next: "rearrangetips1" }
+    ]
+  },
+  
+  newletters1: {
+    message: "Balancing known letters with new discoveries is an art! You're like a detective gathering both confirmed facts and new leads. What kind of new letters are you considering?",
+    options: [
+      { text: "Common letters like E, A, I", next: null },
+      { text: "Less common letters based on patterns", next: null }
+    ]
+  },
+  
+  different1: {
+    message: "Sometimes a complete reset is exactly what's needed! This is the 'beginner's mind' in action - approaching with fresh eyes rather than being attached to previous attempts!",
+    options: [
+      { text: "I'm approaching with a blank slate mentality", next: null },
+      { text: "That's a relief, I feel less pressure now", next: null }
+    ]
+  },
+  
+  discouraged1: {
+    message: "Discouragement is natural but temporary. Remember Rumi's wisdom: 'The wound is the place where the light enters you.' This discouragement might be illuminating a new approach!",
+    options: [
+      { text: "You're right, I'll look for the light", next: null },
+      { text: "How do I shift from discouraged to encouraged?", next: "shift1" }
+    ]
+  },
+  
+  forming1: {
+    message: "That's exciting! When words start forming in your mind, you're entering the 'incubation' phase of creativity. Let those partial words develop without forcing them!",
+    options: [
+      { text: "I'll let the words come to me", next: null },
+      { text: "How do I know which formation is right?", next: "right1" }
+    ]
+  },
+  
+  unclear1: {
+    message: "Clarity often comes from stepping back. Try this: look away for 10 seconds, take a breath, then return with the question 'If I had to guess right now, what would it be?' Trust what emerges!",
+    options: [
+      { text: "I'll try that technique", next: null },
+      { text: "I need a different approach", next: "approach1" }
+    ]
+  },
+  
+  systematic1: {
+    message: "Systematic approaches have powered human progress for millennia! You're applying the scientific method - hypothesis, test, evaluate. This disciplined thinking will serve you well!",
+    options: [
+      { text: "I value systematic thinking", next: null },
+      { text: "Sometimes I feel too rigid though", next: "rigid1" }
+    ]
+  },
+  
+  intuition1: {
+    message: "Trusting intuition is brave! It's your subconscious recognizing patterns your conscious mind hasn't articulated yet. Einstein said, 'The intuitive mind is a sacred gift.' Honor it!",
+    options: [
+      { text: "I'm embracing my intuitive side", next: null },
+      { text: "How do I balance intuition with logic?", next: "balance2" }
+    ]
+  },
+  
+  stuck3: {
+    message: "Being stuck is information too! It often means you're too close to the problem. Try explaining your thought process out loud - this externalizes your thinking and often reveals blind spots!",
+    options: [
+      { text: "I'll try the 'think out loud' approach", next: null },
+      { text: "Any other unsticking strategies?", next: "unstuck1" }
+    ]
+  },
+  
+  positions1: {
+    message: "Focusing on positions is strategic! Each unfilled position is a question waiting for an answer. What patterns do you see in the remaining possibilities?",
+    options: [
+      { text: "I see some letter patterns forming", next: null },
+      { text: "The positions seem random", next: null }
+    ]
+  },
+  
+  words1: {
+    message: "You're in synthesis mode - bringing together all the clues into a coherent whole. This is where pattern recognition shines. What words are emerging as candidates?",
+    options: [
+      { text: "I have a few possibilities", next: null },
+      { text: "Nothing is coming together yet", next: null }
+    ]
+  },
+  
+  pressure1: {
+    message: "Pressure often comes from attaching your worth to the outcome. Remember: you are not your Wordle score! You are the consciousness experiencing the puzzle. That can't be diminished by any result!",
+    options: [
+      { text: "That helps me detach from the pressure", next: null },
+      { text: "How do I perform well under pressure?", next: "perform1" }
+    ]
+  },
+  
+  possibility1: {
+    message: "That spark of recognition is precious! Before committing, do a quick check: does this possibility honor all the clues you've gathered? If yes, trust it!",
+    options: [
+      { text: "It checks out, I'm going for it!", next: null },
+      { text: "I'm second-guessing myself", next: "secondguess1" }
+    ]
+  },
+  
+  searching1: {
+    message: "The search itself has value! As the philosopher Kierkegaard noted, 'Life can only be understood backwards; but it must be lived forwards.' You'll understand this puzzle after solving it - for now, keep searching forward!",
+    options: [
+      { text: "I'll keep moving forward in my search", next: null },
+      { text: "I feel like I'm going in circles", next: "circles1" }
+    ]
+  },
+  
+  // Additional helper nodes
+  energy1: {
+    message: "Energy comes from engagement, not just willpower. Stay curious about the word itself - what might it mean? Where does it come from? This curiosity sustains energy better than force!",
+    options: [
+      { text: "I'm curious about the word's story", next: null },
+      { text: "That's a new way to think about energy", next: null }
+    ]
+  },
+  
+  rearrangetips1: {
+    message: "Try starting with the most constrained position - the one with the fewest possibilities. This creates a foundation to build around, like starting a jigsaw puzzle with the edges!",
+    options: [
+      { text: "I'll identify the most constrained position", next: null },
+      { text: "That's a strategic approach I hadn't considered", next: null }
+    ]
+  },
+  
+  shift1: {
+    message: "Emotional shifts often come from perspective shifts. Try this: instead of 'I'm discouraged,' say 'I'm gathering information.' Same situation, different story. How does that feel?",
+    options: [
+      { text: "Like a weight has lifted", next: null },
+      { text: "It's a start but I need more", next: "more1" }
+    ]
+  },
+  
+  right1: {
+    message: "The 'right' formation often feels like recognition rather than deduction - a sense of 'of course!' rather than 'I think so.' Trust that feeling of recognition when it comes!",
+    options: [
+      { text: "I'll wait for that recognition feeling", next: null },
+      { text: "What if I never get that feeling?", next: "neverfeel1" }
+    ]
+  },
+  
+  approach1: {
+    message: "Different approaches unlock different insights. Try the opposite of what you've been doing - if you've been systematic, try intuitive; if intuitive, try systematic. This creates mental flexibility!",
+    options: [
+      { text: "I'll try the opposite approach", next: null },
+      { text: "That's a clever strategy", next: null }
+    ]
+  },
+  
+  rigid1: {
+    message: "Rigidity and flexibility aren't opposites but partners! Start with structure, then allow intuition to suggest exceptions. As the saying goes, 'Learn the rules like a pro, so you can break them like an artist.'",
+    options: [
+      { text: "I'll learn the structure then break it artfully", next: null },
+      { text: "That balances my need for both", next: null }
+    ]
+  },
+  
+  unstuck1: {
+    message: "Try the 'five why' technique: ask 'Why am I stuck?' then 'Why is that?' five times to reach root causes. Often we're stuck not because of lack of information but because of assumptions!",
+    options: [
+      { text: "I'll dig into my assumptions", next: null },
+      { text: "That's a powerful diagnostic tool", next: null }
+    ]
+  },
+  
+  perform1: {
+    message: "Peak performance comes from a paradox: caring deeply about the outcome while being fully accepting of any result. This creates engagement without anxiety - the ideal performance state!",
+    options: [
+      { text: "I'll try to hold that paradox", next: null },
+      { text: "That sounds challenging but worthwhile", next: null }
+    ]
+  },
+  
+  secondguess1: {
+    message: "Second-guessing often comes from fear of being wrong rather than actual uncertainty. Ask yourself: 'If this were someone else's guess, would I think it's reasonable?' This creates healthy distance from the fear!",
+    options: [
+      { text: "That helps me evaluate more objectively", next: null },
+      { text: "I'm still not sure", next: "notsure1" }
+    ]
+  },
+  
+  circles1: {
+    message: "Circles often mean you're repeatedly applying the same filter. Try asking: 'What am I assuming that might not be true?' Questioning assumptions opens new pathways!",
+    options: [
+      { text: "I'll examine my assumptions", next: null },
+      { text: "That might be exactly what I need", next: null }
+    ]
+  },
+  
+  more1: {
+    message: "Sometimes we need a complete reset. Try this: close your eyes, count to 10, then open them and look at the puzzle as if seeing it for the first time. Fresh eyes often see what tired eyes miss!",
+    options: [
+      { text: "I'm resetting my perspective now", next: null },
+      { text: "That's a simple but powerful technique", next: null }
+    ]
+  },
+  
+  neverfeel1: {
+    message: "Sometimes recognition comes only in retrospect - after submitting the guess. That's okay! Not all insights arrive with fanfare. Trust your best judgment even without the 'of course!' feeling!",
+    options: [
+      { text: "I'll trust my judgment", next: null },
+      { text: "That takes some pressure off", next: null }
+    ]
+  },
+  
+  notsure1: {
+    message: "When truly unsure, go with your first instinct - it's often your subconscious recognizing a pattern your conscious mind hasn't articulated. Hesitation often leads away from, not toward, the answer!",
+    options: [
+      { text: "I'll trust my first instinct", next: null },
+      { text: "That's counterintuitive but I'll try it", next: null }
+    ]
+  }
+};
+
+// Function to initialize the chatbot
+function initChat() {
+  // Clear any existing messages
+  chatMessages.innerHTML = '';
+  
+  // Show typing indicator then first message
+  showTypingIndicator();
+  
+  setTimeout(() => {
+    hideTypingIndicator();
+    showConversation('greeting');
+  }, 1500);
+}
+
+// Function to show typing indicator
+function showTypingIndicator() {
+  const typingDiv = document.createElement('div');
+  typingDiv.className = 'typing-indicator';
+  typingDiv.id = 'typingIndicator';
+  typingDiv.innerHTML = '<div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>';
+  chatMessages.appendChild(typingDiv);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+// Function to hide typing indicator
+function hideTypingIndicator() {
+  const typingIndicator = document.getElementById('typingIndicator');
+  if (typingIndicator) {
+    typingIndicator.remove();
+  }
+}
+
+// Function to show a conversation
+function showConversation(conversationId) {
+  const conversation = conversations[conversationId] || guessResponses[conversationId];
+  
+  if (!conversation) return;
+  
+  // Add alien message
+  addAlienMessage(conversation.message);
+  
+  // Add options if they exist
+  if (conversation.options && conversation.options.length > 0) {
+    setTimeout(() => {
+      showOptions(conversation.options);
+    }, 500);
+  }
+}
+
+// Function to add an alien message
+function addAlienMessage(message) {
+  const messageDiv = document.createElement('div');
+  messageDiv.className = 'message alien';
+  messageDiv.textContent = message;
+  chatMessages.appendChild(messageDiv);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+// Function to add a user message
+function addUserMessage(message) {
+  const messageDiv = document.createElement('div');
+  messageDiv.className = 'message user';
+  messageDiv.textContent = message;
+  chatMessages.appendChild(messageDiv);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+// Function to show options
+function showOptions(options) {
+  // Remove any existing options
+  const existingOptions = document.querySelector('.message-options');
+  if (existingOptions) {
+    existingOptions.remove();
+  }
+  
+  const optionsDiv = document.createElement('div');
+  optionsDiv.className = 'message-options';
+  
+  options.forEach(option => {
+    const optionBtn = document.createElement('button');
+    optionBtn.className = 'option-btn';
+    optionBtn.textContent = option.text;
+    optionBtn.addEventListener('click', () => {
+      // Remove options after selection
+      optionsDiv.remove();
+      
+      // Add user message
+      addUserMessage(option.text);
+      
+      // Show typing indicator then next conversation
+      if (option.next) {
+        showTypingIndicator();
+        setTimeout(() => {
+          hideTypingIndicator();
+          showConversation(option.next);
+        }, 1000);
+      }
+    });
+    
+    optionsDiv.appendChild(optionBtn);
+  });
+  
+  chatMessages.appendChild(optionsDiv);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+// Function to process guess results and trigger appropriate chat responses
+function processGuessResult(guess, result) {
+  const guessNumber = guesses.length;
+  const correctCount = result.filter(r => r === 'correct').length;
+  const presentCount = result.filter(r => r === 'present').length;
+  const absentCount = result.filter(r => r === 'absent').length;
+  
+  // Remove any existing options
+  const existingOptions = document.querySelector('.message-options');
+  if (existingOptions) {
+    existingOptions.remove();
+  }
+  
+  // Determine which response to show based on guess number and result
+  if (guessNumber === 1) {
+    // First guess responses
+    if (correctCount > 0) {
+      showTypingIndicator();
+      setTimeout(() => {
+        hideTypingIndicator();
+        showConversation('firstGreen');
+      }, 1000);
+    } else if (presentCount > 0) {
+      showTypingIndicator();
+      setTimeout(() => {
+        hideTypingIndicator();
+        showConversation('firstYellow');
+      }, 1000);
+    } else {
+      showTypingIndicator();
+      setTimeout(() => {
+        hideTypingIndicator();
+        showConversation('firstGray');
+      }, 1000);
+    }
+  } else if (guessNumber < 4) {
+    // Mid-game responses
+    const midGameResponse = guessResponses.midGame[Math.floor(Math.random() * guessResponses.midGame.length)];
+    showTypingIndicator();
+    setTimeout(() => {
+      hideTypingIndicator();
+      addAlienMessage(midGameResponse.message);
+      setTimeout(() => {
+        showOptions(midGameResponse.options);
+      }, 500);
+    }, 1000);
+  } else {
+    // Late-game responses
+    const lateGameResponse = guessResponses.lateGame[Math.floor(Math.random() * guessResponses.lateGame.length)];
+    showTypingIndicator();
+    setTimeout(() => {
+      hideTypingIndicator();
+      addAlienMessage(lateGameResponse.message);
+      setTimeout(() => {
+        showOptions(lateGameResponse.options);
+      }, 500);
+    }, 1000);
+  }
+}
+
+// Function to handle custom user input
+function handleCustomInput() {
+  const inputText = chatInput.value.trim();
+  if (!inputText) return;
+  
+  // Add user message
+  addUserMessage(inputText);
+  chatInput.value = '';
+  
+  // Show typing indicator then generate response
+  showTypingIndicator();
+  
+  setTimeout(() => {
+    hideTypingIndicator();
+    
+    // Generate a contextual response based on input keywords
+    let responseMessage = "";
+    const lowerInput = inputText.toLowerCase();
+    
+    if (lowerInput.includes("help") || lowerInput.includes("stuck")) {
+      responseMessage = "I'm here to help! Sometimes stepping back and looking at the puzzle with fresh eyes reveals new possibilities. What specifically is challenging you?";
+    } else if (lowerInput.includes("frustrated") || lowerInput.includes("angry")) {
+      responseMessage = "Frustration shows you care about doing well! As the Stoics teach, transform that frustration into determination. What would a determined approach look like right now?";
+    } else if (lowerInput.includes("happy") || lowerInput.includes("excited")) {
+      responseMessage = "Your positive energy enhances your cognitive abilities! Ride that wave of enthusiasm. What's making you feel this way about your progress?";
+    } else if (lowerInput.includes("think") || lowerInput.includes("believe")) {
+      responseMessage = "Your thoughts shape your experience! As Marcus Aurelius noted, 'The soul becomes dyed with the color of its thoughts.' What color are your thoughts right now?";
+    } else if (lowerInput.includes("thank")) {
+      responseMessage = "You're welcome! Remember, the coach is within you - I'm just helping you access your own wisdom. What insight are you taking away from our conversation?";
+    } else if (lowerInput.includes("philosophy") || lowerInput.includes("wisdom")) {
+      responseMessage = "Philosophy isn't just abstract thinking - it's practical wisdom for living well! As Socrates said, 'The unexamined life is not worth living.' How might you examine this Wordle experience?";
+    } else if (lowerInput.includes("can't") || lowerInput.includes("impossible")) {
+      responseMessage = "As Henry Ford said, 'Whether you think you can or you think you can't, you're right.' Your belief shapes your ability. What would you try if you knew you couldn't fail?";
+    } else if (lowerInput.includes("why")) {
+      responseMessage = "As Nietzsche noted, 'He who has a why to live can bear almost any how.' Your 'why' gives meaning to the 'how' of solving this puzzle. What's your why for playing Wordle?";
+    } else if (lowerInput.includes("how")) {
+      responseMessage = "The 'how' flows naturally from a clear 'why' and 'what.' First clarify your goal (what), your motivation (why), then the method (how) becomes apparent. What are you trying to accomplish right now?";
+    } else if (lowerInput.includes("time")) {
+      responseMessage = "As Seneca wisely said, 'It is not that we have a short time to live, but that we waste a lot of it.' Each moment with this puzzle is an opportunity for growth. How are you using this time?";
+    } else if (lowerInput.includes("feel")) {
+      responseMessage = "Emotions are valuable signals! They tell you something important about your experience. What specifically are you feeling, and what might that feeling be communicating to you?";
+    } else {
+      // Default response
+      const defaultResponses = [
+        "Interesting thought! As the philosopher Epictetus said, 'First say to yourself what you would be; and then do what you have to do.' How does your thought connect to your Wordle strategy?",
+        "Thank you for sharing that! Remember, awareness of your thoughts is the first step to mastering them. What patterns do you notice in your thinking?",
+        "Your reflection shows wisdom! As Lao Tzu taught, 'Knowing others is intelligence; knowing yourself is true wisdom.' What self-knowledge is this puzzle revealing?",
+        "That's a valuable insight! The Stoics would encourage you to ask: 'Is this thought helpful? Is it true? Is it necessary?' How would you answer those questions?",
+        "I appreciate your sharing! As Carl Jung noted, 'Until you make the unconscious conscious, it will direct your life and you will call it fate.' What unconscious patterns might be influencing your game?"
+      ];
+      
+      responseMessage = defaultResponses[Math.floor(Math.random() * defaultResponses.length)];
+    }
+    
+    addAlienMessage(responseMessage);
+  }, 1500);
+}
+
+// Event listeners for chat input
+chatSendBtn.addEventListener('click', handleCustomInput);
+chatInput.addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') {
+    handleCustomInput();
+  }
+});
+
+init();
+</script>  </body>
+
+</html>

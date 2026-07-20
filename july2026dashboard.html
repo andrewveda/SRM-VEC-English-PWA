@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- ORIGINAL PWA METADATA & MANIFEST PRESERVED -->
+  <link rel="icon" type="image/png" href="icons/icon-96x96.png">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>SRM VEC English — Quest & Video Calendar</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0a0a0f">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;900&family=DM+Mono:wght@300;400;500&family=Crimson+Pro:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --obsidian: #ffffff;
+      --deep: #faf7f2;
+      --surface: #ffffff;
+      --surface2: #f5efe6;
+
+      --gold: #c9a84c;
+      --gold-light: #e8c97a;
+      --gold-dim: rgba(201,168,76,0.12);
+
+      --crimson: #7A0019;
+      --text: #2a2a2a;
+      --text-muted: #7a766f;
+      --text-dim: #b0a99f;
+      --green: #23d18b;
+
+      --border: rgba(201,168,76,0.35);
+      --border-dim: rgba(0,0,0,0.06);
+    }
+
+    * { margin:0; padding:0; box-sizing:border-box; }
+
+    html, body {
+      height: 100%;
+      overscroll-behavior: none;
+    }
+
+    body {
+      font-family: 'DM Mono', monospace;
+      background: var(--obsidian);
+      color: var(--text);
+      height: 100dvh;
+      overflow: hidden;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.015'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 9999;
+      opacity: 0.35;
+    }
+
+    .ambient {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+    }
+    .ambient::before {
+      content:'';
+      position:absolute;
+      top:-20%; left:-10%;
+      width:60vw; height:60vw;
+      background: radial-gradient(circle, rgba(201,168,76,0.08), transparent 70%);
+      animation: breathe 10s ease-in-out infinite;
+    }
+    @keyframes breathe {
+      0%,100% { transform: scale(1); opacity: 0.4; }
+      50% { transform: scale(1.15); opacity: 1; }
+    }
+
+    /* ===== App shell ===== */
+    .app {
+      position: relative;
+      z-index: 1;
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      padding-top: env(safe-area-inset-top);
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    /* Top Bar */
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 20px;
+      background: rgba(255,255,255,0.85);
+      backdrop-filter: blur(18px);
+      border-bottom: 1px solid var(--border-dim);
+      flex: 0 0 auto;
+    }
+
+    .topbar-brand .org {
+      font-size: 0.5rem;
+      letter-spacing: 1px;
+      color: var(--gold);
+      text-transform: uppercase;
+      display: block;
+      max-width: 220px;
+      line-height: 1.25;
+    }
+
+    .topbar-brand .dept {
+      font-family: 'Playfair Display', serif;
+      font-size: 1rem;
+      font-weight: 700;
+      color: #1f1f1f;
+    }
+
+    .avatar-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: var(--gold-dim);
+      border: 1.5px solid var(--gold);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 0.85rem;
+      color: var(--gold);
+      font-family: 'Playfair Display', serif;
+      font-weight: 700;
+      overflow: hidden;
+    }
+
+    .avatar-btn img, .gh-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    /* Main Container */
+    .main {
+      flex: 1 1 auto;
+      min-height: 0;
+      padding: 10px 14px;
+      max-width: 650px;
+      margin: 0 auto;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .student-strip {
+      text-align: center;
+      padding: 4px 0 8px;
+      flex: 0 0 auto;
+    }
+
+    .student-name {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.2rem;
+      font-weight: 900;
+      color: var(--text);
+      line-height: 1.1;
+    }
+
+    .student-dept {
+      font-size: 0.6rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-top: 2px;
+    }
+
+    /* Compact Stats Strip */
+    .stats-strip {
+      background: linear-gradient(145deg, #ffffff, #f8f2e8);
+      border: 1px solid var(--border-dim);
+      border-radius: 12px;
+      padding: 8px 6px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex: 0 0 auto;
+    }
+
+    .strip-item {
+      flex: 1;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .strip-val {
+      font-family: 'Playfair Display', serif;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--gold);
+      line-height: 1.1;
+    }
+
+    .strip-lbl {
+      font-size: 0.48rem;
+      letter-spacing: 1px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      margin-top: 2px;
+    }
+
+    .strip-divider {
+      width: 1px;
+      align-self: stretch;
+      background: var(--border-dim);
+      margin: 2px 4px;
+    }
+
+    .section-label {
+      font-size: 0.55rem;
+      letter-spacing: 2.5px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      margin: 4px 0 6px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex: 0 0 auto;
+    }
+    .section-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border-dim);
+    }
+
+    /* ===== Mission Grid ===== */
+    .mission-grid {
+      flex: 1 1 auto;
+      min-height: 0;
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      grid-auto-rows: 1fr;
+      gap: 6px;
+    }
+
+    .mission-tile {
+      background: linear-gradient(145deg, #ffffff, #f8f2e8);
+      border: 1px solid var(--border-dim);
+      border-radius: 10px;
+      text-decoration: none;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      transition: all 0.2s ease;
+      min-height: 0;
+      min-width: 0;
+      padding: 2px;
+    }
+
+    .mission-tile:active {
+      transform: scale(0.96);
+      border-color: var(--gold);
+      background: var(--gold-dim);
+    }
+
+    .mission-tile .tile-icon {
+      font-size: 1.1rem;
+      line-height: 1;
+    }
+
+    .mission-tile .tile-label {
+      font-family: 'Playfair Display', serif;
+      font-size: 0.5rem;
+      font-weight: 700;
+      color: var(--text);
+      text-align: center;
+      white-space: normal;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      line-height: 1.15;
+      max-width: 100%;
+    }
+
+    .mission-tile-accent {
+      border: 1.5px solid var(--gold);
+      background: linear-gradient(145deg, var(--gold-dim), #ffffff);
+      box-shadow: 0 4px 12px rgba(201,168,76,0.18);
+    }
+
+    .footer {
+      text-align: center;
+      padding: 6px 12px 2px;
+      font-size: 0.5rem;
+      letter-spacing: 0.5px;
+      color: var(--text-dim);
+      flex: 0 0 auto;
+    }
+    .footer a { color: var(--gold); text-decoration: none; }
+
+    /* Auth Screen Overlay */
+    .login-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 500;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255,255,255,0.96);
+      backdrop-filter: blur(12px);
+    }
+
+    .login-card {
+      background: linear-gradient(145deg, #ffffff, #f8f2e8);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 30px 24px;
+      width: 90%;
+      max-width: 400px;
+      box-shadow: 0 12px 35px rgba(0,0,0,0.08);
+    }
+
+    .login-title {
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .login-title-main {
+      font-family: 'Playfair Display', serif;
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      color: var(--gold);
+      line-height: 1.3;
+    }
+
+    .login-title-sub {
+      font-size: 0.65rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-top: 5px;
+    }
+
+    .field-label {
+      display: block;
+      font-size: .68rem; letter-spacing: .12em; text-transform: uppercase;
+      color: var(--text-muted); margin-bottom: .4rem; margin-top: 1rem;
+    }
+
+    input[type="text"], select {
+      width: 100%; padding: .75rem 1rem;
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text); font-family: 'DM Mono', monospace; font-size: .85rem;
+      outline: none; transition: border-color .2s; appearance: none;
+    }
+
+    select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23c9a84c' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+    }
+
+    input[type="text"]:focus, select:focus { border-color: var(--gold); }
+
+    .btn-launch {
+      width: 100%; margin-top: 1.5rem; padding: .85rem;
+      background: linear-gradient(135deg, var(--gold), var(--gold-light));
+      color: #ffffff; font-family: 'DM Mono', monospace; font-size: .85rem; font-weight: 700;
+      border: none; border-radius: 10px; cursor: pointer; letter-spacing: .05em;
+      text-transform: uppercase;
+      box-shadow: 0 4px 15px rgba(201,168,76,0.25); transition: all .2s;
+    }
+
+    .btn-launch:hover { transform: translateY(-1px); filter: brightness(1.05); }
+
+    /* Drawer Styles */
+    .drawer-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.3);
+      z-index: 300; display: none;
+      backdrop-filter: blur(3px);
+    }
+    .drawer-overlay.open { display: block; }
+
+    .drawer {
+      position: fixed; top: 0; right: -340px;
+      width: 320px; height: 100%;
+      background: #ffffff;
+      border-left: 1px solid var(--border);
+      z-index: 310; transition: right 0.3s ease;
+      display: flex; flex-direction: column;
+    }
+    .drawer.open { right: 0; }
+
+    .drawer-top { padding: 20px; background: var(--deep); border-bottom: 1px solid var(--border-dim); }
+    .drawer-body { padding: 16px; flex: 1; overflow-y: auto; }
+
+    .drawer-link {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 11px 14px;
+      border-radius: 10px;
+      border: 1px solid var(--border-dim);
+      color: var(--text);
+      text-decoration: none;
+      font-size: 0.78rem;
+      margin-bottom: 6px;
+      transition: all 0.2s;
+      background: var(--surface);
+    }
+
+    .drawer-link:hover {
+      border-color: var(--gold);
+      color: var(--gold);
+      background: var(--gold-dim);
+    }
+
+    .drawer-link .dl-icon { font-size: 0.9rem; }
+    .drawer-footer { padding: 16px; border-top: 1px solid var(--border-dim); }
+
+    .logout-btn {
+      width: 100%;
+      background: rgba(122,0,25,0.08);
+      border: 1px solid rgba(122,0,25,0.2);
+      border-radius: 8px;
+      padding: 10px;
+      color: var(--crimson);
+      font-family: 'DM Mono', monospace;
+      font-size: 0.7rem;
+      cursor: pointer;
+    }
+
+    .gh-avatar-fallback {
+      width: 100%; height: 100%;
+      background: var(--surface2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1rem; color: var(--gold); font-family: 'Playfair Display', serif; font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+
+<div class="ambient"></div>
+
+<!-- Custom Manual Username Login Overlay -->
+<div class="login-overlay" id="screenLogin">
+  <div class="login-card">
+    <div class="login-title">
+      <div class="login-title-main">SRM Valliammai Engineering College</div>
+      <div class="login-title-sub">Department of English</div>
+    </div>
+
+    <label class="field-label" for="usernameInput">GitHub Username</label>
+    <input type="text" id="usernameInput" placeholder="e.g., andrewveda" autocomplete="off">
+
+    <label class="field-label" for="deptSelect">Department</label>
+    <select id="deptSelect">
+      <option value="">— Select your department —</option>
+      <option value="Cyber Security">Cyber Security</option>
+      <option value="CSE-1">CSE-1</option>
+      <option value="CSE-2">CSE-2</option>
+      <option value="CSE-3">CSE-3</option>
+      <option value="Mechanical Engineering">Mechanical Engineering</option>
+      <option value="ECE-1">ECE-1</option>
+      <option value="ECE-2">ECE-2</option>
+      <option value="ECE-3">ECE-3</option>
+      <option value="AI DS-1">AI DS-1</option>
+      <option value="AI DS-2">AI DS-2</option>
+      <option value="Civil">Civil</option>
+      <option value="Agri">Agri</option>
+      <option value="EEE">EEE</option>
+      <option value="EIE">EIE</option>
+      <option value="Medical Electronics">Medical Electronics</option>
+      <option value="IT-1">IT-1</option>
+      <option value="IT-2">IT-2</option>
+    </select>
+
+    <button class="btn-launch" id="launchBtn" onclick="handleLaunch()">Enter Mission Control 🚀</button>
+  </div>
+</div>
+
+<!-- Profile Drawer with All Quick Access Links -->
+<div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-top">
+    <div style="font-family:'Playfair Display', serif; font-weight:700; font-size:1.1rem;" id="drawerName">—</div>
+    <div style="font-size:0.6rem; color:var(--gold); letter-spacing:1px; margin-top:2px;" id="drawerDept">—</div>
+  </div>
+
+  <div class="drawer-body">
+    <p style="font-size:0.6rem; color:var(--text-dim); text-transform:uppercase; letter-spacing:1px; margin-bottom:12px;">Quick Links</p>
+    <a class="drawer-link" href="https://andrewveda.github.io/V/">
+      <span class="dl-icon">📚</span> Daily Vocabulary
+    </a>
+    <a class="drawer-link" href="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/blossomhub">
+      <span class="dl-icon">🌱</span> Blossom Hub
+    </a>
+    <a class="drawer-link" href="https://andrewveda.github.io/videoquest">
+      <span class="dl-icon">🎥</span> Video Quests
+    </a>
+    <a class="drawer-link" href="https://andrewveda.github.io/SRM-VEC-English-PWA/directory">
+      <span class="dl-icon">🗺</span> Quest Directory - Semester I
+    </a>
+    <a class="drawer-link" href="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/leaderboard">
+      <span class="dl-icon">😎</span> Leaderboard - Sem I - CAT-I
+    </a>
+    <a class="drawer-link" href="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/ELLL.html">
+      <span class="dl-icon">📝</span> ELLL Record
+    </a>
+    <a class="drawer-link" href="https://andrewveda.github.io/a-quote-a-day/">
+      <span class="dl-icon">💬</span> A Quote a Day
+    </a>
+    <a class="drawer-link" href="https://andrewveda.github.io/cryptic">
+      <span class="dl-icon">🔍</span> Cryptic Crossword
+    </a>
+  </div>
+
+  <div class="drawer-footer">
+    <button class="logout-btn" onclick="logout()">Logout</button>
+  </div>
+</div>
+
+<!-- Main Dashboard Interface -->
+<div class="app" id="appShell" style="display:none;">
+  <div class="topbar">
+    <div class="topbar-brand">
+      <span class="org">SRM Valliammai Engineering College</span>
+      <span class="dept">Department of English</span>
+    </div>
+    <div class="avatar-btn" id="avatarBtn" onclick="openDrawer()">?</div>
+  </div>
+
+  <div class="main">
+    <div class="student-strip">
+      <div class="student-name" id="studentName">—</div>
+      <div class="student-dept" id="studentDept">—</div>
+    </div>
+
+    <!-- Stats strip -->
+    <div class="stats-strip">
+      <div class="strip-item"><div class="strip-val" id="statQuests">0</div><div class="strip-lbl">Quests</div></div>
+      <div class="strip-divider"></div>
+      <div class="strip-item"><div class="strip-val" id="statVideos">0</div><div class="strip-lbl">Videos</div></div>
+      <div class="strip-divider"></div>
+      <div class="strip-item"><div class="strip-val" id="statScore">0</div><div class="strip-lbl">Score</div></div>
+      <div class="strip-divider"></div>
+      <div class="strip-item"><div class="strip-val" id="statTime">0h 0m</div><div class="strip-lbl">Time</div></div>
+    </div>
+
+    <div class="section-label"></div>
+
+    <div class="mission-grid">
+      <a class="mission-tile" href="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/leaderboard_hub">
+        <span class="tile-icon">🏆</span>
+        <div class="tile-label">Leaders</div>
+      </a>
+      <a class="mission-tile" href="https://andrewveda.github.io/SRM-VEC-English-PWA/cat-a">
+        <span class="tile-icon">🔥</span>
+        <div class="tile-label">Directory</div>
+      </a>
+      <a class="mission-tile" href="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/videoyg">
+        <span class="tile-icon">🎥</span>
+        <div class="tile-label">Videos</div>
+      </a>
+      <a class="mission-tile" href="https://andrewveda.github.io/V/">
+        <span class="tile-icon">📚</span>
+        <div class="tile-label">Vocab</div>
+      </a>
+      <a class="mission-tile" href="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/wordle">
+        <span class="tile-icon">🟩</span>
+        <div class="tile-label">Wordle</div>
+      </a>
+      <a class="mission-tile" href="https://andrewveda.github.io/cryptic/">
+        <span class="tile-icon">🔍</span>
+        <div class="tile-label">Cryptic</div>
+      </a>
+      <a class="mission-tile" href="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/blossomhub">
+        <span class="tile-icon">🌱</span>
+        <div class="tile-label">Blossom</div>
+      </a>
+      <a class="mission-tile" href="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/vox-velocity-directory">
+        <span class="tile-icon">🎓</span>
+        <div class="tile-label">IELTS/GRE</div>
+      </a>
+      <a class="mission-tile" href="https://andrewveda.github.io/SRM-VEC-English-PWA/4pics">
+        <span class="tile-icon">🏔️</span>
+        <div class="tile-label">Mystic Summit</div>
+      </a>
+      <a class="mission-tile" href="https://andrewveda.github.io/a-quote-a-day/">
+        <span class="tile-icon">💬</span>
+        <div class="tile-label">Quote a Day</div>
+      </a>
+      <a class="mission-tile" href="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/stories">
+        <span class="tile-icon">📜</span>
+        <div class="tile-label">Stories</div>
+      </a>
+      <a class="mission-tile" href="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/bookinsights">
+        <span class="tile-icon">📖</span>
+        <div class="tile-label">Insights</div>
+      </a>
+      <a class="mission-tile" href="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/vox-forum">
+        <span class="tile-icon">♾️</span>
+        <div class="tile-label">Forum</div>
+      </a>
+      <a class="mission-tile" href="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/leaderboard_dept">
+        <span class="tile-icon">🚀</span>
+        <div class="tile-label">Veni, Vidi, Vici</div>
+      </a>
+      <a class="mission-tile" href="https://andrewveda.github.io/eclatineers">
+        <span class="tile-icon">📰</span>
+        <div class="tile-label">Eclatineers</div>
+      </a>
+      <a class="mission-tile" href="https://andrewveda.github.io/jigsaw/directory">
+        <span class="tile-icon">🧩</span>
+        <div class="tile-label">Jigsaw</div>
+      </a>
+      <a class="mission-tile" href="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/chess">
+        <span class="tile-icon">📝</span>
+        <div class="tile-label">Assignments</div>
+      </a>
+      <a class="mission-tile" href="https://andrewveda.github.io/vox-persona/">
+        <span class="tile-icon">🎙️</span>
+        <div class="tile-label">Voice Training</div>
+      </a>
+      <a class="mission-tile" href="https://andrewveda.github.io/SRM-VEC-English-PWA/listening/speeches">
+        <span class="tile-icon">🗣️</span>
+        <div class="tile-label">Speeches</div>
+      </a>
+      <a class="mission-tile mission-tile-accent" href="https://github.com/andrewveda" target="_blank" rel="noopener">
+        <span class="tile-icon">⭐</span>
+        <div class="tile-label">Star my GitHub</div>
+      </a>
+    </div>
+
+    <div class="footer">
+      Created with grit, nurtured with love ♥ by <a href="https://andrewveda.github.io/" target="_blank">Andrew Veda</a> · SRM VEC
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm";
+
+  const supabase = createClient(
+    "https://yellow-lab-4999.andrewveda.workers.dev",
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoZXpzc29jenZwYmt0ZWZmY2d6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI4NTk1ODUsImV4cCI6MjA3ODQzNTU4NX0.2ZlqXnZxv0opkhynAT7OlK4S-xPygcc7ETUyTXRfGHE"
+  );
+
+  // Fallback avatar visual generator
+  function makeAvatar(fallbackChar) {
+    const d = document.createElement('div');
+    d.className = 'gh-avatar-fallback';
+    d.textContent = (fallbackChar || '?')[0].toUpperCase();
+    return d;
+  }
+
+  function checkSession() {
+    const savedUsername = localStorage.getItem('vfv_user');
+    const savedDept = localStorage.getItem('vfv_dept');
+
+    if (savedUsername && savedDept) {
+      // Set Global dynamic layout helpers safely inside client context
+      window.GH = { loggedIn: true, username: savedUsername, name: savedUsername, dept: savedDept };
+      enterApp(savedUsername, savedDept);
+    }
+  }
+
+  window.handleLaunch = function() {
+    const username = document.getElementById('usernameInput').value.trim();
+    const dept = document.getElementById('deptSelect').value;
+
+    if (!username) { alert('Please enter your GitHub username!'); return; }
+    if (!dept) { alert('Please select your department!'); return; }
+
+    localStorage.setItem('vfv_user', username);
+    localStorage.setItem('vfv_dept', dept);
+    
+    // Fallbacks for older infrastructure dependencies
+    localStorage.setItem('userName', username);
+    localStorage.setItem('userDept', dept);
+
+    window.GH = { loggedIn: true, username: username, name: username, dept: dept };
+    enterApp(username, dept);
+  };
+
+  async function enterApp(name, dept) {
+    document.getElementById('screenLogin').style.display = 'none';
+    document.getElementById('appShell').style.display = 'flex';
+
+    document.getElementById('studentName').textContent = name;
+    document.getElementById('studentDept').textContent = dept;
+
+    document.getElementById('drawerName').textContent = name;
+    document.getElementById('drawerDept').textContent = dept;
+
+    const avatarBtn = document.getElementById('avatarBtn');
+    avatarBtn.innerHTML = '';
+    avatarBtn.appendChild(makeAvatar(name));
+
+    await fetchUserData(name);
+  }
+
+  async function fetchUserData(name) {
+    try {
+      const { data, error } = await supabase
+        .from("report_card_view")
+        .select("*");
+
+      if (error) throw error;
+
+      const user = (data || []).find(u =>
+        u.name && u.name.trim().toLowerCase() === name.trim().toLowerCase()
+      );
+
+      if (user) {
+        document.getElementById("statQuests").textContent = user.quests_completed ?? 0;
+        document.getElementById("statVideos").textContent = user.videos_completed ?? 0;
+        document.getElementById("statScore").textContent = user.total_score ?? 0;
+
+        const sec = user.total_time ?? 0;
+        const h = Math.floor(sec / 3600);
+        const m = Math.floor((sec % 3600) / 60);
+        document.getElementById("statTime").textContent = `${h}h ${m}m`;
+      }
+    } catch (e) {
+      console.error("Supabase data fetch error:", e);
+    }
+  }
+
+  window.openDrawer = () => {
+    document.getElementById("drawer").classList.add("open");
+    document.getElementById("drawerOverlay").classList.add("open");
+  };
+
+  window.closeDrawer = () => {
+    document.getElementById("drawer").classList.remove("open");
+    document.getElementById("drawerOverlay").classList.remove("open");
+  };
+
+  window.logout = () => {
+    localStorage.removeItem('vfv_user');
+    localStorage.removeItem('vfv_dept');
+    localStorage.removeItem('userName');
+    localStorage.removeItem('userDept');
+    window.location.reload();
+  };
+
+  // Run on page initialize
+  checkSession();
+</script>
+
+<!-- Service Worker Registration -->
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('service-worker.js').catch(() => {});
+    });
+  }
+</script>
+</body>
+</html>

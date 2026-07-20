@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="en">    
+<head>    
+<meta charset="utf-8" />    
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />    
+<title>Wordle</title>    
+<style>    
+:root{    
+  --bg:#0b1220; --card:#0f1724; --text:#e6eef8;    
+  --absent:#3a3a3c; --present:#b59f3b; --correct:#538d4e;    
+  --key:#818384; --key-pressed:#565758;    
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Arial;    
+}    
+*{box-sizing:border-box;margin:0;padding:0}    
+html,body{height:100%;background:var(--bg);color:var(--text);overflow:hidden}    
+.wrap{display:flex;flex-direction:column;align-items:center;height:100%;padding:6px 10px;overflow:hidden}    
+.board{display:grid;grid-template-rows:repeat(6,56px);gap:4px;width:100%;max-width:340px;flex-shrink:0}    
+.row{display:grid;grid-template-columns:repeat(5,1fr);gap:4px}    
+.tile{display:flex;align-items:center;justify-content:center;font-weight:700;font-size:21px;border-radius:4px;background:#121826;transition:background .3s}    
+.tile.absent{background:var(--absent)}    
+.tile.present{background:var(--present)}    
+.tile.correct{background:var(--correct)}    
+.keyboard{display:flex;flex-direction:column;gap:4px;margin-top:6px;width:100%;max-width:340px;flex-shrink:0}    
+.krow{display:flex;gap:3px;justify-content:center}    
+.key{flex:1;padding:7px 0;border-radius:4px;text-align:center;user-select:none;background:var(--key);color:white;font-weight:700;cursor:pointer;font-size:13px;transition:background .12s}    
+.key:active{background:var(--key-pressed)}    
+.key.enter{background:var(--correct)}    
+.key.back{background:#b91c1c}    
+.key.wide{flex:1.5}    
+.hint{color:#9fb7db;font-size:12px;height:16px;flex-shrink:0;text-align:center}
+
+/* Chat - ultra compact */
+.chat{flex:1;width:100%;max-width:400px;margin-top:6px;display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.chat-messages{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:4px;padding:2px 0;scrollbar-width:none}
+.chat-messages::-webkit-scrollbar{display:none}
+.m{padding:5px 10px;border-radius:20px;font-size:12px;line-height:1.2;white-space:nowrap;overflow-x:auto;overflow-y:hidden;max-width:92%;scrollbar-width:none;animation:mi .2s ease-out}
+.m::-webkit-scrollbar{display:none}
+@keyframes mi{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+.m.a{background:#1a2332;color:#94a7bf;align-self:flex-start}
+.m.u{background:#1f6feb;color:#fff;align-self:flex-end}
+.opts{display:flex;flex-direction:column;gap:3px;align-self:flex-start}
+.o{background:#1a2332;border:1px solid #253040;color:#7b8fa6;padding:5px 10px;border-radius:20px;font-size:12px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:all .12s;text-align:left;max-width:92%}
+.o:hover{background:#1e2b3d;color:#b0c4de;border-color:#1f6feb}
+.t{display:flex;gap:3px;padding:5px 10px;align-self:flex-start;width:fit-content}
+.t span{width:5px;height:5px;border-radius:50%;background:#3a4a5c;animation:b 1.2s infinite}
+.t span:nth-child(2){animation-delay:.15s}
+.t span:nth-child(3){animation-delay:.3s}
+@keyframes b{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-3px)}}
+
+/* Scorecard */
+.scorecard{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--card);padding:36px 44px;border-radius:18px;box-shadow:0 10px 40px rgba(0,0,0,.8);text-align:center;display:none;z-index:20;animation:pop .6s ease-out}
+.scorecard h1{font-size:38px;margin-bottom:14px;color:#fff;animation:scaleUp 1s ease-in-out}
+.scorecard p{font-size:18px;margin-bottom:14px;color:#bcd3ef}
+.scorecard input,.scorecard select{padding:9px 10px;border-radius:8px;border:none;font-size:14px;margin-bottom:8px;width:85%;text-align:center;background:#1e293b;color:#e6eef8}
+.scorecard button{padding:12px 20px;border:none;border-radius:10px;background:#1f6feb;color:white;font-weight:700;font-size:15px;cursor:pointer;margin:3px}
+@keyframes pop{0%{transform:translate(-50%,-50%) scale(.5);opacity:0}50%{transform:translate(-50%,-50%) scale(1.1);opacity:1}100%{transform:translate(-50%,-50%) scale(1)}}
+@keyframes scaleUp{0%{transform:scale(.3);opacity:0}50%{transform:scale(1.2);opacity:1}100%{transform:scale(1);opacity:1}}
+.sparkle{position:fixed;width:7px;height:7px;background:radial-gradient(circle,#fff,#f0f0f0 70%);border-radius:50%;pointer-events:none;animation:fly 1.5s linear infinite;z-index:25}
+@keyframes fly{0%{transform:translate(0,0) scale(1)}50%{transform:translate(0,-200px) scale(.5)}100%{transform:translate(200px,-400px) scale(0);opacity:0}}
+</style>
+</head>    
+<body>    
+<div class="wrap">    
+  <div id="board" class="board"></div>    
+  <div class="keyboard" id="keyboard"></div>    
+  <div class="hint" id="hint"></div>    
+  <div class="chat" id="chatBox">
+    <div class="chat-messages" id="chatMessages"></div>
+  </div>
+  <div id="scorecard" class="scorecard">    
+    <h1 id="scoreTitle"></h1>    
+    <p id="scoreMsg"></p>    
+    <input id="playerName" type="text" placeholder="Enter your name" />   
+    <select id="playerDept">
+      <option value="">-- Department --</option>
+      <option value="Cyber Security">Cyber Security</option>
+      <option value="EIE">EIE</option>
+      <option value="CSE-1">CSE-1</option>
+      <option value="CSE-2">CSE-2</option>
+      <option value="CSE-3">CSE-3</option>
+      <option value="Mechanical Engineering">Mechanical Engineering</option>
+      <option value="ECE-1">ECE-1</option>
+      <option value="ECE-2">ECE-2</option>
+      <option value="ECE-3">ECE-3</option>
+      <option value="AI DS-1">AI DS-1</option>
+      <option value="AI DS-2">AI DS-2</option>
+      <option value="Agri and Civil">Agri and Civil</option>
+      <option value="EEE">EEE</option>
+      <option value="Medical Electronics">Medical Electronics</option>
+      <option value="IT-1">IT-1</option>
+      <option value="IT-2">IT-2</option>
+    </select>
+    <p id="leaderboardText" style="margin-bottom:8px;color:#bcd3ef;font-size:15px"></p>    
+    <button id="leaderboardBtn" style="display:none">Leaderboard</button>    
+    <button id="shareBtn">Share on WhatsApp</button>    
+  </div>    
+</div>
+
+<script>
+const EDGE="https://yellow-lab-4999.andrewveda.workers.dev/functions/v1/logQuest";
+async function sendEdge(p){try{const r=await fetch(EDGE,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(p)});if(!r.ok)return false;await r.json().catch(()=>{});return true}catch{return false}}
+
+const CSV_URL='https://docs.google.com/spreadsheets/d/e/2PACX-1vQ5Z6lmXH4jxHYMKUcimj_M-IV1pwtBUF72YKJIi_BO-KD_NYwWBJBQqni7m4NmQyU9NMdve4vGZ7rh/pub?gid=0&single=true&output=csv';
+let WORDS=[],ANSWER='',guesses=[],current='',MAX=6,startTime=Date.now();
+const boardEl=document.getElementById('board'),kbEl=document.getElementById('keyboard'),hintEl=document.getElementById('hint'),chatMsg=document.getElementById('chatMessages');
+const NAME_KEY="questPlayerName",DEPT_KEY="questPlayerDept",STORAGE_KEY='wordle-progress';
+
+function parseCSV(t){return[...new Set(t.split(/\r?\n/).map(l=>l.trim()).filter(Boolean).map(l=>l.split(/,|\t/)[0].trim().toLowerCase()))].filter(w=>/^[a-z]{5}$/.test(w))}
+function createBoard(){boardEl.innerHTML='';for(let r=0;r<MAX;r++){const row=document.createElement('div');row.className='row';for(let c=0;c<5;c++){const t=document.createElement('div');t.className='tile';row.appendChild(t)}boardEl.appendChild(row)}}
+function renderKB(){kbEl.innerHTML='';['qwertyuiop','asdfghjkl','zxcvbnm'].forEach(s=>{const r=document.createElement('div');r.className='krow';for(const c of s){const k=document.createElement('div');k.className='key';k.textContent=c;k.dataset.key=c;k.onclick=()=>onKey(c);r.appendChild(k)}if(s==='asdfghjkl'){const e=document.createElement('div');e.className='key wide back';e.textContent='⌫';e.onclick=()=>onKey('Backspace');r.appendChild(e)}if(s==='zxcvbnm'){const b=document.createElement('div');b.className='key wide enter';b.textContent='Enter';b.onclick=()=>onKey('Enter');r.appendChild(b)}kbEl.appendChild(r)})}
+function onKey(k){if(k==='Enter')return submitGuess();if(k==='Backspace')return delLetter();if(current.length<5&&/^[a-zA-Z]$/.test(k)){current+=k.toLowerCase();updateBoard()}}
+function delLetter(){if(current.length>0){current=current.slice(0,-1);updateBoard()}}
+function updateBoard(){const row=boardEl.children[guesses.length];for(let c=0;c<5;c++){const t=row.children[c];t.textContent=current[c]||'';t.className='tile'}}
+function submitGuess(){if(current.length!==5){hintEl.textContent='5 letters needed';return}if(!WORDS.includes(current.toLowerCase())){hintEl.textContent='Not in word list';return}evaluateGuess(current);current=''}
+
+function evaluateGuess(guess){
+  const row=boardEl.children[guesses.length],ans=ANSWER.split(),g=guess.split(),res=Array(5).fill('absent'),freq={};
+  for(let i=0;i<5;i++)freq[ans[i]]=(freq[ans[i]]||0)+1;
+  for(let i=0;i<5;i++)if(g[i]===ans[i]){res[i]='correct';freq[g[i]]--}
+  for(let i=0;i<5;i++)if(res[i]!=='correct'&&freq[g[i]]>0){res[i]='present';freq[g[i]]--}
+  for(let i=0;i<5;i++){row.children[i].textContent=g[i];row.children[i].classList.add(res[i])}
+  updateKeys(g,res);guesses.push(guess);saveProg();triggerChat(guess,res);
+  if(guess===ANSWER){showScore(true);document.removeEventListener('keydown',kd);return}
+  if(guesses.length>=MAX){showScore(false);document.removeEventListener('keydown',kd);return}
+  hintEl.textContent='';
+}
+
+function updateKeys(l,r){l.forEach((c,i)=>{kbEl.querySelectorAll('[data-key]').forEach(k=>{if(k.dataset.key===c){if(r[i]==='correct')k.style.background='var(--correct)';else if(r[i]==='present'){if(k.style.background!=='var(--correct)')k.style.background='var(--present)'}else if(!k.style.background||k.style.background==='')k.style.background='var(--absent)'}})})}
+function kd(e){if(e.key==='Enter')onKey('Enter');else if(e.key==='Backspace')onKey('Backspace');else if(/^[a-zA-Z]$/.test(e.key))onKey(e.key)}
+document.addEventListener('keydown',kd);
+function saveProg(){localStorage.setItem(STORAGE_KEY,JSON.stringify({date:new Date().toDateString(),guesses,answer:ANSWER}))}
+function chooseWord(){const d=new Date(),s=new Date(d.getFullYear(),0,1),dy=Math.floor((d-s)/(864e5));ANSWER=WORDS[dy%WORDS.length]}
+
+// ─── CHAT ───
+function am(t){const d=document.createElement('div');d.className='m a';d.textContent='👽 '+t;chatMsg.appendChild(d);chatMsg.scrollTop=chatMsg.scrollHeight}
+function um(t){const d=document.createElement('div');d.className='m u';d.textContent=t;chatMsg.appendChild(d);chatMsg.scrollTop=chatMsg.scrollHeight}
+function so(arr){const c=document.querySelector('.opts');if(c)c.remove();const d=document.createElement('div');d.className='opts';arr.forEach(o=>{const b=document.createElement('button');b.className='o';b.textContent=o.text;b.onclick=()=>{d.remove();um(o.text);if(o.next){tp();setTimeout(()=>{ut();go(o.next)},700)}};d.appendChild(b)});chatMsg.appendChild(d);chatMsg.scrollTop=chatMsg.scrollHeight}
+function tp(){const d=document.createElement('div');d.className='t';d.id='typ';d.innerHTML='<span></span><span></span><span></span>';chatMsg.appendChild(d);chatMsg.scrollTop=chatMsg.scrollHeight}
+function ut(){const t=document.getElementById('typ');if(t)t.remove()}
+function go(id){const n=C[id]||G[id];if(!n)return;am(n.m);if(n.o)setTimeout(()=>so(n.o),350)}
+
+// ─── CONVERSATION TREE ───
+const C={
+greeting:{m:"Ready to embrace the challenge with amor fati?",o:[{text:"Bring it on!",next:"m1"},{text:"What's amor fati?",next:"p1"},{text:"Feeling nervous",next:"n1"}]},
+m1:{m:"Nietzsche: 'He who has a why can bear almost any how.'",o:[{text:"Love that quote!",next:"m2"},{text:"Let's begin!",next:"go1"},{text:"More wisdom?",next:"w1"}]},
+m2:{m:"Your why is mastering this word — your how is each guess.",o:[{text:"Powerful",next:"go1"},{text:"I want more!",next:"m3"}]},
+m3:{m:"Marcus Aurelius: 'The soul is dyed by the color of its thoughts.'",o:[{text:"Positively charged!",next:"go1"},{text:"How to maintain focus?",next:"f1"}]},
+w1:{m:"Seneca: 'We don't have short time to live, we waste it.'",o:[{text:"Each guess counts",next:"w2"},{text:"Profound",next:"w3"}]},
+w2:{m:"Talmud: 'Who is wise? One who learns from everyone.'",o:[{text:"Open to learning",next:"go1"},{text:"How to recognize lessons?",next:"l1"}]},
+w3:{m:"Jung: 'Who looks outside dreams; who looks inside awakes.'",o:[{text:"Wordle as meditation",next:"go1"},{text:"How to develop inner observer?",next:"ob1"}]},
+p1:{m:"Amor fati — loving fate, embracing everything as beneficial.",o:[{text:"Resonates",next:"p2"},{text:"How does it apply here?",next:"ap1"},{text:"More Stoicism?",next:"st1"}]},
+p2:{m:"Epictetus: 'It's not what happens but how you react.'",o:[{text:"Embracing that",next:"go1"},{text:"Other insights?",next:"w1"}]},
+p3:{m:"Obstacles become the way — wrong letters guide you!",o:[{text:"Beautiful",next:"go1"},{text:"Tell me more",next:"p4"}]},
+p4:{m:"Seneca: 'The fates lead the willing, drag the unwilling.'",o:[{text:"Willing and ready!",next:"go1"},{text:"Apply beyond Wordle?",next:"b1"}]},
+n1:{m:"Emerson: 'What lies within is greater than what lies before.'",o:[{text:"Feel braver",next:"n2"},{text:"What if I fail?",next:"fe1"},{text:"How to calm down?",next:"ca1"}]},
+n2:{m:"Courage isn't absence of fear — acting despite it.",o:[{text:"Let's do this!",next:"go1"},{text:"Still have doubts",next:"d1"}]},
+n3:{m:"Einstein: 'If we knew what we were doing, it wouldn't be research.'",o:[{text:"Embracing uncertainty",next:"go1"},{text:"Comforting",next:"n4"}]},
+n4:{m:"Rilke: 'Have patience with everything unresolved in your heart.'",o:[{text:"Let it unfold",next:"go1"},{text:"Tell me about patience",next:"pa1"}]},
+fe1:{m:"Roosevelt: 'The only thing to fear is fear itself.'",o:[{text:"Just a game",next:"fe2"},{text:"But I want to do well",next:"pe1"}]},
+fe2:{m:"Buddhism: 'Fear is moving closer to truth.'",o:[{text:"Facing it head-on",next:"go1"},{text:"Stay focused despite fear?",next:"f1"}]},
+pe1:{m:"Growth mindset: it's about growing through the process!",o:[{text:"Growth over perfection",next:"pe2"},{text:"But I want to win!",next:"wi1"}]},
+pe2:{m:"Aristotle: 'Excellence is not an act but a habit.'",o:[{text:"Building excellence habit",next:"go1"},{text:"How to track growth?",next:"gr1"}]},
+wi1:{m:"Taoism: 'The world is won by those who let go.'",o:[{text:"Finding that balance",next:"go1"},{text:"How to achieve flow?",next:"fl1"}]},
+ca1:{m:"Focus on what you control — your next guess.",o:[{text:"Calmer now",next:"go1"},{text:"Other techniques?",next:"ca2"}]},
+ca2:{m:"Marcus Aurelius: 'This moment is all I have.' Anxiety lives in future.",o:[{text:"Attention to now",next:"go1"},{text:"How to stay present?",next:"pr1"}]},
+d1:{m:"Rumi: 'The wound is where the light enters you.'",o:[{text:"New perspective",next:"d2"},{text:"Doubts feel overwhelming",next:"ov1"}]},
+d2:{m:"Edison: 'I haven't failed — found ways that won't work.'",o:[{text:"Doubts into determination",next:"go1"},{text:"How do successful people handle it?",next:"su1"}]},
+ov1:{m:"Zen: 'When walking, walk.' One letter at a time!",o:[{text:"One letter at a time",next:"go1"},{text:"Need more help",next:"ov2"}]},
+ov2:{m:"Lao Tzu: 'A thousand miles begins with a single step.'",o:[{text:"Just the next step",next:"go1"},{text:"Relief!",next:"go1"}]},
+f1:{m:"Stoic 'prosoche' — notice when mind wanders, gently return.",o:[{text:"Practicing prosoche",next:"go1"},{text:"Tips for focus?",next:"f2"}]},
+f2:{m:"Before each guess: 'What do I know for certain?'",o:[{text:"Practical technique",next:"go1"},{text:"Improve concentration?",next:"co1"}]},
+co1:{m:"Johnson: 'What we do with ease, learn to do with diligence.'",o:[{text:"Building concentration muscle",next:"go1"},{text:"Other tips?",next:"co2"}]},
+co2:{m:"Ritual: 3 breaths, state intention, begin with purpose!",o:[{text:"Creating a ritual",next:"go1"},{text:"Fascinating",next:"ri1"}]},
+ri1:{m:"Rituals transform ordinary actions into ceremonies.",o:[{text:"Love that",next:"go1"},{text:"Suggest a ritual?",next:"ri2"}]},
+ri2:{m:"Close eyes → 3 breaths → 'I approach with curiosity' → Go!",o:[{text:"Meaningful",next:"go1"},{text:"I'll adapt it",next:"go1"}]},
+l1:{m:"After each game: 'What does this teach me beyond words?'",o:[{text:"Looking for hidden lessons",next:"go1"},{text:"Profound approach",next:"go1"}]},
+ob1:{m:"The observer notices thoughts without being controlled by them.",o:[{text:"Want that skill",next:"ob2"},{text:"Sounds like mindfulness",next:"mi1"}]},
+ob2:{m:"After each guess: 'I notice frustration' — without becoming it.",o:[{text:"Practicing that",next:"go1"},{text:"Other practices?",next:"ob3"}]},
+ob3:{m:"'Double arrow': notice event AND reaction — that gap is freedom.",o:[{text:"Powerful",next:"go1"},{text:"Changing how I see Wordle",next:"go1"}]},
+mi1:{m:"Mindfulness: attention on purpose, without judgment.",o:[{text:"Wordle as mindfulness!",next:"go1"},{text:"Helps problem-solving?",next:"so1"}]},
+so1:{m:"Reduces anxiety noise, letting natural solving emerge.",o:[{text:"Trusting intuition more",next:"so2"},{text:"Balance intuition with logic?",next:"ba1"}]},
+so2:{m:"After logic, listen for a hunch — combine both!",o:[{text:"Honoring both",next:"go1"},{text:"New approach",next:"go1"}]},
+ba1:{m:"Logic eliminates, intuition integrates. Dance between both!",o:[{text:"Want to learn that dance",next:"ba2"},{text:"When to use which?",next:"wh1"}]},
+ba2:{m:"Logic narrows, then pause and let intuition suggest.",o:[{text:"Clear framework",next:"go1"},{text:"Experimenting with that",next:"go1"}]},
+wh1:{m:"Intuition when: stuck in analysis, or word 'feels right.'",o:[{text:"Watching for signals",next:"go1"},{text:"What if intuition is wrong?",next:"wr1"}]},
+wr1:{m:"Wrong intuitions teach you about your thinking patterns!",o:[{text:"Data, not failures",next:"go1"},{text:"How to improve?",next:"im1"}]},
+im1:{m:"After each game: first hunch vs. discovery. Build feedback loop.",o:[{text:"Creating that loop",next:"go1"},{text:"Other ways?",next:"de1"}]},
+de1:{m:"Read widely — intuition draws from a rich internal library.",o:[{text:"Expanding word library",next:"go1"},{text:"Makes sense",next:"go1"}]},
+ap1:{m:"Gray letters eliminate wrong paths — as valuable as green!",o:[{text:"Gray as guides",next:"ap2"},{text:"Changes my approach",next:"go1"}]},
+ap2:{m:"Without knowing what's NOT there, you can't know what IS.",o:[{text:"New perspective",next:"go1"},{text:"Beautiful",next:"go1"}]},
+st1:{m:"Can't control the word, only your response — that's freedom!",o:[{text:"Want that freedom",next:"st2"},{text:"Practice in daily life?",next:"da1"}]},
+st2:{m:"'Can I control outcome?' No. 'My process?' Yes. Focus there.",o:[{text:"Process over results",next:"go1"},{text:"Other Stoic practices?",next:"st3"}]},
+st3:{m:"Negative visualization: imagine not solving it — reduces anxiety!",o:[{text:"Trying that",next:"go1"},{text:"Fascinating",next:"go1"}]},
+da1:{m:"Morning principle reflection → apply to first challenge.",o:[{text:"Daily wisdom practice",next:"go1"},{text:"Create a routine?",next:"ru1"}]},
+ru1:{m:"'Bookend' method: morning intention → apply → evening review.",o:[{text:"Bookend routine",next:"go1"},{text:"What principles?",next:"pc1"}]},
+pc1:{m:"1) Control what you can 2) Obstacles are opportunities 3) Gratitude",o:[{text:"Perfect starting points",next:"go1"},{text:"Elaborate on obstacles?",next:"os1"}]},
+os1:{m:"The obstacle IS the way — wrong letters eliminate wrong paths!",o:[{text:"Reframing obstacles",next:"go1"},{text:"Powerful reframe",next:"go1"}]},
+pa1:{m:"Lao Tzu: 'Nature doesn't hurry, yet everything is accomplished.'",o:[{text:"Active patience",next:"go1"},{text:"Patient when stuck?",next:"sk1"}]},
+sk1:{m:"Zen 'beginner's mind': see puzzle as if for the first time!",o:[{text:"Trying that",next:"go1"},{text:"Other strategies?",next:"sk2"}]},
+sk2:{m:"Change position, 3 breaths, look away — shift your state!",o:[{text:"Shifting state when stuck",next:"go1"},{text:"Practical advice",next:"go1"}]},
+pr1:{m:"Feel keys, notice colors, hear sounds — anchor in senses.",o:[{text:"Using senses to stay present",next:"go1"},{text:"How does presence help?",next:"pr2"}]},
+pr2:{m:"Eliminates 'Will I solve it?' — connects you with pure experience.",o:[{text:"Experience over outcome",next:"go1"},{text:"Liberating",next:"go1"}]},
+fl1:{m:"Flow: challenge meets skill — not too easy, not too hard.",o:[{text:"Finding flow zone",next:"go1"},{text:"Recognize when in flow?",next:"fl2"}]},
+fl2:{m:"Losing track of time, effortless attention, automatic yet conscious.",o:[{text:"I've felt that",next:"go1"},{text:"Get into flow reliably?",next:"re1"}]},
+re1:{m:"Minimize distractions, approach with curiosity not pressure.",o:[{text:"Flow-friendly conditions",next:"go1"},{text:"Environment matters",next:"go1"}]},
+su1:{m:"Branson: 'Say yes to amazing opportunities, learn how later!'",o:[{text:"Saying yes despite doubts",next:"go1"},{text:"How handle failure?",next:"fa1"}]},
+fa1:{m:"They redefine it! Edison found ways that didn't work.",o:[{text:"Failure as feedback",next:"go1"},{text:"Takes the sting out",next:"go1"}]},
+gr1:{m:"Journal: date, guesses, one thing learned.",o:[{text:"Starting a journal",next:"go1"},{text:"What to track?",next:"tr1"}]},
+tr1:{m:"Guesses, tricky letters, strategies, emotional patterns.",o:[{text:"Comprehensive tracking",next:"go1"},{text:"Starting simple",next:"go1"}]},
+b1:{m:"'How you do anything is how you do everything.' Life practice!",o:[{text:"Wordle as life training",next:"go1"},{text:"Deeper meaning",next:"go1"}]},
+go1:{m:"Embrace results, stay present, balance logic with intuition. Go!",o:[{text:"Ready!",next:null},{text:"One last wisdom?",next:"fi1"}]},
+fi1:{m:"Rilke: 'Love the questions themselves.' Questions = answers.",o:[{text:"Playing with wisdom!",next:null},{text:"Thank you!",next:null}]}
+};
+
+const G={
+fg:{m:"First guess — what are you noticing?",o:[{text:"Got green letters!",next:"fg1"},{text:"Got yellow letters",next:"fy1"},{text:"Mostly gray",next:"fgr1"}]},
+fg1:{m:"Green confirms the path — use it with excellence!",o:[{text:"On the right track!",next:"en1"},{text:"Work remains",next:"wk1"}]},
+fy1:{m:"Yellow = riddle. You have part of the answer — approach?",o:[{text:"Rearrange yellows",next:"rr1"},{text:"Find new letters",next:"nl1"}]},
+fgr1:{m:"Gray eliminated wrong paths — strategy?",o:[{text:"Different letters",next:"df1"},{text:"Discouraged",next:"di1"}]},
+en1:{m:"Positive emotions enhance flexibility — ride that wave!",o:[{text:"Energized!",next:null},{text:"Maintain energy?",next:"en2"}]},
+en2:{m:"Energy comes from curiosity about the word itself!",o:[{text:"Curious about the word",next:null},{text:"New perspective",next:null}]},
+wk1:{m:"Lao Tzu: 'A thousand miles begins with a single step.'",o:[{text:"Focusing on gaps",next:null},{text:"Finding more letters",next:null}]},
+rr1:{m:"Same elements, different arrangement — like furniture!",o:[{text:"Experimenting",next:null},{text:"Rearrange tips?",next:"rr2"}]},
+rr2:{m:"Start with most constrained position — build from there!",o:[{text:"Identifying constraints",next:null},{text:"Strategic!",next:null}]},
+nl1:{m:"Balancing known with new — detective work!",o:[{text:"Common letters E, A, I",next:null},{text:"Pattern-based letters",next:null}]},
+df1:{m:"Beginner's mind — fresh eyes, no attachment!",o:[{text:"Blank slate",next:null},{text:"Less pressure",next:null}]},
+di1:{m:"Rumi: 'The wound is where light enters.'",o:[{text:"Looking for light",next:null},{text:"Shift from discouraged?",next:"di2"}]},
+di2:{m:"'I'm discouraged' → 'I'm gathering info.' Same situation, different story.",o:[{text:"Weight lifted",next:null},{text:"Good start",next:null}]},
+mg1:{m:"Mastery = quality of attention, not speed. Patterns?",o:[{text:"Words forming!",next:"mf1"},{text:"Unclear still",next:"mu1"}]},
+mg2:{m:"Middle is hardest — perseverance time! Approach?",o:[{text:"Systematic testing",next:"ms1"},{text:"Following intuition",next:"mi2"},{text:"Stuck",next:"msk1"}]},
+mf1:{m:"Incubation phase — let partial words develop naturally!",o:[{text:"Letting words come",next:null},{text:"Which is right?",next:"mf2"}]},
+mf2:{m:"Right one feels like 'of course!' not 'I think so.'",o:[{text:"Waiting for recognition",next:null},{text:"What if never feel it?",next:"mf3"}]},
+mf3:{m:"Not all insights have fanfare — trust your best judgment!",o:[{text:"Trusting judgment",next:null},{text:"Pressure off",next:null}]},
+mu1:{m:"Look away 10s, breathe: 'If I had to guess now, what?'",o:[{text:"Trying that",next:null},{text:"Different approach?",next:"mu2"}]},
+mu2:{m:"Try opposite of what you've been doing — mental flexibility!",o:[{text:"Trying opposite",next:null},{text:"Clever",next:null}]},
+ms1:{m:"Scientific method — hypothesis, test, evaluate!",o:[{text:"Value systematic thinking",next:null},{text:"Feel too rigid",next:"ms2"}]},
+ms2:{m:"'Learn rules like a pro, break them like an artist.'",o:[{text:"Structure then flow",next:null},{text:"Balances both",next:null}]},
+mi2:{m:"Einstein: 'The intuitive mind is a sacred gift.'",o:[{text:"Embracing intuition",next:null},{text:"Balance with logic?",next:"ba2"}]},
+msk1:{m:"Think out loud — reveals blind spots!",o:[{text:"Trying that",next:null},{text:"Other strategies?",next:"msk2"}]},
+msk2:{m:"'Why stuck?' × 5 — often it's assumptions!",o:[{text:"Digging into assumptions",next:null},{text:"Powerful diagnostic",next:null}]},
+lg1:{m:"Darkest before dawn. Previous guesses prepared you!",o:[{text:"Focusing on positions",next:null},{text:"Words fitting clues",next:null},{text:"Feeling pressure",next:"lp1"}]},
+lg2:{m:"Fresh eyes — answer might be hiding in plain sight!",o:[{text:"See a possibility!",next:"lpo1"},{text:"Still searching",next:"lse1"}]},
+lp1:{m:"You're not your score — you're the consciousness experiencing this.",o:[{text:"Detaching from pressure",next:null},{text:"Perform under pressure?",next:"lp2"}]},
+lp2:{m:"Care deeply + accept any result = engagement without anxiety!",o:[{text:"Holding that paradox",next:null},{text:"Challenging but worth it",next:null}]},
+lpo1:{m:"Quick check: honors all clues? If yes, trust it!",o:[{text:"Checks out!",next:null},{text:"Second-guessing",next:"lpo2"}]},
+lpo2:{m:"'If someone else guessed this, would I think it's reasonable?'",o:[{text:"More objective",next:null},{text:"Not sure",next:"lpo3"}]},
+lpo3:{m:"Go with first instinct — subconscious recognizing a pattern!",o:[{text:"Trusting first instinct",next:null},{text:"Counterintuitive but trying",next:null}]},
+lse1:{m:"Kierkegaard: 'Understood backwards, lived forwards.' Keep going!",o:[{text:"Moving forward",next:null},{text:"Going in circles",next:"lse2"}]},
+lse2:{m:"'What am I assuming that might not be true?' Opens paths!",o:[{text:"Examining assumptions",next:null},{text:"Exactly what I needed",next:null}]}
+};
+
+function triggerChat(guess,result){
+  const n=guesses.length,correct=result.filter(r=>r==='correct').length,present=result.filter(r=>r==='present').length;
+  const o=document.querySelector('.opts');if(o)o.remove();
+  let target;
+  if(n===1){if(correct>0)target='fg1';else if(present>0)target='fy1';else target='fgr1'}
+  else if(n<4){target=Math.random()>.5?'mg1':'mg2'}
+  else{target=Math.random()>.5?'lg1':'lg2'}
+  tp();setTimeout(()=>{ut();go(target)},700);
+}
+
+function createSparkles(){for(let i=0;i<20;i++){const s=document.createElement('div');s.className='sparkle';s.style.left=Math.random()*innerWidth+'px';s.style.top=Math.random()*innerHeight+'px';s.style.animationDelay=Math.random()+'s';s.style.width=s.style.height=(5+Math.random()*7)+'px';document.body.appendChild(s)}}
+function fetchToSheet(name){sendEdge({student_name:name,tries:guesses.length,time_spent:Math.floor((Date.now()-startTime)/1000),department:localStorage.getItem(DEPT_KEY)||"Unknown",quest_id:"Wordle",answer:ANSWER})}
+
+function showScore(win){
+  const sc=document.getElementById('scorecard');sc.style.display='block';createSparkles();localStorage.removeItem(STORAGE_KEY);
+  const ni=document.getElementById('playerName'),lt=document.getElementById('leaderboardText'),lb=document.getElementById('leaderboardBtn'),ds=document.getElementById('playerDept');
+  const sn=localStorage.getItem(NAME_KEY),sd=localStorage.getItem(DEPT_KEY);
+  if(sn&&sd){ni.value=sn;ds.value=sd;ni.style.display='none';ds.style.display='none';lt.textContent=`Recorded for ${sn}`;fetchToSheet(sn)}else{lt.textContent="Enter details for leaderboard"}
+  lb.style.display='inline-block';lb.onclick=()=>window.open("https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/leaderboard_live","_blank");
+  function saveId(){const n=ni.value.trim(),d=ds.value;if(!n||!d)return;localStorage.setItem(NAME_KEY,n);localStorage.setItem(DEPT_KEY,d);fetchToSheet(n);lt.textContent=`Thanks ${n}!`}
+  ni.addEventListener('change',saveId);ds.addEventListener('change',saveId);
+  const t=guesses.length;
+  if(win){
+    document.getElementById('scoreTitle').textContent=t===1?'🎉 Genius!':t===2?'✨ Excellent!':t<=4?'🌟 Great!':'👍 Good!';
+    document.getElementById('scoreMsg').textContent=`Word: ${ANSWER.toUpperCase()}!`;
+    am(t===1?"One guess?! Legendary!":t===2?"Intuition + logic in harmony!":t<=4?"Persistence paid off!":"Journey = destination!");
+  }else{
+    document.getElementById('scoreTitle').textContent='💔 Hard Luck';
+    document.getElementById('scoreMsg').textContent=`Word: ${ANSWER.toUpperCase()}!`;
+    am("Marcus Aurelius: 'The impediment advances action.' Tomorrow!");
+  }
+  document.getElementById('shareBtn').onclick=()=>{
+    let grid=guesses.map(g=>{const a=ANSWER.split(),gu=g.split(),r=Array(5).fill('⬜'),f={};a.forEach(c=>f[c]=(f[c]||0)+1);for(let i=0;i<5;i++)if(gu[i]===a[i]){r[i]='🟩';f[gu[i]]--}for(let i=0;i<5;i++)if(r[i]==='⬜'&&f[gu[i]]>0){r[i]='🟨';f[gu[i]]--}return r.join('')}).join('\n');
+    const m=win?`Solved Wordle in ${t} tries! 🎉\n${grid}\n😎 https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/wordle`:`Couldn't crack today's Wordle 😢\n${grid}\nTry! 😎 https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/wordle`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(m)}`,'_blank');
+  };
+}
+
+async function init(){
+  try{
+    const r=await fetch(CSV_URL),t=await r.text();WORDS=parseCSV(t);
+    if(!WORDS.length){hintEl.textContent='No words';return}
+    chooseWord();createBoard();renderKB();guesses=[];current='';localStorage.removeItem(STORAGE_KEY);
+    tp();setTimeout(()=>{ut();go('greeting')},1000);
+  }catch(e){hintEl.textContent='Failed to load';console.error(e)}
+}
+init();
+</script>    
+</body>    
+</html>

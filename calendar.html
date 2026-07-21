@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Quest Calendar — SRM VEC English</title>
+  <link rel="icon" type="image/png" href="icons/icon-96x96.png">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#faf7f2">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --obsidian: #ffffff;
+      --deep: #faf7f2;
+      --surface: #ffffff;
+      --surface2: #f5efe6;
+      --gold: #c9a84c;
+      --gold-light: #e8c97a;
+      --gold-dim: rgba(201,168,76,0.12);
+      --crimson: #7A0019;
+      --text: #2a2a2a;
+      --text-muted: #7a766f;
+      --text-dim: #b0a99f;
+      --border: rgba(201,168,76,0.35);
+      --border-dim: rgba(0,0,0,0.06);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      font-family: 'DM Mono', monospace;
+      background: var(--deep);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* Ambient background blur */
+    .ambient {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+    }
+    .ambient::before {
+      content: '';
+      position: absolute;
+      top: -10vw;
+      left: -10vw;
+      width: 70vw;
+      height: 70vw;
+      background: radial-gradient(circle, rgba(201,168,76,0.08), transparent 70%);
+      animation: breathe 10s ease-in-out infinite;
+    }
+    @keyframes breathe {
+      0%, 100% { transform: scale(1); opacity: 0.4; }
+      50% { transform: scale(1.15); opacity: 0.8; }
+    }
+
+    /* Container */
+    .cal-app {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 480px;
+      min-height: 100vh;
+      background: var(--obsidian);
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 0 40px rgba(0,0,0,0.05);
+    }
+
+    /* Header */
+    .header {
+      padding: 16px 20px;
+      background: rgba(255,255,255,0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-dim);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .header-user {
+      display: flex;
+      flex-direction: column;
+    }
+    .user-name {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1.1;
+    }
+    .user-dept {
+      font-size: 0.58rem;
+      letter-spacing: 2px;
+      color: var(--gold);
+      text-transform: uppercase;
+      margin-top: 2px;
+    }
+
+    .home-link {
+      background: var(--surface2);
+      border: 1px solid var(--border-dim);
+      border-radius: 10px;
+      padding: 8px 12px;
+      color: var(--text-muted);
+      font-size: 0.7rem;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+    .home-link:hover {
+      border-color: var(--gold);
+      color: var(--gold);
+    }
+
+    /* Tabs */
+    .type-tabs {
+      display: flex;
+      gap: 6px;
+      padding: 12px 16px;
+      background: var(--deep);
+      border-bottom: 1px solid var(--border-dim);
+    }
+    .type-tab {
+      flex: 1;
+      padding: 10px 4px;
+      background: var(--surface);
+      border: 1px solid var(--border-dim);
+      border-radius: 10px;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.65rem;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+      cursor: pointer;
+      text-transform: uppercase;
+      transition: all 0.2s;
+      text-align: center;
+    }
+    .type-tab.active {
+      background: var(--gold-dim);
+      border-color: var(--gold);
+      color: var(--gold);
+      font-weight: 500;
+    }
+
+    /* Offline Banner */
+    .offline-banner {
+      background: rgba(255,152,0,0.12);
+      border-bottom: 1px solid rgba(255,152,0,0.25);
+      padding: 8px 16px;
+      text-align: center;
+      font-size: 0.62rem;
+      letter-spacing: 1px;
+      color: #e65100;
+      text-transform: uppercase;
+      display: none;
+    }
+    .offline-banner.show { display: block; }
+
+    /* Calendar Body */
+    .cal-body {
+      flex: 1;
+      padding: 20px 16px 40px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .cal-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+    }
+    .cal-nav-btn {
+      background: var(--surface);
+      border: 1px solid var(--border-dim);
+      border-radius: 10px;
+      width: 38px;
+      height: 38px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .cal-nav-btn:hover {
+      border-color: var(--gold);
+      color: var(--gold);
+    }
+    .cal-month-label {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    /* Grid */
+    .cal-dow {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 6px;
+      margin-bottom: 8px;
+      text-align: center;
+    }
+    .cal-dow div {
+      font-size: 0.55rem;
+      letter-spacing: 1.5px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      padding: 4px 0;
+    }
+
+    .cal-days {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 6px;
+    }
+    .cal-day {
+      aspect-ratio: 1;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: 1px solid transparent;
+      font-family: 'DM Mono', monospace;
+      position: relative;
+      user-select: none;
+    }
+    .cal-day:active:not(.disabled) {
+      transform: scale(0.92);
+    }
+    .cal-day.disabled {
+      opacity: 0.15;
+      cursor: default;
+    }
+
+    /* Day States */
+    .cal-day.done {
+      background: linear-gradient(135deg, rgba(201,168,76,0.3), rgba(232,201,122,0.15));
+      border-color: rgba(201,168,76,0.7);
+      border-width: 1.5px;
+      color: #8c6a18;
+      font-weight: 700;
+      box-shadow: 0 2px 8px rgba(201,168,76,0.18);
+    }
+    .cal-day.done::after {
+      content: '🔥';
+      font-size: 0.65rem;
+      position: absolute;
+      bottom: 2px;
+      right: 3px;
+      filter: drop-shadow(0 0 2px rgba(255,150,0,0.6));
+    }
+    .cal-day.missed {
+      background: rgba(122,0,25,0.04);
+      border-color: rgba(122,0,25,0.12);
+      color: rgba(122,0,25,0.45);
+    }
+    .cal-day.today-available {
+      background: var(--gold-dim);
+      border-color: var(--gold);
+      color: var(--gold);
+      font-weight: 700;
+      box-shadow: 0 0 12px rgba(201,168,76,0.3);
+    }
+    .cal-day.future {
+      background: var(--surface);
+      color: var(--text-dim);
+      border-color: var(--border-dim);
+    }
+
+    /* Modal for duplicate matching */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 600;
+      background: rgba(0,0,0,0.5);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(6px);
+      padding: 16px;
+    }
+    .modal-overlay.show { display: flex; }
+    .modal-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      width: 100%;
+      max-width: 360px;
+      text-align: center;
+    }
+    .modal-btn {
+      width: 100%;
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border-dim);
+      background: var(--deep);
+      font-family: 'DM Mono', monospace;
+      font-size: 0.7rem;
+      cursor: pointer;
+      margin-top: 8px;
+    }
+
+    /* Footer */
+    .footer {
+      text-align: center;
+      padding: 20px 12px;
+      font-size: 0.58rem;
+      letter-spacing: 1px;
+      color: var(--text-dim);
+      margin-top: auto;
+    }
+    .footer a { color: var(--gold); text-decoration: none; }
+  </style>
+</head>
+<body>
+
+<div class="ambient"></div>
+
+<div class="cal-app">
+  <div class="header">
+    <div class="header-user">
+      <span class="user-name" id="userNameLabel">Guest User</span>
+      <span class="user-dept" id="userDeptLabel">—</span>
+    </div>
+    <a href="index.html" class="home-link">← Hub</a>
+  </div>
+
+  <div id="offlineBanner" class="offline-banner">📡 Offline — showing cached data</div>
+
+  <div class="type-tabs">
+    <button class="type-tab active" onclick="switchType('quest', this)">📝 Quests</button>
+    <button class="type-tab" onclick="switchType('video', this)">🎥 Videos</button>
+    <button class="type-tab" onclick="switchType('story', this)">📚 Stories</button>
+  </div>
+
+  <div class="cal-body">
+    <div class="cal-nav">
+      <button class="cal-nav-btn" onclick="changeMonth(-1)">◀</button>
+      <span class="cal-month-label" id="calMonthLabel"></span>
+      <button class="cal-nav-btn" onclick="changeMonth(1)">▶</button>
+    </div>
+
+    <div class="cal-dow">
+      <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div>
+      <div>Thu</div><div>Fri</div><div>Sat</div>
+    </div>
+
+    <div class="cal-days" id="calDays"></div>
+
+    <div class="footer">
+      Created with grit, nurtured with love and charged with passion ♥ by <a href="https://andrewveda.github.io/" target="_blank">Andrew Veda</a><br>SRM Valliammai Engineering College
+    </div>
+  </div>
+</div>
+
+<!-- Modal for choosing student record -->
+<div class="modal-overlay" id="confirmModal">
+  <div class="modal-box" id="modalBox"></div>
+</div>
+
+<script type="module">
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm";
+
+const supabase = createClient(
+  "https://yellow-lab-4999.andrewveda.workers.dev",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoZXpzc29jenZwYmt0ZWZmY2d6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI4NTk1ODUsImV4cCI6MjA3ODQzNTU4NX0.2ZlqXnZxv0opkhynAT7OlK4S-xPygcc7ETUyTXRfGHE"
+);
+
+// State
+let userData = null;
+let currentMonth = new Date().getMonth();
+let currentYear = new Date().getFullYear();
+let currentType = 'quest';
+const startDate = new Date(2025, 7, 25);
+
+// Links
+const questLinks = {
+  1:"https://andrewveda.github.io/SRM-VEC-English-PWA/quests/quest1",2:"https://sites.google.com/view/srm-vec-english/quest/wh-questions-1",3:"https://sites.google.com/view/cys-english/self-introduction-1",4:"https://sites.google.com/view/srm-vec-english/quest/one-word-substitution-1",5:"https://sites.google.com/view/cys-english/self-introduction-3",6:"https://sites.google.com/view/srm-vec-english/quest/film-review",7:"https://sites.google.com/view/srm-vec-english/quest/pronouns-1",8:"https://sites.google.com/view/srm-vec-english/quest/pronouns-2",9:"https://sites.google.com/view/srm-vec-english/quest/parts-of-speech-1",10:"https://sites.google.com/view/srm-vec-english/quest/question-tags-1",11:"https://sites.google.com/view/srm-vec-english/quest/question-tags-2",12:"https://sites.google.com/view/srm-vec-english/quest/subject-verb-agreement",13:"https://sites.google.com/view/srm-vec-english/quest/comparative-1",14:"https://sites.google.com/view/srm-vec-english/quest/comparative-2",15:"https://sites.google.com/view/srm-vec-english/quest/discourse-markers",16:"https://sites.google.com/view/srm-vec-english/quest/past-1",17:"https://sites.google.com/view/cys-english/questyesno1",18:"https://sites.google.com/view/srm-vec-english/quest/yesno-2",19:"https://sites.google.com/view/srm-vec-english/quest/one-word-substitution-2",20:"https://sites.google.com/view/cys-english/match1",21:"https://sites.google.com/view/cys-english/match2",22:"https://sites.google.com/view/cys-english/past",23:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/MCQ/Homophone1",24:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/MCQ/Homophone2",25:"https://sites.google.com/view/cys-english/comparisons1",26:"https://sites.google.com/view/cys-english/comparisons2",27:"https://sites.google.com/view/cys-english/discoursemarkers",28:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/MCQ/article1",29:"https://sites.google.com/view/cys-english/synonym1",30:"https://sites.google.com/view/cys-english/synonym2",31:"https://sites.google.com/view/cys-english/antonym1",32:"https://sites.google.com/view/cys-english/antonym2",33:"https://sites.google.com/view/cys-english/prep1",34:"https://sites.google.com/view/cys-english/prep2",35:"https://sites.google.com/view/cys-english/past2",36:"https://sites.google.com/view/cys-english/prep3",37:"https://sites.google.com/view/cys-english/match3",38:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/MCQ/article2",39:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/MCQ/article3",40:"https://sites.google.com/view/cys-english/quest40",41:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/MCQ/present1",42:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/MCQ/tense1",43:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/MCQ/tense2",44:"https://sites.google.com/view/cys-english/quest44",45:"https://sites.google.com/view/cys-english/quest45",46:"https://sites.google.com/view/cys-english/quest46",47:"https://sites.google.com/view/cys-english/quest47",48:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/MCQ/collocation1",49:"https://sites.google.com/view/cys-english/quest49",50:"https://sites.google.com/view/cys-english/quest50",51:"https://sites.google.com/view/cys-english/quest51",52:"https://sites.google.com/view/cys-english/quest52",53:"https://sites.google.com/view/cys-english/quest53",54:"https://sites.google.com/view/cys-english/quest54",55:"https://sites.google.com/view/cys-english/quest55",56:"https://sites.google.com/view/cys-english/quest56",57:"https://sites.google.com/view/cys-english/quest57",58:"https://sites.google.com/view/cys-english/quest58",59:"https://sites.google.com/view/cys-english/quest59",60:"https://sites.google.com/view/cys-english/quest60",61:"https://sites.google.com/view/cys-english/quest61",62:"https://sites.google.com/view/cys-english/quest62",63:"https://sites.google.com/view/cys-english/full-streak-wh-questions",64:"https://sites.google.com/view/cys-english/full-streak-single-word",65:"https://sites.google.com/view/cys-english/full-streak-3",66:"https://sites.google.com/view/cys-english/full-streak-4",67:"https://sites.google.com/view/cys-english/full-streak-5",68:"https://sites.google.com/view/cys-english/full-streak-6",69:"https://sites.google.com/view/cys-english/full-streak-7",70:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/bookreview1",71:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/bookreview2",72:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/bookreview3",73:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/bookreview4",74:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/blog1",75:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/blog2",76:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/blog3",77:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/blog4",78:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/blog5",79:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/blog6",80:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/blog7",81:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/blog8",82:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/blog9",83:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/blog10",84:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/blog11",85:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/blog12",86:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/blog13",87:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/blog14",88:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/blog15",89:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/blog16",90:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/blog17",91:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/blog18",92:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/instructions1",93:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/instructions2",94:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/expandcompoundnoun",95:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/report1",96:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/report2",97:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/report3",98:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/report4",99:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/report5",100:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/report6",101:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/report7",102:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/MCQ/questions1",103:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/MCQ/negative",104:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/MCQ/compound",105:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/MCQ/compound2",106:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/MCQ/punctuation1",107:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/MCQ/punctuation2",108:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/MCQ/functionwords1",109:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/MCQ/functionwords2",110:"https://andrewveda.github.io/3/Pygmalion",111:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/videoqueststed",112:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/videoquestspodcast",113:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/invention1",114:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/invention2",115:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/invention3",116:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/invention4",117:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/invention5",118:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/invention6",119:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/invention7",120:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/MCQ/tensematch1",121:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/MCQ/tensematch2",122:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/MCQ/tensematch3",123:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/MCQ/tensematch4",124:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/MCQ/tensematch5",125:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/MCQ/tensematch6",126:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/MCQ/t4",127:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/MCQ/t3",128:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/MCQ/t2negquesprestense",129:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/MCQ/homophonearticles",130:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/Quotes1",131:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/quotes2",132:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/MCQ/idiom1",133:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/MCQ/idiom2",134:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/MCQ/idiom3",135:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/MCQ/idiom4",171:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/verb",172:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/prep",173:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/3",174:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/4",175:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/5",176:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/6",177:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/7",178:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/8",179:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/9",180:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/10",181:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/11",182:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/12",183:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/13",184:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/14",185:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/15",186:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/16",187:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/17",188:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/18",189:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/19",190:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/20",191:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/21",192:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/22",193:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/23",194:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/24",195:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/25",196:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/26",197:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/27",198:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/28",199:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/29",200:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/30",201:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/31",202:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/32",203:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/33",204:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/34",205:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/35",206:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/conversation1",207:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/conversation2",208:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/conversation3",209:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/conversation4",210:"https://andrewveda.github.io/3",211:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/vid1",212:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/36",213:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/37",214:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/38",215:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/vv_food",216:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/vv_people",217:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/vv_droll",218:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/vv_others",219:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/vv_pompous",220:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/vv_positiveexperience",221:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/vv_positiveidentity",222:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/39",223:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/40",224:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/41",225:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/42",226:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/43",227:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/44",228:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/vid2",229:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/45",230:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/46",231:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/47",232:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/48",233:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/49",234:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/50",235:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/51",236:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/52",237:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/53",238:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/54",239:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/55",240:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/56",241:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/57",242:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/58",243:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/59",244:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/60",245:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/61",246:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/62",247:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/63",248:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/64",249:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/65",250:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/66",251:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/67",252:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/68",253:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/69",254:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/70",255:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/71",256:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/72",257:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/73",258:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/74",259:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/75",260:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/76",261:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/77",262:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/78",263:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/79",264:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/80",265:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/81",266:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/82",267:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/83",268:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/84",269:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/85",270:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/86",271:"https://andrewveda.github.io/SRM-VEC-English-PWA/semII/87",272:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/vv_idioms1",273:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/vv_idioms2",274:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/vv_idioms3",275:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/vv_idioms4",276:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/vv_idioms5",277:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/vv_idioms6",278:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/vv_idioms7",279:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/vv_idioms8",280:"https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/vv_idioms9"
+};
+const videoLink = "https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/videoquests";
+const storyLinks = {69:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story1",70:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story2",71:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story3",72:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story4",73:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story5",74:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story6",75:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story7",76:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story8",77:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story9",78:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story10",79:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story11",80:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story12",81:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story13",82:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story14",83:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story15",84:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story16",85:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story17",86:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story18",87:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story19",88:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story20",89:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story21",90:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story22",91:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story23",92:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story24",93:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story25",94:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story26",95:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story27",96:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story28",97:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story29",98:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story30",99:"https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/story31"};
+
+// Init
+async function init() {
+  checkOnlineStatus();
+  const savedName = localStorage.getItem("userName") || "Guest";
+  const savedDept = localStorage.getItem("userDept") || "—";
+  
+  document.getElementById("userNameLabel").textContent = savedName;
+  document.getElementById("userDeptLabel").textContent = savedDept;
+
+  const cached = localStorage.getItem("cachedUserData");
+  if (cached) {
+    userData = JSON.parse(cached);
+    renderCalendar(currentMonth, currentYear, currentType);
+  }
+
+  if (savedName !== "Guest") {
+    fetchUserData(savedName);
+  } else {
+    renderCalendar(currentMonth, currentYear, currentType);
+  }
+}
+
+async function fetchUserData(name) {
+  try {
+    const { data, error } = await supabase.from("report_card_view").select("*");
+    if (error) throw error;
+
+    const matches = (data || []).filter(u => u.name && u.name.trim().toLowerCase() === name.trim().toLowerCase());
+
+    if (matches.length === 0) {
+      userData = { name, quest_list: "", video_list: "", story_list: "" };
+    } else if (matches.length === 1) {
+      userData = matches[0];
+    } else {
+      const mode = localStorage.getItem("userIdentityMode");
+      if (mode === "merged") {
+        userData = mergeUserRecords(matches);
+      } else if (mode === "single") {
+        const index = parseInt(localStorage.getItem("userIdentityIndex"), 10);
+        if (!isNaN(index) && matches[index]) userData = matches[index];
+      } else {
+        showDuplicatePicker(matches);
+        return;
+      }
+    }
+
+    localStorage.setItem("cachedUserData", JSON.stringify(userData));
+    renderCalendar(currentMonth, currentYear, currentType);
+  } catch (err) {
+    console.error("Fetch error:", err);
+    document.getElementById("offlineBanner").classList.add("show");
+  }
+}
+
+function showDuplicatePicker(matches) {
+  const modal = document.getElementById("confirmModal");
+  const box = document.getElementById("modalBox");
+
+  box.innerHTML = `
+    <p style="font-size:0.9rem;margin-bottom:12px;">Multiple records found.<br>Which one are you?</p>
+    <div id="pickerOptions" style="display:flex;flex-direction:column;gap:6px;"></div>
+  `;
+
+  const container = document.getElementById("pickerOptions");
+  matches.forEach((match, i) => {
+    const btn = document.createElement("button");
+    btn.className = "modal-btn";
+    btn.style.textAlign = "left";
+    btn.innerHTML = `
+      <div style="font-weight:700;">${match.name}</div>
+      <div style="color:var(--gold);font-size:0.6rem;">${match.department || "No dept"} · ${match.quests_completed ?? 0} quests</div>
+    `;
+    btn.onclick = () => {
+      userData = match;
+      localStorage.setItem("userIdentityMode", "single");
+      localStorage.setItem("userIdentityIndex", i);
+      localStorage.setItem("cachedUserData", JSON.stringify(userData));
+      modal.classList.remove("show");
+      renderCalendar(currentMonth, currentYear, currentType);
+    };
+    container.appendChild(btn);
+  });
+
+  const mergeBtn = document.createElement("button");
+  mergeBtn.className = "modal-btn";
+  mergeBtn.style.borderColor = "var(--gold)";
+  mergeBtn.style.color = "var(--gold)";
+  mergeBtn.textContent = "Merge All Records";
+  mergeBtn.onclick = () => {
+    userData = mergeUserRecords(matches);
+    localStorage.setItem("userIdentityMode", "merged");
+    localStorage.setItem("cachedUserData", JSON.stringify(userData));
+    modal.classList.remove("show");
+    renderCalendar(currentMonth, currentYear, currentType);
+  };
+  container.appendChild(mergeBtn);
+
+  modal.classList.add("show");
+}
+
+function mergeUserRecords(records) {
+  const merged = { ...records[0] };
+  let questSet = new Set(), videoSet = new Set(), storySet = new Set();
+
+  records.forEach(r => {
+    parseList(r.quest_list).forEach(x => questSet.add(x));
+    parseList(r.video_list).forEach(x => videoSet.add(x));
+    parseList(r.story_list).forEach(x => storySet.add(x));
+  });
+
+  merged.quest_list = [...questSet].join(",");
+  merged.video_list = [...videoSet].join(",");
+  merged.story_list = [...storySet].join(",");
+  return merged;
+}
+
+function parseList(raw) {
+  if (!raw) return [];
+  return raw.split(",").map(x => x.trim().replace(/\s+/g, "").toLowerCase()).filter(Boolean);
+}
+
+window.changeMonth = function(dir) {
+  currentMonth += dir;
+  if (currentMonth < 0) { currentMonth = 11; currentYear--; }
+  else if (currentMonth > 11) { currentMonth = 0; currentYear++; }
+  renderCalendar(currentMonth, currentYear, currentType);
+};
+
+window.switchType = function(type, btn) {
+  currentType = type;
+  document.querySelectorAll(".type-tab").forEach(t => t.classList.remove("active"));
+  if (btn) btn.classList.add("active");
+  renderCalendar(currentMonth, currentYear, currentType);
+};
+
+function renderCalendar(month, year, type) {
+  const grid = document.getElementById("calDays");
+  const label = document.getElementById("calMonthLabel");
+  if (!grid || !label) return;
+
+  label.textContent = new Date(year, month).toLocaleString("default", { month: "long" }) + " " + year;
+  grid.innerHTML = "";
+
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const firstDay = new Date(year, month, 1).getDay();
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+
+  let rawList = "";
+  if (type === "quest") rawList = userData?.quest_list || "";
+  else if (type === "video") rawList = userData?.video_list || "";
+  else rawList = userData?.story_list || "";
+
+  const list = parseList(rawList);
+
+  for (let i = 0; i < firstDay; i++) {
+    const e = document.createElement("div");
+    e.className = "cal-day disabled";
+    grid.appendChild(e);
+  }
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const date = new Date(year, month, d);
+    const diff = Math.floor((date - startDate) / 86400000);
+    const qn = diff >= 0 ? diff + 1 : null;
+
+    const div = document.createElement("div");
+    div.className = "cal-day";
+    div.textContent = d;
+
+    if (!qn) {
+      div.classList.add("disabled");
+      grid.appendChild(div);
+      continue;
+    }
+
+    const key = type === "quest" ? `quest${qn}` : type === "video" ? `video${qn}` : `story${qn}`;
+    const done = list.includes(key);
+
+    if (done) div.classList.add("done");
+    else if (date < today) div.classList.add("missed");
+    else if (date.getTime() === today.getTime()) div.classList.add("today-available");
+    else div.classList.add("future");
+
+    div.onclick = () => {
+      let link = null;
+      if (type === "quest") link = questLinks[qn];
+      else if (type === "video") link = videoLink;
+      else link = storyLinks[qn];
+      if (link) window.location.href = link;
+    };
+
+    grid.appendChild(div);
+  }
+}
+
+function checkOnlineStatus() {
+  if (!navigator.onLine) document.getElementById("offlineBanner").classList.add("show");
+}
+window.addEventListener("online", () => document.getElementById("offlineBanner").classList.remove("show"));
+window.addEventListener("offline", () => document.getElementById("offlineBanner").classList.show());
+
+init();
+</script>
+</body>
+</html>

@@ -319,42 +319,16 @@ button { touch-action: manipulation; font-family: inherit; border: none; backgro
 
 const GH = window.GH || {};
 
-/* ── CONFIG: fill these in ─────────────────────────────
-   1. Create a Supabase table (SQL below).
-   2. Paste your project URL + anon key here.
-   3. Add an RLS policy allowing inserts (see SQL comment).
-   ------------------------------------------------------
-   create table listening_scores (
-     id uuid primary key default gen_random_uuid(),
-     student_name text,
-     department text,
-     github_username text,
-     github_id text,
-     github_profile text,
-     test_id text not null,
-     test_title text,
-     youtube_id text,
-     score int,
-     total_questions int,
-     percentage numeric,
-     time_taken_seconds int,
-     answers jsonb,
-     completed_at timestamptz default now()
-   );
-   alter table listening_scores enable row level security;
-   create policy "allow anon insert" on listening_scores
-     for insert to anon with check (true);
-   ──────────────────────────────────────────────────── */
-const SUPABASE_URL       = "https://YOUR_PROJECT_REF.supabase.co";
-const SUPABASE_ANON_KEY  = "YOUR_SUPABASE_ANON_KEY";
-const SUPABASE_TABLE     = "listening_scores";
-const SAVE_ENDPOINT      = `${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}`;
+/* Same save pipeline as the Reels app — same Cloudflare Worker in front of the
+   same Supabase table/quests schema. No new table: each video is just another
+   quest_id row, the same way each Reel was ("voice-1", "voice-2", ...). */
+const SAVE_ENDPOINT = "https://orange-term-57cf.andrewveda.workers.dev/save";
 
 /* ── Content — real TED-Ed videos. Timestamps are approximate;
       scrub the actual video and adjust `at` (seconds) for precision. ── */
 const TESTS = [
   {
-    id: "tededq-bilingual-brain", category: "Psychology", difficulty: "Intermediate",
+    id: "tededq-bilingual-brain", questId: "YouTube 1", category: "Psychology", difficulty: "Intermediate",
     title: "The Benefits of a Bilingual Brain", youtubeId: "MMmOLN5zBLY",
     description: "Mia Nacamulli explains how speaking more than one language changes the way the brain works.",
     questions: [
@@ -365,7 +339,7 @@ const TESTS = [
     ]
   },
   {
-    id: "tededq-stock-market", category: "Economics", difficulty: "Intermediate",
+    id: "tededq-stock-market", questId: "YouTube 2", category: "Economics", difficulty: "Intermediate",
     title: "How Does the Stock Market Work?", youtubeId: "p7HKvqRI_Bo",
     description: "Oliver Elfenbaum traces the stock market from the Dutch East India Company to today's exchanges.",
     questions: [
@@ -376,7 +350,7 @@ const TESTS = [
     ]
   },
   {
-    id: "tededq-why-we-dream", category: "Psychology", difficulty: "Advanced",
+    id: "tededq-why-we-dream", questId: "YouTube 3", category: "Psychology", difficulty: "Advanced",
     title: "Why Do We Dream?", youtubeId: "2W85Dwxx218",
     description: "Amy Adkins runs through seven leading theories for why the human brain dreams.",
     questions: [
@@ -777,26 +751,14 @@ async function submitScore(test, record) {
     github_username: GH.username || '',
     github_id: GH.githubId || '',
     github_profile: GH.profile || '',
-    test_id: test.id,
-    test_title: test.title,
-    youtube_id: test.youtubeId,
-    score: record.score,
-    total_questions: record.total,
-    percentage: record.percentage,
-    time_taken_seconds: record.timeTaken,
-    answers: record.answers,
-    completed_at: record.completedAt
+    quest_id: test.questId,
+    time_spent: record.timeTaken
   };
 
   try {
     const res = await fetch(SAVE_ENDPOINT, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': SUPABASE_ANON_KEY,
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-        'Prefer': 'return=minimal'
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
     if (!res.ok) throw new Error(await res.text());

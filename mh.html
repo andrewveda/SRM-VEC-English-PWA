@@ -361,6 +361,31 @@ html, body { height: 100%; background: var(--bg); color: var(--text); overflow: 
   background: rgba(59, 130, 246, 0.1);
 }
 
+/* Achievement Toast */
+.achievement-toast {
+  position: fixed;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-60px);
+  background: linear-gradient(135deg, #1e3a5f 0%, #0f1724 100%);
+  border: 1px solid rgba(251, 191, 36, 0.35);
+  color: #fbbf24;
+  padding: 9px 16px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 600;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  z-index: 50;
+  opacity: 0;
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.35s ease;
+  pointer-events: none;
+  white-space: nowrap;
+}
+.achievement-toast.show {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+}
+
 /* Section Divider */
 .section-divider {
   text-align: center;
@@ -470,6 +495,14 @@ html, body { height: 100%; background: var(--bg); color: var(--text); overflow: 
   from { opacity: 0; transform: scale(0.92) translateY(10px); }
   to { opacity: 1; transform: scale(1) translateY(0); }
 }
+@keyframes confettiFall {
+  0% { transform: translateY(0) rotate(0deg); opacity: 0.9; }
+  100% { transform: translateY(100vh) rotate(540deg); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .msg-scholar .word { transition: none; }
+  .msg-wrap, .options-wrap, .completion-card { animation: none; }
+}
 
 /* Responsive */
 @media (max-width: 380px) {
@@ -536,6 +569,9 @@ function countNodes() {
   }
   return count;
 }
+
+const TOTAL_CHAPTERS = 20;
+let visitedChapters = new Set();
 
 const conversations = {
 
@@ -872,7 +908,7 @@ const conversations = {
   ch8_intro: {
     chapter: 8, title: "Man in the Car Paradox",
     message: "Chapter 8: <strong>The Man in the Car Paradox</strong>. Here's the paradox: <span class='key-term'>No one is impressed with your possessions as much as you are.</span> People look at a fancy car and think, 'I want that car,' not 'Wow, that person is cool.' The owner thinks the car signals status, but observers just want the object. The same applies to houses, watches, and clothes. We buy things to signal status, but no one actually cares about the signal.",
-    example: "Housel writes: 'When you see someone driving a nice car, you rarely think, "Wow, the guy driving that car is cool." Instead, you think, "Wow, if I had that car people would think I'm cool."' The paradox is that everyone is thinking the same thing — no one is actually impressed.",
+    example: "Housel writes: 'When you see someone driving a nice car, you rarely think, \"Wow, the guy driving that car is cool.\" Instead, you think, \"Wow, if I had that car people would think I'm cool.\"' The paradox is that everyone is thinking the same thing — no one is actually impressed.",
     options: [
       { text: "Why do we keep buying status symbols then?", next: "ch8_why" },
       { text: "What's the alternative to status spending?", next: "ch8_alternative" }
@@ -1487,8 +1523,21 @@ const progressFill = document.getElementById('progressFill');
 const totalNodes = countNodes();
 
 function updateProgress() {
-  const pct = Math.min(100, Math.round((visitedNodes.size / totalNodes) * 100));
+  const pct = Math.min(100, Math.round((visitedChapters.size / TOTAL_CHAPTERS) * 100));
   progressFill.style.width = pct + '%';
+}
+
+function showAchievementToast(text) {
+  const toast = document.createElement('div');
+  toast.className = 'achievement-toast';
+  toast.textContent = text;
+  document.body.appendChild(toast);
+  requestAnimationFrame(() => requestAnimationFrame(() => toast.classList.add('show')));
+  if (navigator.vibrate) { try { navigator.vibrate(15); } catch (e) {} }
+  setTimeout(() => {
+    toast.classList.remove('show');
+    setTimeout(() => toast.remove(), 400);
+  }, 2200);
 }
 
 function showTyping() {
@@ -1515,40 +1564,89 @@ function typeMessage(html, callback) {
   wrap.appendChild(msg);
   chatArea.appendChild(wrap);
 
-  // Parse HTML into text nodes and elements
+  // Parse HTML into reveal units. Each unit is either a bare word span,
+  // or (for elements like <strong>/<em>/.key-term/.example-box) the whole
+  // element containing its own word spans, so styling is preserved and the
+  // element reveals as one atomic unit.
   const temp = document.createElement('div');
   temp.innerHTML = html;
   const nodes = [];
-  function collect(el) {
+
+  function wordSpans(text) {
+    return text.split(/(\s+)/).filter(w => w.length > 0).map(w => {
+      const span = document.createElement('span');
+      span.className = 'word hidden';
+      span.textContent = w;
+      return span;
+    });
+  }
+
+  function elementContainsOnlyText(el) {
+    return Array.from(el.childNodes).every(n => n.nodeType === Node.TEXT_NODE);
+  }
+
+  function collect(el, topLevel) {
     el.childNodes.forEach(child => {
       if (child.nodeType === Node.TEXT_NODE) {
-        const words = child.textContent.split(/(\s+)/);
-        words.forEach(w => {
-          const span = document.createElement('span');
-          span.className = 'word hidden';
-          span.textContent = w;
-          nodes.push(span);
-        });
+        wordSpans(child.textContent).forEach(s => nodes.push(s));
       } else if (child.nodeType === Node.ELEMENT_NODE) {
-        const clone = child.cloneNode(false);
-        if (child.childNodes.length === 0) {
-          nodes.push(clone);
+        if (elementContainsOnlyText(child)) {
+          // Leaf styled element (strong/em/key-term/etc): reveal as one
+          // unit but keep its tag/class so styling renders correctly.
+          const wrapper = document.createElement(child.tagName);
+          for (const attr of child.attributes) wrapper.setAttribute(attr.name, attr.value);
+          wrapper.className = (wrapper.className ? wrapper.className + ' ' : '') + 'word hidden';
+          wrapper.textContent = child.textContent;
+          nodes.push(wrapper);
         } else {
-          collect(child);
+          // Container element (e.g. .example-box wrapping text): keep the
+          // wrapper in the DOM, but reveal its inner words individually.
+          const wrapper = document.createElement(child.tagName);
+          for (const attr of child.attributes) wrapper.setAttribute(attr.name, attr.value);
+          nodes.push({ openWrapper: wrapper });
+          collect(child, false);
+          nodes.push({ closeWrapper: true });
         }
       }
     });
   }
-  collect(temp);
+  collect(temp, true);
 
-  // Rebuild with word spans
+  // Rebuild with word spans, tracking a stack for open container wrappers
   msg.innerHTML = '';
   let i = 0;
+  let mountStack = [msg];
+
+  function currentMount() { return mountStack[mountStack.length - 1]; }
+
   function reveal() {
     if (i < nodes.length) {
-      msg.appendChild(nodes[i]);
-      nodes[i].classList.remove('hidden');
-      nodes[i].classList.add('visible');
+      const node = nodes[i];
+
+      if (node && node.openWrapper) {
+        currentMount().appendChild(node.openWrapper);
+        mountStack.push(node.openWrapper);
+        i++;
+        reveal();
+        return;
+      }
+      if (node && node.closeWrapper) {
+        if (mountStack.length > 1) mountStack.pop();
+        i++;
+        reveal();
+        return;
+      }
+
+      currentMount().appendChild(node);
+      // Force a style flush so the hidden->visible class swap actually
+      // animates (a same-tick class change never lets the browser paint
+      // the starting opacity: 0 state).
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          node.classList.remove('hidden');
+          node.classList.add('visible');
+        });
+      });
       i++;
       chatArea.scrollTop = chatArea.scrollHeight;
       setTimeout(reveal, typingSpeed);
@@ -1600,10 +1698,13 @@ function showOptions(options) {
 function showConversation(nodeId) {
   currentNodeId = nodeId;
   visitedNodes.add(nodeId);
-  updateProgress();
 
   const conv = conversations[nodeId];
   if (!conv) return;
+
+  const isNewChapter = conv.chapter && !visitedChapters.has(conv.chapter);
+  if (conv.chapter) visitedChapters.add(conv.chapter);
+  updateProgress();
 
   // Add chapter divider if new chapter
   if (conv.chapter && conv.title) {
@@ -1611,6 +1712,9 @@ function showConversation(nodeId) {
     divider.className = 'section-divider';
     divider.innerHTML = '<span>📖 Chapter ' + conv.chapter + ': ' + conv.title + '</span>';
     chatArea.appendChild(divider);
+    if (isNewChapter && conv.chapter > 1) {
+      showAchievementToast('📖 Chapter ' + conv.chapter + ' unlocked');
+    }
   }
 
   const fullHtml = (conv.chapter && conv.title ? '<div class="chapter-badge">📖 Ch. ' + conv.chapter + '</div>' : '') + conv.message +
@@ -1650,7 +1754,7 @@ function showCompletion() {
         <div class="stat-label">Complete</div>
       </div>
     </div>
-    <input type="text" id="playerName" placeholder="Enter your name" />
+    <input type="text" id="playerName" placeholder="Enter your name" value="${savedName.replace(/"/g, '&quot;')}" />
     <select id="playerDept">
       <option value="">-- Select Department --</option>
       <option value="Cyber Security">Cyber Security</option>
@@ -1677,6 +1781,11 @@ function showCompletion() {
   chatArea.appendChild(card);
   chatArea.scrollTop = chatArea.scrollHeight;
 
+  if (savedDept) {
+    const deptSelect = document.getElementById('playerDept');
+    if (deptSelect) deptSelect.value = savedDept;
+  }
+
   // Enable input for completion
   chatInput.disabled = true;
   sendBtn.disabled = true;
@@ -1686,6 +1795,28 @@ function showCompletion() {
   document.getElementById('restartBtn').addEventListener('click', () => {
     location.reload();
   });
+
+  launchConfetti();
+}
+
+function launchConfetti() {
+  const colors = ['#3b82f6', '#fbbf24', '#22c55e', '#a78bfa', '#60a5fa'];
+  const container = document.createElement('div');
+  container.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:hidden;z-index:60;';
+  document.body.appendChild(container);
+  const pieceCount = 36;
+  for (let i = 0; i < pieceCount; i++) {
+    const piece = document.createElement('div');
+    const size = 6 + Math.random() * 6;
+    const left = Math.random() * 100;
+    const duration = 1.8 + Math.random() * 1.4;
+    const delay = Math.random() * 0.4;
+    const rotate = Math.random() * 360;
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    piece.style.cssText = `position:absolute;top:-20px;left:${left}%;width:${size}px;height:${size * 0.4}px;background:${color};opacity:0.9;border-radius:2px;transform:rotate(${rotate}deg);animation:confettiFall ${duration}s ${delay}s cubic-bezier(0.4,0,0.6,1) forwards;`;
+    container.appendChild(piece);
+  }
+  setTimeout(() => container.remove(), 3600);
 }
 
 async function sendViaEdgeFunction(payload) {
@@ -1778,7 +1909,7 @@ function handleCustomInput() {
 
 // Event listeners
 sendBtn.addEventListener('click', handleCustomInput);
-chatInput.addEventListener('keypress', (e) => {
+chatInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') handleCustomInput();
 });
 
@@ -1795,12 +1926,9 @@ document.getElementById('startBtn').addEventListener('click', () => {
   }, 1500);
 });
 
-// Check for saved identity
-const savedName = localStorage.getItem(NAME_KEY);
-const savedDept = localStorage.getItem(DEPT_KEY);
-if (savedName && savedDept) {
-  // Could pre-fill if needed
-}
+// Check for saved identity (used to prefill the completion form, see showCompletion)
+const savedName = localStorage.getItem(NAME_KEY) || '';
+const savedDept = localStorage.getItem(DEPT_KEY) || '';
 </script>
 </body>
 </html>

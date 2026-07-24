@@ -9,31 +9,31 @@
 :root{    
   --bg:#0b1220; --card:#0f1724; --text:#e6eef8;    
   --absent:#3a3a3c; --present:#b59f3b; --correct:#538d4e;    
-  --key:#818384; --key-pressed:#565758;    
+  --key:#818384; --key-pressed:#565758;
+  --ivory:#FAF6EA; --ivory-card:#FFFDF7; --ivory-deep:#F0E7CE;
+  --gold:#B8935A; --gold-deep:#8C6A34; --gold-light:#E4CE9B; --ink:#2A2115; --ink-soft:#8A7A5C;
   font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;    
 }    
 *{box-sizing:border-box;margin:0;padding:0}    
 html,body{height:100%;background:var(--bg);color:var(--text);overflow:hidden}    
-.wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;padding:10px;position:relative}    
-.board{display:grid;grid-template-rows:repeat(6,64px);gap:6px;width:100%;max-width:400px}    
-.row{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}    
-.tile{display:flex;align-items:center;justify-content:center;font-weight:700;font-size:24px;border-radius:6px;background:#121826;color:var(--text)}    
+.wrap{display:flex;flex-direction:column;align-items:center;justify-content:space-between;height:100dvh;width:100%;padding:6px 8px;position:relative;overflow:hidden;gap:0}    
+.board{display:grid;grid-template-rows:repeat(6,1fr);gap:5px;width:100%;max-width:360px;flex:1 1 auto;padding:4px 0}    
+.row{display:grid;grid-template-columns:repeat(5,1fr);gap:4px}    
+.tile{display:flex;align-items:center;justify-content:center;font-weight:700;font-size:clamp(16px,5vw,28px);border-radius:6px;background:#121826;color:var(--text)}    
 .tile.absent{background:var(--absent)}    
 .tile.present{background:var(--present)}    
 .tile.correct{background:var(--correct)}    
-.keyboard{display:flex;flex-direction:column;gap:6px;margin-top:10px;width:100%;max-width:400px}    
+.keyboard{display:flex;flex-direction:column;gap:5px;width:100%;max-width:400px;flex:0 0 auto;padding:4px 0}    
 .krow{display:flex;gap:4px;justify-content:center}    
-.key{flex:1;padding:10px 0;border-radius:6px;text-align:center;user-select:none;background:var(--key);color:white;font-weight:700;cursor:pointer}    
+.key{flex:1;padding:clamp(8px,1.8vh,13px) 0;border-radius:6px;text-align:center;user-select:none;background:var(--key);color:white;font-weight:700;cursor:pointer;font-size:13px}    
 .key.enter {    
   background: var(--correct); /* green */    
 }  .key.back {  
 background: #b91c1c; /* red */  
 }  .key.wide{flex:1.5}
-.hint{color:#9fb7db;margin-top:6px;font-size:14px;text-align:center}
-.rules{font-family:'Cursive', sans-serif; text-align:center; margin-top:10px; color:#a0c4ff; font-size:14px;}
+.hint{color:#9fb7db;margin-top:0;font-size:12px;text-align:center;flex:0 0 auto;min-height:14px}
 @media (min-width: 1024px) {
 .container {width: 90vw; margin: 0 auto; height: auto;}
-.keyboard {position: relative; max-height: 30vh; overflow-y: auto;}
 .scorecard {position: fixed; top: 10px; right: 10px;}
 }
 
@@ -117,6 +117,60 @@ to {opacity: 1; transform: scale(1);}
 .overlayContent p {font-size: 1.2rem;}
 #startBtn {font-size: 1.2rem; padding: 14px 28px;}
 }
+
+/* Cheerleader coach strip — no card, no bubbles, fills remaining space */
+.coach-strip{
+  width:100%;
+  max-width:400px;
+  flex:0 0 auto;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:5px;
+  padding:4px 0 6px;
+}
+.coach-message{
+  font-size:12.5px;
+  line-height:1.35;
+  text-align:center;
+  color:#d7e6fb;
+  min-height:1.35em;
+  max-height:2.7em;
+  overflow:hidden;
+  display:-webkit-box;
+  -webkit-line-clamp:2;
+  -webkit-box-orient:vertical;
+  padding:0 6px;
+  transition:opacity 0.2s ease;
+}
+.coach-message.fade{opacity:0}
+.coach-replies{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  justify-content:center;
+  flex-wrap:wrap;
+  width:100%;
+  min-height:22px;
+}
+.reply-chip{
+  background:transparent;
+  border:1px solid rgba(255,255,255,0.25);
+  color:#d7e6fb;
+  font-size:11px;
+  padding:4px 10px;
+  border-radius:12px;
+  cursor:pointer;
+  transition:background 0.15s ease, border-color 0.15s ease;
+  white-space:nowrap;
+}
+.reply-chip:hover{
+  background:rgba(255,255,255,0.1);
+  border-color:rgba(255,255,255,0.5);
+}
+.reply-chip:active{
+  background:rgba(255,255,255,0.18);
+}
 </style>
 
 </head>    
@@ -137,10 +191,14 @@ to {opacity: 1; transform: scale(1);}
   </div>    <div class="wrap">    
     <div id="board" class="board" aria-live="polite"></div>    
     <div class="keyboard" id="keyboard"></div>    
-    <div class="hint" id="hint"></div>    
-    <div class="rules">    
-      Green = correct, Yellow = present, Gray = absent. <br>Good luck!    
-    </div>    
+    <div class="hint" id="hint"></div>
+    
+    <!-- Cheerleader coach: one or two lines, no container -->
+    <div class="coach-strip" id="coachStrip">
+      <div class="coach-message" id="coachMessage"></div>
+      <div class="coach-replies" id="coachReplies"></div>
+    </div>
+    
     <div id="scorecard" class="scorecard">    
       <h1 id="scoreTitle"></h1>    
       <p id="scoreMsg"></p>    
@@ -209,6 +267,7 @@ const DEPT_KEY = "questPlayerDept";
 startBtn.addEventListener('click', () => {
 introOverlay.style.display = 'none';
 document.addEventListener('keydown', keydownHandler); // enable keyboard after overlay
+initChat();
 });
 
 // --- Save/Load progress ---
@@ -256,6 +315,10 @@ for(let i=0;i<5;i++){const tile=row.children[i];tile.textContent=guessArr[i];til
 updateKeys(guessArr,result);
 guesses.push(guess);
 saveProgress();
+
+// Trigger chatbot response based on guess
+processGuessResult(guess, result);
+
 if(guess===ANSWER){showScore(true);document.removeEventListener('keydown',keydownHandler);return;}
 if(guesses.length>=MAX_GUESSES){showScore(false);document.removeEventListener('keydown',keydownHandler);return;}
 hintEl.textContent='';
@@ -356,15 +419,27 @@ document.getElementById('playerDept').addEventListener('change', saveIdentity);
     if (tries === 1) {
       scoreTitle.textContent = '🎉 Genius!';
       scoreMsg.textContent = `You got it in one try! The word was ${ANSWER.toUpperCase()}!`;
+      // Add special chat message for genius
+      setCoachMessage("👑 LEGENDARY! One guess?! You're unstoppable!");
+      showReplyChips([{ text: "🎉 I'm on fire!", reply: "You truly are — legendary round! 🏆" }]);
     } else if (tries === 2) {
       scoreTitle.textContent = '✨ Excellent!';
       scoreMsg.textContent = `Got it in 2 tries! The word was ${ANSWER.toUpperCase()}!`;
+      // Add special chat message for excellent
+      setCoachMessage("🌟 Incredible! Two tries — sharp and confident!");
+      showReplyChips([{ text: "😄 Feeling sharp!", reply: "That instinct is paying off big time! ✨" }]);
     } else if (tries <= 4) {
       scoreTitle.textContent = '🌟 Great!';
       scoreMsg.textContent = `Solved in ${tries} tries! The word was ${ANSWER.toUpperCase()}!`;
+      // Add special chat message for great
+      setCoachMessage("🎯 Nice! You stuck with it and it paid off!");
+      showReplyChips([{ text: "💪 Proud of that!", reply: "You should be — great persistence! 🎯" }]);
     } else {
       scoreTitle.textContent = '👍 Good!';
       scoreMsg.textContent = `You solved it in ${tries} tries! The word was ${ANSWER.toUpperCase()}!`;
+      // Add special chat message for good
+      setCoachMessage("👍 You did it! Persistence wins the day!");
+      showReplyChips([{ text: "🙌 I stuck with it!", reply: "And it paid off — nice work! 🙌" }]);
     }
   } else {
     scoreTitle.textContent = '💔 Hard Luck';
@@ -372,6 +447,10 @@ document.getElementById('playerDept').addEventListener('change', saveIdentity);
       `Hard luck. I could not crack today's Wordle. ` +
       `The word was ${ANSWER.toUpperCase()}! 😎 ` +
       `Check it out: https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/wordle`;
+    
+    // Add special chat message for losing
+    setCoachMessage("💛 Tough one today — you gave it your all. Come back stronger tomorrow!");
+    showReplyChips([{ text: "💪 I'll be back!", reply: "That's the spirit — see you tomorrow! 🌤️" }]);
   }
 
   // 6️⃣ WhatsApp share
@@ -442,8 +521,103 @@ hintEl.textContent = 'Failed to load word list.';
 console.error(e);
 }
 }
-init();
 
+// ===== CHEERLEADER COACH (minimal, 1-2 lines, tap-to-reply only) =====
+const coachMessageEl = document.getElementById('coachMessage');
+const coachRepliesEl = document.getElementById('coachReplies');
+
+// Swap the single line of text with a quick fade so it never scrolls or stacks
+function setCoachMessage(text) {
+  coachMessageEl.classList.add('fade');
+  setTimeout(() => {
+    coachMessageEl.textContent = text;
+    coachMessageEl.classList.remove('fade');
+  }, 180);
+}
+
+// Render a small row of tappable self-affirmation chips. Tapping one
+// "says" it and gets a short cheer back from the coach.
+// Pool of high-energy self-affirmation chips — carpe diem style
+const CHAT_CHIPS = [
+  { text: "I'm feeling great! 😄", reply: "That joy is your secret weapon today! 🌟" },
+  { text: "I love carpe diem! ☀️", reply: "Seize this word — it's yours for the taking! 🎯" },
+  { text: "I'm going to conquer this! 🏆", reply: "Absolutely — nothing can stop you! 🔥" },
+  { text: "I am filled with energy! ⚡", reply: "Channel that energy into your next guess! 🚀" },
+  { text: "I believe in myself! 💫", reply: "And so do I — you've totally got this! 💛" },
+  { text: "I'm unstoppable! 🚀", reply: "Yes you are — now show that word who's boss! 👊" },
+  { text: "I thrive under pressure! 💎", reply: "Diamonds are made under pressure — shine on! ✨" },
+  { text: "I love a challenge! 🎯", reply: "And this challenge is lucky to have you! 🌠" },
+  { text: "My mind is sharp today! 🧠", reply: "That sharp mind is going to crack this in style! 💡" },
+  { text: "I was born for this! ⭐", reply: "The universe agrees — go get it! 🌍" },
+  { text: "Nothing can stop me! 🛡️", reply: "Not even a tricky 5-letter word! 😄🔥" },
+  { text: "I'm on fire today! 🔥", reply: "Let that fire light the way to the answer! 🏅" },
+  { text: "Every guess counts! 🎲", reply: "Every single one — you're playing it perfectly! ✅" },
+  { text: "I've got this feeling! 🎵", reply: "Trust that feeling — it's pointing you right! 🎶" },
+  { text: "Victory is mine! 🏅", reply: "Claim it — it's already written in the stars! ⭐" }
+];
+
+function pickRandomChips(n, excludeTexts) {
+  excludeTexts = excludeTexts || [];
+  const pool = CHAT_CHIPS.filter(c => excludeTexts.indexOf(c.text) === -1);
+  const shuffled = pool.slice().sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, n);
+}
+
+// Render a small row of tappable self-affirmation chips. Tapping one
+// "says" it, gets a short cheer back, then offers a fresh set of chips
+// so the conversation keeps going like a real back-and-forth chat.
+function showReplyChips(options) {
+  coachRepliesEl.innerHTML = '';
+  options.forEach(opt => {
+    const chip = document.createElement('button');
+    chip.className = 'reply-chip';
+    chip.textContent = opt.text;
+    chip.addEventListener('click', () => {
+      coachRepliesEl.innerHTML = '';
+      setCoachMessage(opt.reply);
+      setTimeout(() => {
+        showReplyChips(pickRandomChips(2, [opt.text]));
+      }, 350);
+    });
+    coachRepliesEl.appendChild(chip);
+  });
+}
+
+function initChat() {
+  setCoachMessage("👽 Let's crush today's word — you've got this!");
+  showReplyChips(pickRandomChips(2));
+}
+
+// Short, punchy, self-affirmation style cheers
+const CHEERS = [
+  "You've got this! 🔥",
+  "Keep shining! ✨",
+  "Trust yourself! 💪",
+  "You're a word wizard! 🧙",
+  "Believe in your next guess! 🌟",
+  "On a roll! 🚀",
+  "Stay confident! 💛",
+  "You're crushing it! 🙌"
+];
+
+// One compact line: the word tried, a per-letter result track, and a cheer
+function letterFeedbackText(guess, result) {
+  const g = guess.toUpperCase();
+  const track = guess.split('').map((ch, i) => {
+    const L = ch.toUpperCase();
+    const mark = result[i] === 'correct' ? '✅' : result[i] === 'present' ? '🟡' : '⬛';
+    return L + mark;
+  }).join(' ');
+  const cheer = CHEERS[Math.floor(Math.random() * CHEERS.length)];
+  return `${g} → ${track} · ${cheer}`;
+}
+
+function processGuessResult(guess, result) {
+  setCoachMessage(letterFeedbackText(guess, result));
+  showReplyChips(pickRandomChips(2));
+}
+
+init();
 </script>  </body>
 
 </html>

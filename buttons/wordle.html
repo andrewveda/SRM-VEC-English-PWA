@@ -1,429 +1,751 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Wordle Hub</title>
-<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#060402">
+<title>Veni Vidi Vici</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Cinzel+Decorative:wght@400&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <style>
-* { margin: 0; padding: 0; box-sizing: border-box; }
+/* ═══════════════════════════
+   TOKENS
+═══════════════════════════ */
+:root {
+  --void:     #060402;
+  --deep:     #0d0a06;
+  --surface:  #131008;
+  --lift:     #1c1810;
+  --lift2:    #242018;
 
-body {
-    min-height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background: radial-gradient(ellipse at 25% 30%, #1a0a2e 0%, #090910 55%, #0d1117 100%);
-    color: white;
-    overflow: hidden;
-    font-family: 'Crimson Text', serif;
-    cursor: crosshair;
+  --gold:     #c8963c;
+  --gold-hi:  #f0c060;
+  --gold-lo:  rgba(200,150,60,0.10);
+  --gold-edge:rgba(200,150,60,0.30);
+
+  --ice:      #7ab8d4;
+  --ice-lo:   rgba(122,184,212,0.12);
+  --ice-edge: rgba(122,184,212,0.35);
+
+  --done:     #4a7c3f;
+  --done-hi:  #7ec86a;
+  --done-lo:  rgba(74,124,63,0.12);
+
+  --lock:     rgba(255,255,255,0.18);
+  --lock-bg:  rgba(255,255,255,0.03);
+
+  --text:     #e0d0a8;
+  --text-mid: #8a7a58;
+  --text-dim: #3e3420;
+
+  --t1: #c8963c; /* tier I  — gold   */
+  --t2: #7ab8d4; /* tier II — ice    */
+  --t3: #9070c0; /* tier III— violet */
 }
 
-/* ── STAR WARP CANVAS ── */
-#warpCanvas {
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    z-index: 1;
+/* ═══════════════════════════
+   RESET
+═══════════════════════════ */
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;overscroll-behavior:none;}
+body{
+  font-family:'Cinzel',serif;
+  background:var(--void);
+  color:var(--text);
+  overflow:hidden; /* single screen */
+  -webkit-font-smoothing:antialiased;
+  -webkit-tap-highlight-color:transparent;
+  user-select:none;
+}
+a{text-decoration:none;color:inherit;}
+button{font-family:inherit;cursor:pointer;border:none;background:none;}
+
+/* ═══════════════════════════
+   STONE WALL TEXTURE
+═══════════════════════════ */
+body::before{
+  content:'';
+  position:fixed;inset:0;
+  background-image:
+    repeating-linear-gradient(0deg,transparent,transparent 47px,rgba(0,0,0,0.18) 47px,rgba(0,0,0,0.18) 48px),
+    repeating-linear-gradient(90deg,transparent,transparent 95px,rgba(0,0,0,0.07) 95px,rgba(0,0,0,0.07) 96px);
+  pointer-events:none;z-index:0;
+}
+/* vignette */
+body::after{
+  content:'';
+  position:fixed;inset:0;
+  background:radial-gradient(ellipse at 50% 50%,transparent 30%,rgba(0,0,0,0.55) 100%);
+  pointer-events:none;z-index:0;
 }
 
-/* ── STREAMING SYMBOLS ── */
-.stream-layer {
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    overflow: hidden;
-    z-index: 2;
+/* ═══════════════════════════
+   TORCHLIGHT
+═══════════════════════════ */
+.torch-l,.torch-r{
+  position:fixed;pointer-events:none;z-index:1;
+  will-change:opacity,transform;
+}
+.torch-l{
+  top:0;left:-20%;width:55vw;height:100vh;
+  background:radial-gradient(ellipse at 15% 40%,rgba(210,100,28,0.09),transparent 60%);
+  animation:fl1 5s ease-in-out infinite;
+}
+.torch-r{
+  top:0;right:-20%;width:55vw;height:100vh;
+  background:radial-gradient(ellipse at 85% 45%,rgba(190,130,35,0.07),transparent 60%);
+  animation:fl2 6.5s ease-in-out infinite;
+}
+@keyframes fl1{0%,100%{opacity:.7;transform:scale(1)}45%{opacity:1;transform:scale(1.05)}70%{opacity:.55;transform:scale(.97)}}
+@keyframes fl2{0%,100%{opacity:.8}40%{opacity:.5}65%{opacity:1}}
+
+/* ═══════════════════════════
+   SHELL — full viewport
+═══════════════════════════ */
+.shell{
+  position:relative;z-index:2;
+  height:100vh;
+  height:100dvh;
+  display:flex;flex-direction:column;
+  max-width:430px;margin:0 auto;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
 }
 
-.sym {
-    position: absolute;
-    bottom: -60px;
-    white-space: nowrap;
-    user-select: none;
-    animation: floatUp linear forwards;
+/* ═══════════════════════════
+   TOPBAR
+═══════════════════════════ */
+.topbar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:8px 14px 7px;
+  background:rgba(6,4,2,0.94);
+  border-bottom:1px solid var(--gold-edge);
+  flex-shrink:0;
+  position:relative;
+}
+.topbar::after{
+  content:'';position:absolute;bottom:-2px;left:0;right:0;
+  height:1px;
+  background:linear-gradient(90deg,transparent,var(--gold),transparent);
+  opacity:.4;
+}
+.brand{
+  display:flex;flex-direction:column;gap:0px;
+}
+.brand-eye{
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.42rem;letter-spacing:2.5px;
+  color:var(--gold);text-transform:uppercase;opacity:.75;
+}
+.brand-name{
+  font-family:'Cinzel Decorative',serif;
+  font-size:0.82rem;font-weight:400;
+  color:var(--text);letter-spacing:.5px;line-height:1.1;
+}
+.topbar-r{display:flex;align-items:center;gap:6px;}
+
+/* compact stats */
+.hud{
+  display:flex;gap:7px;
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.5rem;color:var(--text-mid);
+  background:var(--surface);
+  border:1px solid var(--gold-edge);
+  padding:4px 8px;
+  cursor:pointer;min-height:32px;align-items:center;
+}
+.hud:active{border-color:var(--gold);}
+.hv{color:var(--gold-hi);}
+
+/* sigil */
+.sigil{
+  width:32px;height:32px;
+  border:1px solid var(--gold-edge);
+  background:var(--gold-lo);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;
+  clip-path:polygon(7px 0%,calc(100% - 7px) 0%,100% 7px,100% calc(100% - 7px),calc(100% - 7px) 100%,7px 100%,0% calc(100% - 7px),0% 7px);
+}
+.sigil:active{background:var(--gold-edge);}
+.sigil-txt{font-size:0.65rem;font-weight:700;color:var(--gold-hi);}
+
+/* ═══════════════════════════
+   IDENT — compressed 1 line
+═══════════════════════════ */
+.ident{
+  display:flex;align-items:baseline;justify-content:center;
+  gap:10px;
+  padding:5px 14px 4px;
+  flex-shrink:0;
+  border-bottom:1px solid rgba(200,150,60,0.1);
+}
+.ident-name{
+  font-size:clamp(0.95rem,4.5vw,1.15rem);
+  font-weight:700;color:var(--text);
+  letter-spacing:2px;line-height:1;
+  text-shadow:0 0 20px rgba(200,150,60,.25);
+}
+.ident-sep{color:var(--text-dim);font-size:0.6rem;}
+.ident-dept{
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.48rem;letter-spacing:3px;
+  color:var(--gold);text-transform:uppercase;
 }
 
-@keyframes floatUp {
-    0%   { transform: translateY(0);      opacity: 0;   }
-    8%   { opacity: 1; }
-    90%  { opacity: 1; }
-    100% { transform: translateY(-105vh); opacity: 0;   }
+/* ═══════════════════════════
+   PROGRESS RIBBON
+═══════════════════════════ */
+.ribbon{
+  display:flex;align-items:center;
+  gap:8px;
+  padding:5px 14px;
+  background:var(--deep);
+  border-bottom:1px solid var(--gold-edge);
+  flex-shrink:0;
+  cursor:pointer;
+  transition:background .2s;
+  position:relative;overflow:hidden;
+}
+.ribbon:active{background:var(--surface);}
+/* shimmer */
+.ribbon::after{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse at 20% 50%,rgba(200,150,60,.07),transparent 60%);
+  animation:ribShimmer 7s ease-in-out infinite;
+  pointer-events:none;
+}
+@keyframes ribShimmer{0%,100%{transform:translateX(0)}50%{transform:translateX(10%)}}
+
+.rib-cal{
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.46rem;letter-spacing:2px;
+  color:var(--gold);text-transform:uppercase;
+  white-space:nowrap;flex-shrink:0;
+}
+.rib-stats{
+  display:flex;gap:8px;flex:1;overflow:hidden;
+}
+.rib-stat{
+  display:flex;flex-direction:column;align-items:center;
+  flex-shrink:0;
+}
+.rib-val{
+  font-size:0.72rem;font-weight:600;color:var(--gold-hi);line-height:1;
+}
+.rib-lbl{
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.36rem;letter-spacing:1px;
+  color:var(--text-dim);text-transform:uppercase;
+}
+.rib-sep{width:1px;background:var(--gold-edge);flex-shrink:0;align-self:stretch;margin:1px 0;}
+
+/* streak dots */
+.streak{
+  display:flex;gap:2px;flex-shrink:0;
+}
+.sd{
+  width:5px;height:5px;border-radius:1px;
+  background:var(--lift);flex-shrink:0;
+}
+.sd.done{background:var(--gold);}
+.sd.miss{background:rgba(160,50,30,.5);}
+.sd.now{background:var(--ice);box-shadow:0 0 4px var(--ice);}
+
+.rib-open{
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.44rem;letter-spacing:1.5px;
+  color:var(--gold);opacity:.6;flex-shrink:0;
 }
 
-
-
-/* ── PANEL ── */
-.panel {
-    position: relative;
-    z-index: 100;
-    text-align: center;
-    padding: 50px 44px 42px;
-    width: min(440px, 92vw);
-    background: rgba(10, 6, 20, 0.92);
-    border: 1px solid rgba(212,175,55,0.22);
-    border-radius: 6px;
-    box-shadow:
-        0 0 60px rgba(212,175,55,0.07),
-        0 0 120px rgba(156,39,176,0.05),
-        inset 0 1px 0 rgba(212,175,55,0.18),
-        inset 0 -1px 0 rgba(0,229,255,0.08);
-    animation: appear 1s cubic-bezier(0.16,1,0.3,1) both;
+/* ═══════════════════════════
+   MISSION LIST — fills space
+═══════════════════════════ */
+.missions{
+  flex:1;
+  overflow:hidden;
+  display:flex;flex-direction:column;
+  padding:0 10px;
+  gap:0;
+  /* distribute rows evenly */
+  justify-content:space-evenly;
 }
 
-@keyframes appear {
-    from { opacity: 0; transform: scale(0.93) translateY(16px); }
-    to   { opacity: 1; transform: scale(1)    translateY(0); }
+/* ── TIER HEADER ── */
+.tier-head{
+  display:flex;align-items:center;gap:6px;
+  padding:2px 4px 0;
+  flex-shrink:0;
+}
+.tier-label{
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.4rem;letter-spacing:3px;
+  text-transform:uppercase;white-space:nowrap;
+}
+.tier-line{flex:1;height:1px;}
+.tier-gem{
+  width:4px;height:4px;
+  border:1px solid;
+  transform:rotate(45deg);flex-shrink:0;
 }
 
-.corner-tl { content: '✦'; position: absolute; top: 10px;    left: 14px;  color: #d4af37; font-size: 0.85rem; opacity: 0.45; pointer-events: none; }
-.corner-br { content: '✦'; position: absolute; bottom: 10px; right: 14px; color: #d4af37; font-size: 0.85rem; opacity: 0.45; pointer-events: none; }
+.tier-I  .tier-label{color:var(--t1);}
+.tier-I  .tier-line{background:linear-gradient(90deg,rgba(200,150,60,.3),transparent);}
+.tier-I  .tier-gem{border-color:rgba(200,150,60,.4);}
+.tier-II .tier-label{color:var(--t2);}
+.tier-II .tier-line{background:linear-gradient(90deg,rgba(122,184,212,.3),transparent);}
+.tier-II .tier-gem{border-color:rgba(122,184,212,.4);}
+.tier-III .tier-label{color:var(--t3);}
+.tier-III .tier-line{background:linear-gradient(90deg,rgba(144,112,192,.3),transparent);}
+.tier-III .tier-gem{border-color:rgba(144,112,192,.4);}
 
-/* ── HEADER ── */
-.sigil {
-    font-size: 1.9rem;
-    margin-bottom: 8px;
-    display: flex;
-    justify-content: center;
-    gap: 14px;
-    animation: sigilglow 3s ease-in-out infinite alternate;
+/* ── MISSION ROW ── */
+.mrow{
+  display:flex;align-items:center;
+  padding:0 4px;
+  gap:8px;
+  border-radius:1px;
+  text-decoration:none;color:inherit;
+  transition:background .18s;
+  min-height:0;
+  flex:1;
+  max-height:38px;
+  position:relative;
+  overflow:hidden;
 }
-@keyframes sigilglow {
-    from { filter: drop-shadow(0 0 4px rgba(212,175,55,0.4)); }
-    to   { filter: drop-shadow(0 0 16px rgba(212,175,55,0.85)); }
+.mrow::before{
+  content:'';
+  position:absolute;left:0;top:20%;bottom:20%;
+  width:2px;
+  background:var(--row-accent,var(--gold));
+  opacity:0;
+  transition:opacity .2s;
 }
+.mrow:active,.mrow:hover{background:var(--lift);}
+.mrow:active::before,.mrow:hover::before{opacity:1;}
 
-h1 {
-    font-family: 'Cinzel', serif;
-    font-size: clamp(1.6rem, 5vw, 2.2rem);
-    font-weight: 900;
-    letter-spacing: 0.18em;
-    background: linear-gradient(135deg, #f5d76e 0%, #d4af37 40%, #ff9900 70%, #f5d76e 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    margin-bottom: 6px;
+/* status dot */
+.mrow-dot{
+  width:7px;height:7px;border-radius:50%;
+  border:1px solid var(--row-accent,var(--text-dim));
+  flex-shrink:0;
+  background:transparent;
+  transition:all .2s;
+  position:relative;
 }
-
-.subtitle {
-    font-style: italic;
-    font-size: 0.88rem;
-    color: rgba(245,230,200,0.4);
-    letter-spacing: 0.06em;
-    margin-bottom: 36px;
+/* done state */
+.mrow.done .mrow-dot{
+  background:var(--done);
+  border-color:var(--done-hi);
 }
-
-/* ── DIVIDER ── */
-.divider {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 28px;
-    opacity: 0.28;
+.mrow.done .mrow-dot::after{
+  content:'';
+  position:absolute;inset:1.5px;
+  border-radius:50%;
+  background:var(--done-hi);
+  opacity:.6;
 }
-.divider::before { content: ''; flex: 1; height: 1px; background: linear-gradient(to right, transparent, #d4af37); }
-.divider::after  { content: ''; flex: 1; height: 1px; background: linear-gradient(to left,  transparent, #d4af37); }
-.divider span { color: #d4af37; font-size: 0.55rem; }
-
-/* ── BUTTONS ── */
-.button-group { display: flex; flex-direction: column; gap: 14px; }
-
-.tile-button {
-    position: relative;
-    border: 1px solid rgba(212,175,55,0.16);
-    cursor: pointer;
-    border-radius: 4px;
-    padding: 18px 20px;
-    background: rgba(255,255,255,0.025);
-    color: white;
-    transition: all 0.28s cubic-bezier(0.34,1.56,0.64,1);
-    text-align: left;
-    display: flex;
-    align-items: center;
-    gap: 16px;
+/* active/today state */
+.mrow.active .mrow-dot{
+  background:var(--ice-lo);
+  border-color:var(--ice);
+  box-shadow:0 0 6px rgba(122,184,212,.7);
+  animation:activePulse 2s ease-in-out infinite;
 }
-.tile-button:hover { transform: translateX(5px); background: rgba(255,255,255,0.045); }
-.btn-daily:hover   { border-color: rgba(212,175,55,0.5);  box-shadow: -4px 0 18px rgba(212,175,55,0.18); }
-.btn-blitz:hover   { border-color: rgba(0,229,255,0.45);  box-shadow: -4px 0 18px rgba(0,229,255,0.15); }
+@keyframes activePulse{0%,100%{box-shadow:0 0 4px rgba(122,184,212,.5)}50%{box-shadow:0 0 10px rgba(122,184,212,.9)}}
 
-.btn-icon {
-    font-size: 1.6rem;
-    flex-shrink: 0;
-    width: 44px; height: 44px;
-    display: flex; align-items: center; justify-content: center;
-    border-radius: 3px;
-    background: rgba(255,255,255,0.035);
-    border: 1px solid rgba(255,255,255,0.06);
-    transition: transform 0.28s;
+/* locked state */
+.mrow.locked{
+  opacity:.3;
+  pointer-events:none;
 }
-.tile-button:hover .btn-icon { transform: scale(1.12) rotate(-6deg); }
-
-.btn-text { flex: 1; }
-.btn-name {
-    font-family: 'Cinzel', serif;
-    font-size: 0.92rem;
-    font-weight: 700;
-    letter-spacing: 0.1em;
-    color: #f5e6c8;
-    margin-bottom: 3px;
-    display: block;
-}
-.btn-desc {
-    font-style: italic;
-    font-size: 0.8rem;
-    color: rgba(245,230,200,0.38);
-    display: block;
+.mrow.locked .mrow-dot{
+  background:transparent;
+  border-color:var(--text-dim);
 }
 
-.btn-badge {
-    font-family: 'Cinzel', serif;
-    font-size: 0.58rem;
-    letter-spacing: 0.12em;
-    padding: 3px 7px;
-    border-radius: 2px;
-    border: 1px solid;
-    flex-shrink: 0;
+/* mission name */
+.mrow-name{
+  flex:1;
+  font-size:clamp(0.6rem,3vw,0.72rem);
+  font-weight:600;
+  letter-spacing:.5px;
+  color:var(--text);
+  line-height:1;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  transition:color .2s;
 }
-.badge-gold { color: #d4af37; border-color: rgba(212,175,55,0.38); background: rgba(212,175,55,0.07); }
-.badge-cyan { color: #00e5ff; border-color: rgba(0,229,255,0.38);  background: rgba(0,229,255,0.07); }
+.mrow.done .mrow-name{color:var(--text-mid);}
+.mrow.active .mrow-name{color:var(--ice);}
+.mrow.locked .mrow-name{color:var(--text-dim);}
 
-/* ── UNIVERSE TAGS ── */
-.universe-row {
-    display: flex;
-    justify-content: center;
-    gap: 6px;
-    margin-top: 28px;
-    padding-top: 20px;
-    border-top: 1px solid rgba(212,175,55,0.1);
+/* tag — small right-side label */
+.mrow-tag{
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.38rem;letter-spacing:1.2px;
+  text-transform:uppercase;
+  flex-shrink:0;
+  transition:opacity .2s;
 }
-.utag { font-style: italic; font-size: 0.72rem; color: rgba(245,230,200,0.28); }
-.utag + .utag::before { content: '·'; margin-right: 6px; opacity: 0.35; }
+.mrow.done .mrow-tag{color:var(--done-hi);opacity:.7;}
+.mrow.active .mrow-tag{color:var(--ice);opacity:.8;}
+.mrow.locked .mrow-tag{color:var(--text-dim);}
+.mrow:not(.done):not(.active):not(.locked) .mrow-tag{color:var(--text-dim);}
 
-.footer {
-    margin-top: 12px;
-    font-style: italic;
-    font-size: 0.73rem;
-    color: rgba(245,230,200,0.2);
-    letter-spacing: 0.04em;
+/* check glyph for done */
+.mrow-check{
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.55rem;
+  color:var(--done-hi);
+  flex-shrink:0;
+  opacity:.8;
 }
-    .corner-tl,
-.corner-br {
-    position: absolute;
-    z-index: 200;
-    pointer-events: auto;
+/* lock glyph */
+.mrow-lock{
+  font-size:0.5rem;
+  color:var(--text-dim);
+  flex-shrink:0;
 }
+/* active arrow */
+.mrow-arrow{
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.55rem;
+  color:var(--ice);
+  flex-shrink:0;
+  animation:arrowSlide 1.5s ease-in-out infinite;
+}
+@keyframes arrowSlide{0%,100%{transform:translateX(0);opacity:.7}50%{transform:translateX(2px);opacity:1}}
+
+/* thin divider between rows */
+.mrow+.mrow{
+  border-top:1px solid rgba(255,255,255,0.03);
+}
+.tier-head+.mrow,.tier-head{
+  border-top:none;
+}
+
+/* ── TIER ACCENT COLOURS ── */
+/* tier I */
+.t1{--row-accent:var(--t1);}
+/* tier II */
+.t2{--row-accent:var(--t2);}
+/* tier III */
+.t3{--row-accent:var(--t3);}
+
+/* ═══════════════════════════
+   QUOTE FOOTER
+═══════════════════════════ */
+.quote-footer{
+  padding:5px 14px calc(5px + env(safe-area-inset-bottom,0px));
+  border-top:1px solid rgba(200,150,60,.12);
+  background:rgba(6,4,2,.9);
+  flex-shrink:0;
+  display:flex;align-items:baseline;gap:6px;
+  overflow:hidden;
+}
+.quote-mark{
+  font-family:'Cinzel Decorative',serif;
+  font-size:1rem;color:var(--gold);
+  opacity:.3;line-height:.8;flex-shrink:0;
+}
+.quote-text{
+  font-style:italic;
+  font-size:clamp(0.5rem,2.5vw,0.62rem);
+  color:var(--text-mid);
+  line-height:1.4;
+  transition:opacity .5s;
+  overflow:hidden;
+  display:-webkit-box;
+  -webkit-line-clamp:2;
+  -webkit-box-orient:vertical;
+}
+.quote-attr{
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.4rem;letter-spacing:1.5px;
+  color:var(--gold);text-transform:uppercase;
+  white-space:nowrap;flex-shrink:0;
+}
+
+/* ═══════════════════════════
+   ENTRANCE
+═══════════════════════════ */
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.topbar{animation:fadeIn .35s ease both .05s;}
+.ident{animation:fadeIn .35s ease both .1s;}
+.ribbon{animation:fadeIn .35s ease both .13s;}
+.mrow,.tier-head{animation:fadeIn .3s ease both;}
+.tier-head:nth-child(1){animation-delay:.16s}
+.mrow:nth-child(2){animation-delay:.18s}
+.mrow:nth-child(3){animation-delay:.20s}
+.mrow:nth-child(4){animation-delay:.22s}
+.mrow:nth-child(5){animation-delay:.24s}
+.mrow:nth-child(6){animation-delay:.26s}
+.mrow:nth-child(7){animation-delay:.28s}
+.tier-head:nth-child(8){animation-delay:.29s}
+.mrow:nth-child(9){animation-delay:.31s}
+.mrow:nth-child(10){animation-delay:.33s}
+.mrow:nth-child(11){animation-delay:.35s}
+.mrow:nth-child(12){animation-delay:.37s}
+.mrow:nth-child(13){animation-delay:.39s}
+.mrow:nth-child(14){animation-delay:.41s}
+.mrow:nth-child(15){animation-delay:.42s}
+.tier-head:nth-child(16){animation-delay:.43s}
+.mrow:nth-child(17){animation-delay:.45s}
+.mrow:nth-child(18){animation-delay:.47s}
+.mrow:nth-child(19){animation-delay:.49s}
+.mrow:nth-child(20){animation-delay:.51s}
+.quote-footer{animation:fadeIn .3s ease both .52s;}
+
+::-webkit-scrollbar{display:none;}
 </style>
 </head>
-
 <body>
 
-<canvas id="warpCanvas"></canvas>
-<div class="stream-layer" id="streamLayer"></div>
+<div class="torch-l"></div>
+<div class="torch-r"></div>
 
-<div class="panel">
-    <span class="corner-tl">✦</span>
-  <span class="corner-br"
-      onclick="location.href='https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/wordleleaderboard'"
-      style="cursor:pointer; z-index: 999;">
-🏆
-</span>
-        <div class="sigil">⚡ 🔍 ✦</div>
-    <h1>WORDLE HUB</h1>
-    <div class="subtitle">The game is afoot. The stars await.</div>
+<div class="shell">
 
-    <div class="divider"><span>✦</span></div>
+  <!-- ── TOPBAR ── -->
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-eye">Live Long and Prosper</span>
+      <span class="brand-name">Veni Vidi Vici</span>
+    </div>
+    <div class="topbar-r">
+      <div class="hud" onclick="openCalendar()">
+        <span>📜 <span class="hv" id="statQ">77</span></span>
+        <span>🎞 <span class="hv" id="statV">12</span></span>
+        <span>⏳ <span class="hv" id="statT">4h 22m</span></span>
+      </div>
+      <div class="sigil" onclick="openDrawer()">
+        <span class="sigil-txt" id="sigilTxt">AV</span>
+      </div>
+    </div>
+  </header>
 
-    <div class="button-group">
-        <button class="tile-button btn-daily"
-            onclick="location.href='https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/wordledaily'">
-            <div class="btn-icon">📜</div>
-            <div class="btn-text">
-                <span class="btn-name">Daily Wordle</span>
-                <span class="btn-desc">"One voice, one hope, one real decision!" - Queen ✨</span>
-            </div>
-            <span class="btn-badge badge-gold">DAILY</span>
-        </button>
+  <!-- ── IDENT ── -->
+  <div class="ident">
+    <span class="ident-name" id="studentName">Andrew Veda</span>
+    <span class="ident-sep">·</span>
+    <span class="ident-dept" id="studentDept">Cyber Security</span>
+  </div>
 
-        <button class="tile-button btn-blitz"
-            onclick="location.href='https://andrewveda.github.io/SRM-VEC-English-PWA/wordleblitz'">
-            <div class="btn-icon">⚡</div>
-            <div class="btn-text">
-                <span class="btn-name">Wordle Blitz</span>
-                <span class="btn-desc">Five minutes. Maximum words. Expelliarmus!</span>
-            </div>
-            <span class="btn-badge badge-cyan">BLITZ</span>
-        </button>
+  <!-- ── PROGRESS RIBBON ── -->
+  <div class="ribbon" onclick="openCalendar()">
+    <span class="rib-cal">Quest Log</span>
+    <div class="rib-sep"></div>
+    <div class="rib-stats">
+      <div class="rib-stat"><span class="rib-val" id="ribQ">77</span><span class="rib-lbl">Quests</span></div>
+      <div class="rib-stat"><span class="rib-val" id="ribAcc">84%</span><span class="rib-lbl">Accuracy</span></div>
+      <div class="rib-stat"><span class="rib-val" id="ribScore">2140</span><span class="rib-lbl">Score</span></div>
+      <div class="rib-stat"><span class="rib-val" id="ribW">491</span><span class="rib-lbl">Wrong</span></div>
+    </div>
+    <div class="rib-sep"></div>
+    <div class="streak" id="streakBar">
+      <div class="sd done"></div><div class="sd done"></div><div class="sd done"></div>
+      <div class="sd done"></div><div class="sd done"></div><div class="sd done"></div>
+      <div class="sd done"></div><div class="sd miss"></div><div class="sd done"></div>
+      <div class="sd done"></div><div class="sd done"></div><div class="sd done"></div>
+      <div class="sd done"></div><div class="sd now"></div>
+    </div>
+    <span class="rib-open">↗</span>
+  </div>
+
+  <!-- ══════════════════════════
+       MISSION LIST
+  ══════════════════════════ -->
+  <div class="missions" id="missionList">
+
+    <!-- ── TIER I — DAILY PRACTICE ── -->
+    <div class="tier-head tier-I">
+      <span class="tier-gem"></span>
+      <span class="tier-label">Daily Practice</span>
+      <span class="tier-line"></span>
     </div>
 
-    <div class="universe-row">
-        <span class="utag">42 Wallaby Way </span>
-        <span class="utag"> 221b Baker Street</span>
-        <span class="utag"> 12 Grimmauld Place </span>
+    <a class="mrow t1 done" href="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/leaderboard_hub">
+      <div class="mrow-dot"></div>
+      <span class="mrow-name">Leaderboard</span>
+      <span class="mrow-tag">Rankings</span>
+      <span class="mrow-check">✓</span>
+    </a>
+
+    <a class="mrow t1 done" href="https://andrewveda.github.io/SRM-VEC-English-PWA/cat-a">
+      <div class="mrow-dot"></div>
+      <span class="mrow-name">Quest Directory</span>
+      <span class="mrow-tag">All Missions</span>
+      <span class="mrow-check">✓</span>
+    </a>
+
+    <a class="mrow t1 active" href="https://andrewveda.github.io/V/">
+      <div class="mrow-dot"></div>
+      <span class="mrow-name">Vocabulary</span>
+      <span class="mrow-tag">Today</span>
+      <span class="mrow-arrow">→</span>
+    </a>
+
+    <a class="mrow t1 locked" href="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/videoyg">
+      <div class="mrow-dot"></div>
+      <span class="mrow-name">Video Quests</span>
+      <span class="mrow-tag">Songs & Ideas</span>
+      <span class="mrow-lock">—</span>
+    </a>
+
+    <a class="mrow t1 locked" href="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/wordle">
+      <div class="mrow-dot"></div>
+      <span class="mrow-name">Wordle!</span>
+      <span class="mrow-tag">Word Puzzle</span>
+      <span class="mrow-lock">—</span>
+    </a>
+
+    <a class="mrow t1 locked" href="https://andrewveda.github.io/cryptic">
+      <div class="mrow-dot"></div>
+      <span class="mrow-name">Cryptic</span>
+      <span class="mrow-tag">221B</span>
+      <span class="mrow-lock">—</span>
+    </a>
+
+    <!-- ── TIER II — THE ARMOURY ── -->
+    <div class="tier-head tier-II">
+      <span class="tier-gem"></span>
+      <span class="tier-label">The Armoury</span>
+      <span class="tier-line"></span>
     </div>
-    <div class="footer">Elementary, my dear Lady Bracknell! Live long and prosper.</div>
-</div>
+
+    <a class="mrow t2 done" href="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/blossomhub">
+      <div class="mrow-dot"></div>
+      <span class="mrow-name">Blossom</span>
+      <span class="mrow-tag">Plant Words</span>
+      <span class="mrow-check">✓</span>
+    </a>
+
+    <a class="mrow t2 done" href="https://andrewveda.github.io/SRM-VEC-English-PWA/wordleblitz">
+      <div class="mrow-dot"></div>
+      <span class="mrow-name">Wordle Blitz</span>
+      <span class="mrow-tag">Fast & Slow</span>
+      <span class="mrow-check">✓</span>
+    </a>
+
+    <a class="mrow t2 locked" href="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/vox-velocity-directory">
+      <div class="mrow-dot"></div>
+      <span class="mrow-name">Vox Velocity</span>
+      <span class="mrow-tag">Letter by Letter</span>
+      <span class="mrow-lock">—</span>
+    </a>
+
+    <a class="mrow t2 locked" href="https://andrewveda.github.io/SRM-VEC-English-PWA/4pics">
+      <div class="mrow-dot"></div>
+      <span class="mrow-name">Mystic Summit</span>
+      <span class="mrow-tag">Lingua League</span>
+      <span class="mrow-lock">—</span>
+    </a>
+
+    <a class="mrow t2 locked" href="https://andrewveda.github.io/a-quote-a-day/">
+      <div class="mrow-dot"></div>
+      <span class="mrow-name">A Quote a Day</span>
+      <span class="mrow-tag">Wisdom</span>
+      <span class="mrow-lock">—</span>
+    </a>
+
+    <a class="mrow t2 locked" href="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/stories">
+      <div class="mrow-dot"></div>
+      <span class="mrow-name">Vault of Voices</span>
+      <span class="mrow-tag">Vision & Voice</span>
+      <span class="mrow-lock">—</span>
+    </a>
+
+    <a class="mrow t2 locked" href="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/chess">
+      <div class="mrow-dot"></div>
+      <span class="mrow-name">Strategic Thinking</span>
+      <span class="mrow-tag">Chess</span>
+      <span class="mrow-lock">—</span>
+    </a>
+
+    <!-- ── TIER III — COMMAND ── -->
+    <div class="tier-head tier-III">
+      <span class="tier-gem"></span>
+      <span class="tier-label">Command</span>
+      <span class="tier-line"></span>
+    </div>
+
+    <a class="mrow t3" href="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/bookinsights">
+      <div class="mrow-dot"></div>
+      <span class="mrow-name">Book Insights</span>
+      <span class="mrow-tag">One Book at a Time</span>
+      <span class="mrow-arrow" style="color:var(--t3);animation:none;opacity:.5;">→</span>
+    </a>
+
+    <a class="mrow t3" href="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/vox-forum">
+      <div class="mrow-dot"></div>
+      <span class="mrow-name">Vox Forum</span>
+      <span class="mrow-tag">Draft ∞</span>
+      <span class="mrow-arrow" style="color:var(--t3);animation:none;opacity:.5;">→</span>
+    </a>
+
+    <a class="mrow t3" href="https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/leaderboard_dept">
+      <div class="mrow-dot"></div>
+      <span class="mrow-name">Mission Control</span>
+      <span class="mrow-tag">Analytics</span>
+      <span class="mrow-arrow" style="color:var(--t3);animation:none;opacity:.5;">→</span>
+    </a>
+
+  </div><!-- /missions -->
+
+  <!-- ── QUOTE FOOTER ── -->
+  <div class="quote-footer">
+    <span class="quote-mark">"</span>
+    <span class="quote-text" id="quoteText">The opposite of a profound truth may well be another profound truth.</span>
+    <span class="quote-attr" id="quoteAttr">Niels Bohr</span>
+  </div>
+
+</div><!-- /shell -->
 
 <script>
-/* ── WARP STARS ── */
-const warp = document.getElementById('warpCanvas');
-const wctx = warp.getContext('2d');
-
-function resizeWarp() {
-    warp.width  = window.innerWidth;
-    warp.height = window.innerHeight;
-}
-resizeWarp();
-window.addEventListener('resize', resizeWarp);
-
-const NUM_STARS = 320;
-const stars = Array.from({ length: NUM_STARS }, () => resetStar({}));
-
-function resetStar(s) {
-    // Start clustered near centre with a tiny random offset
-    const angle = Math.random() * Math.PI * 2;
-    const dist  = Math.random() * 2;
-    s.x     = warp.width  / 2 + Math.cos(angle) * dist;
-    s.y     = warp.height / 2 + Math.sin(angle) * dist;
-    s.ox    = s.x;
-    s.oy    = s.y;
-    s.speed = 0.4 + Math.random() * 2.2;
-    s.size  = 0;
-    s.trail = 0;
-    s.age   = 0;
-    return s;
-}
-
-function drawWarp() {
-    // Fade trail
-    wctx.fillStyle = 'rgba(0,0,0,0.18)';
-    wctx.fillRect(0, 0, warp.width, warp.height);
-
-    const cx = warp.width  / 2;
-    const cy = warp.height / 2;
-
-    for (const s of stars) {
-        // Direction vector from centre
-        const dx = s.x - cx;
-        const dy = s.y - cy;
-        const dist = Math.sqrt(dx * dx + dy * dy) || 0.001;
-        const nx = dx / dist;
-        const ny = dy / dist;
-
-        // Accelerate outward
-        s.speed  *= 1.012;
-        s.x      += nx * s.speed;
-        s.y      += ny * s.speed;
-        s.age    += 1;
-        s.size    = Math.min(1.6, s.age * 0.015);
-
-        // Stretch trail from old position
-        const trailLen = s.speed * 2.5;
-        const tx = s.x - nx * trailLen;
-        const ty = s.y - ny * trailLen;
-
-        const alpha = Math.min(1, s.age * 0.04);
-
-        wctx.beginPath();
-        wctx.moveTo(tx, ty);
-        wctx.lineTo(s.x, s.y);
-        wctx.strokeStyle = `rgba(255, 255, 255, ${alpha * 0.85})`;
-        wctx.lineWidth   = s.size;
-        wctx.stroke();
-
-        // Reset if off screen
-        const margin = 20;
-        if (
-            s.x < -margin || s.x > warp.width  + margin ||
-            s.y < -margin || s.y > warp.height + margin
-        ) {
-            resetStar(s);
-        }
-    }
-
-    requestAnimationFrame(drawWarp);
-}
-drawWarp();
-
-const layer = document.getElementById('streamLayer');
-
-const HP  = ['Lumos','Nox','Accio','Expecto','Riddikulus','Alohomora','Petrificus',
-             'Stupefy','Obliviate','Wingardium','Leviosa','Aguamenti','Diffindo',
-             'Incendio','Protego','Reparo','Silencio','Impedimenta','Episkey','Glacius'];
-
-const SH  = ['deduction','elementary','221B','Watson','Moriarty','Lestrade',
-             'observation','Baskerville','Reichenbach','three-pipe','violin',
-             'tobacco','disguise','inference','magnifying','Irene','baritsu'];
-
-const SF  = ['warp','quantum','tachyon','photon','parsec','nebula','stardate',
-             'antimatter','singularity','android','replicant','neutrino','uplink',
-             'Federation','hyperdrive','Spock','HAL','lightyear','cortex','nexus'];
-
-const RUNES = ['ᚠ','ᚢ','ᚦ','ᚨ','ᚱ','ᚲ','ᚷ','ᚹ','ᚺ','ᚾ','ᛁ','ᛇ','ᛈ','ᛉ','ᛊ',
-               '∞','∆','Ω','Σ','Ψ','Φ','⚗','⚙','⚛'];
-
-const GREEK = ['α','β','γ','δ','ε','ζ','η','θ','ι','κ','λ','μ','ν','ξ','π','ρ','σ','τ','φ','χ','ψ','ω'];
-
-const themes = [
-    { pool: HP,    color: '#d4af37', glow: '#d4af3766', italic: true,  minSize: 11, maxSize: 16 },
-    { pool: SH,    color: '#c8bfa8', glow: '#9c27b055', italic: true,  minSize: 10, maxSize: 14 },
-    { pool: SF,    color: '#00e5ff', glow: '#00e5ff55', italic: false, minSize: 10, maxSize: 15 },
-    { pool: RUNES, color: '#a78bfa', glow: '#7c3aed66', italic: false, minSize: 15, maxSize: 24 },
-    { pool: GREEK, color: '#6ee7b7', glow: '#05966955', italic: false, minSize: 13, maxSize: 20 },
+/* ── QUOTE CAROUSEL ── */
+const quotes=[
+  {text:"The opposite of a profound truth may well be another profound truth.",attr:"Niels Bohr"},
+  {text:"Ever tried. Ever failed. No matter. Try again. Fail again. Fail better.",attr:"Beckett"},
+  {text:"Do or do not. There is no try.",attr:"Yoda"},
+  {text:"The opposite of a good idea is another good idea.",attr:"Rory Sutherland"},
 ];
+let qi=0;
+setInterval(()=>{
+  const q=quotes[(qi=(qi+1)%quotes.length)];
+  const qt=document.getElementById("quoteText");
+  const qa=document.getElementById("quoteAttr");
+  qt.style.opacity=qa.style.opacity="0";
+  setTimeout(()=>{
+    qt.textContent=q.text;
+    qa.textContent=q.attr;
+    qt.style.transition=qa.style.transition="opacity .6s";
+    qt.style.opacity=qa.style.opacity="1";
+  },500);
+},5000);
 
-function spawn(withDelay) {
-    const t    = themes[Math.floor(Math.random() * themes.length)];
-    const word = t.pool[Math.floor(Math.random() * t.pool.length)];
-    const size = t.minSize + Math.random() * (t.maxSize - t.minSize);
-    const dur  = 8 + Math.random() * 18;
-    const x    = 1 + Math.random() * 97;
-    const bottom = withDelay ? (Math.random() * 110) + 'vh' : '-60px';
-
-    const el = document.createElement('span');
-    el.className = 'sym';
-    el.textContent = word;
-    el.style.cssText = `
-        left: ${x}vw;
-        bottom: ${bottom};
-        font-size: ${size}px;
-        font-style: ${t.italic ? 'italic' : 'normal'};
-        font-family: 'Crimson Text', serif;
-        color: ${t.color};
-        text-shadow: 0 0 10px ${t.glow};
-        animation-duration: ${dur}s;
-    `;
-
-    layer.appendChild(el);
-
-    el.addEventListener('animationend', () => {
-        el.remove();
-        spawn(false);
-    });
+/* ── MISSION UNLOCK STATE
+   Replace this array with real Supabase data later.
+   Format: { el, status: 'done'|'active'|'locked'|'' }
+   The JS below reads data-status from each .mrow
+   and can be driven by: updateMissions(completedSet)
+── */
+function updateMissions(completedIds){
+  // completedIds = Set of href strings completed
+  // Wire to real data when Supabase is integrated
+  document.querySelectorAll('.mrow').forEach(row=>{
+    const href = row.getAttribute('href');
+    if(completedIds && completedIds.has(href)){
+      row.classList.remove('locked','active');
+      row.classList.add('done');
+    }
+  });
 }
 
-// Stagger 55 initial symbols across the screen
-for (let i = 0; i < 55; i++) {
-    setTimeout(() => spawn(true), i * 80);
-}
-
-/* ── CURSOR SPARKS ── */
-document.addEventListener('mousemove', e => {
-    if (Math.random() > 0.28) return;
-    const s = document.createElement('div');
-    const c = ['#d4af37','#00e5ff','#9c27b0','#ffffff'][Math.floor(Math.random()*4)];
-    s.style.cssText = `position:fixed;left:${e.clientX}px;top:${e.clientY}px;
-        width:3px;height:3px;border-radius:50%;background:${c};
-        pointer-events:none;z-index:9999;
-        box-shadow:0 0 5px ${c};transition:all 0.55s ease-out;`;
-    document.body.appendChild(s);
-    requestAnimationFrame(() => {
-        s.style.transform = `translate(${(Math.random()-.5)*36}px,${(Math.random()-.5)*36}px) scale(0)`;
-        s.style.opacity = '0';
-    });
-    setTimeout(() => s.remove(), 600);
-});
+/* ── STUBS ── */
+function openCalendar(){console.log('calendar');}
+function openDrawer(){console.log('drawer');}
 </script>
-
 </body>
 </html>

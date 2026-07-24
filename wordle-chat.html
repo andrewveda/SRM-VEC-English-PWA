@@ -16,16 +16,16 @@
 }    
 *{box-sizing:border-box;margin:0;padding:0}    
 html,body{height:100%;background:var(--bg);color:var(--text);overflow:hidden}    
-.wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100dvh;padding:8px;position:relative;overflow:hidden;gap:8px}    
-.board{display:grid;grid-template-rows:repeat(6,minmax(0,1fr));gap:5px;width:100%;max-width:360px;height:42vh;flex:0 0 auto}    
+.wrap{display:flex;flex-direction:column;align-items:center;justify-content:space-between;height:100dvh;width:100%;padding:6px 8px;position:relative;overflow:hidden;gap:0}    
+.board{display:grid;grid-template-rows:repeat(6,1fr);gap:5px;width:100%;max-width:360px;flex:1 1 auto;padding:4px 0}    
 .row{display:grid;grid-template-columns:repeat(5,1fr);gap:4px}    
-.tile{display:flex;align-items:center;justify-content:center;font-weight:700;font-size:clamp(15px,4.2vh,24px);border-radius:6px;background:#121826;color:var(--text)}    
+.tile{display:flex;align-items:center;justify-content:center;font-weight:700;font-size:clamp(16px,5vw,28px);border-radius:6px;background:#121826;color:var(--text)}    
 .tile.absent{background:var(--absent)}    
 .tile.present{background:var(--present)}    
 .tile.correct{background:var(--correct)}    
-.keyboard{display:flex;flex-direction:column;gap:4px;margin-top:2px;width:100%;max-width:400px;flex:0 0 auto}    
+.keyboard{display:flex;flex-direction:column;gap:5px;width:100%;max-width:400px;flex:0 0 auto;padding:4px 0}    
 .krow{display:flex;gap:4px;justify-content:center}    
-.key{flex:1;padding:7px 0;border-radius:6px;text-align:center;user-select:none;background:var(--key);color:white;font-weight:700;cursor:pointer;font-size:13px}    
+.key{flex:1;padding:clamp(8px,1.8vh,13px) 0;border-radius:6px;text-align:center;user-select:none;background:var(--key);color:white;font-weight:700;cursor:pointer;font-size:13px}    
 .key.enter {    
   background: var(--correct); /* green */    
 }  .key.back {  
@@ -118,15 +118,16 @@ to {opacity: 1; transform: scale(1);}
 #startBtn {font-size: 1.2rem; padding: 14px 28px;}
 }
 
-/* Cheerleader coach strip — no card, no bubbles, just 1-2 lines */
+/* Cheerleader coach strip — no card, no bubbles, fills remaining space */
 .coach-strip{
   width:100%;
-  max-width:360px;
+  max-width:400px;
   flex:0 0 auto;
   display:flex;
   flex-direction:column;
   align-items:center;
-  gap:4px;
+  gap:5px;
+  padding:4px 0 6px;
 }
 .coach-message{
   font-size:12.5px;
@@ -536,6 +537,35 @@ function setCoachMessage(text) {
 
 // Render a small row of tappable self-affirmation chips. Tapping one
 // "says" it and gets a short cheer back from the coach.
+// Pool of high-energy self-affirmation chips — carpe diem style
+const CHAT_CHIPS = [
+  { text: "I'm feeling great! 😄", reply: "That joy is your secret weapon today! 🌟" },
+  { text: "I love carpe diem! ☀️", reply: "Seize this word — it's yours for the taking! 🎯" },
+  { text: "I'm going to conquer this! 🏆", reply: "Absolutely — nothing can stop you! 🔥" },
+  { text: "I am filled with energy! ⚡", reply: "Channel that energy into your next guess! 🚀" },
+  { text: "I believe in myself! 💫", reply: "And so do I — you've totally got this! 💛" },
+  { text: "I'm unstoppable! 🚀", reply: "Yes you are — now show that word who's boss! 👊" },
+  { text: "I thrive under pressure! 💎", reply: "Diamonds are made under pressure — shine on! ✨" },
+  { text: "I love a challenge! 🎯", reply: "And this challenge is lucky to have you! 🌠" },
+  { text: "My mind is sharp today! 🧠", reply: "That sharp mind is going to crack this in style! 💡" },
+  { text: "I was born for this! ⭐", reply: "The universe agrees — go get it! 🌍" },
+  { text: "Nothing can stop me! 🛡️", reply: "Not even a tricky 5-letter word! 😄🔥" },
+  { text: "I'm on fire today! 🔥", reply: "Let that fire light the way to the answer! 🏅" },
+  { text: "Every guess counts! 🎲", reply: "Every single one — you're playing it perfectly! ✅" },
+  { text: "I've got this feeling! 🎵", reply: "Trust that feeling — it's pointing you right! 🎶" },
+  { text: "Victory is mine! 🏅", reply: "Claim it — it's already written in the stars! ⭐" }
+];
+
+function pickRandomChips(n, excludeTexts) {
+  excludeTexts = excludeTexts || [];
+  const pool = CHAT_CHIPS.filter(c => excludeTexts.indexOf(c.text) === -1);
+  const shuffled = pool.slice().sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, n);
+}
+
+// Render a small row of tappable self-affirmation chips. Tapping one
+// "says" it, gets a short cheer back, then offers a fresh set of chips
+// so the conversation keeps going like a real back-and-forth chat.
 function showReplyChips(options) {
   coachRepliesEl.innerHTML = '';
   options.forEach(opt => {
@@ -545,6 +575,9 @@ function showReplyChips(options) {
     chip.addEventListener('click', () => {
       coachRepliesEl.innerHTML = '';
       setCoachMessage(opt.reply);
+      setTimeout(() => {
+        showReplyChips(pickRandomChips(2, [opt.text]));
+      }, 350);
     });
     coachRepliesEl.appendChild(chip);
   });
@@ -552,10 +585,7 @@ function showReplyChips(options) {
 
 function initChat() {
   setCoachMessage("👽 Let's crush today's word — you've got this!");
-  showReplyChips([
-    { text: "💪 I'm ready!", reply: "Love it — go get that word! 🍀" },
-    { text: "😊 Feeling good!", reply: "That energy will take you far! ✨" }
-  ]);
+  showReplyChips(pickRandomChips(2));
 }
 
 // Short, punchy, self-affirmation style cheers
@@ -582,26 +612,9 @@ function letterFeedbackText(guess, result) {
   return `${g} → ${track} · ${cheer}`;
 }
 
-// Self-affirmation reply chips shown after each guess, with a matching cheer back
-const AFTER_GUESS_REPLY_SETS = [
-  [
-    { text: "💪 I've got this!", reply: "That's the spirit — keep going! 🔥" },
-    { text: "🚀 Let's go!", reply: "Love the energy — bring it home! 🌟" }
-  ],
-  [
-    { text: "😅 Tricky one!", reply: "Every clue helps — you're closer than you think! ✨" },
-    { text: "🧠 I see a pattern!", reply: "Trust that instinct! 💛" }
-  ],
-  [
-    { text: "🔥 Feeling confident!", reply: "That's exactly the energy you need! 🙌" },
-    { text: "🤔 Thinking it through", reply: "Take your time — you've got this! 🌤️" }
-  ]
-];
-
 function processGuessResult(guess, result) {
   setCoachMessage(letterFeedbackText(guess, result));
-  const set = AFTER_GUESS_REPLY_SETS[Math.floor(Math.random() * AFTER_GUESS_REPLY_SETS.length)];
-  showReplyChips(set);
+  showReplyChips(pickRandomChips(2));
 }
 
 init();

@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
+<title>Puzzle Directory</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=DM+Sans:wght@400;700;800&family=Playfair+Display:ital,wght@0,700;1,700&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --ivory:#FAF6EA;
+  --ivory-deep:#F0E7CE;
+  --card:#FFFDF7;
+  --gold:#B8935A;
+  --gold-deep:#8C6A34;
+  --gold-light:#E4CE9B;
+  --ink:#2A2115;
+  --ink-soft:#8A7A5C;
+  --line:rgba(140,106,52,0.22);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{font-family:'DM Sans',sans-serif;background:var(--ivory);color:var(--ink);min-height:100dvh;overflow-x:hidden}
+
+.dir-bg{position:fixed;inset:0;pointer-events:none;z-index:0}
+.dir-glow{position:absolute;width:340px;height:340px;border-radius:50%;background:radial-gradient(circle,rgba(184,147,90,0.16) 0%,transparent 70%);top:-100px;left:50%;transform:translateX(-50%)}
+.dir-glow2{position:absolute;width:260px;height:260px;border-radius:50%;background:radial-gradient(circle,rgba(140,106,52,0.12) 0%,transparent 70%);bottom:10px;right:-60px}
+
+.dir-wrap{position:relative;z-index:1;max-width:520px;margin:0 auto;padding:2.2rem 1.2rem 3rem}
+
+.dir-header{text-align:center;margin-bottom:1.8rem}
+.dir-icon{font-size:2.4rem;margin-bottom:0.4rem}
+.dir-title{font-family:'Cinzel',serif;font-size:1.7rem;font-weight:900;letter-spacing:-0.5px;margin-bottom:0.25rem;background:linear-gradient(135deg,#8C6A34,#C9A961,#8C6A34);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.dir-tagline{font-size:0.78rem;color:var(--ink-soft);font-style:italic}
+
+.quest-list{display:flex;flex-direction:column;gap:0.9rem}
+
+.quest-card{background:var(--card);border:1px solid var(--line);border-radius:18px;overflow:hidden;box-shadow:0 2px 14px rgba(140,106,52,0.08);transition:border-color 0.15s,box-shadow 0.15s}
+.quest-card:active{border-color:var(--gold);box-shadow:0 2px 18px rgba(140,106,52,0.16)}
+
+.quest-main{display:flex;align-items:center;gap:0.9rem;padding:0.85rem 0.9rem;cursor:pointer}
+.quest-thumb{width:58px;height:58px;border-radius:12px;object-fit:cover;flex-shrink:0;border:1.5px solid var(--gold-light);background:var(--ivory-deep)}
+.quest-thumb.fallback{display:flex;align-items:center;justify-content:center;font-size:1.4rem}
+.quest-info{flex:1;min-width:0}
+.quest-tag{font-family:'Cinzel',serif;font-size:0.98rem;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.quest-desc{font-size:0.68rem;color:var(--ink-soft);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.quest-badge{font-size:0.58rem;font-weight:800;color:var(--gold-deep);background:rgba(184,147,90,0.12);border:1px solid rgba(184,147,90,0.4);border-radius:20px;padding:3px 9px;white-space:nowrap;letter-spacing:0.5px}
+.quest-arrow{font-size:0.9rem;color:var(--ink-soft);transition:transform 0.2s;flex-shrink:0}
+.quest-card.open .quest-arrow{transform:rotate(90deg);color:var(--gold-deep)}
+
+.quest-sub-list{max-height:0;overflow:hidden;transition:max-height 0.3s ease;border-top:1px solid var(--line)}
+.quest-card.open .quest-sub-list{max-height:600px}
+.sub-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0.8rem}
+.sub-item{display:flex;align-items:center;gap:8px;background:var(--ivory-deep);border:1px solid rgba(184,147,90,0.28);border-radius:12px;padding:7px;cursor:pointer;transition:transform 0.12s,border-color 0.12s}
+.sub-item:active{transform:scale(0.96);border-color:var(--gold-deep)}
+.sub-thumb{width:38px;height:38px;border-radius:8px;object-fit:cover;flex-shrink:0;background:var(--ivory)}
+.sub-thumb.fallback{display:flex;align-items:center;justify-content:center;font-size:1rem}
+.sub-info{min-width:0}
+.sub-title{font-size:0.68rem;font-weight:800;color:var(--gold-deep);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sub-sub{font-size:0.6rem;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+.empty-state{text-align:center;color:var(--ink-soft);font-size:0.8rem;padding:3rem 1rem}
+
+/* Hidden canvas for generation */
+#genCanvas{display:none}
+</style>
+</head>
+<body>
+
+<div class="dir-bg"><div class="dir-glow"></div><div class="dir-glow2"></div></div>
+
+<div class="dir-wrap">
+  <div class="dir-header">
+    <div class="dir-icon">🧩</div>
+    <div class="dir-title" id="dirTitle">Puzzle Directory</div>
+    <div class="dir-tagline" id="dirTagline">Pick a poster or a full puzzle quest to solve.</div>
+  </div>
+
+  <div class="quest-list" id="questList"></div>
+</div>
+
+<canvas id="genCanvas"></canvas>
+
+<script>
+/* ============================================================
+   PUZZLE IMAGE GENERATOR
+   Creates posh black/gold/cream geometric art with quotes
+   ============================================================ */
+const ImageGenerator = {
+  canvas: document.getElementById('genCanvas'),
+  
+  // Color palette
+  colors: {
+    black: '#0A0A0A',
+    blackSoft: '#141210',
+    gold: '#C9A961',
+    goldMid: '#A68340',
+    goldDeep: '#8C6A34',
+    cream: '#FAF6EA',
+    creamSoft: '#E8DCC4',
+    creamFade: 'rgba(250,246,234,0.08)'
+  },
+
+  generate(quote, subtext, size = 800) {
+    const c = this.canvas;
+    c.width = size;
+    c.height = size;
+    const ctx = c.getContext('2d');
+    const { colors } = this;
+    const cx = size / 2;
+    const cy = size / 2;
+
+    // ── Background ──
+    ctx.fillStyle = colors.black;
+    ctx.fillRect(0, 0, size, size);
+
+    // Subtle radial vignette
+    const vig = ctx.createRadialGradient(cx, cy, size * 0.3, cx, cy, size * 0.75);
+    vig.addColorStop(0, colors.blackSoft);
+    vig.addColorStop(1, colors.black);
+    ctx.fillStyle = vig;
+    ctx.fillRect(0, 0, size, size);
+
+    // ── Geometric Pattern ──
+    this._drawGeometricPattern(ctx, size, colors);
+
+    // ── Curved Elegant Border ──
+    this._drawCurvedBorder(ctx, size, colors);
+
+    // ── Corner Ornaments ──
+    this._drawCornerOrnaments(ctx, size, colors);
+
+    // ── Quote Text ──
+    this._drawQuote(ctx, quote, subtext, size, colors);
+
+    // ── Subtle overlay texture ──
+    this._drawNoise(ctx, size, 0.03);
+
+    return c.toDataURL('image/png');
+  },
+
+  _drawGeometricPattern(ctx, size, colors) {
+    const cx = size / 2;
+    const cy = size / 2;
+    const maxR = size * 0.42;
+
+    ctx.save();
+    ctx.translate(cx, cy);
+
+    // Concentric arcs (Art Deco style)
+    for (let r = 40; r < maxR; r += 45) {
+      ctx.beginPath();
+      ctx.arc(0, 0, r, 0, Math.PI * 2);
+      ctx.strokeStyle = r % 90 === 0 ? 'rgba(201,169,97,0.15)' : 'rgba(201,169,97,0.08)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      // Quarter-circle accents
+      const accents = [
+        [0, Math.PI / 2],
+        [Math.PI / 2, Math.PI],
+        [Math.PI, Math.PI * 1.5],
+        [Math.PI * 1.5, Math.PI * 2]
+      ];
+      accents.forEach(([start, end], i) => {
+        if ((r + i * 20) % 60 < 30) {
+          ctx.beginPath();
+          ctx.arc(0, 0, r + 22, start + 0.1, end - 0.1);
+          ctx.strokeStyle = 'rgba(250,246,234,0.06)';
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+        }
+      });
+    }
+
+    // Diamond grid
+    ctx.rotate(Math.PI / 4);
+    const step = 55;
+    for (let x = -maxR; x < maxR; x += step) {
+      ctx.beginPath();
+      ctx.moveTo(x, -maxR);
+      ctx.lineTo(x, maxR);
+      ctx.strokeStyle = 'rgba(201,169,97,0.04)';
+      ctx.lineWidth = 0.8;
+      ctx.stroke();
+    }
+    for (let y = -maxR; y < maxR; y += step) {
+      ctx.beginPath();
+      ctx.moveTo(-maxR, y);
+      ctx.lineTo(maxR, y);
+      ctx.strokeStyle = 'rgba(201,169,97,0.04)';
+      ctx.lineWidth = 0.8;
+      ctx.stroke();
+    }
+
+    // Scattered gold dots
+    ctx.rotate(-Math.PI / 4);
+    const dotCount = 60;
+    for (let i = 0; i < dotCount; i++) {
+      const angle = (i / dotCount) * Math.PI * 2 + (i * 0.7);
+      const dist = 80 + (i % 5) * 55 + Math.random() * 30;
+      const dx = Math.cos(angle) * dist;
+      const dy = Math.sin(angle) * dist;
+      ctx.beginPath();
+      ctx.arc(dx, dy, i % 3 === 0 ? 2 : 1, 0, Math.PI * 2);
+      ctx.fillStyle = i % 4 === 0 ? 'rgba(201,169,97,0.35)' : 'rgba(250,246,234,0.15)';
+      ctx.fill();
+    }
+
+    ctx.restore();
+  },
+
+  _drawCurvedBorder(ctx, size, colors) {
+    const pad = 32;
+    const r = 24; // corner radius
+    const w = size;
+
+    ctx.save();
+
+    // Outer glow
+    ctx.shadowColor = 'rgba(201,169,97,0.25)';
+    ctx.shadowBlur = 20;
+
+    // Outer curved frame
+    ctx.beginPath();
+    ctx.moveTo(pad + r, pad);
+    ctx.lineTo(w - pad - r, pad);
+    ctx.quadraticCurveTo(w - pad, pad, w - pad, pad + r);
+    ctx.lineTo(w - pad, w - pad - r);
+    ctx.quadraticCurveTo(w - pad, w - pad, w - pad - r, w - pad);
+    ctx.lineTo(pad + r, w - pad);
+    ctx.quadraticCurveTo(pad, w - pad, pad, w - pad - r);
+    ctx.lineTo(pad, pad + r);
+    ctx.quadraticCurveTo(pad, pad, pad + r, pad);
+    ctx.closePath();
+
+    ctx.strokeStyle = colors.gold;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    ctx.shadowBlur = 0;
+
+    // Inner frame
+    const pad2 = pad + 10;
+    const r2 = r - 4;
+    ctx.beginPath();
+    ctx.moveTo(pad2 + r2, pad2);
+    ctx.lineTo(w - pad2 - r2, pad2);
+    ctx.quadraticCurveTo(w - pad2, pad2, w - pad2, pad2 + r2);
+    ctx.lineTo(w - pad2, w - pad2 - r2);
+    ctx.quadraticCurveTo(w - pad2, w - pad2, w - pad2 - r2, w - pad2);
+    ctx.lineTo(pad2 + r2, w - pad2);
+    ctx.quadraticCurveTo(pad2, w - pad2, pad2, w - pad2 - r2);
+    ctx.lineTo(pad2, pad2 + r2);
+    ctx.quadraticCurveTo(pad2, pad2, pad2 + r2, pad2);
+    ctx.closePath();
+
+    ctx.strokeStyle = 'rgba(201,169,97,0.45)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // Decorative midpoint ticks
+    const tickLen = 8;
+    const midpoints = [
+      [w / 2, pad], [w / 2, w - pad],
+      [pad, w / 2], [w - pad, w / 2]
+    ];
+    midpoints.forEach(([x, y]) => {
+      ctx.beginPath();
+      if (x === w / 2 && y === pad) {
+        ctx.moveTo(x - tickLen, y);
+        ctx.lineTo(x + tickLen, y);
+      } else if (x === w / 2 && y === w - pad) {
+        ctx.moveTo(x - tickLen, y);
+        ctx.lineTo(x + tickLen, y);
+      } else if (x === pad && y === w / 2) {
+        ctx.moveTo(x, y - tickLen);
+        ctx.lineTo(x, y + tickLen);
+      } else {
+        ctx.moveTo(x, y - tickLen);
+        ctx.lineTo(x, y + tickLen);
+      }
+      ctx.strokeStyle = colors.gold;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    });
+
+    ctx.restore();
+  },
+
+  _drawCornerOrnaments(ctx, size, colors) {
+    const pad = 36;
+    const len = 28;
+    const corners = [
+      { x: pad, y: pad, rot: 0 },
+      { x: size - pad, y: pad, rot: Math.PI / 2 },
+      { x: size - pad, y: size - pad, rot: Math.PI },
+      { x: pad, y: size - pad, rot: -Math.PI / 2 }
+    ];
+
+    corners.forEach(({ x, y, rot }) => {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(rot);
+
+      // Elegant curved flourish
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.quadraticCurveTo(len * 0.5, -len * 0.3, len, 0);
+      ctx.quadraticCurveTo(len * 0.7, len * 0.2, len * 0.5, len * 0.1);
+      ctx.quadraticCurveTo(len * 0.3, len * 0.05, 0, len * 0.15);
+      ctx.strokeStyle = colors.gold;
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+
+      // Small dot
+      ctx.beginPath();
+      ctx.arc(len * 0.15, len * 0.05, 2, 0, Math.PI * 2);
+      ctx.fillStyle = colors.cream;
+      ctx.fill();
+
+      ctx.restore();
+    });
+  },
+
+  _drawQuote(ctx, quote, subtext, size, colors) {
+    const cx = size / 2;
+    const maxWidth = size * 0.62;
+    const lineHeight = size * 0.055;
+
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    // Glow behind text area
+    const glow = ctx.createRadialGradient(cx, size * 0.48, 10, cx, size * 0.48, maxWidth * 0.8);
+    glow.addColorStop(0, 'rgba(10,10,10,0.85)');
+    glow.addColorStop(1, 'rgba(10,10,10,0)');
+    ctx.fillStyle = glow;
+    ctx.fillRect(cx - maxWidth * 0.6, size * 0.3, maxWidth * 1.2, size * 0.4);
+
+    // Quote marks
+    ctx.font = `italic ${size * 0.07}px "Playfair Display", serif`;
+    ctx.fillStyle = 'rgba(201,169,97,0.25)';
+    ctx.fillText('"', cx - maxWidth * 0.55, size * 0.38);
+
+    // Main quote
+    ctx.font = `italic ${size * 0.045}px "Playfair Display", serif`;
+    ctx.fillStyle = colors.cream;
+    ctx.shadowColor = 'rgba(0,0,0,0.8)';
+    ctx.shadowBlur = 8;
+
+    const words = quote.split(' ');
+    let line = '';
+    let lines = [];
+    words.forEach(word => {
+      const test = line + word + ' ';
+      if (ctx.measureText(test).width > maxWidth && line !== '') {
+        lines.push(line.trim());
+        line = word + ' ';
+      } else {
+        line = test;
+      }
+    });
+    lines.push(line.trim());
+
+    const startY = size * 0.46 - ((lines.length - 1) * lineHeight) / 2;
+    lines.forEach((l, i) => {
+      ctx.fillText(l, cx, startY + i * lineHeight);
+    });
+
+    ctx.shadowBlur = 0;
+
+    // Divider line
+    if (subtext) {
+      const divY = startY + lines.length * lineHeight + size * 0.025;
+      ctx.beginPath();
+      ctx.moveTo(cx - size * 0.08, divY);
+      ctx.lineTo(cx + size * 0.08, divY);
+      ctx.strokeStyle = colors.gold;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      // Subtext
+      ctx.font = `${size * 0.022}px "Cinzel", serif`;
+      ctx.fillStyle = colors.goldMid;
+      ctx.letterSpacing = '2px';
+      ctx.fillText(subtext.toUpperCase(), cx, divY + size * 0.035);
+    }
+
+    ctx.restore();
+  },
+
+  _drawNoise(ctx, size, amount) {
+    const imageData = ctx.getImageData(0, 0, size, size);
+    const data = imageData.data;
+    for (let i = 0; i < data.length; i += 4) {
+      const noise = (Math.random() - 0.5) * amount * 255;
+      data[i] += noise;
+      data[i + 1] += noise;
+      data[i + 2] += noise;
+    }
+    ctx.putImageData(imageData, 0, 0);
+  }
+};
+
+
+/* ============================================================
+   DEMO PUZZLE DATA (with generated images)
+   Replace this with your puzzles.js or fetch real data
+   ============================================================ */
+window.PUZZLE_DIRECTORY = {
+  directoryTitle: "Puzzle Directory",
+  directoryTagline: "Each puzzle is a piece of art. Solve the mystery within.",
+  quests: [
+    {
+      id: "wisdom",
+      tag: "Wisdom",
+      description: "Timeless quotes from thinkers and poets",
+      coverImage: ImageGenerator.generate(
+        "The unexamined life is not worth living",
+        "Socrates",
+        400
+      ),
+      puzzles: [
+        {
+          id: "socrates",
+          title: "The Examined Life",
+          sub: "Socrates · 48 pieces",
+          imageUrl: ImageGenerator.generate(
+            "The unexamined life is not worth living",
+            "Socrates",
+            800
+          )
+        },
+        {
+          id: "rumi",
+          title: "The Wound",
+          sub: "Rumi · 64 pieces",
+          imageUrl: ImageGenerator.generate(
+            "The wound is the place where the light enters you",
+            "Rumi",
+            800
+          )
+        },
+        {
+          id: "nietzsche",
+          title: "The Abyss",
+          sub: "Nietzsche · 72 pieces",
+          imageUrl: ImageGenerator.generate(
+            "He who has a why to live can bear almost any how",
+            "Nietzsche",
+            800
+          )
+        }
+      ]
+    },
+    {
+      id: "elegance",
+      tag: "Elegance",
+      description: "Words that dress the soul in silk",
+      coverImage: ImageGenerator.generate(
+        "Elegance is refusal",
+        "Coco Chanel",
+        400
+      ),
+      puzzles: [
+        {
+          id: "chanel",
+          title: "Refusal",
+          sub: "Chanel · 36 pieces",
+          imageUrl: ImageGenerator.generate(
+            "Elegance is refusal",
+            "Coco Chanel",
+            800
+          )
+        },
+        {
+          id: "wilde",
+          title: "Simplicity",
+          sub: "Oscar Wilde · 48 pieces",
+          imageUrl: ImageGenerator.generate(
+            "Simplicity is the ultimate sophistication",
+            "Leonardo da Vinci",
+            800
+          )
+        }
+      ]
+    },
+    {
+      id: "solitude",
+      tag: "Solitude",
+      description: "The beauty of being alone",
+      coverImage: ImageGenerator.generate(
+        "I never found a companion that was so companionable as solitude",
+        "Thoreau",
+        400
+      ),
+      puzzles: [
+        {
+          id: "thoreau",
+          title: "Companionable Solitude",
+          sub: "Thoreau · 56 pieces",
+          imageUrl: ImageGenerator.generate(
+            "I never found a companion that was so companionable as solitude",
+            "Thoreau",
+            800
+          )
+        }
+      ]
+    }
+  ]
+};
+
+
+/* ============================================================
+   DIRECTORY RENDERER (your original code, slightly adapted)
+   ============================================================ */
+const DIRECTORY = window.PUZZLE_DIRECTORY || { quests: [] };
+
+document.getElementById("dirTitle").textContent = DIRECTORY.directoryTitle || "Puzzle Directory";
+document.getElementById("dirTagline").textContent = DIRECTORY.directoryTagline || "";
+
+const listEl = document.getElementById("questList");
+
+if (!DIRECTORY.quests || !DIRECTORY.quests.length) {
+  listEl.innerHTML = `<div class="empty-state">No quests yet — add some to puzzles.js.</div>`;
+} else {
+  DIRECTORY.quests.forEach(quest => {
+    const card = document.createElement("div");
+    card.className = "quest-card";
+
+    const main = document.createElement("div");
+    main.className = "quest-main";
+
+    const thumb = document.createElement("img");
+    thumb.className = "quest-thumb";
+    thumb.src = quest.coverImage || (quest.puzzles[0] && quest.puzzles[0].imageUrl) || "";
+    thumb.alt = quest.tag;
+    thumb.onerror = () => { thumb.replaceWith(fallbackThumb("quest-thumb")); };
+
+    const info = document.createElement("div");
+    info.className = "quest-info";
+    const tagEl = document.createElement("div");
+    tagEl.className = "quest-tag";
+    tagEl.textContent = quest.tag || quest.id;
+    const descEl = document.createElement("div");
+    descEl.className = "quest-desc";
+    descEl.textContent = quest.description || "";
+    info.appendChild(tagEl);
+    info.appendChild(descEl);
+
+    const isCollection = quest.puzzles && quest.puzzles.length > 1;
+
+    const badge = document.createElement("div");
+    badge.className = "quest-badge";
+    badge.textContent = isCollection ? `${quest.puzzles.length} puzzles` : "1 puzzle";
+
+    main.appendChild(thumb);
+    main.appendChild(info);
+    main.appendChild(badge);
+
+    if (isCollection) {
+      const arrow = document.createElement("div");
+      arrow.className = "quest-arrow";
+      arrow.textContent = "›";
+      main.appendChild(arrow);
+
+      main.onclick = () => card.classList.toggle("open");
+
+      const subList = document.createElement("div");
+      subList.className = "quest-sub-list";
+      const subGrid = document.createElement("div");
+      subGrid.className = "sub-grid";
+
+      quest.puzzles.forEach(p => {
+        const item = document.createElement("div");
+        item.className = "sub-item";
+
+        const sThumb = document.createElement("img");
+        sThumb.className = "sub-thumb";
+        sThumb.src = p.imageUrl;
+        sThumb.alt = p.title;
+        sThumb.onerror = () => { sThumb.replaceWith(fallbackThumb("sub-thumb")); };
+
+        const sInfo = document.createElement("div");
+        sInfo.className = "sub-info";
+        const sTitle = document.createElement("div");
+        sTitle.className = "sub-title";
+        sTitle.textContent = p.title;
+        const sSub = document.createElement("div");
+        sSub.className = "sub-sub";
+        sSub.textContent = p.sub || "";
+        sInfo.appendChild(sTitle);
+        sInfo.appendChild(sSub);
+
+        item.appendChild(sThumb);
+        item.appendChild(sInfo);
+        item.onclick = (e) => {
+          e.stopPropagation();
+          goToPuzzle(quest.id, p.id);
+        };
+
+        subGrid.appendChild(item);
+      });
+
+      subList.appendChild(subGrid);
+      card.appendChild(main);
+      card.appendChild(subList);
+    } else {
+      main.onclick = () => goToPuzzle(quest.id, quest.puzzles[0] && quest.puzzles[0].id);
+      card.appendChild(main);
+    }
+
+    listEl.appendChild(card);
+  });
+}
+
+function fallbackThumb(cls) {
+  const d = document.createElement("div");
+  d.className = cls + " fallback";
+  d.textContent = "🧩";
+  return d;
+}
+
+function goToPuzzle(questId, puzzleId) {
+  const params = new URLSearchParams();
+  params.set("quest", questId);
+  if (puzzleId) params.set("puzzle", puzzleId);
+  window.location.href = "puzzle.html?" + params.toString();
+}
+</script>
+</body>
+</html>

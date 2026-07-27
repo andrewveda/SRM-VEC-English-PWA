@@ -8,102 +8,110 @@
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
-      --petal:#f9c6d0; --petal-hover:#f4a3b5; --center:#f6654a; --center-hover:#e04e35;
+      --petal:#f0d6d2; --petal-hover:#e8bfc0; --center:#f0603f; --center-hover:#dd4c2f;
       --stem:#4a8c5c; --stem-light:#7dbb8f; --ink:#2a1f1a; --ink-muted:#8a7060;
-      --gold:#e8a020; --bg:#fdf0e2; --card:#fffdf9; --shadow:rgba(74,60,50,0.12);
+      --gold:#e8a020; --bg:#fdf0e2; --card:#fffdf9; --card-soft:#faf1e2;
+      --shadow:rgba(74,60,50,0.12);
+      --shadow-sm: 0 1px 2px rgba(74,54,40,0.05), 0 3px 8px rgba(74,54,40,0.07);
+      --shadow-md: 0 1px 2px rgba(74,54,40,0.06), 0 8px 22px rgba(74,54,40,0.10);
+      --shadow-lg: 0 2px 6px rgba(224,78,53,0.16), 0 16px 34px rgba(74,54,40,0.16);
+      --hairline: inset 0 1px 0 rgba(255,255,255,0.7);
+      --ease: cubic-bezier(.16,1,.3,1);
     }
-    body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--ink); min-height:100vh; display:flex; flex-direction:column; align-items:center; overflow-y:auto; }
+    button, input, select { font-variant-numeric: tabular-nums; }
+    button:focus-visible, input:focus-visible, select:focus-visible {
+      outline:2px solid var(--stem); outline-offset:2px;
+    }
+    .timer-text, .rank-name, .stat-nums, #score, #word-count, #best-score { font-variant-numeric: tabular-nums; }
+    html, body { min-height:100%; overscroll-behavior-x:none; }
+    body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--ink); min-height:100dvh; display:flex; flex-direction:column; align-items:center; overflow-x:hidden; }
     body::before { content:''; position:fixed; inset:0; background:radial-gradient(ellipse 80% 60% at 10% 20%,#fde8d880 0%,transparent 60%),radial-gradient(ellipse 60% 50% at 90% 80%,#f9c6d040 0%,transparent 60%); pointer-events:none; z-index:0; }
-    .screen { display:none; flex-direction:column; align-items:center; width:100%; position:relative; z-index:1; }
+    .screen { display:none; flex-direction:column; align-items:center; width:100%; min-height:100dvh; position:relative; z-index:1; overflow:visible; }
     .screen.active { display:flex; }
 
-    /* ══ GAME SCREEN ══ */
-    #gameScreen header { width:100%; text-align:center; padding:28px 20px 10px; }
-    #gameScreen header h1 { font-family:'Playfair Display',serif; font-size:clamp(2rem,6vw,3.2rem); font-weight:900; letter-spacing:-1px; color:var(--ink); line-height:1; }
-    #gameScreen header h1 span { color:var(--center); }
-    .tagline { margin-top:6px; font-size:0.82rem; color:var(--ink-muted); font-weight:400; letter-spacing:0.06em; text-transform:uppercase; }
-    .main-wrap { display:flex; flex-direction:column; align-items:center; width:100%; max-width:480px; padding:0 16px 40px; gap:14px; }
-    .top-row { display:flex; gap:10px; width:100%; align-items:stretch; }
+    /* ══ GAME SCREEN — redesigned as a hero-first layout: the flower dominates,
+       everything else is compressed into slim utility bars around it ══ */
+    #gameScreen { align-items:stretch; }
+    .game-col { display:flex; flex-direction:column; width:100%; min-height:100%; max-width:480px; margin:0 auto; padding:calc(env(safe-area-inset-top) + 10px) 16px calc(env(safe-area-inset-bottom) + 10px); gap:clamp(7px,1.4dvh,14px); }
 
-    /* Timer */
-    .timer-card { flex:0 0 auto; background:var(--card); border-radius:14px; padding:12px 14px; box-shadow:0 2px 12px var(--shadow); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; min-width:88px; }
-    .timer-arc-wrap { position:relative; width:56px; height:56px; }
-    #timerArc { transform:rotate(-90deg); }
-    .timer-text { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-family:'Playfair Display',serif; font-size:0.92rem; font-weight:700; color:var(--ink); transition:color 0.4s; }
+    /* Top bar: end-game + new-puzzle icons, brand, timer — one row, nothing else */
+    .top-bar { display:flex; align-items:center; justify-content:space-between; gap:8px; flex:0 0 auto; }
+    .top-actions { display:flex; align-items:center; gap:6px; flex:0 0 auto; }
+    .icon-btn { flex:0 0 auto; width:clamp(32px,6dvh,40px); height:clamp(32px,6dvh,40px); border-radius:50%; border:1px solid rgba(232,216,200,0.7); background:var(--card-soft); display:flex; align-items:center; justify-content:center; cursor:pointer; box-shadow:var(--shadow-sm), var(--hairline); color:var(--ink-muted); transition:background 0.18s var(--ease),color 0.18s var(--ease),transform 0.18s var(--ease),box-shadow 0.18s var(--ease); }
+    .icon-btn svg { width:44%; height:44%; }
+    .icon-btn:hover { background:#fde3e0; color:var(--center); box-shadow:var(--shadow-md), var(--hairline); }
+    .icon-btn:active { transform:scale(0.9); }
+    .brand { flex:1 1 auto; text-align:center; }
+    .brand h1 { font-family:'Playfair Display',serif; font-size:clamp(1.15rem,3.6dvh,1.7rem); font-weight:900; letter-spacing:-0.5px; color:var(--ink); line-height:1; }
+    .brand h1 span { color:var(--center); }
+    .timer-pill { flex:0 0 auto; display:flex; align-items:center; gap:6px; background:var(--card-soft); border-radius:99px; padding:3px 13px 3px 3px; box-shadow:var(--shadow-sm), var(--hairline); }
+    .timer-arc-wrap { position:relative; width:clamp(28px,5.2dvh,36px); height:clamp(28px,5.2dvh,36px); flex:0 0 auto; }
+    #timerArc { transform:rotate(-90deg); width:100%; height:100%; display:block; }
+    .timer-text { font-family:'Playfair Display',serif; font-size:clamp(0.7rem,1.7dvh,0.86rem); font-weight:700; color:var(--ink); transition:color 0.4s; white-space:nowrap; }
     .timer-text.amber { color:var(--gold); }
     .timer-text.danger { color:var(--center); animation:timerPulse 0.6s ease-in-out infinite; }
     @keyframes timerPulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.15)} }
-    .timer-label { font-size:0.65rem; color:var(--ink-muted); text-transform:uppercase; letter-spacing:0.05em; }
 
-    /* Scores */
-    .score-bar { flex:1; display:flex; justify-content:space-between; align-items:center; background:var(--card); border-radius:14px; padding:10px 20px; box-shadow:0 2px 12px var(--shadow); }
-    .score-bar .label { color:var(--ink-muted); font-weight:500; text-transform:uppercase; letter-spacing:0.05em; font-size:0.72rem; }
-    .score-bar .value { font-family:'Playfair Display',serif; font-size:1.5rem; font-weight:700; color:var(--stem); line-height:1; }
-    .score-item { display:flex; flex-direction:column; align-items:center; gap:2px; }
+    /* Stat strip: rank name, score/words/best, progress — one slim card */
+    .stat-strip { flex:0 0 auto; background:var(--card-soft); border-radius:14px; padding:clamp(6px,1.2dvh,10px) 16px; box-shadow:var(--shadow-sm), var(--hairline); display:flex; flex-direction:column; gap:5px; }
+    .stat-strip-top { display:flex; justify-content:space-between; align-items:baseline; gap:10px; }
+    .rank-name { font-family:'Playfair Display',serif; font-weight:700; font-size:clamp(0.76rem,1.8dvh,0.94rem); color:var(--center); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .stat-nums { font-size:clamp(0.6rem,1.3dvh,0.74rem); color:var(--ink-muted); white-space:nowrap; letter-spacing:0.02em; }
+    .stat-nums b { font-family:'Playfair Display',serif; color:var(--stem); font-weight:700; font-size:1.55em; letter-spacing:0; margin:0 1px; }
+    .rank-track { height:5px; background:#eee0cf; border-radius:99px; overflow:hidden; box-shadow:inset 0 1px 2px rgba(74,54,40,0.1); }
+    .rank-fill { height:100%; background:linear-gradient(90deg,var(--stem-light),var(--center)); border-radius:99px; transition:width 0.6s var(--ease); }
 
-    /* Rank */
-    .rank-bar { width:100%; background:var(--card); border-radius:14px; padding:12px 20px; box-shadow:0 2px 12px var(--shadow); }
-    .rank-label { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
-    .rank-name { font-family:'Playfair Display',serif; font-size:1rem; font-weight:700; color:var(--center); }
-    .rank-pts { font-size:0.78rem; color:var(--ink-muted); }
-    .rank-track { height:7px; background:#f0e6d8; border-radius:99px; overflow:hidden; }
-    .rank-fill { height:100%; background:linear-gradient(90deg,var(--stem-light),var(--center)); border-radius:99px; transition:width 0.6s cubic-bezier(.4,0,.2,1); }
-
-    /* Input */
-    .input-row { display:flex; align-items:center; gap:8px; width:100%; }
-    .word-display { flex:1; background:var(--card); border:2px solid #e8d8c8; border-radius:12px; padding:12px 16px; font-family:'Playfair Display',serif; font-size:1.5rem; letter-spacing:0.06em; color:var(--ink); min-height:54px; display:flex; align-items:center; box-shadow:0 2px 12px var(--shadow); text-transform:uppercase; transition:border-color 0.2s; }
+    /* Word pill — delete now lives in the action row instead, so this is just the typed word */
+    .input-row { flex:0 0 auto; width:100%; }
+    .word-display { width:100%; background:var(--card); border:1px solid rgba(232,216,200,0.8); border-radius:12px; padding:clamp(6px,1.2dvh,10px) 18px; font-family:'Playfair Display',serif; font-size:clamp(1rem,2.6dvh,1.35rem); letter-spacing:0.05em; color:var(--ink); height:clamp(40px,6.6dvh,50px); display:flex; align-items:center; gap:8px; box-shadow:var(--shadow-md), var(--hairline); text-transform:uppercase; transition:border-color 0.2s var(--ease), box-shadow 0.2s var(--ease); }
     .word-display.error  { border-color:#e04e35; animation:shake 0.35s ease; }
-    .word-display.success{ border-color:var(--stem); }
+    .word-display.success{ border-color:var(--stem); animation:wordAccept 0.4s var(--ease); }
     @keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-6px)} 40%{transform:translateX(6px)} 60%{transform:translateX(-4px)} 80%{transform:translateX(4px)} }
-    .word-display .cursor { display:inline-block; width:2px; height:1.2em; background:var(--ink-muted); margin-left:2px; animation:blink 1s step-end infinite; vertical-align:middle; }
+    @keyframes wordAccept { 0%{transform:scale(1)} 45%{transform:scale(1.035)} 100%{transform:scale(1)} }
+    #typed-letters { flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .word-display .cursor { display:inline-block; width:2px; height:1.1em; background:var(--ink-muted); margin-left:2px; animation:blink 1s step-end infinite; vertical-align:middle; flex:0 0 auto; }
     @keyframes blink { 50%{opacity:0} }
-    .btn-delete { background:var(--card); border:2px solid #e8d8c8; border-radius:12px; width:54px; height:54px; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:1.3rem; box-shadow:0 2px 12px var(--shadow); transition:background 0.15s,transform 0.1s; color:var(--ink-muted); }
-    .btn-delete:hover { background:#fde8d8; transform:scale(1.05); }
-    .btn-delete:active { transform:scale(0.95); }
 
-    /* Flower */
-    .flower-wrap { position:relative; width:280px; height:280px; margin:4px 0; }
-    .petal-btn { position:absolute; width:86px; height:86px; border-radius:50%; border:none; cursor:pointer; font-family:'Playfair Display',serif; font-size:1.6rem; font-weight:700; text-transform:uppercase; letter-spacing:0.02em; transition:transform 0.12s ease,box-shadow 0.12s ease,background 0.12s; display:flex; align-items:center; justify-content:center; user-select:none; -webkit-user-select:none; box-shadow:0 4px 14px var(--shadow); }
-    .petal-btn:active { transform:scale(0.91) !important; }
-    .petal-btn.outer { background:var(--petal); color:var(--ink); }
-    .petal-btn.outer:hover { background:var(--petal-hover); transform:scale(1.07); box-shadow:0 6px 20px rgba(249,100,74,0.22); }
-    .petal-btn.center-btn { background:var(--center); color:#fff; width:94px; height:94px; font-size:1.8rem; box-shadow:0 6px 20px rgba(240,80,55,0.35); left:50%; top:50%; transform:translate(-50%,-50%); z-index:5; }
-    .petal-btn.center-btn:hover { background:var(--center-hover); transform:translate(-50%,-50%) scale(1.07); }
-    .petal-btn.center-btn:active { transform:translate(-50%,-50%) scale(0.93) !important; }
+    /* Flower — the hero. Grows to fill whatever space remains. */
+    .flower-stage { flex:1 1 auto; min-height:0; width:100%; display:flex; align-items:center; justify-content:center; }
+    @keyframes petalRipple { from{ r:2; opacity:0.45; } to{ r:52; opacity:0; } }
 
-    /* Buttons */
-    .btn-enter { width:100%; padding:15px; background:var(--stem); color:#fff; border:none; border-radius:14px; font-family:'DM Sans',sans-serif; font-size:1rem; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; cursor:pointer; box-shadow:0 4px 16px rgba(74,140,92,0.3); transition:background 0.15s,transform 0.1s; }
-    .btn-enter:hover { background:#3a7a4c; transform:translateY(-1px); }
-    .btn-enter:active { transform:translateY(1px); }
+    /* Action row: delete · shuffle · Enter Word — one row, delete sits right beside Enter */
+    .action-row { display:flex; align-items:stretch; gap:8px; width:100%; flex:0 0 auto; }
+    .btn-shuffle, .btn-icon-action { flex:0 0 auto; width:clamp(42px,7.6dvh,54px); background:var(--card-soft); border:1px solid rgba(232,216,200,0.7); border-radius:14px; display:flex; align-items:center; justify-content:center; color:var(--ink-muted); cursor:pointer; box-shadow:var(--shadow-sm), var(--hairline); transition:background 0.18s var(--ease),color 0.18s var(--ease),transform 0.18s var(--ease); }
+    .btn-shuffle svg, .btn-icon-action svg { width:44%; height:44%; }
+    .btn-shuffle:hover, .btn-icon-action:hover { background:#fde3e0; color:var(--center); }
+    .btn-shuffle:active, .btn-icon-action:active { transform:scale(0.92); }
+    .btn-shuffle.spin svg { animation:shuffleSpin 0.5s var(--ease); }
+    @keyframes shuffleSpin { from{transform:rotate(0)} to{transform:rotate(180deg)} }
+    .btn-enter { flex:1 1 auto; padding:clamp(9px,1.6dvh,15px); background:linear-gradient(160deg,var(--stem),#3e7a4f); color:#fff; border:none; border-radius:14px; font-family:'DM Sans',sans-serif; font-size:clamp(0.8rem,1.9dvh,0.98rem); font-weight:600; letter-spacing:0.06em; text-transform:uppercase; cursor:pointer; box-shadow:0 2px 4px rgba(40,90,55,0.25), 0 10px 24px rgba(74,140,92,0.32), inset 0 1px 0 rgba(255,255,255,0.18); transition:background 0.18s var(--ease), transform 0.18s var(--ease), box-shadow 0.18s var(--ease); }
+    .btn-enter:hover { background:linear-gradient(160deg,#559966,#346641); transform:translateY(-1px); }
+    .btn-enter:active { transform:translateY(1px) scale(0.99); }
     .btn-enter:disabled { background:#c8d8c0; cursor:default; transform:none; box-shadow:none; }
     .spinner { display:inline-block; width:18px; height:18px; border:2.5px solid #ffffff44; border-top-color:#fff; border-radius:50%; animation:spin 0.7s linear infinite; vertical-align:middle; }
     @keyframes spin { to{transform:rotate(360deg)} }
-    .controls { display:flex; gap:8px; width:100%; }
-    .btn-secondary { flex:1; padding:10px; background:var(--card); color:var(--ink-muted); border:2px solid #e8d8c8; border-radius:12px; font-family:'DM Sans',sans-serif; font-size:0.82rem; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; cursor:pointer; box-shadow:0 2px 8px var(--shadow); transition:background 0.15s,color 0.15s; }
-    .btn-secondary:hover { background:#fde8d8; color:var(--center); border-color:var(--petal-hover); }
-    .btn-end-game { flex:1; padding:10px; background:#fff0ee; color:var(--center); border:2px solid var(--petal-hover); border-radius:12px; font-family:'DM Sans',sans-serif; font-size:0.82rem; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; cursor:pointer; transition:background 0.15s; }
-    .btn-end-game:hover { background:var(--petal); }
 
     /* Toast */
-    .toast { position:fixed; top:24px; left:50%; transform:translateX(-50%) translateY(-80px); background:var(--ink); color:#fff; padding:10px 22px; border-radius:99px; font-size:0.9rem; font-weight:500; z-index:200; pointer-events:none; transition:transform 0.35s cubic-bezier(.2,1.4,.4,1),opacity 0.35s; opacity:0; white-space:nowrap; }
+    .toast { position:fixed; top:24px; left:50%; transform:translateX(-50%) translateY(-80px); background:var(--ink); color:#fff; padding:10px 22px; border-radius:99px; font-size:0.9rem; font-weight:500; z-index:200; pointer-events:none; transition:transform 0.35s var(--ease),opacity 0.35s var(--ease); opacity:0; white-space:nowrap; box-shadow:0 10px 30px rgba(0,0,0,0.25); }
     .toast.show { transform:translateX(-50%) translateY(0); opacity:1; }
-    .toast.good { background:var(--stem); }
-    .toast.bad  { background:var(--center); }
+    .toast.good { background:linear-gradient(135deg,var(--stem),#3e7a4f); }
+    .toast.bad  { background:linear-gradient(135deg,var(--center),var(--center-hover)); }
 
-    /* Found words */
-    .found-section { width:100%; background:var(--card); border-radius:14px; padding:14px 18px; box-shadow:0 2px 12px var(--shadow); }
-    .found-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
-    .found-header h3 { font-family:'Playfair Display',serif; font-size:0.95rem; font-weight:700; color:var(--ink-muted); text-transform:uppercase; letter-spacing:0.08em; }
-    .found-count { background:var(--stem-light); color:#fff; border-radius:99px; padding:2px 10px; font-size:0.78rem; font-weight:600; }
-    .found-list { display:flex; flex-wrap:wrap; gap:6px; }
-    .found-word { background:#f0f8f2; border:1.5px solid #c8e8d4; color:var(--stem); border-radius:8px; padding:3px 10px; font-size:0.82rem; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; animation:pop-in 0.3s cubic-bezier(.2,1.5,.4,1); }
+    /* Found words — no longer height-capped or internally scrolling.
+       It grows with the list; the page scrolls to reveal it, while the
+       flower and everything above keep their normal fixed positions. */
+    .found-ticker { flex:0 0 auto; width:100%; background:var(--card-soft); border-radius:14px; padding:8px 14px; box-shadow:var(--shadow-sm), var(--hairline); display:flex; align-items:flex-start; gap:10px; min-height:clamp(34px,6.2dvh,44px); }
+    .found-label { flex:0 0 auto; font-size:clamp(0.6rem,1.3dvh,0.72rem); color:var(--ink-muted); text-transform:uppercase; letter-spacing:0.06em; white-space:nowrap; padding-top:2px; }
+    .found-label b { color:var(--stem); font-family:'Playfair Display',serif; font-size:1.05em; }
+    .found-list { flex:1 1 auto; min-width:0; display:flex; flex-wrap:wrap; align-content:flex-start; gap:5px 6px; }
+    .found-hint { color:var(--ink-muted); font-size:0.72rem; white-space:nowrap; }
+    .found-word { flex:0 0 auto; background:#f0f8f2; border:1.5px solid #c8e8d4; color:var(--stem); border-radius:8px; padding:3px 9px; font-size:0.74rem; font-weight:600; text-transform:uppercase; letter-spacing:0.03em; white-space:nowrap; animation:pop-in 0.3s cubic-bezier(.2,1.5,.4,1); }
     @keyframes pop-in { from{transform:scale(0.6);opacity:0} to{transform:scale(1);opacity:1} }
     .found-word.pangram { background:#fff8e6; border-color:var(--gold); color:#b07010; }
     .found-word.pangram::before { content:'★ '; }
-    footer { position:relative; z-index:1; padding-bottom:20px; font-size:0.72rem; color:var(--ink-muted); text-align:center; }
 
     /* ══ END SCREEN ══ */
-    #endScreen { min-height:100vh; justify-content:flex-start; padding:30px 16px 50px; }
+    #endScreen { justify-content:flex-start; padding:30px 16px 50px; overflow-y:auto; -webkit-overflow-scrolling:touch; }
     .end-card { background:var(--card); border:1.5px solid rgba(246,101,74,0.18); border-radius:24px; padding:36px 28px; max-width:480px; width:100%; box-shadow:0 0 50px rgba(246,101,74,0.07),0 20px 60px rgba(0,0,0,0.08); animation:cardIn 0.6s cubic-bezier(0.34,1.4,0.64,1) forwards; }
     @keyframes cardIn { from{opacity:0;transform:translateY(32px) scale(0.96)} to{opacity:1;transform:none} }
     .end-title { font-family:'Playfair Display',serif; font-size:2.4rem; font-weight:900; text-align:center; color:var(--center); margin-bottom:4px; }
@@ -156,16 +164,14 @@
     .btn-end-share     { background:linear-gradient(135deg,#128c7e,#25d366); color:white; }
     .btn-end-secondary { background:#fdf0e2; color:var(--ink-muted); border:1.5px solid #e8d8c8; }
 
-    @media(max-width:360px) {
-      .flower-wrap { width:240px; height:240px; }
-      .petal-btn { width:74px; height:74px; font-size:1.4rem; }
-      .petal-btn.center-btn { width:82px; height:82px; font-size:1.6rem; }
-    }
     .flower-svg {
-  width: 100%;
-  max-width: 320px;
-  height: auto;
-  margin: 10px 0;
+  height: 100%;
+  width: auto;
+  max-width: 100%;
+  max-height: 340px;
+  aspect-ratio: 1 / 1;
+  display: block;
+  overflow: visible;
 }
 
 .flower-letter {
@@ -175,25 +181,50 @@
   dominant-baseline: middle;
   cursor: pointer;
   user-select: none;
+  pointer-events: none;
 }
 
 .outer-petal {
-  fill: var(--petal);
-  transition: transform 0.15s ease, fill 0.15s ease;
+  fill: url(#petalGradient);
+  filter: drop-shadow(0 3px 6px rgba(74,54,40,0.16));
+  transition: transform 0.16s var(--ease), filter 0.16s var(--ease);
+  transform-box: fill-box;
+  transform-origin: center;
   cursor: pointer;
 }
 
 .outer-petal:hover {
-  fill: var(--petal-hover);
+  filter: drop-shadow(0 4px 10px rgba(224,78,53,0.22));
+  transform: scale(1.05);
+}
+
+.outer-petal.pressed {
+  transform: scale(0.93);
+  filter: drop-shadow(0 1px 3px rgba(74,54,40,0.14));
 }
 
 .center-petal {
-  fill: var(--center);
+  fill: url(#centerGradient);
+  filter: drop-shadow(0 5px 14px rgba(224,78,53,0.35));
+  transition: transform 0.16s var(--ease), filter 0.16s var(--ease);
+  transform-box: fill-box;
+  transform-origin: center;
   cursor: pointer;
 }
 
 .center-petal:hover {
-  fill: var(--center-hover);
+  filter: drop-shadow(0 6px 18px rgba(224,78,53,0.42));
+  transform: scale(1.05);
+}
+
+.center-petal.pressed {
+  transform: scale(0.93);
+}
+
+.petal-ripple {
+  fill: #fff;
+  pointer-events: none;
+  animation: petalRipple 0.5s var(--ease) forwards;
 }
   </style>
 </head>
@@ -206,51 +237,63 @@
 
 <!-- ══ GAME SCREEN ══ -->
 <div class="screen active" id="gameScreen">
-  <header>
-    <h1>Bloss<span>✿</span>m</h1>
-    <p class="tagline">May your words blossom! <br> Must use the central letter</p>
-  </header>
-  <div class="main-wrap">
-    <div class="top-row">
-      <div class="timer-card">
+  <div class="game-col">
+    <div class="top-bar">
+      <div class="top-actions">
+        <button class="icon-btn" id="btn-end-game" aria-label="End game">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3v18"/><path d="M5 4h11l-2 3.5L16 11H5"/></svg>
+        </button>
+        <button class="icon-btn" id="btn-new" aria-label="New puzzle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M5.6 5.6l2.8 2.8M15.6 15.6l2.8 2.8M18.4 5.6l-2.8 2.8M8.4 15.6l-2.8 2.8"/></svg>
+        </button>
+      </div>
+      <div class="brand"><h1>Bloss<span>✿</span>m</h1></div>
+      <div class="timer-pill">
         <div class="timer-arc-wrap">
-          <svg id="timerArc" width="56" height="56" viewBox="0 0 56 56">
+          <svg id="timerArc" width="36" height="36" viewBox="0 0 56 56">
             <circle cx="28" cy="28" r="22" fill="none" stroke="rgba(74,60,50,0.1)" stroke-width="4"/>
             <circle id="arcPath" cx="28" cy="28" r="22" fill="none" stroke="var(--stem)" stroke-width="4"
               stroke-dasharray="138.2" stroke-dashoffset="0" stroke-linecap="round"
               style="transition:stroke-dashoffset 1s linear,stroke 0.5s ease;"/>
           </svg>
-          <div class="timer-text" id="timerText">3:00</div>
         </div>
-        <div class="timer-label">Time Left</div>
-      </div>
-      <div class="score-bar">
-        <div class="score-item"><span class="label">Score</span><span class="value" id="score">0</span></div>
-        <div class="score-item"><span class="label">Words</span><span class="value" id="word-count">0</span></div>
-        <div class="score-item"><span class="label">Best</span><span class="value" id="best-score">0</span></div>
+        <div class="timer-text" id="timerText">3:00</div>
       </div>
     </div>
-    <div class="rank-bar">
-      <div class="rank-label"><span class="rank-name" id="rank-name">Seedling 🌱</span><span class="rank-pts" id="rank-pts">Next rank at 10 pts</span></div>
+
+    <div class="stat-strip">
+      <div class="stat-strip-top">
+        <span class="rank-name" id="rank-name">Seedling 🌱</span>
+        <span class="stat-nums"><b id="score">0</b> pts · <b id="word-count">0</b> words · best <b id="best-score">0</b></span>
+      </div>
       <div class="rank-track"><div class="rank-fill" id="rank-fill" style="width:0%"></div></div>
     </div>
+
     <div class="input-row">
-      <div class="word-display" id="word-display"><span id="typed-letters"></span><span class="cursor"></span></div>
-      <button class="btn-delete" id="btn-delete">⌫</button>
+      <div class="word-display" id="word-display">
+        <span id="typed-letters"></span><span class="cursor"></span>
+      </div>
     </div>
-    <svg id="flower" viewBox="0 0 300 300" class="flower-svg"></svg>
-    <button class="btn-enter" id="btn-enter">Enter Word</button>
-    <div class="controls">
-      <button class="btn-secondary" id="btn-shuffle">⇄ Shuffle</button>
-      <button class="btn-secondary" id="btn-new">✿ New Puzzle</button>
-      <button class="btn-end-game" id="btn-end-game">🏁 End Game</button>
+
+    <div class="flower-stage">
+      <svg id="flower" viewBox="0 0 300 300" class="flower-svg"></svg>
     </div>
-    <div class="found-section">
-      <div class="found-header"><h3>Found Words</h3><span class="found-count" id="found-count">0</span></div>
-      <div class="found-list" id="found-list"><span style="font-size:0.8rem;color:var(--ink-muted)">Words you find will appear here…</span></div>
+
+    <div class="action-row">
+      <button class="btn-shuffle" id="btn-shuffle" aria-label="Shuffle letters">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M4 20 21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>
+      </button>
+      <button class="btn-enter" id="btn-enter">Enter Word</button>
+      <button class="btn-icon-action" id="btn-delete" aria-label="Delete letter">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 4H8l-6 8 6 8h13a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1Z"/><path d="M13 9l4 6M17 9l-4 6"/></svg>
+      </button>
+    </div>
+
+    <div class="found-ticker">
+      <span class="found-label">Found <b id="found-count">0</b></span>
+      <div class="found-list" id="found-list"><span class="found-hint">Words you find will appear here…</span></div>
     </div>
   </div>
-  <footer>Words must be 4+ letters · Center letter required · Pangrams use all 7 letters ★</footer>
 </div>
 
 <!-- ══ END SCREEN ══ -->
@@ -319,114 +362,890 @@
 
 <script>
 
-const WORD_BANK = `able,aced,aces,acne,acre,acres,acts,aged,ages,aide,ails,aims,airs,ales,aloe,also,
-ante,anti,ants,apes,apse,arch,arcs,area,arid,arms,arns,arts,ashe,ates,atop,awed,
-awes,axed,axes,band,bane,bans,bare,barn,bars,base,bash,bast,bath,bats,bead,bean,
-bear,beat,beds,been,beer,bees,beet,bell,belt,bend,bent,berg,best,beta,bile,bill,
-bind,bine,bins,bird,bite,bits,bled,blew,boas,boast,boat,bond,bone,bong,bore,born,
-brag,bran,bras,bred,brew,brig,brine,bris,brits,brod,bros,brow,brut,cane,cape,
-caps,care,carp,cart,case,cast,cats,ceil,cell,cent,cert,chad,chap,char,chat,chin,
-chip,clan,clap,claw,clod,clop,cobs,code,cods,cogs,cola,cold,cols,cone,cons,cope,
-cord,core,corn,cost,cote,cots,crag,cram,crap,crop,crow,crus,cure,curl,curs,dace,
-dale,dame,damp,dare,dark,darn,dart,date,deco,deed,deem,deep,deer,deli,dens,dent,
-deter,dice,dies,digs,dine,ding,dips,dire,dirt,disc,dish,disk,dive,dole,dome,done,
-dose,dote,drab,drag,draw,dray,drip,drop,duel,dune,dupe,dusk,dust,each,earl,earn,
-ears,ease,east,eats,edge,eels,egad,else,emit,ends,epic,eros,even,ever,evil,exam,
-face,fact,fade,fail,fain,fair,fake,fame,fang,fans,fare,farm,fart,fast,fate,fawn,
-feat,fend,fern,feta,find,fine,fir,fire,firm,fist,flag,flan,flap,flat,flaw,flay,
-fled,flog,flog,flop,flow,foam,foci,fold,fond,fore,fork,form,fort,frag,fray,free,
-fret,from,fuel,gale,gall,game,gang,gape,garb,gear,geld,gels,gems,gent,germ,gift,
-gild,gill,gilt,gist,glee,glen,glib,glob,glod,glom,glop,glow,glut,gnaw,goad,goat,
-gold,gone,gore,gown,grab,grad,gram,gras,grate,gray,grew,grey,grim,grin,grip,grit,
-grow,grub,hail,hair,hale,hall,halt,hand,hang,hard,hare,hark,harm,harp,hart,hate,
-haul,heal,heap,hear,heat,helm,help,hens,herd,here,hern,hero,hide,high,hike,hill,
-hind,hint,hire,hits,hold,hole,holm,home,hone,hong,hood,hook,hoop,horn,hot,hose,
-host,howl,hurl,idle,inch,into,ions,isle,item,jail,jars,jest,jigs,join,jot,
-jots,jute,kale,keel,keen,kegs,kelp,kept,kern,keys,kind,king,kink,knob,knot,
-lace,lack,laid,lake,lame,lamp,land,lane,lard,lark,lash,last,late,lawn,lead,lean,
-leap,left,lend,lens,lent,lest,lids,lies,lift,like,limb,lime,limp,line,link,lion,
-list,live,load,loam,loan,loch,lode,loft,long,lore,lorn,lour,lout,love,lung,lure,
-lurk,made,mage,mail,main,make,male,mall,malt,mane,mare,mast,mate,mean,meat,meld,
-melt,mere,mesh,mild,mile,mine,mink,mint,mire,mist,moan,moat,mode,mole,molt,mope,
-more,morn,most,moth,move,much,mule,nail,name,nape,nard,nark,neat,need,nerd,nett,
-news,nice,nigh,noel,none,nope,norm,nose,note,nous,nude,nuns,oars,oboe,omen,once,
-ones,only,open,oral,orbs,orca,ores,orts,oval,over,owed,owes,owns,pace,pack,pact,
-pads,page,paid,pain,pair,pale,pane,pang,pans,park,part,pash,past,pate,path,pave,
-peak,peal,pear,peat,peel,peer,pelt,pens,peon,perm,pest,pile,pine,ping,pint,pips,
-pirn,pits,plod,plot,plow,ploy,plug,plum,plus,pore,porn,port,pose,post,pour,prey,
-prig,prod,prong,prop,pros,prow,prude,pull,punt,pure,push,puts,race,rack,rage,
-raid,rail,rain,rake,ramp,rang,rant,rape,rapt,rare,rash,rasp,rate,rave,read,real,
-reap,rein,rent,rest,rice,rich,ride,rift,ring,rink,rise,risk,road,roam,roar,rode,
-role,romp,rope,rose,rota,rote,rots,rout,rune,rung,runs,ruse,rust,sage,said,sail,
-sane,sang,sank,sate,save,scan,scar,seal,seam,seat,sect,seed,seek,seer,self,send,
-sent,shed,shim,shin,ship,shoe,shod,shop,shot,show,sigh,silk,silt,sing,sink,site,
-size,skin,skip,slab,slag,slap,slat,slaw,sled,slid,slim,slip,slot,slow,slug,slum,
-snap,snog,snot,snow,snog,soar,soda,sole,some,song,soon,sore,sort,soul,soup,span,
-spar,sped,spin,spit,spot,spud,spur,stab,stag,star,stem,step,stew,stir,stop,stow,
-strap,stud,such,sued,suit,sulk,sung,sunk,sure,tail,tale,tall,tame,tamp,tang,tape,
-tare,tarn,tart,task,teal,team,tear,tech,tend,tens,term,tern,test,than,that,thin,
-tins,tire,toad,toil,told,toll,tome,tone,tong,tore,torn,tors,tote,tour,tram,trap,
-tray,tree,trim,trio,trod,trod,trek,trode,trot,true,tub,tune,turf,twin,tyke,
-undo,urge,vane,vase,veer,veil,vein,verb,very,vest,veto,vice,view,vine,void,vote,
-wade,wager,wail,wait,wake,wale,wand,wane,ward,ware,warp,wart,weal,wear,weld,well,
-wend,went,were,when,whip,wide,wile,will,wilt,wine,wing,wink,wipe,wire,wise,wish,
-wisp,woad,woes,woke,wold,wont,wood,wool,word,wore,work,worn,wove,wrap,wren,
-yore,your,acned,acorn,acres,acted,adorn,agent,agree,aider,alien,align,alone,
-along,alter,angel,anger,angle,antic,aptly,arced,areal,arest,argon,arose,arson,
-astern,atone,crane,dated,dealt,dance,dares,darts,dates,deals,earns,earns,edits,
-eight,elect,elide,elite,ember,ended,enter,entry,erode,error,escap,ester,etude,
-exact,exist,exert,facet,faded,faint,faith,false,farce,fared,fatal,fated,feign,
-feast,felon,fence,feral,finer,first,fixed,flare,flint,float,floor,flora,floss,
-fluid,focal,force,forge,forte,found,franc,frank,freak,freed,fresh,front,frost,
-froth,frown,froze,frugal,fruit,gales,garnet,gales,gents,ghost,giant,gland,glare,
-glean,glide,globe,gloss,glove,grace,grade,graft,grain,grand,grant,grasp,gruel,
-greet,grind,groan,groom,grope,gross,grout,grove,gruel,grunt,guard,guile,guise,
-handy,harsh,haste,haven,heron,hinge,horse,hoist,hotel,human,ideal,inner,inset,
-inter,intro,irate,irked,joint,joust,lance,later,large,laser,latch,later,lathe,
-lapse,learn,ledge,lemon,lends,lends,liner,lingo,liver,local,lodge,logic,loner,
-loose,loran,lowly,lunar,mango,maple,march,major,melon,metal,micro,mirth,molar,
-manor,moron,motor,mourn,naive,natal,nerve,nerdy,night,noble,north,notch,noted,
-novel,nether,oaken,ocean,often,onset,optic,orbit,order,other,outdo,outer,ovoid,
-ozone,panel,pangs,parch,parse,party,patch,pause,peace,penal,perch,pilot,pinch,
-pitch,place,plaid,plain,plane,plant,plate,plaza,pleat,plier,point,posed,poise,
-poker,polar,porch,power,price,pride,priest,prime,print,prior,prize,probe,proof,
-prose,prose,proud,prove,purer,queen,quest,radio,ranch,range,raven,reach,realm,
-reign,relay,renal,repay,rider,river,rivet,robot,rocky,rouge,rough,rouge,round,
-route,royal,ruler,safes,saint,salon,salve,saner,satin,scale,scald,scant,scone,
-score,scout,scram,screw,seize,sense,serum,seven,shade,shaft,shale,shape,share,
-sharp,shear,sheds,shelf,shell,shift,shire,shore,short,shout,shove,shrine,sight,
-silky,since,sinew,sixth,sixty,skill,slack,slain,slant,slate,slave,sleek,sleep,
-sleet,slept,slew,snare,sneak,snide,snore,solar,solid,solve,sonic,sorry,south,
-space,spare,spark,spawn,speak,spear,speed,spend,spire,spite,splat,spoke,spool,
-sport,spout,sprig,sprig,squad,stain,stale,stall,stand,stare,stark,start,state,
-stead,steak,steal,steel,steep,steer,stern,stick,stiff,sting,stink,stone,stood,
-store,stork,storm,story,stove,straw,stray,strep,strip,strode,stroll,strong,stripe,
-strum,strung,stuck,stunt,surge,swear,sweat,sweet,swept,swore,sworn,swung,table,
-talon,tango,tangy,tarot,tartan,taste,thorn,those,three,threw,throw,tiger,tinge,
-title,tonic,torch,total,totem,touch,tower,toxic,trace,track,trade,trail,train,
-trait,tread,treat,trend,trial,tribe,trick,tried,troop,trope,truck,trundle,trust,
-truth,tuner,tutor,twirl,twist,ultra,under,undue,unfit,unlit,until,unzip,upper,
-upright,risen,ripen,resin,reins,repaid,rents,reign,reads,reach,raids,padre,snore,
-ingrained,tangled,granted,ranted,garnet,antler,tangle,garnet,rental,tangle,alerts,
-alters,angels,angles,angers,giants,grants,ranges,grates,danger,garden,latern,
-strangled,entrapped,grandest,entangle,internal,tanglers,integral,triangles,
-regal,legal,eagle,algae,algebra,stale,tales,tread,trade,reads,lanes,lanes,leans,
-leads,renal,solar,snore,stone,tones,notes,hones,drones,bones,cones,zones,zones,
-prods,words,lords,cords,swords,fords,wards,hordes,stored,thorn,short,sport,ports,
-certs,certs,terns,ferns,sterns,stern,stern,stead,steal,steals,deals,heals,reals,
-seals,tears,gears,bears,pears,fears,years,wears,nears,sears,hears,rears,shears,
-clears,smears,spears,beard,board,bored,cored,gored,lured,cured,lured,oared,soared,
-roared,poured,toured,soured,coured,toured,poured,stored,adored,scored,gored,bored,
-snared,stared,flared,shared,spared,glared,dared,cared,bared,fared,pared,bared,
-gland,blend,blends,spends,bends,tends,fends,lends,rends,wends,vends,fends,trend,
-trends,sends,fends,tends,rends,ends,pends,bends,lends,mends,amend,amends,blend,
-blends,spend,spends,trend,trends,rend,rends,bend,bends,tend,tends,fend,fends,
-lend,lends,mend,mends,send,sends,wend,wends,vend,vends`;
+const WORD_BANK = `aalii,abaca,abacas,abaci,aback,abandoned,abandons,abas,abase,abased,abases,abash,abashed,abashes,
+abate,abatement,abates,abatis,abba,abbacy,abbatial,abbess,abbesses,abbr,abdomen,abeam,abed,abele,
+abeles,abet,abetment,abets,abies,abigail,abjurers,abjures,ablate,ablaut,able,abloom,ably,aboard,
+abode,abomasa,aboral,abounds,abri,abroad,abscess,abscesses,abscind,abscissa,abscissas,abseil,
+abseils,abulia,abulic,abuse,abused,abuser,abusers,abuses,abut,abuts,abuttal,abyss,abyssal,acacia,
+acacias,academe,acanthi,acari,acariases,acariasis,acarid,acaroid,acatalectic,accede,acceded,accel,
+access,accessaries,accessary,accesses,accord,accost,accosts,accroach,accrue,acct,accumulate,accuse,
+accuses,aced,aces,acetal,acetate,acetates,acetic,acetify,acetous,ache,ached,achenes,aches,achoo,
+achy,acicula,acid,acidic,acidosis,acids,acing,acini,acme,acne,acpt,acre,acred,acres,acrid,actable,
+acted,actin,actinia,actinic,actinon,action,activity,acts,actual,actuate,actuates,acuate,acuity,
+aculeate,acute,acutes,acutest,acyclic,acyl,adamancy,adamant,adapts,added,addend,addenda,adder,
+addition,addle,addled,addlepated,addles,adds,adenine,adenoid,adenoma,adieu,adit,adman,admass,admen,
+admin,admins,admission,admissions,adnate,adobe,adonis,adore,adored,adorer,adorn,adorns,adularia,
+adulate,adulated,adust,advisor,advisors,adware,adynamia,adze,aecia,aedes,aedile,aeon,aeons,aerial,
+aerie,aeries,aero,aeron,aery,afar,affair,affaire,affairs,affect,affects,affiant,affinal,affine,
+affirmer,afford,affray,affront,afire,afoot,afore,afoul,afrit,again,agama,agamas,agape,agar,agaric,
+agate,agee,ageing,ageneses,ages,aggro,agha,aghast,aging,agings,agism,agisms,agist,agita,agitate,
+agitating,agma,agnail,agog,agon,agonic,agora,agoras,agrarian,agric,ahchoo,ahead,ahem,aide,aided,
+aids,aikidos,ailed,ailing,ails,aims,aiolis,airbag,airbus,airdrop,airfare,airframe,airier,airily,
+airing,airlift,airlike,airline,airliner,airman,airmen,airs,airt,airy,aisle,aisles,aitch,akee,akees,
+akene,akin,alack,alae,alanine,alanines,alar,alarm,alarms,alary,alas,alate,alba,albata,albeit,albite,
+albs,alcaic,alcohol,alcohols,alder,aldol,aldrin,alee,ales,alfalfa,alfilaria,alga,algal,algin,
+algolagnia,algor,alias,aliases,alibi,alibiing,alibis,alible,alicyclic,alidade,alien,alienage,
+alienee,aliening,alienness,aliens,alights,align,aligning,alike,aline,alines,alining,alit,alive,
+aliya,aliyah,aliyahs,alkalies,alkaline,alkalis,alkane,alkanes,alkene,alkenes,allay,allays,alleging,
+allele,alleles,allelic,alley,alleyway,allheal,allied,allies,allness,allodial,alloplasm,allot,
+allotment,allots,allotted,allottee,allover,alloy,alloys,allseed,allude,alluded,allure,allured,ally,
+allyl,allyls,almemar,alms,almuce,aloe,aloes,aloha,alohas,aloin,alone,along,aloof,aloud,alpaca,alps,
+also,altar,alto,altos,alts,aludel,alula,alulas,alum,alveolar,alveoli,amah,amahs,amain,amalgam,
+amalgams,amanita,amarelle,amass,amasses,ambient,ambit,ambits,ambo,ambos,ameba,amebae,amebas,ameer,
+amen,amend,amended,ament,amentia,amerce,amice,amid,amie,amimia,amine,amino,amir,amiss,ammine,ammo,
+ammonate,ammonia,ammonium,ammunition,amnia,amnio,amnion,amnions,amoeba,amoebae,amoebaean,amoebas,
+amoral,amoroso,amount,ampere,ample,ampler,amply,amps,amulet,amyl,anabaena,anabas,anabasis,anabatic,
+anaclinal,anadem,anaemia,anaemic,anal,analemma,anally,analog,analogical,anamneses,anas,anat,anatto,
+ancilla,ancon,ancona,andante,andantino,anear,anelace,anele,aneles,aneling,anemia,anemic,anemone,
+anemones,anent,anew,angel,angina,anginal,angle,angling,anhingas,aniconic,anil,anile,aniler,anilin,
+aniline,anim,anima,animas,animate,animation,animato,anime,animism,anion,anionic,anions,anis,anise,
+ankle,ankles,ankus,anlace,anlage,anna,annal,annals,annas,annatto,anneal,annealer,annealing,anneals,
+annotate,annotation,annotator,annoy,annual,annually,annuitant,annul,annular,annuli,anoa,anoas,
+anodal,anode,anodize,anodized,anoint,anole,anon,anons,anosmia,anosmias,anoxia,anta,ante,anted,
+antedate,antedated,anteed,antefix,antenatal,antenna,antennae,anti,antiaging,antibiotic,antic,anting,
+antinomian,antioxidant,antitoxin,antiunion,antrum,ants,antsy,anuran,anuria,anus,aorta,aortas,aoudad,
+aoudads,apace,apery,apes,aphasia,aphis,aphonic,apiary,apical,apiece,apish,aplasia,aplasias,apnea,
+apneas,apocarp,apodal,apogee,apollo,apoptotic,aporia,appal,appall,appalled,appalls,appaloosa,
+appaloosas,appals,apparatus,apparel,appeal,appealed,appealer,appear,appease,appeases,appel,
+appellate,appellee,applaud,apple,applet,applier,apply,appose,apposes,apps,apse,apses,apsis,aqua,
+aquaria,arak,araks,araroba,arbor,arbs,arbutus,arcade,arcaded,arcana,arcane,arced,arch,archers,
+arches,archt,arcing,arcked,arcs,ardor,ardors,area,areal,areas,areca,arecas,arena,arenas,areola,
+areolar,areole,ares,argal,argali,argals,argil,argol,argot,argots,aria,arias,arid,ariel,aril,arioso,
+ariosos,arise,arises,arks,armada,armadas,armor,armorer,armors,arms,army,arnica,aroid,aroids,aroma,
+aromas,arrack,arraign,arraigning,arranging,arrant,arras,arrases,array,arrays,arrear,arrears,arris,
+arrival,arroba,arrow,arrowroot,arrowwood,arsenal,arsenals,arsis,arson,artily,arts,artsy,arty,arum,
+aryl,asap,ascariases,ascariasis,ascesis,asci,ascidian,ascidians,ascot,ascots,ascus,asdic,asdics,
+asepses,ashcan,ashcans,ashed,ashen,ashes,ashing,ashlar,ashlars,ashtray,ashtrays,ashy,asinine,asker,
+askers,askew,asks,aspen,aspens,aspic,aspics,asps,assagai,assagais,assai,assail,assailable,assails,
+assassin,assassins,assault,assaults,assay,assayer,assayers,assays,asses,assess,assessable,assessed,
+assesses,asset,assets,asshole,assholes,assign,assigning,assigns,assist,assists,assize,assizes,assn,
+assoc,assoil,assoils,assonant,assonants,assort,assorts,asst,assure,assurer,assures,astigmatism,
+astigmatisms,astigmia,astigmias,astr,astray,astute,astutest,ataman,ataxia,athlete,atilt,atlas,
+atlatl,atman,atoll,atolls,atom,atoms,atone,atonement,atonic,atop,atria,atrial,attach,attached,
+attack,attacks,attain,attaining,attainment,attaint,attainting,attar,attend,attendant,attended,
+attendee,attenuant,attenuate,attenuated,attest,attests,attic,attn,attorn,attract,attracts,attrit,
+attune,attuned,atty,audial,audile,augite,august,auks,aulic,aulos,aunt,aunts,aunty,aura,aurae,aural,
+aurar,auras,aureola,aureole,aureus,aurora,aurorae,auroral,aurum,auto,autocue,automation,automaton,
+autos,autumn,avail,aver,averral,avoids,avos,awake,awaked,awakes,award,awarded,awardee,awards,aware,
+away,awed,awes,awing,awkward,awkwarder,awning,awnings,awns,awry,axing,ayah,ayahs,ayes,ayin,azide,
+azine,baaed,baaing,baas,baba,babas,babassu,babassus,babbitt,babbitts,babble,babbles,babbling,babe,
+babel,babels,babes,babies,babirusa,babirusas,baboon,baboons,babul,baby,babysat,baccate,baccy,
+bacilli,back,backbeat,backs,backseat,backseats,backset,bacon,bact,baddy,bade,badmen,baggage,bagging,
+bags,bail,bailable,bailee,bailees,bailie,bailing,bailor,bails,bainite,bairn,bait,baits,bake,baker,
+bakers,bakes,balalaikas,balas,balases,balata,balboa,balboas,balbriggan,balcony,bald,bale,bales,
+baling,balks,ball,ballad,ballata,ballboy,ballet,balletic,ballgirl,balling,ballon,balloon,balls,
+ballses,ballsy,bally,balm,balms,balsa,balsam,balsams,balsas,bamboo,bamboos,banal,banally,banana,
+bananas,banc,band,bandaid,bandana,bandanas,bandanna,bandannas,banded,bands,bandstand,bandstands,
+bandy,bane,banes,banging,bani,banian,banians,bank,banker,bankers,banks,banned,banner,banners,
+banning,banns,bans,bant,bantam,banyan,banyans,baobab,baobabs,baps,barb,barbarian,barber,barbers,
+barbing,barbs,bard,bare,bareness,barer,bares,baresark,bargain,bargaining,barging,barilla,baring,
+bark,barker,barkers,barks,barn,barns,barraging,barre,barren,barrener,barrenness,barrens,barres,
+barring,barrio,bars,basal,basally,base,baseball,baseballs,based,baseless,baseman,basemen,baseness,
+baser,bases,basest,bash,bashed,bashes,basic,basics,basidia,basil,basilisk,basilisks,basin,basins,
+basis,bask,basket,baskets,basks,bass,basses,basset,bassets,bassi,bassist,bassists,basso,bassoon,
+bassoons,bassos,bast,baste,bastes,bate,bates,batman,batmen,baton,bats,batt,battement,batten,battle,
+batty,bauble,bauds,bays,bead,beaded,beads,beak,beaker,beakers,beaks,beam,beamed,beams,bean,beaned,
+beanie,beano,beanos,beans,bear,bearer,bearers,bears,beast,beasts,beat,beatable,beaten,beats,beaus,
+bebeeru,bebop,beck,becks,bedaubs,bedded,bedder,bedeck,bedecked,bedel,bedheads,beds,been,beep,beer,
+beerier,beers,beery,bees,beet,beetle,beetles,beetroot,beets,begat,beget,begot,beheads,beheld,behold,
+beholds,belay,belie,belies,belittle,belittler,bell,bellboy,belle,belled,belles,bellies,bells,belly,
+bels,belt,belts,bema,bemas,bemean,bemire,bemires,bemoan,bemoaned,bemoans,bemuse,bemuses,bename,bend,
+bended,benne,bennes,bens,beret,beriberi,berk,berley,berm,berms,berried,berries,berry,berseem,beryl,
+beseem,beseems,beset,besets,besom,besoms,best,bested,bests,beta,betaine,betake,betakes,betas,betel,
+bets,betta,betted,better,bettered,bettor,bharal,bialies,bias,biases,biasses,bibb,bibber,bibl,bible,
+bibles,biblical,bibliog,bibs,bidder,biennia,bier,biers,bigamist,bigamists,biggin,biggins,bigot,
+bikes,bilabial,bilabials,bilabiate,bilberry,bilbo,bile,bilks,bill,billable,billboard,billet,
+billiard,billies,billing,billion,billon,bills,biltong,bimbo,bimboes,bimbos,binal,binate,binging,
+bingo,binman,binning,bins,biog,biol,bionic,biopic,bios,biotin,biradial,bird,birded,birder,birdie,
+birdied,bireme,birl,birling,birr,birred,birring,birrs,birthroot,bises,bisk,bismuth,bison,bisons,
+bitcoin,bite,biter,biting,bits,bitt,bitter,bitterer,bitterly,bitterroot,bittier,bitting,bitts,blab,
+blabbing,blabs,blag,blagging,blags,blah,blahs,blain,blammo,blaring,blat,blate,bleat,bleb,blebs,bled,
+bleed,bleeds,bless,blessed,blesses,blest,bling,blini,bliss,blobbed,blobbing,blocked,blogging,bloke,
+blooded,bloodless,bloodshed,bloomer,bloomery,blotting,blub,blubs,blue,bluebell,bluebells,bluejay,
+blues,bluest,bluets,bluey,boar,board,boas,bobbed,bobbery,bobbies,bobbin,bobbing,bobbins,bobble,
+bobbled,bobbles,bobbling,bobby,bobs,bobsled,bobsledded,bobsleds,bocce,bocci,bock,bode,boded,bodes,
+bods,boga,bogey,bogging,boggling,boggy,bogon,bogy,boil,boiling,bola,bolas,bole,bolero,boles,bollard,
+bolting,bomb,bombe,bombed,bomber,bombs,bonbon,bonbons,bonded,bondmen,bonds,bone,boned,bones,bong,
+bonging,bongo,bongos,bongs,boning,bonito,bonne,bonnie,bonobo,bonobos,bonus,boob,boobed,boobies,
+boobing,booboo,booboos,boobs,booby,boodle,boodles,booed,boohoo,boohooed,boohoos,booing,book,booked,
+boom,boomed,boomer,booms,boon,boong,boons,boor,boors,boos,boot,booted,bootee,booth,booting,boozes,
+bora,border,bordered,borderer,bordure,bore,bored,borer,borg,boric,boride,boring,born,boron,borough,
+borrow,borrower,bort,bosh,bosom,bosoms,boson,bosons,boss,bossed,bosses,bossing,bossism,bosun,bosuns,
+botanic,both,bott,bottling,bottom,bough,bought,bounds,bout,bower,boyla,bozos,brabbling,brad,brae,
+braes,bragging,braid,brail,brailing,brain,braining,brake,brakes,bran,branks,bras,brash,brashly,
+brashy,brass,brasses,brassy,brats,bray,brays,break,breaker,breakers,breaks,bred,brede,bree,breech,
+breed,breeder,brei,brew,brewer,briar,briars,bribe,bribed,briber,bribers,bribery,bribes,bribing,
+bridal,bride,brie,brier,brierroot,briers,briery,brig,brill,brimmer,bring,bringing,brings,brio,bris,
+brit,brittle,brittlely,brittler,broad,broadbill,broch,brock,broider,broidered,brooch,brood,brooded,
+brooder,broodier,brook,broom,brooms,bros,broth,brought,brow,bruise,bruiser,bruisers,bruises,brume,
+brush,brute,bruter,bubal,bubba,bubble,bubbles,bubbly,bubo,bubs,buccal,buckets,buckish,bucko,bucks,
+budded,budder,buds,bugging,buhr,bulb,bulbs,bulbul,bulbuls,bull,bulla,bullbat,bullets,bulls,bully,
+bummer,bummers,bumming,bumping,bums,bunging,buns,burbot,burbs,burdock,bureau,bureaus,buret,burette,
+burgoo,burier,buries,burka,burke,burps,burr,burred,burrier,burro,burros,burrs,burs,bursa,bursae,
+bursar,bursars,bursas,burse,burst,bursts,busbies,bused,buses,bush,bushbuck,bushbucks,bushed,bushes,
+bushtit,bushtits,busier,busies,busk,busks,buss,bussed,busses,bust,busted,bustee,bustle,bustled,
+bustles,busts,buteo,buts,butte,butted,butter,butterbur,buttered,buttes,butts,bututs,byre,byte,cabal,
+cabala,cabana,cabanas,cabasset,cabbala,cabby,cabin,cabins,cable,cablet,cabob,cabs,cacao,cacaos,
+cache,cached,caches,cachet,cachous,cackle,cackler,cacti,cactus,cactuses,caddis,caddy,cade,cadet,
+cadi,cadmic,cadre,cads,caeca,caff,caffs,cages,caging,caiman,cain,caird,cairn,caitiff,cake,caked,
+cakes,calash,calashes,calcar,calces,calcic,calcific,calcify,calcining,calcite,calcitic,calculate,
+calculi,calf,calicle,calif,calipee,caliper,calk,calker,call,calla,callable,callas,callboy,caller,
+calling,calliper,calls,calm,calmly,calms,calpac,calumet,calve,calycle,camass,came,camel,camera,
+cameraman,cameramen,camlet,cams,canal,canasta,canc,cancan,cancans,cancel,canceler,canceller,cancer,
+candid,candida,candidacy,candy,cane,canella,caner,canes,canine,caning,canker,canna,cannabin,
+cannabins,cannabis,cannas,canner,cannier,cannily,canning,cannoli,cannon,cannonball,cannoning,cannot,
+canny,canola,canon,canonic,canonical,cans,canst,cant,cantata,cantatas,canthi,cantina,canto,canton,
+cants,cantus,canyon,capacity,cape,caper,capercaillie,capias,capita,capo,capon,capper,capriccio,
+caprice,caps,capt,caracal,caracara,caracaras,carafe,carapace,carat,carats,carcass,carcasses,card,
+carded,carder,cardiac,cardio,cardioid,care,cared,careen,careener,career,careered,careers,carefree,
+carer,carers,cares,caress,caresser,caresses,carfare,caries,carina,caring,carioca,cark,carked,carl,
+carmaker,carman,carmine,carnal,carnie,carom,carp,carpal,carpel,carper,carpi,carps,carrack,carrel,
+carrell,carrier,carriers,carries,carry,cars,carse,cart,carts,casa,casaba,casabas,cascara,cascaras,
+case,casease,caseate,caseates,cases,casette,cash,cashes,cashless,cask,casket,caskets,casks,cassaba,
+cassette,cassettes,cassia,cassias,cassis,cast,caste,castes,casts,catalectic,cataract,cataracts,
+catarrh,catatonia,catatonic,catcall,catch,catchy,cate,cathead,cation,cationic,cats,cattail,catted,
+cattle,catty,caucus,caucuses,caul,caus,cause,causes,causeuse,cavalla,cave,cavity,cavy,cawed,caws,
+cayenne,cayman,cays,cease,ceaseless,ceases,ceca,cecal,cecally,cecities,cecity,cecum,cedar,cede,
+ceded,ceder,cedi,ceil,celeb,celeriac,celiac,celibate,cell,cella,cellar,cellarer,cellblock,celled,
+celli,cellmate,cello,cellos,cells,cellule,cellulite,celom,celoms,celt,celtuce,cement,cementer,
+cementum,cenacle,cense,censes,cent,center,centner,cento,centrum,cents,centum,century,ceramic,
+cercaria,cercarias,cere,cereal,cered,cerement,ceres,ceria,ceric,cerise,cermet,cero,cert,cerumen,
+cervine,cesar,cess,cesspool,cesspools,cesta,cestus,cetaceous,chacma,chacmas,chaeta,chaetae,chain,
+challah,challahs,cham,chamade,chammy,chances,changes,chant,chaos,chap,char,charm,charr,chars,chart,
+charts,chary,chase,chaser,chasers,chases,chasm,chasms,chat,chats,chatted,chatty,cheat,cheated,
+cheddite,cheep,cheeped,cheer,cheerer,cheerers,cheerier,cheers,cheese,cheeses,cheesy,cheetah,chef,
+chefs,chela,chelas,chelicere,chem,chess,chetah,chewer,chiao,chic,chicer,chichi,chichis,chicks,
+chicle,chico,chide,chided,chief,chiefer,chiefs,chignon,chigoes,chile,chiles,chilies,chiller,
+chillier,chillies,chin,china,chincapin,chinch,ching,chinning,chino,chip,chipped,chippie,chis,chisel,
+chisels,chitchat,chlamys,choc,chocs,choices,choir,cholla,chollas,chon,choose,chooses,chop,chore,
+choric,chose,choughs,chowing,chroma,chubs,chucks,chugs,churchmen,churner,ciabatta,ciao,ciaos,cicada,
+cicadas,cicala,cider,cigar,cilia,ciliate,cilice,cinch,cinching,cinchona,cinder,cindered,cindery,
+cine,cinema,cineraria,cion,cioppino,circa,circle,circler,cirri,cisco,ciscoes,ciscos,cissoid,cist,
+citable,citation,cite,cited,cites,cities,citify,citric,city,clack,clacker,clam,clammy,clams,clan,
+clang,clanging,clank,clap,clapper,clarence,clash,clashes,class,classes,classless,classy,clave,clay,
+clayey,clays,clean,cleaner,cleanly,clear,clearance,clearer,cleat,cleave,cleek,clef,clefs,clem,
+cleome,cleomes,clepe,cleric,clerical,clicked,client,cliffier,clii,cline,cling,clinging,clinic,
+clinical,clinically,clinician,clipped,clit,cloaca,cloacae,cloacas,cloak,cloche,cloches,clock,
+clocked,clocks,clod,clogging,cloison,clomp,clomps,clonal,cloning,clonus,clop,clops,clos,close,
+closes,cloy,clucks,clue,coach,coact,coaction,coacts,coal,coalesce,coalesces,coaling,coals,coaly,
+coast,coasts,coat,coatee,coatees,coati,coats,cobber,cobble,cobbled,coble,coca,cocci,coccidiosis,
+coccis,coccus,cochlea,cochleae,cochleas,cock,cocked,cocker,cockeye,cockle,cocks,cockups,cocky,coco,
+cocoa,cocoas,cocoon,cocooning,cocoons,cocos,cocotte,cocottes,coda,codas,codded,coddle,coddled,code,
+coded,cods,coed,coerce,coercer,cognac,cogon,cogs,cohere,coho,cohos,cohosh,cohoshes,coign,coil,
+coiling,coils,coin,coining,coins,coir,coirs,coition,coke,coked,cokes,cola,colas,colcannon,cold,
+coldblooded,cole,coles,coli,colic,coll,collins,collision,collisions,collop,collusion,colly,colon,
+colonial,colonic,colonics,colons,color,colossal,colossi,colossus,cols,coly,coma,comaker,come,comer,
+comes,comet,comm,comma,commerce,commute,comose,comp,compel,compels,compete,compo,compos,compose,
+composes,compote,comps,compute,conation,conc,concent,concenter,concern,concert,concerto,conch,
+concha,concinnous,concision,conclusion,conclusions,concoct,concocter,concoction,concrete,
+concurrence,concurrent,concuss,concussion,concussions,cone,cong,conga,congaing,congii,conic,conical,
+conics,coning,conn,connect,connecter,connector,conning,connotation,connote,conns,cons,conscious,
+consol,consols,consul,consuls,cont,contact,contain,conte,content,conto,conure,cooed,cooee,cooing,
+cook,cookbook,cooked,cooker,cooks,cooky,cool,cooled,cooling,coolly,cools,coom,coon,cooncan,coons,
+coop,coops,coos,coot,coots,copal,cope,copes,copra,cops,copse,copses,copy,copycat,copyist,copyists,
+coracoid,cord,core,coremaker,corer,coria,cork,corker,corm,corner,cornet,cornett,cornute,coroner,
+coronet,corp,corpora,corps,corr,correct,correcter,corrector,corrida,corridor,corroboree,cosec,coset,
+cosh,coshes,cosies,cosmos,cosmoses,coss,cosses,cosset,cossets,cost,costa,costate,coste,costs,cosy,
+cote,cotes,cots,cotta,cotter,cotton,coughs,coulis,council,councils,counter,countercurrent,
+countertenor,coup,coupe,coups,courter,couscous,cousin,cousins,couteau,couture,cower,cowherb,cowing,
+coyly,craal,crack,cracked,cracker,crackle,cracknel,crake,cram,crammer,crane,crania,craning,crank,
+crankle,crap,crape,crapper,crappie,crappier,crappy,craps,crapy,crash,crasher,crashers,crashes,
+crasis,crass,crasser,cratch,craw,cray,crays,crazes,crazies,crazing,creak,creaked,cream,creamer,
+creamier,crease,creases,cred,credence,credit,credited,creed,creek,creel,creep,creeper,creese,creme,
+crepe,crept,cress,cretic,cretonne,crevice,crew,crewed,crewman,crick,cricoid,cried,crier,criers,
+cries,crikey,crine,cringing,criollo,crises,crisis,crisscross,crit,critic,critter,croak,croaker,
+croci,crock,crone,crook,crooner,crop,crops,crore,cross,crow,cruck,cruet,crumpet,cruncher,crupper,
+cryer,csch,cubebs,cubes,cubical,cubital,cubs,cuckoo,cuckoos,cucullate,cues,cuesta,cuffs,cukes,culet,
+cull,cullet,culls,culm,cult,cumulate,cunts,cups,curare,cure,curer,curet,curette,curie,currency,
+current,currier,curriery,curry,curter,curve,curvier,cusec,cusk,cusks,cusp,cusps,cuss,cusses,custos,
+cute,cuter,cutest,cutey,cuticle,cuticula,cutie,cutlet,cutout,cutouts,cuts,cutter,cuttle,cutty,cyan,
+cyanic,cycad,cyclical,cyclically,cyma,cymas,cymes,cynical,cynically,cynics,cyst,cysteine,cysteines,
+cystic,cystine,cystines,cystitis,cysts,czar,czarina,czars,dabbed,dabs,dace,dada,dadaism,dadas,daddy,
+dado,dados,dads,daemon,daff,daffy,dahl,dahlia,dahlias,dahls,dahs,daikons,daily,daimons,dais,daisy,
+daks,dalasi,dalasis,dale,dales,dallied,dally,daman,damar,damars,dame,dammar,dammars,dammed,damn,
+damned,damnify,damns,dams,damson,damsons,dandify,dandy,danio,dapple,dappled,dare,dared,darer,daric,
+dark,darker,darky,darn,darns,dart,dash,dashed,dashes,data,date,dated,dato,datura,daubs,daunted,
+daunts,daws,days,daze,dazed,dded,dding,dead,deaden,deadened,deader,deadfall,deadhead,deadheaded,
+deadheads,deaf,deal,dealate,dealer,deals,dealt,dean,dear,dearer,death,debase,debased,debases,debs,
+debt,debtor,debts,debus,debut,debuted,debuts,decade,decare,decd,deceit,deceiver,decency,decern,
+decide,decided,decider,decile,deck,decked,deckle,decl,deco,decode,decoded,decree,decreed,decretive,
+decried,decrier,decry,dedal,deed,deeded,deeding,deeds,deem,deemed,deems,deep,deepen,deepened,deer,
+deers,defends,defense,defensed,defenseless,defenselessness,defenses,defer,deferred,deferrer,deffer,
+defied,defier,defies,defile,defiled,defiler,defiles,deft,defuse,defused,defuses,degree,deice,deiced,
+deicer,deicide,deictic,deified,deifies,deign,deigned,deigning,deil,deionize,deionized,dekko,delate,
+dele,delete,deleted,deletes,delft,deli,delis,dell,dells,delta,delude,deluded,deluder,deludes,deluge,
+deluged,delve,delved,demand,demanded,deme,demean,demeaned,demesne,demesnes,demo,demob,demobbed,
+demoed,demon,demons,demos,demote,demoted,demotes,demy,dendroid,dene,denied,denier,denizen,denom,
+denote,denoted,dens,dense,denseness,dent,dentate,dented,dentin,dentine,dentition,dentoid,denudate,
+denudated,denude,denuded,deny,deodand,deodar,depend,depended,dependent,depict,depicted,deplete,
+depleted,depone,deponed,deponent,depot,dept,depth,dequeue,dequeued,deride,derided,deriv,derive,
+derived,derry,derv,desuetude,detach,detached,detect,detected,detecter,detent,detention,deter,
+deterred,detest,detested,detests,detour,detoured,detrude,deva,devaluate,devaluated,devalue,devalued,
+dhole,dholes,diabolo,diacid,dial,dialed,dials,dialysis,diam,diamonds,dianoia,diazine,dibasic,dice,
+diced,dicer,dicey,dicier,dickie,diddle,diddled,diddler,diddles,diddly,dido,didos,didst,didymium,
+died,dies,diesel,dieseled,diesels,diesis,diet,dieted,dieter,dietetic,diffed,differ,differed,diffuse,
+diffused,diffuses,digged,digger,digging,diggings,dike,diked,dill,dillies,dilly,dillydally,dimity,
+dimly,dimply,dims,dinar,dine,dined,diner,dineric,dinette,ding,dingdong,dingdonging,dingdongs,dinge,
+dinged,dinging,dingle,dingo,dings,dingus,dining,dinned,dinner,dinnered,dinning,dins,dint,diode,
+diorite,dioxin,dipeptide,dipl,dipped,dips,dire,direct,directed,directer,directive,direful,direr,
+dirge,dirt,dirtied,dirtier,disband,disbands,disc,disco,discoid,discos,discs,disdain,disdains,
+diseuse,disguising,disk,disks,dismay,dismays,dismiss,dispirit,dispirits,disrupt,disrupts,diss,
+dissed,disses,dissing,dist,distr,distrust,distrusts,disulfide,disunion,disuse,disused,disuses,
+disusing,ditched,dits,ditto,dittoed,ditty,diurnal,divas,diver,divert,diverted,diverter,divider,
+divisor,divisors,dizen,dizened,dizzied,dobbed,dobla,dobra,dobro,dobs,dock,docked,docs,dodder,
+doddered,doddle,dodge,dodged,dodging,dodo,dodoes,dodos,doer,does,doff,doffed,doffs,doge,dogged,
+dogging,doggo,doggoning,dogteeth,dogtooth,doing,doings,doit,doited,dolce,dole,doled,doleful,doles,
+doll,dollar,dollarbird,dolled,dollop,dolloped,dolls,dolmens,dolor,dols,dolt,domains,dome,domed,
+domes,dominions,dominos,dona,donas,donation,donator,done,donee,donees,dong,donging,dongs,donna,
+donnas,donned,donning,donor,donors,dons,doodad,doodads,doodah,doodahs,doodle,doodled,doodler,
+doodles,doom,doomed,dooms,door,doorman,doormat,doors,doozie,dopa,dope,doped,dora,dorado,dork,dorm,
+dormant,dorp,dorsad,dose,dosed,doses,dosh,dosing,doss,dossed,dosses,dossing,dotard,dotation,dote,
+doted,doter,dotes,doth,dotted,dotter,dottier,dottle,doubted,doubter,dough,dour,dourer,dourine,
+dousing,dower,dowered,doze,dozed,dozen,drab,drain,drake,dram,drama,dramas,drams,drat,draw,drawee,
+drawer,draws,dray,drays,dread,dreaded,drear,dredge,dredged,dredger,dree,dreg,dreidel,dreidl,dress,
+dressed,dresser,dressers,dresses,drew,dried,drier,drilled,driller,drip,drips,drive,driver,droid,
+droids,droit,droll,droller,drone,droned,drool,drooled,droop,drop,dross,drubbed,drubber,drudge,
+drudged,drugged,druggie,druids,druse,dryad,dryads,dryer,duad,duads,dual,dubbed,dubber,dubs,dude,
+duded,dudeen,dudes,duding,duds,duel,dueled,dueler,duelers,duelled,dueller,duellers,duello,duels,
+duende,duenna,dues,duet,duets,duffed,duffel,duffels,duffer,dugong,dugongs,dugout,dulia,dull,dullard,
+dulled,duller,dullest,dulls,dully,dulse,dulses,duly,dumpily,dune,dung,dunging,dungs,dunned,dunner,
+dunning,dunno,duns,duodiode,duomo,duos,dupe,duped,duress,durian,duro,durra,durrie,durst,dust,dusted,
+dustless,dustpan,dustpans,dusts,dustup,dustups,duvet,dwell,dwelled,dwelling,dwindle,dwindled,dyad,
+dyadic,dyads,dyed,dyer,dyes,dynamic,dynast,dynasts,dynasty,dyne,dyslalia,each,earaches,eared,earful,
+earl,earlap,earless,earlier,earls,early,earmark,earn,earner,earners,earns,earpiece,ears,ease,eased,
+easel,easels,eases,easier,easiness,east,easy,eatable,eatage,eaten,eats,eave,ebbed,ebbs,ebon,eccl,
+eccrine,eceses,ecesis,echoer,echoes,echos,echt,eclectic,ecol,econ,ecotone,ecru,ecus,edamame,eddied,
+eddies,eddo,eddoes,eddy,edema,edemata,edentate,edge,edged,edger,edgier,edging,edict,edified,edifier,
+edifies,edile,edit,edited,edition,editor,eellike,eels,eerie,eerier,eerily,eery,efface,effacer,
+effaces,effect,effects,effectuates,effed,effete,effigies,effs,effuse,effused,effuses,efts,egest,
+egests,egged,egger,eggers,egging,eggnog,eggs,eggshell,eggshells,egis,egos,egress,egresses,eide,
+eider,eidetic,eight,eighth,eighths,eighties,eightieth,eightieths,eights,eirenic,eisegeses,eisegesis,
+eked,ekes,eking,elate,elated,elder,elders,eldest,elect,electable,elegies,elegist,elegists,elegit,
+elegy,elem,element,elemental,elemi,elev,elevate,elevated,elfish,elicit,elide,elided,elides,eliding,
+elite,elites,elitist,elitists,elks,ellipse,ellipses,ellipsis,ells,elms,elodea,elope,eloped,elopes,
+else,elude,eluded,eluder,eludes,elute,eluted,elutes,elver,elves,emanate,embed,embedded,ember,embers,
+emblem,emboly,embosom,emboss,embosses,embrue,embryo,embryol,embus,emcee,emceed,emcees,emend,emended,
+emends,emery,emesis,emir,emirs,emit,emmer,emmers,emmet,emmets,emos,emote,emoted,emoter,emotes,
+empale,emptily,empty,empyema,empyreal,emulate,emus,enallage,enamel,enamor,enate,encaenia,encase,
+encases,enceinte,enchase,encl,enclave,enclitic,encore,encounter,ency,encyst,encysts,endameba,ended,
+ending,endless,endlessness,endnote,endpoint,endrin,ends,endue,endued,endure,endured,enema,enemas,
+enemata,energize,energizer,energizing,enface,enfolds,engage,engages,engaging,engin,engine,engined,
+engineer,engineering,engorge,engorging,engr,enhances,enisle,enlace,ennead,ennui,enol,enosis,enounce,
+enow,enrol,enroll,enrolled,enrollee,enroot,ensile,ensiles,ensnare,ensnarer,ensnares,entente,
+ententes,enter,enteron,entice,entices,entire,entirety,entities,entitle,entity,entoil,entomol,entry,
+entwine,enure,enured,envier,enwind,eolipile,eonian,eons,eosin,eosins,epagoge,ephah,ephod,epic,
+epical,epicarp,epideictic,epidote,epinephrin,epinephrine,epithet,epithetic,epode,epos,eposes,
+equaled,equalled,eras,erase,eraser,erasers,erases,erasure,erasures,erbium,erect,erected,erective,
+erector,ergo,ergs,erigeron,eringo,ermine,erne,ernes,erode,eroded,erose,erred,errhine,erring,error,
+errors,errs,ersh,eruct,erupt,eschar,eschars,escollope,escollopes,esker,espies,espy,essay,essayer,
+essayers,essays,esse,essence,essences,essive,estafette,estate,estates,esteem,esteemed,esteems,
+esthete,esthetes,etalon,etamine,etas,etch,etched,eterne,eternity,ethene,ethic,ethyl,ethylate,
+ethylene,ethyne,etna,euchre,eunuch,eureka,euro,euros,eutectic,evade,evaded,evaluate,evaluated,even,
+evener,ever,evert,every,eves,evil,eviler,eviller,evils,evince,evincive,evolve,evolves,ewer,ewes,
+exeat,exit,extant,extent,extine,eyas,eyases,eyeball,eyed,eyeless,eyelet,eyeleteer,eyer,eyes,
+eyeteeth,eyot,eyra,eyras,eyre,eyrir,face,facer,faces,facet,facetiae,facets,facia,facial,facially,
+fact,facts,faddy,fade,faded,fadeless,fades,fado,faeces,faena,faerie,faff,faffed,faffs,fail,fain,
+fainer,faint,fair,fairer,fairly,fairs,fairy,falafel,falafels,fall,fallacy,fallal,fallen,faller,
+falloff,false,fame,famine,fancily,fancy,fane,fanfare,fanfaron,fanions,fanny,fanon,fans,fantom,farce,
+farceur,fare,farer,farl,farm,farmer,faro,farrier,fart,fasces,fast,fastest,fasts,fatal,fatality,
+fatally,fate,fates,fatigue,fatly,fats,fatten,fattest,fatty,fauces,faucets,fault,faulty,faun,fauna,
+faunae,faunal,faunally,feal,fear,fearer,fearful,feast,feasts,feat,feats,feces,fecit,feds,feed,
+feeder,feedlot,feeds,feel,feeler,feels,feer,fees,feet,feint,felafel,felafels,felicific,felid,felids,
+fell,fella,fellah,fellahs,fellas,felled,feller,fellies,felloe,felloes,fells,felons,felt,felted,feme,
+feminine,femme,femora,fence,fencer,fends,fennec,fennel,fens,feoff,feoffee,feoffs,feral,feria,ferine,
+fermi,fern,fernier,ferric,ferried,ferries,ferrule,ferula,ferule,fescue,fescues,fess,fessed,fesses,
+fest,fests,feta,feted,fettle,fetus,fetuses,feuar,feud,feuded,feuds,fiat,fiche,fiches,fiddle,fiddled,
+fiddler,fiddles,fiddlier,fief,fiefs,field,fielded,fielder,fields,fierce,fiercer,fierier,fife,fifer,
+fifers,fifes,fifteen,fifty,figure,figurer,figurers,figures,fila,filar,filaria,filarial,filcher,
+filches,file,filed,filefish,filer,files,filial,filially,fill,filled,filler,fillies,fills,filly,fils,
+filses,final,finally,financial,financially,fine,finer,finial,finical,finis,finite,fins,fire,firearm,
+fired,fireman,firemen,firer,firers,fires,firmer,firs,fish,fishes,fishwife,fissile,fission,fissions,
+fissure,fissures,fixate,flail,flair,flan,flannel,flare,flashed,flashes,flat,flatly,flaunt,flaunty,
+flay,flea,fleas,fled,flee,fleece,fleecer,fleeces,fleecier,fleer,flees,fleet,fleeted,flense,flesh,
+fleshed,fleshes,fleshless,flied,flier,flies,floe,floes,flood,flooded,floods,floor,flor,flora,floral,
+floss,flossed,flosses,flour,flouted,flue,flues,fluff,fluffed,fluffier,fluffily,fluffs,fluffy,fluor,
+flurried,flush,flute,fluted,foal,foam,foes,foison,fold,folded,folds,foll,fondles,fondness,food,
+foods,fool,fooled,fools,footed,footle,footled,footman,fora,foramen,ford,fordo,fore,forearm,foreman,
+foremen,forename,forenoon,form,formant,format,forme,former,fossa,fossas,fosse,fosses,foul,foulard,
+fouled,four,fourfold,frae,frail,frailly,frailty,frame,framer,frat,fray,free,freed,freeform,freeman,
+freemen,freer,frees,frena,friar,friars,friary,fried,frier,friers,fries,frilled,frillier,friseur,
+frisson,frissons,fritillary,frittata,froe,from,frons,frore,froufrou,fucus,fucuses,fuddle,fuddled,
+fuddles,fuel,fueled,fueler,fuelled,fuels,fugue,fugues,fulfil,fulfill,fulfilled,fulfiller,fulfills,
+fulfils,full,fulled,fuller,fullerene,fullish,fulls,fully,funeral,funereal,funnel,funner,furan,
+furfuran,furies,furled,furnace,furor,furred,furrier,furriers,fuse,fused,fusee,fusees,fuses,fusil,
+fusils,fuss,fussed,fusser,fusses,fussier,gabbing,gabbling,gabs,gaga,gage,gages,gagging,gaging,gags,
+gain,gaining,gains,gait,gaits,gala,galabia,galah,galangal,galas,galena,galingale,gall,galling,
+galloglass,gallon,galloon,galls,gals,gamb,gamba,gambit,gambits,gambol,gambols,gamma,gammas,gang,
+ganging,ganglia,gangling,ganglion,ganglionic,gangs,ganja,ganjas,gape,gaps,garaging,garbing,garbling,
+gargling,gars,gasbag,gasbags,gases,gash,gashes,gashing,gaslight,gaslights,gaslit,gasp,gasping,gasps,
+gasses,gassing,gassings,gassy,gastight,gate,gateau,gating,gator,gators,gats,gauchos,gauss,gayly,
+gays,gazing,gean,geans,geed,geeing,gees,geese,geest,geez,geezer,geld,gelded,gelding,gelid,gelled,
+gelling,gels,gelt,gelts,gene,geneal,genes,geneses,genet,genial,genie,genii,genned,genning,genre,
+genro,gens,gent,genteel,genteelly,gentle,gently,geod,geode,geoengineering,geog,gesso,gest,gets,
+ghastly,ghat,ghats,ghee,ghees,giant,gibbon,gibbons,gibing,giddier,gift,gigabit,gigabits,gigged,
+gigging,giggle,giggled,giggler,giggles,gigglier,giggliest,giggling,gigolo,gigot,gigs,gigue,gilded,
+gilder,gilgai,gill,gilled,gillie,gillies,gillion,gillions,gills,gilt,gilts,gimp,gimping,ginger,
+gingering,gingili,gink,ginned,ginning,ginny,gins,gipon,girded,girder,girdle,girdled,girdler,girl,
+girlie,giro,giros,gist,gite,gites,gits,glair,glam,glamor,glamors,glancing,glaring,glass,glassy,
+glean,gleaning,glede,glee,gleet,gleets,glen,gley,glia,glias,glib,glide,glided,glider,glint,glinting,
+gloam,global,globin,globing,glossa,glossal,glossas,glossing,glue,glued,gluier,gluing,gluon,gluons,
+gnarling,gnash,gnashes,gnashing,gnaw,gnawing,gnawn,gnaws,gnocchi,gnosis,gnus,goal,goals,goat,goatee,
+goats,gobbet,gobbing,gobbling,goblin,gobo,goby,godhood,godson,godsons,goer,goes,goggling,going,
+goings,gone,goner,gong,gonging,gongs,gonion,gonna,gonococcal,gonococci,gonzo,good,gooey,googling,
+gooier,goon,goons,goop,goose,goosegog,gooses,goosing,goosy,goral,gorals,gore,gorge,gorgerin,gorging,
+gorgon,gorgoneion,gorgons,gorier,goring,gorp,gosh,gosling,goslings,gossoon,goth,gotta,gouged,
+gouging,gourd,gout,gown,gowning,goys,grabbing,gracing,grail,grain,gram,grammar,grammars,grams,grass,
+grassroots,grazing,gree,greed,greedier,greegree,greegrees,green,greener,greening,greige,grew,
+gridded,griddle,gride,grief,griefs,griffe,grig,grigri,grigris,grill,grille,grilled,grilling,grin,
+gringo,gringos,grinner,grinning,grins,grison,grisons,groat,groats,grog,groggier,grogram,grograms,
+groin,groins,groom,gross,grossing,grot,grots,grotto,grottos,group,grout,grouts,growth,grudge,
+grudged,grudger,grue,gruel,grues,gruffer,grugrus,guddle,guess,guesser,guessers,guesses,guggle,
+guggled,guggling,guib,guide,guided,guider,guiding,guidon,guilder,guile,guise,guises,gulled,gulling,
+gumdrop,gumming,gunning,gunpoint,guns,gurge,gurged,gurges,gurgle,gurgled,gurus,gush,gushing,gussie,
+gussies,gust,gusto,gusts,guts,gutta,guttate,gutted,gutting,haar,hade,hades,hadron,hadrons,haeres,
+haggis,haggish,hags,hail,hails,hairier,haji,hajj,hajji,halal,halala,hale,haled,haleness,halenesses,
+hales,hall,hallah,hallahs,hallo,halloo,halloos,hallos,halls,hallway,halm,halms,halo,haloes,halos,
+halt,halts,hamal,hamate,hame,hammed,hammy,hams,hamza,hanaper,hangings,hangs,hansel,haole,happen,
+happier,harass,harasser,harassers,harasses,hare,hares,hark,harl,harm,harper,harrier,harry,harsh,
+harsher,harshly,hart,harts,hash,hashed,hasheesh,hashes,hashing,hashish,hashtag,hashtags,hasp,hasps,
+hassle,hassled,hassles,hast,hasty,hatch,hatched,hatchet,hate,hated,hath,hats,hatted,hauberk,hays,
+head,headache,headed,headless,heads,heal,healed,heals,health,healthy,heap,hear,hearer,hearers,hears,
+hearsay,hearse,hearses,heat,heated,heath,heathy,hectic,heddle,hedge,hedged,hedgehog,hedging,heed,
+heeded,heeding,heedless,heeds,heehaw,heel,heeled,heeler,heelless,heels,heifer,height,heights,heir,
+heist,heists,held,helices,hell,heller,hellers,hellfire,hellhole,hellholes,hellion,hellish,
+hellishness,hello,hellos,hells,helpless,helplessly,helps,heme,hemmed,hemmer,hence,henchmen,henge,
+henna,hennas,hens,hent,heparin,hepper,herb,herders,herds,here,heredes,herein,heres,heresy,herl,herm,
+hern,hernia,herniae,hero,herp,herring,hers,hessian,hessians,hessite,hest,heth,heths,hewed,hewer,
+hewing,hewn,hews,hibiscus,hicks,hidden,hide,hided,hied,hieing,hies,higgle,higgles,higher,highest,
+highish,highlights,highs,hightails,hightest,hila,hill,hillier,hilliest,hilliness,hills,hilly,hilt,
+hilts,hims,hing,hinge,hinged,hinging,hings,hinnies,hins,hipbone,hiphop,hipness,hipped,hipper,hippie,
+hippies,hippo,hips,hire,hirer,hiss,hisses,hissing,hissings,hist,hitched,hits,hiya,hoar,hoard,hoards,
+hoars,hobbit,hobble,hobbled,hobbles,hobnob,hobo,hoboes,hobos,hobs,hocus,hodden,hods,hoed,hoer,hoes,
+hogged,hogging,hoggish,hogs,hoist,hoists,hokes,hole,holed,holes,holist,hollo,holloed,holloes,hollos,
+holp,holpen,hols,holt,homo,homos,honcho,hone,honed,hones,honeys,hong,honing,honkeys,honks,honor,
+honors,hons,hooch,hood,hooded,hoodoo,hoodooed,hoodoos,hoods,hooknose,hooknoses,hooks,hoop,hooped,
+hoopoe,hoopoes,hoops,hoorah,hoorahs,hoot,hooted,hoots,hope,hoped,hopeless,hopelessly,hopes,hopped,
+hopple,hopples,hops,hora,horah,horas,horn,horns,horror,horrors,hort,hosanna,hosannah,hosannas,hose,
+hosed,hosepipe,hosepipes,hoses,hosing,hosp,host,hosts,hotdog,hotdogged,hotpot,hotpots,hots,hotshot,
+hotshots,hotspot,hotspots,hotted,hough,houmous,houmus,hounded,hour,houris,hours,housing,housings,
+hoys,hubbubs,hubs,huddles,hued,hues,huffish,huffs,hugged,hugging,hugs,hullers,hulls,hummer,hummus,
+humorous,humors,hums,humus,hung,hurdlers,hurdles,hurds,hurlers,hurls,hurrah,hurt,hush,hushed,hushes,
+hushing,husk,husks,hussy,huts,hyaline,hyetal,hyla,hypes,hypo,hypophyses,hypos,hypoth,hyraces,hyson,
+hyssop,iamb,iambi,iambs,ibis,ibises,icecap,iced,iceman,icepick,ices,ichor,icicle,icicles,icier,
+iciest,iciness,icing,ickier,icon,iconic,icons,idea,ideal,ides,idioms,idiot,idle,idled,idler,idles,
+idly,idyl,idyll,iffier,igloo,igniting,ignition,ignore,ignorer,ignoring,ikons,ilea,ileac,ileal,
+ileitis,ileus,ilia,iliac,ilium,ilks,illicit,illiquid,illness,illnesses,ills,illus,illusion,
+illusions,illust,imagism,imagisms,imagist,imam,imamate,imams,imbibe,imbiber,imbibers,imbibes,
+imbibing,imbrue,imbrues,imbue,imbues,imbuing,imine,imit,imitate,imitation,immanence,immanent,
+immerse,immerses,immure,immures,impala,impalas,impel,impi,impiety,impinging,imply,impugn,impugning,
+inaction,inane,inanely,inaneness,inaner,inanimate,inanition,inanity,inborn,incant,incantation,inced,
+incense,incenses,incest,incests,inch,inching,incidence,incing,incise,incises,incision,incisions,
+incitation,incite,incites,incl,incline,inclining,inclusion,inclusions,incr,incs,incurrence,incurve,
+indaba,indecency,indeed,indene,indent,indented,indention,independent,indican,indicia,indie,indigene,
+indign,indigo,indigoid,indite,indited,indue,indued,induing,induna,indwell,indwelled,indwelling,
+inedited,inept,inert,infamy,infancy,infant,infanta,infante,infantine,infare,infer,infinite,ingle,
+ingoing,ingot,ingrain,ingraining,inhale,inhales,inhere,inhering,inhesion,inion,init,initiate,
+initiating,initiation,initio,inkier,inking,inkle,inkling,inks,inlaid,inland,inlay,inlet,inlier,
+inline,inly,inmate,innate,inner,innerve,inning,innings,innit,innocuous,inns,innuendo,innutrition,
+inorg,input,inputting,insane,insect,insects,insentience,insentient,inset,insets,insidious,insignia,
+insignias,insist,insistence,insistencies,insistency,insistent,insists,insofar,insomnia,insp,inspan,
+inspanning,inspans,inst,instinct,instincts,insulin,intact,intel,intellect,intend,intended,intens,
+intense,intenseness,intensest,intensities,intensity,intent,intention,intentioned,intentness,intents,
+inter,interior,intern,interne,internee,internet,intertwine,intestine,intestines,inti,intima,
+intimate,intimation,intinction,intine,intis,intitule,into,intonation,intone,intoned,intoner,
+intoning,intort,intr,intro,introit,intuit,intuiting,intuition,intwine,inulin,inulins,inure,inured,
+inutile,iodide,iodine,iodism,iodize,iodized,ionic,ionium,ionize,ionized,ionizing,ionogen,ionone,
+ions,iota,ipecac,ireful,irenic,iridic,iris,irises,iritis,iron,ironed,ironer,ironing,irons,irreg,
+irreverence,irriguous,irrupts,isle,isles,islet,islets,isms,isogon,isomer,isomerism,isomerous,
+isomers,isotopic,isotopy,isotropic,issei,issue,issued,issuer,issuers,issues,issuing,isthmi,isthmus,
+istle,ital,italic,itched,item,ivies,iwis,ixia,jabberers,jabbers,jabirus,jabs,jacinth,jade,jaded,
+jail,jane,jars,jaunted,jawing,jawline,jean,jebel,jeer,jeerer,jeers,jejuna,jejune,jell,jellaba,jello,
+jelly,jennet,jess,jetted,jewel,jeweler,jeweller,jewfish,jibs,jiffies,jiffs,jigging,jigsawing,
+jigsawn,jill,jinn,jinni,jinnis,jinns,jock,jockey,jockeys,jocko,jocks,jocose,joey,joeys,joke,jokes,
+jokey,joky,jollier,jook,joss,josses,jowlier,joys,jujubes,jujus,jute,jutted,kails,kain,kaka,kakapo,
+kakis,kale,kalian,kalis,kana,kanaka,kaons,kapok,karaoke,karma,kayak,kayaks,kcal,keas,kebab,kebabs,
+kebob,keck,keek,keel,keeled,keeling,keels,keen,keener,keening,keenness,keens,keep,kelp,kelpie,
+kennel,kenneling,kennelling,kennels,kenning,kens,kepi,kern,kerne,kernel,kernels,kero,keys,kiang,
+kibbles,kibes,kicked,kicker,kickier,kicks,kidded,kiddie,kiddos,kids,kidskin,kielbasa,kielbasas,
+kielbasi,kier,kike,kikes,killed,killer,killing,kills,kiln,kilning,kina,kinas,kinds,kine,king,kinin,
+kink,kinkier,kinking,kinks,kinos,kiosk,kiosks,kipped,kish,kiss,kissable,kisses,knack,knacker,knacks,
+knar,knee,kneeing,kneel,kneeling,kneels,knees,knell,knelling,knells,koala,koans,kobo,koel,kola,kolo,
+koodoo,koodoos,kook,kooks,kooky,korma,koses,kraal,kraals,kraken,kudo,kukri,label,labels,labia,
+labial,labials,labiate,labile,lablab,labor,labroid,labs,lace,lacer,laces,laches,lacier,lacing,lack,
+lacker,laconic,lactam,lactate,lacteal,lactic,lacy,ladder,laddered,laddie,laddish,lade,laded,lades,
+ladle,ladled,ladler,ladles,lads,lady,lagan,lagena,lagging,lagoon,lagoonal,lags,laic,laical,laically,
+laid,lain,lair,laird,laity,lake,laker,lakes,lallygag,lallygags,lama,lamas,lamb,lambs,lame,lamella,
+lamellae,lamellar,lamellate,lamely,lament,lamer,lamia,lamias,lamp,lampas,lamprey,lamps,lams,lanai,
+lanate,lance,lancer,lancing,land,landau,lane,lanes,lang,laniard,lank,lanker,lankier,lankness,lanner,
+lanolin,lantana,lapel,lapeled,lapped,lappet,laps,laptop,larboard,larcener,lard,larded,larder,lares,
+largo,largos,lari,lariat,larine,lark,larker,larks,larrigan,larva,larvae,larval,lase,lased,laser,
+lasers,lases,lash,lashed,lashes,lass,lasses,lassie,lassies,lasso,lassoes,lassos,last,lastly,lasts,
+late,lated,lateen,lately,latent,lath,lathe,lathis,laths,lathy,lati,latish,latria,lats,latte,latten,
+lattice,laud,lauded,lauder,laurel,lava,lavalier,lavaliere,lave,laved,laver,lawn,layaway,layer,
+layette,layouts,layover,lays,leach,leaches,lead,leaded,leader,leads,leaf,leafed,leafless,leafs,leak,
+leaker,leakier,leaking,leaks,leal,lean,leaner,leaning,leanly,leanness,leans,leap,leaped,leaper,
+leapt,learn,learner,learners,learns,leas,lease,leased,leaser,leasers,leases,leash,leashed,leashes,
+leave,leaved,leaven,leaver,lech,lecher,leches,lect,ledge,ledger,leech,leeches,leek,leeks,leer,
+leered,leerier,leerily,leers,leery,lees,leet,leeway,left,legend,leges,legged,leggier,leggiest,
+leggin,legging,leggy,legist,legit,legless,legs,lehr,leis,leks,leman,lemma,lemmata,lemme,lemon,
+lemons,lend,lender,lending,lends,length,lengthen,lengthy,lenience,lenient,lenis,leno,lens,lenses,
+lent,lentamente,lenten,lentic,lenticel,lentil,lento,leone,leones,leonine,lept,lepta,less,lessee,
+lessees,lessen,lessened,lessens,lesser,lesses,lesson,lessons,lest,lethal,lethally,lethe,lets,letter,
+letterer,lettuce,leucine,leucite,leva,levee,levees,level,leveled,leveler,levelled,levelly,levels,
+lever,levier,levies,levis,levy,lewd,leys,liable,liaise,liaises,liana,liar,liard,libber,libel,
+libelee,libeler,libeller,libels,liber,liberty,libra,librarian,libretti,lice,licence,licente,lichee,
+lichees,licit,licked,lidded,lidless,lied,lieder,lief,liefer,liege,lieges,lien,liens,lierne,lies,
+lieu,life,lifeless,lifer,ligan,liger,lightest,lightish,lightless,lights,lignin,lignins,ligule,
+ligure,like,liked,likelier,liken,likening,liker,likes,liking,likker,lilac,lilangeni,lilies,lilo,
+lilos,lilt,lilting,lilts,lily,lime,limey,limit,limo,limos,limp,limpet,limpid,limpidly,limply,limps,
+limy,linage,linalool,linden,line,lineage,lineal,lineally,linear,lined,linen,linens,liner,lines,ling,
+lingo,lingos,lings,linguini,linguinis,linin,lining,linings,link,linkage,linker,linking,linn,linnet,
+lino,lint,lintel,linting,liny,lion,lions,lipid,lipide,lipoma,lipomas,lipped,lippy,lips,liquid,
+liquify,lira,lire,lisle,lisp,lisps,lissom,list,listee,listel,listless,lists,litas,lite,liter,lith,
+lithe,lithest,lithiasis,litho,lithol,litter,litterer,little,littler,littlest,lituus,live,livelier,
+liver,lives,livre,llama,llamas,llano,loach,loaches,load,loaded,loader,loaf,loaiasis,loam,loams,loan,
+loaning,lobar,lobbed,lobber,lobbing,lobbyer,lobe,lobed,lobes,local,locale,locales,locally,locals,
+loci,lock,locked,locks,lockups,loco,locos,loculus,locus,lode,loden,lodes,loess,lofted,logan,logging,
+logician,login,logins,logion,logogram,logograms,logon,logons,loin,loins,loll,lollapaloosa,lolled,
+loller,lollies,lolling,lollipop,lollipops,lollop,lolloped,lollops,lolls,lolly,lollypop,lollypops,
+loment,lone,loner,lonesome,lonesomeness,long,longan,longing,longings,longs,loofa,look,looked,looks,
+loom,looms,loon,loonie,loons,loop,looped,loophole,loopholes,loops,loopy,loos,loose,loosed,loosely,
+loosen,loosened,looseness,loosens,looses,loosing,loot,looted,looting,loots,lope,loped,lopes,lopped,
+loppy,lops,lord,lorded,lore,lorry,lory,lose,losel,loses,losing,losings,loss,losses,lossless,lost,
+lota,lotas,loth,loti,lotion,lots,lotto,lotus,loud,louden,louder,louis,lounging,loup,loupe,loupes,
+lour,loured,louse,louses,lousing,lousy,lout,loutish,louts,love,loveless,lovelier,lovelies,lovely,
+lover,loverly,loves,lovey,lower,lowlier,loyal,loyaler,loyaller,loyally,luau,luaus,lube,lubes,luce,
+lucent,lucks,luculent,ludo,lues,luetic,luff,luffa,luffed,luffs,luge,luged,lugged,lugger,lugging,
+luging,lull,lullaby,lulled,lulling,lulls,lulu,lulus,lump,lumpily,lumpy,lunar,lunarian,lune,lunette,
+lung,lungi,lunging,lungis,lungs,lunula,lunular,lunule,lupus,lurdan,lure,lured,lures,luscious,lush,
+lusher,lushes,lushly,lushy,lust,lusted,lusts,lusty,lute,luteal,lutes,lutist,lutists,lvii,lwei,
+lyncean,lyre,lyse,lyses,lysis,lyssa,lytta,macaco,macadam,macadamia,macarena,macaw,mace,maced,mach,
+machete,macho,machzor,macle,macro,macs,macula,maculate,macule,madam,madame,madams,madden,maddened,
+made,madman,madmen,madras,madrasa,madrasas,madrassa,madrassas,mads,maenad,mafia,magi,magma,magmas,
+magmata,mags,maid,maidan,maids,mail,mails,maim,maimer,maims,main,mainframe,mains,maintain,maker,
+malamute,malar,male,maleate,malemute,mall,mallee,mallet,malls,malm,malt,mama,mamas,mamba,mambas,
+mambo,mamboed,mambos,mamelon,mamey,mamma,mammal,mammals,mammary,mammas,mammet,mammilla,mammogram,
+mammograms,mammon,mammonism,mammy,mams,mana,mananas,manas,manat,manatee,mane,maned,manes,mania,
+maniac,manias,manic,manitou,manmade,manna,manned,manner,mannose,manor,manors,mans,mansard,mansards,
+manse,manses,mansion,mansions,manta,mantas,mantel,mantelet,mantelletta,mantellone,mantle,mantra,
+mantua,manuf,manumit,many,maple,mapper,maps,mara,maraca,maras,marc,march,mare,maremma,marg,maria,
+marina,marinara,marine,mariner,mark,marka,marker,markka,markkaa,marl,marls,marly,marmot,maroon,
+maroons,marron,marry,mars,mart,masc,mash,mason,masons,mass,masses,massy,mast,mastaba,mastitis,masts,
+matador,matched,mate,mated,matelot,matelote,matin,matron,mats,matt,matte,matted,matts,maul,maun,
+maws,maya,mayapple,mayday,maydays,mdse,mead,meal,mealy,mean,meaner,meanie,meanness,means,meant,
+meantime,meas,meat,meathead,meatman,meatmen,mecca,mech,meddles,meddlesome,meed,meeker,meet,meetly,
+meets,meetup,meioses,meiosis,melanoma,melanomata,melds,melon,melons,melt,melton,member,members,meme,
+memento,memes,memo,memoirs,memories,memory,memos,mems,menace,menacer,menad,mend,mended,mends,mene,
+menses,mental,mentor,menu,meou,mercer,mere,merely,meres,merle,merman,mermen,merrier,merry,mesa,
+mesas,meseems,mesic,mesmerism,mesne,meson,mesons,mess,messed,messes,messier,messieurs,messroom,
+messy,mestee,meta,metadata,metal,mete,meted,meteor,meter,metes,meth,metope,metro,metronome,mettle,
+mezzos,mhos,miasma,miasmal,miasmas,miasmata,mica,mickeys,micks,micra,mics,midday,middy,midi,midis,
+midway,midways,mien,mikes,mild,mildly,mile,milia,milit,milium,mill,millet,millime,mills,milo,milos,
+mils,milt,mime,mimer,mimers,mimes,mimeses,mimesis,mimics,miming,mimosa,mimosas,mina,minas,minds,
+mine,miner,mini,minicam,minim,minima,minims,minimum,mining,minion,minions,minis,minium,mint,minutia,
+minyan,minyanim,miosis,mire,mires,mirier,mirror,mirrors,misc,misdid,misdo,miser,miseries,misers,
+mishit,mishits,miso,misremember,misremembers,miss,missal,missals,misses,missies,mission,missions,
+missis,missises,missus,missuses,missy,mist,mists,misuse,misuser,misuses,mite,mitis,mitt,mittimus,
+mitts,mneme,moan,moaned,moaner,moans,moas,moat,moats,mobbed,mobs,mocha,mocker,modded,mode,models,
+modem,modems,modes,modest,modesty,mods,moil,moils,moires,mola,molal,molar,molars,molas,molds,mole,
+moles,moll,molls,mols,molten,moment,momenta,momentum,momism,momisms,momma,mommas,mommies,moms,monad,
+monadism,monads,monarda,monardas,monas,monases,monde,monism,monition,mono,monodrama,monomania,
+monomer,monosome,monotint,monotone,monsoon,monsoons,montane,monte,montero,monument,mood,moods,mooed,
+moon,moonbeam,moonbeams,mooned,moonless,moons,moonseed,moonseeds,moor,moors,moos,moose,moot,mooted,
+moots,mope,mopes,moppet,mops,mora,moral,morals,morass,mordant,more,moreen,morel,morello,mores,morn,
+morocco,moron,morose,morris,morse,mort,mortar,mosey,moseyed,moseys,mosh,moss,mosses,mossier,most,
+mote,motel,motes,motet,motets,moth,motion,motmot,motmots,motoneuron,motor,motorman,motormen,mots,
+motte,mottle,motto,mottoes,mottos,moue,moues,mount,mountain,mounter,mourner,mouse,mouser,mousers,
+mouses,mousier,mousse,mousses,mouton,muddily,mudroom,mugging,mulct,mule,mull,mulla,mullet,multi,
+mummer,mummers,mummies,muncher,munging,munition,muntin,muon,mure,murmurer,murmurers,murmurous,
+murmurs,murre,murres,muse,muser,muses,museum,museums,mush,mushroom,mushrooms,muss,musses,mussier,
+must,musth,musts,mutant,mutation,mute,muter,mutism,muts,mutter,mutterer,mutton,mutts,mutual,mutule,
+muumuus,myall,myiasis,myna,myotome,naan,naans,nabbed,nabbing,nabob,nabobs,nabs,nacelle,nacho,nacre,
+nadir,naff,naffer,nagana,nagging,nags,naiad,naiads,naif,naifs,nail,nailer,nailing,nainsook,
+nainsooks,naira,nairas,naker,name,named,namer,names,nance,nancy,nankeen,nankeens,nankin,nannies,
+nanny,nanobot,nanoid,nans,naos,nape,napes,nappe,napper,nappier,naps,narc,narceine,nard,nardoo,
+nardoos,nards,nares,narial,naris,nark,narks,narrator,nary,nasal,nasals,nascence,nasion,nasty,natal,
+natant,natation,natator,natch,nation,natl,natron,natty,naut,naval,nave,navel,navvy,navy,nays,neap,
+neaps,near,nearer,nearness,nears,neat,neaten,neatened,nebs,necessities,necessity,necklace,need,
+needed,needier,needing,needle,needled,needler,needles,needless,needlessness,needling,needs,needy,
+neglig,negligee,negro,neigh,neighed,neighing,nelly,nelson,nelsons,nemeses,neocon,neon,neonatal,
+neonate,neper,neral,nerd,nerdier,nerdy,nereid,nerve,nervier,nervine,nescience,nesciences,nescient,
+ness,nesses,nest,nests,nets,netted,netter,nettle,netty,neume,neural,neuron,neut,neuter,neutretto,
+neutrino,neutron,never,nevi,newel,newer,newline,newness,news,newt,newton,next,ngwee,niacin,nibbling,
+nibs,nice,niceness,nicer,nicest,niceties,nicotiana,nictitation,nide,nidus,niece,nieces,niello,nigga,
+niggas,niggaz,nigger,niggle,niggled,niggling,nigh,nigher,nihil,nilgai,nimbi,nine,ninepin,ninepins,
+nines,nineteen,nineteens,nineties,ninety,ninja,ninjas,ninnies,ninny,ninon,niobic,nipas,nipped,
+nipper,nippier,nippiness,nipping,nips,nisei,niseis,nisi,nisus,nite,niter,nites,nitid,nitrite,nitro,
+nits,nitty,nitwit,nixing,nobbling,nobs,nocturne,nocuous,nodal,nodded,nodding,noddle,noddles,node,
+nodes,nodi,nodose,nods,nodule,nodus,noel,noels,noes,noesis,noggin,nogging,noggings,noggins,nogs,
+nohow,noil,noise,noises,noisiness,noising,nolo,noma,nomad,nomadism,nomads,nomen,nomination,nomism,
+nonagon,nonce,nonclinical,nonconcurrence,nonconcurrent,noncurrent,none,nonego,nones,nonet,nonfarm,
+nonfat,nongonococcal,nonillion,nonindependent,nonionizing,nonlogical,nonmetal,nonoccurence,
+nonoccurrence,nonrandom,nonrecurrent,nonself,nonsense,nonsenses,nonskid,nonstop,nonunion,noodle,
+noodled,noodles,nooks,noon,noons,noontide,noose,nooses,nope,norias,norite,norm,nose,nosed,noses,
+nosey,nosh,noshes,noshing,nosiness,nosing,nosy,notate,notation,note,noted,notelet,noting,notion,
+notum,noumenon,noun,nounal,nouns,nous,nowt,nuance,nubbin,nubs,nuclei,nucleic,nude,nuder,nudging,
+null,nulls,numbing,numen,numina,nuncio,nuncios,nuncle,nunnery,nuns,nurture,nurturer,nutation,nutlet,
+nutrient,nutrition,nuts,nutted,nutter,nuttier,nutting,nyala,oafs,oaks,oared,oars,oarsman,oases,
+oasis,oast,oasts,oaten,oatmeal,oats,obese,obeseness,obey,obeyer,obis,obit,obliging,oboe,oboes,oboli,
+obsess,obsessed,obsesses,obtain,obtrude,obtruded,obtruder,occas,occipita,occlusion,occlusions,occur,
+occurrence,ocher,ochre,ocker,ocrea,octan,octant,octet,octets,octette,octettes,octopi,octroi,octrois,
+oculi,oculus,oddball,odder,oddest,oddness,odds,odea,odeon,odes,odontoid,odor,odored,odors,odyssey,
+odysseys,oenomel,oenophile,offal,offed,offends,offense,offenseless,offenses,offer,offerer,offeror,
+offload,offs,ogee,ogeed,ogling,ogre,ogrish,ohms,oiks,oilcan,oiler,oilier,oilily,oiling,oils,oily,
+oinks,okas,okra,olde,olden,older,oldness,oleate,olein,oleo,oles,olio,olive,olives,olla,ollas,omasa,
+omber,omelet,omelette,omen,omens,omentum,omer,omission,omissions,omit,onanism,onanisms,once,
+oncologic,oncological,oneness,ones,oneself,ongoing,onion,onions,onionskin,online,ontic,onto,onus,
+oodles,oogonia,oohed,oohing,oohs,oops,ootid,ooze,oozed,oozes,oozing,opacity,opal,opals,oped,open,
+opened,openness,opens,opes,opine,opined,opines,oping,opining,opinion,opponent,oppose,opposes,oppugn,
+oppugning,opted,optic,optics,opting,option,optioned,optioning,opts,opus,oral,orals,orator,orators,
+orbit,orbited,orbiter,orbs,orca,orch,orcs,ordeal,order,ordered,orderer,ordn,ordo,ordure,oread,ores,
+orgasm,orgasms,oriel,orient,orienteer,orig,origin,origins,oriole,orison,orisons,orle,orlop,ornerier,
+ornis,orometer,orreries,orrery,orris,orrises,orts,oses,osier,osiers,osmious,osmium,osmose,osmosis,
+ossein,osseous,osteotome,osteotomy,ostosis,otic,otitis,otocyst,otolith,ottar,ottars,otter,otto,
+ottoman,ottomans,ought,ounce,ouphe,ours,ousel,ousels,oust,ousts,outbreed,outcast,outcaste,outcastes,
+outcasts,outcome,outdo,outdoor,outdraw,outdrew,outed,outer,outgo,outgoing,outgrow,outgrowth,outgun,
+outgunning,outhit,outhits,outing,outlast,outlasts,outlays,outlet,outman,outpoint,outpointing,output,
+outputting,outroar,outroars,outrode,outrun,outs,outset,outsets,outshoot,outshout,outshouts,outsoar,
+outstay,outstays,outta,outturn,outward,outwore,oval,over,overall,overlay,overlie,overlive,overly,
+ovoids,ovolo,owed,owes,owing,owning,owns,oxidant,oxidation,oyer,ozone,ozonide,ozonize,pace,pacer,
+pacha,pacier,pact,pacy,paddle,paddled,paddock,padlock,pads,paean,paeans,paella,paganish,pagans,page,
+pageboy,pail,pails,pains,pair,pairs,paisa,paisas,palace,palais,palatal,palate,pale,paled,palely,
+paleo,paler,paletot,palette,pall,palled,pallet,pallette,pallia,palls,pally,palm,palmar,palmary,
+palmer,palms,palmy,palp,palpate,palpated,pals,paludal,paly,pampa,pampas,pamper,panamas,pandanus,
+pandas,pane,panes,pangas,pangs,panic,panier,panne,pannier,panocha,panpipe,pans,pantos,pants,papa,
+papacy,papains,papal,papally,papas,papaws,papaya,papayas,paper,paperclip,paperer,papery,papilla,
+papillae,papilloma,papillomas,papoose,papooses,pappose,pappus,pappy,paps,papyri,para,paradrop,
+parallel,parapodia,paras,parcel,pard,pare,pareira,parer,parlay,parley,parodic,parr,parrs,parry,pars,
+parts,pase,pash,pasha,pashas,pass,passant,passes,passing,passus,past,pasta,pastas,pasts,pataca,pate,
+patella,patellae,patellate,patio,pats,patty,pawns,pawpaws,paws,payee,payer,pays,payt,peace,peag,
+peahen,peal,pealed,pean,peans,pear,pearl,pearlier,pearly,peas,pease,peat,peatbog,peba,peck,pecked,
+pectic,pedal,pedaled,pedalled,pedalo,peddle,peddled,pedicel,pedicle,peed,peek,peeked,peel,peeled,
+peels,peen,peens,peep,peepbo,peeped,peeper,peephole,peepholes,peeps,peepul,peepuls,peer,pees,peeve,
+peeves,peewee,peewees,pein,peke,pelisse,pelisses,pelite,pellet,pelletal,pelleted,pellicle,pellmell,
+pelmet,pelota,pelt,peltate,pelted,pelves,pelvis,pelvises,pend,pended,pendent,penes,penis,penises,
+penitent,penna,penne,penned,penni,pennies,penninite,pennis,pennon,pennoned,pennons,pens,pension,
+pensions,pent,pentode,peon,peonies,peons,people,peopled,peoples,peplos,pepped,pepper,peppier,
+peppiness,peppy,peps,pepsin,peptic,peptide,peptone,percale,percept,peri,pericarp,perinea,perm,
+permute,pert,perter,perv,pesewa,pesewas,peso,pesos,petal,petaled,petalled,peter,petit,petite,
+petition,petitioned,petted,petter,pettily,petty,pewee,pewees,pews,phasing,phasis,phenol,pheon,
+philol,phis,phish,phishing,phobic,phoebe,phon,phone,phoned,phones,phonic,phonies,phoniness,phonol,
+phonon,phonotypy,phons,phony,phosphene,phosphine,phosphines,phot,photo,photon,photons,photos,
+phototypy,phots,phren,phyles,phyllos,phys,pibroch,pica,picador,piccalilli,piccolo,pice,picked,
+pickle,pickled,picnic,picot,picots,pics,piddle,piddled,piddly,piece,pieced,pied,pier,pies,piet,
+piety,piggin,pigging,piggish,pignut,pigs,piing,pike,piked,pile,piled,pilei,pileless,pileous,piles,
+pileup,pileups,pileus,pili,pill,pillar,pilled,pillion,pillory,pills,pilose,pilous,pilpul,pily,pimp,
+pimping,pimple,pimply,pinch,pine,pined,pines,ping,pinging,pings,pinhole,pinier,pining,pinion,
+pinioned,pinioning,pinite,pinnas,pinned,pinnies,pinning,pinniped,pinole,pinones,pinpoint,pinpointed,
+pinpointing,pins,pint,pinto,pinup,pion,piosity,pipe,piped,piper,piperine,pipes,pipet,pipette,piping,
+pipit,pipits,pipped,pippin,pipping,pippins,pips,piracy,piscary,pish,piso,piss,pisses,pissing,
+pissoir,pissoirs,pita,pitapat,pitched,pitied,piton,pits,pitta,pitted,pitting,pity,place,placer,
+plaice,plan,planula,plasm,plasma,plasmas,plasmasol,plasms,plat,plate,plated,platelet,platted,play,
+playa,player,plea,plead,pleaded,pleat,pleated,pled,pleopod,plica,plicae,plied,plies,plimsoll,
+plimsolls,ploce,plod,plodded,plop,plopped,plops,plosive,plosives,plot,plotted,ploy,ploys,plucks,
+plum,plummy,plump,plumply,plumy,plus,pluses,plush,plushily,plushly,plushy,plusses,poach,pock,pocks,
+poco,podded,podite,poem,poems,poesy,poet,pogey,pogge,pogo,pogrom,pogy,poilu,poilus,poinciana,point,
+pointed,pointing,poise,poises,polacca,pole,poled,poles,policy,polio,polios,polis,polka,poll,pollack,
+polled,pollen,pollock,pollocks,polls,polo,pols,poly,polycyclic,polyp,polyps,polys,pome,pomelo,
+pomelos,pomes,pommel,pommels,pomp,pompanos,pompom,pompoms,pompons,poms,poncho,pone,pones,pong,
+ponging,ponied,ponies,pons,pontine,pontoon,pontoons,pony,pooch,pood,poodle,pooed,pooh,poohed,poohs,
+pooing,pooka,pool,pooled,pools,poon,poons,poop,pooped,pooping,poops,poor,poorly,poos,pope,popes,
+popgun,poplin,poppa,poppas,popped,poppet,poppied,poppies,popping,popple,poppy,pops,populous,popup,
+popups,porch,port,portico,porticos,ports,pose,poses,posh,poshly,poshness,posies,posit,posits,poss,
+posse,posses,possess,possesses,possession,possessions,possessive,possessives,possie,post,postman,
+posts,postscript,postscripts,posy,potage,potato,poteen,potent,potion,potoroo,potoroos,potpie,pots,
+potshot,potshots,pottage,potted,potting,pottle,potto,pottos,potty,poundal,pounded,pour,pout,pouting,
+powwows,prairie,pram,prats,pray,prayer,prays,preamp,preapply,precept,precut,preempt,preen,prem,prep,
+prepare,preparer,prepay,preppie,preppier,prepuce,pret,preterm,preview,previewer,prevue,priapean,
+priapic,prier,prior,priors,priory,privier,proa,prob,proc,procarp,proctor,proctors,prod,prog,prom,
+promo,prop,propositi,propr,props,proptosis,pros,prosit,protist,protists,proud,pruritus,psalm,psalms,
+psia,psid,psis,psoas,psst,ptosis,pubs,puce,pucks,puds,pugging,pula,pule,pules,puli,pull,pulls,
+pullup,pullups,pulp,pulps,pulpy,puls,pulse,pulses,pumper,pumping,pung,punned,punning,puns,punt,
+punting,punts,pupal,pupas,pupil,pupils,pupped,puppet,puppeteer,pupping,pups,pure,puree,purer,purist,
+purists,purpuras,purpure,purree,purrs,pursuit,pursuits,purview,push,pushily,pushup,pushups,pushy,
+puss,pussy,putout,puts,puttee,putter,putterer,putting,putto,putts,pwns,pyas,pylori,pyloric,pyosis,
+python,pythons,qadi,quad,quai,quail,quailed,qualia,qualify,quarry,quay,quelled,queued,quid,quill,
+quinary,rabbi,rabbin,rabbis,rabid,race,raced,raceme,racemic,racer,racers,races,racial,racier,racing,
+rack,racked,racy,radar,radarman,radars,raddle,raddled,radial,radian,radii,radio,radios,radon,rads,
+raff,raffia,raffle,raft,raga,ragas,ragga,ragging,ragi,raging,ragout,ragouts,rags,ragtag,ragtags,
+raid,raids,rail,railer,railing,railroad,rain,rainier,raining,rains,rainy,raise,raiser,raisers,
+raises,raisin,raisins,rajas,rajes,rake,raked,raker,rakes,rale,rales,rall,rallier,ralline,rally,
+ramen,ramie,rammer,ramp,ramrod,ramrods,rams,rance,rand,randan,random,randoms,ranee,ranees,ranging,
+rani,ranis,rank,ranker,rankle,rankles,rankness,ranks,ransom,ransoms,rant,rape,raper,rapid,rapier,
+rapine,rapparee,rappee,rappel,rappen,rapper,raps,rare,rared,rarely,rareness,rarer,rares,rarify,
+raring,rarity,rase,rases,rash,rasher,rashers,rashes,rashly,rasp,rasps,raspy,rata,ratafia,ratal,
+ratan,rath,ratify,ratoon,rats,rattan,rattly,rattoon,rattraps,ratty,rave,ravel,raveler,raver,ravioli,
+rawer,rays,razes,razing,razor,razz,razzes,razzia,razzing,reaches,read,reader,reaffirm,real,realer,
+reales,really,realm,realness,reals,ream,reamer,reap,reaper,reappear,reapply,rear,reared,rearm,rears,
+rearward,reassess,reassesses,reassure,reassures,reave,reaver,reawake,reawaked,rebec,rebel,rebid,
+reboot,rebooted,rebuke,reburies,rebus,rebuses,rebut,rebutted,rebutter,recall,recap,recce,recces,
+recd,recede,receded,receive,received,receiver,recency,recent,recenter,recept,recess,recesses,recite,
+recited,reciter,reck,recon,reconnect,recook,recount,recreance,recrement,rect,recti,recto,rector,
+rectum,recur,recurrence,recurrent,recurve,recut,redbird,redbud,redd,redden,reddened,redder,rede,
+redid,redirect,redirected,redivide,redivided,redo,redone,redoubt,redound,redounded,redraw,redress,
+redressed,redresser,redresses,redrew,redroot,reds,redware,redwood,redye,redyed,reecho,reed,reedbird,
+reedier,reedit,reedited,reeds,reedy,reef,reefed,reefer,reefers,reefs,reek,reeked,reeker,reeks,reeky,
+reel,reeled,reeler,reels,reenergize,reenter,reentry,reeve,reeved,reface,refer,referee,refereed,
+referees,reference,referral,referred,referrer,referrers,refers,reffed,refile,refiled,refill,
+refilled,refine,refiner,refire,refl,reform,reformer,refrain,refs,refuel,refueled,refuelled,refuge,
+refugee,refugees,refuges,refuse,refuses,regild,region,regorge,regorging,regress,regresses,regrew,
+rehab,rehash,rehashes,rehear,rehears,rehearse,rehearser,rehearses,rehi,rehire,rehiring,reified,
+reifies,reign,reigning,reimburse,reimburses,rein,reincur,reindeer,reined,reining,reinter,reis,
+reissue,reissues,reive,relay,relearn,relearns,release,releaser,releases,relic,relied,relief,relieve,
+reliever,reline,relink,relit,relive,reload,reloaded,rely,remain,remake,remanence,remap,remark,
+remarry,remember,remembers,remise,remiss,remora,remorse,remote,remoter,remount,rems,renal,rename,
+rencounter,rend,render,rendered,renderer,renege,reneger,reneging,renew,renewer,renewing,renin,
+renitent,rennet,rennin,renounce,renouncer,rent,renter,rentier,reoccur,reoccurrence,reorder,
+reordered,reorg,reorging,reorient,repair,repairer,repaper,repay,repeal,repealer,repine,repiner,
+replace,replacer,replay,replica,repp,reprieve,rept,repute,reran,reread,rerelease,reremouse,rerolled,
+reroute,rerouted,rerun,resale,resales,reseal,reseals,research,researcher,researchers,researches,
+reseed,reseeded,reseeds,resell,reseller,resellers,resells,reshes,resize,resizes,resume,resumes,
+resurge,retd,rete,retell,retene,retention,retie,retied,retinite,retinue,retire,retired,retiree,
+retitle,retort,retorted,retortion,retried,retrieve,retrieved,retriever,retro,retrod,retry,retted,
+retune,return,returnee,returner,retweet,retweeted,reunion,reunite,reuse,reused,reuses,reveal,
+reveille,revel,reveler,reveller,revelry,revenue,revenuer,revere,revered,reverence,reverie,revert,
+reverted,reverter,revery,revet,revetted,review,reviewer,revile,reviler,revival,revive,revived,
+reviver,revolve,revolver,revue,revved,reward,rewarded,rewarm,rewed,rewedded,reweigh,reweighing,
+rewire,rewiring,reword,reworded,rewrite,rewritten,rewrote,rezoning,rhea,rheas,rheo,rhesus,rhesuses,
+rheum,rhomb,rhombi,rhombs,rhombus,rhos,rhubarb,rhumbs,rial,riata,ribald,ribbed,ribber,ribbers,
+ribbing,ribbings,ribbon,ribbons,ribs,rice,riced,ricer,ricercar,ricercare,ricers,rices,richer,ricing,
+rick,rickey,ricrac,ricracs,ridded,ridden,riddle,riddled,riddler,ride,rider,ridge,ridged,ridotto,
+rids,riel,rife,rifer,riffed,riffle,riffled,riffraff,riffs,rifle,rifled,rifler,rigged,rigger,riggers,
+rigging,rigor,rigorous,rigors,rigs,rile,riled,rilievo,riling,rill,rille,rilled,rillet,rime,rimes,
+rimier,rimose,rims,ring,ringer,ringing,ringings,rings,rinsing,riot,rioted,rioter,riots,ripcord,ripe,
+ripen,riper,ripper,rips,ripstop,rise,riser,risers,rises,rishi,rising,risings,risotto,risottos,rite,
+ritenuto,rival,rive,rived,riven,river,riverine,rivet,riveted,riveter,rivetted,riyal,roach,road,
+roads,roam,roamer,roams,roan,roans,roar,roared,roarer,roars,roast,roasts,robalo,robbed,robber,
+robbery,robbin,robbing,robe,robed,robin,robing,robins,roble,robomb,robot,robs,rock,rocker,rococo,
+rocs,rode,rodeo,rods,roes,roger,rogering,roguish,roil,roilier,roily,role,roll,rolled,roller,
+rollover,roman,romeo,romeos,romp,ronde,rondel,rondelle,rondo,rondos,rondure,rood,roods,roof,roofer,
+roofs,rook,room,roomer,roomers,roomette,rooms,roose,roost,roosts,root,rooted,rooter,roots,ropy,rose,
+roses,rosier,rosin,rosining,rosins,rostra,rota,rotas,rotator,rotators,rote,rotenone,rotgut,rotl,
+rotor,rotors,rototill,rots,rotted,rotten,rottener,rotter,roturier,rough,roughish,roughs,roulade,
+rouleau,rounce,rounded,roundel,rounder,roup,rouse,rouser,rouses,roust,rousts,rout,route,routed,
+router,routine,routs,rove,rover,rowed,rowel,rower,rubbed,rubber,rubbers,rube,rubes,rubier,rubies,
+rubs,ruche,ruck,rudd,rudder,rudderless,rudders,ruddier,ruddle,ruddled,ruddles,ruddock,rudds,rude,
+ruder,ruderal,rued,rueful,rues,ruffed,ruffle,ruffled,ruffler,rugged,ruggeder,rugger,ruggers,rugrat,
+rugrats,rugs,ruined,rule,ruled,ruler,rulers,rules,rumen,rummer,rummers,rumor,rumors,rumrunner,rums,
+rundle,rune,runnel,runner,runnier,runt,runtier,rupee,rupture,rural,ruse,ruses,rush,rushed,rusher,
+rushers,rushes,rust,rusts,ruth,ruts,rutted,ruttier,ryas,saber,sabers,sabin,sabins,sable,sables,
+sabra,sabras,sabre,sabres,saccharase,sack,sacks,sacra,sacraria,sacs,saddle,saddled,saddles,sades,
+sadhu,sadhus,sadism,sadly,safari,safaris,safe,safes,safest,saffron,saffrons,saga,sagas,sage,
+sageness,sages,sagging,saggy,sagittal,sago,sags,said,saiga,saigas,sail,sails,sain,sainfoin,
+sainfoins,saith,sake,saker,sakes,saki,sakis,salaam,salaams,salable,salad,salade,salads,salami,
+salamis,salary,sale,saleable,sales,saline,salines,sallies,sally,salmi,salmis,salol,salols,saloop,
+salpa,salpas,salsa,salsas,salt,saltish,salts,saltus,salty,samba,sambas,sambo,same,sameness,sames,
+samosa,samosas,sampan,sampans,samsara,sancta,sand,sandman,sands,sandy,sane,saneness,saner,sang,
+sanies,sank,sans,sansei,sapota,sapotas,sapping,sappy,saps,saran,sard,sards,saree,sarees,sargasso,
+sargassos,sari,saris,sarky,saros,sarsen,sartor,sartors,sash,sashay,sashays,sashes,sasin,sass,
+sassabies,sassaby,sassafras,sassed,sasses,sassier,sassily,sassiness,sassing,sassy,sastruga,satay,
+sate,sates,sati,satrap,satraps,satyr,satyrs,sauce,sauces,saudade,sauna,saunas,savior,saviors,savor,
+savors,sawing,sawn,saws,sayer,says,sayyid,scab,scabs,scad,scads,scag,scags,scale,scaleless,scales,
+scaly,scam,scams,scan,scandic,scans,scant,scants,scar,scarce,scarcer,scare,scares,scarier,scarp,
+scarps,scars,scary,scat,scats,scatty,scene,scenes,scenic,scent,scents,school,schools,schuss,science,
+sciences,scientist,scientistic,scientists,scion,scions,scirocco,scissel,scissile,scission,scissions,
+scissor,scissors,scoliosis,scollop,scollops,scoop,scoops,scoot,scoots,scop,scope,scopes,scot,
+scotopic,scout,scouts,scrap,scrappy,scraps,scratch,scratchy,scree,screech,screeches,screechy,screes,
+scroop,scuff,scuffs,scull,scullion,scullions,sculls,sculp,scup,scups,scut,scuta,scutate,scute,
+scutes,scuts,seabed,seabeds,seacoast,seacoasts,seal,sealable,sealane,sealed,sealer,sealers,seals,
+seam,seaman,seamen,seams,sear,search,searcher,searchers,searches,sears,seas,seashell,seashells,
+season,seasons,seat,seats,sebum,sebums,secco,sech,secrecy,secs,sect,sects,secy,seed,seedbed,
+seedbeds,seeded,seeder,seeders,seedless,seedlessness,seeds,seedy,seek,seeker,seekers,seeks,seel,
+seeled,seels,seem,seemed,seems,seen,seep,seeps,seer,seeress,seers,sees,seesaw,seesaws,seethe,
+seethes,segue,segues,seine,seines,seise,seism,seismic,seismism,seisms,seize,seizer,seizers,seizes,
+selah,seldom,seldomness,self,selfheal,selfie,selfies,selfish,selfless,selflessness,selfness,sell,
+seller,sellers,selloff,selloffs,sells,selves,sememe,semen,semi,semis,send,sendoff,sendoffs,sends,
+sene,senega,senegas,senescence,senescent,senile,seniti,senna,sennet,sennit,sens,sense,sensed,
+senseless,senselessness,senses,sent,sente,sentence,sentences,sentience,sentiencies,sentiency,
+sentient,sepoy,sepses,sepsis,sera,serai,sere,serena,serene,sereneness,serener,serer,serf,serfs,
+serge,series,serif,serifs,serious,serous,serum,serums,sesame,sesames,sessile,session,sessions,
+sestet,sestets,seta,setaceous,setae,setback,setbacks,setose,sets,sett,settee,settees,settle,settled,
+settles,setts,sewan,sewn,sews,shabby,shad,shadbush,shadbushes,shade,shaded,shadeless,shades,shadily,
+shads,shady,shag,shagging,shaggy,shags,shah,shahs,shale,shall,shalt,sham,shammy,shams,shanghai,
+shanghaiing,shanghais,shannies,shaping,share,sharer,sharers,shares,shastra,shat,shay,shays,sheaf,
+shear,shearer,shearers,shears,shed,shedder,sheds,sheen,sheeny,sheep,sheepish,sheepishness,sheer,
+sheered,sheerer,sheers,sheet,sheets,sheila,sheilas,shelf,shell,shellac,shellacs,shelled,sheller,
+shellfish,shellfishes,shells,shelly,sher,sherd,sherds,sherry,shes,shew,shews,shies,shiest,shill,
+shillalah,shillalahs,shills,shim,shims,shin,shine,shines,shininess,shining,shinnies,shinning,shins,
+ship,shippen,shipping,ships,shirr,shirrs,shit,shits,shittiest,shlep,shlepp,shlepps,shleps,shmo,
+shnook,shoal,shoals,shod,shoe,shoed,shoelace,shoelaces,shoeless,shoes,shoeshine,shoeshines,shogun,
+shoguns,shone,shoo,shooed,shooing,shook,shool,shoon,shoos,shoot,shootout,shootouts,shoots,shop,
+shoppe,shoppes,shops,shoran,shorn,shot,shots,shout,shouts,shred,shredded,shredder,shredders,shreds,
+shrub,shrubs,shrug,shrugs,shtg,shuck,shucks,shudder,shuddered,shudders,shul,shun,shunning,shuns,
+shush,shushed,shushes,shushing,shut,shutout,shutouts,shuts,shyer,shyly,shyness,sibs,sick,sickie,
+sickies,sickish,sicks,sics,siddur,side,sided,sides,siding,sidings,sidle,sidled,sidles,siege,sieges,
+sienna,sierra,sierras,sieve,sieves,sigh,sighing,sighs,sight,sightless,sightliest,sights,sigil,sigma,
+sigmas,sigmatism,sign,signing,signings,signor,signori,signorino,signors,signs,sika,sikas,sike,
+sileni,silesia,silesias,silicious,silicle,silicles,silicon,silicons,silicosis,silk,silks,sill,
+sillies,silliest,silliness,sills,silly,silo,silos,silt,siltiest,silts,sima,simba,simian,simians,
+simmer,simmers,simoom,simooms,simplism,sims,since,sine,sines,sinfonia,sing,singing,singling,sings,
+singsong,singsonging,singsongs,sinh,sink,sinks,sinless,sinning,sins,sinuous,sinus,sinusoid,
+sinusoids,sipping,sips,sirdar,sirdars,sire,siree,sires,siriases,siriasis,siring,sirocco,siroccos,
+sirree,sirs,sirup,sirups,sisal,sises,siskin,siskins,sissier,sissies,sissiest,sissified,sissy,
+sissyish,site,sites,sits,situ,situp,situps,situs,sizar,size,sizer,sizes,skat,skate,skates,skean,
+skeet,skew,skews,skiable,skid,skids,skies,skill,skills,skim,skims,skin,skink,skinks,skins,skis,skol,
+skosh,skua,skuas,skulk,skulks,skull,skulls,skunk,skunks,skyhook,skyward,skywards,skyway,slab,slabs,
+slag,slaggy,slags,slake,slakes,slalom,slaloms,slam,slams,slap,slaps,slash,slashed,slashes,slat,
+slats,slaty,slay,slays,sled,sledded,sledder,sledders,sleds,sleek,sleeker,sleekness,sleeks,sleep,
+sleepless,sleeplessly,sleeps,sleepy,sleet,sleeted,sleets,sleeve,sleeveless,sleeves,sleigh,sleighs,
+sleight,sleights,slice,slices,slide,slides,sliest,slight,slightest,slights,slily,slim,slims,sling,
+slinging,slings,slip,slippy,slips,slipslop,slipup,slipups,slit,slits,slobbed,sloe,sloes,slogging,
+sloop,sloops,slop,slope,slopes,sloppy,slops,slosh,sloshed,sloshes,sloshy,slot,sloth,sloths,slots,
+slub,slubs,slue,slued,slues,sluff,slugging,sluing,slung,slur,slurred,slurs,slush,slushily,slushy,
+slut,sluts,sluttish,slutty,slyly,slype,small,smalls,smarm,smarms,smash,smell,smelled,smells,smit,
+smith,smiths,smote,smut,smuts,snack,snacks,snag,snagging,snags,snake,snakes,snap,snapping,snappish,
+snaps,snare,snares,snarf,snarfs,snark,snarks,snarl,snarler,snarls,sneak,sneaker,sneakers,sneaks,
+sneer,sneers,sniff,sniffs,snip,snipe,snipes,sniping,snippiness,snipping,snips,snit,snits,snob,snobs,
+snog,snogging,snogs,snood,snoods,snook,snooks,snoop,snoopiness,snoops,snoopy,snoot,snoots,snooty,
+snoring,snot,snots,snotty,snow,snows,snub,snubs,snuck,snug,snugging,snuggling,snugs,soak,soaks,soap,
+soaps,soar,soars,soba,sobbed,sobbing,sobbings,sobs,sociol,sock,sockeye,sockeyes,socks,socle,socles,
+soda,sodas,sodded,sodden,soddenness,sodding,sods,sofa,sofar,sofas,soggy,soil,soiling,soils,soke,
+sola,solace,solaces,solar,sold,soldo,sole,soled,solely,solemn,solemness,solemnness,soles,soli,
+soling,solipsism,solipsisms,solo,soloed,soloing,soloist,soloists,solon,solons,solos,sols,solus,
+solve,solves,soma,somas,sombrous,some,someone,someones,sonant,sonants,sonar,sonars,sonata,sonatas,
+sonde,sone,sones,song,songs,sonic,sonics,sonnies,sonny,sons,soon,soot,sooth,sooty,soph,sopor,
+soppiness,soppy,sops,sora,sorb,sorbing,sorbs,sordid,sore,sorer,sores,sorgo,sorgos,sori,sorn,sororal,
+sorosis,sorrier,sort,sorta,sorts,sorus,sots,sotted,sottish,sough,soughing,soughs,souk,souks,soul,
+soulless,souls,sound,sounding,soundings,sounds,soup,soups,sour,sourer,sourish,sours,sous,souse,
+souses,sousing,south,sowens,sown,sows,soya,spacy,spae,spahi,spall,spam,spams,span,spang,spanging,
+spangs,spanning,spans,spar,sparry,spars,spas,spasm,spasms,spat,spats,spawn,spawns,spay,spays,speiss,
+spell,spells,speos,spew,spews,sphene,spic,spica,spics,spicy,spiel,spiels,spies,spile,spiles,spill,
+spills,spin,spine,spines,spinning,spinose,spins,spirit,spiritoso,spirits,spirt,spirts,spit,spits,
+spiv,spivs,splosh,sploshes,spoil,spoils,sponson,spontoon,spook,spooks,spool,spools,spoon,spoons,
+spoony,spoor,spoors,sport,sports,spot,spots,spotty,sprat,sprats,spray,sprays,sprit,sprits,spud,
+spuds,spun,spur,spurs,spurt,spurts,sputa,spyhole,sruti,stab,stabs,stacc,staccato,staccatos,stack,
+stacks,stacte,staff,staffs,stag,stags,stagy,stake,stakes,stalag,stall,stalls,stamp,stamps,stand,
+standby,standbys,stands,standup,stank,star,starburst,starbursts,starch,starchy,starry,stars,start,
+starts,startup,startups,stases,stash,stasis,stat,statant,state,states,statism,statist,stator,
+stators,stats,statue,statues,statuette,statuettes,status,statuses,statute,statutes,stay,stays,steak,
+steaks,steed,steeds,steel,steeled,steeliest,steels,stein,steins,stele,steles,stem,stemmed,stems,
+stent,stents,stet,stets,stetted,stew,stews,stge,sties,stigma,stigmas,stigmata,stigmatism,
+stigmatisms,stile,stiles,still,stillest,stilliest,stills,stilt,stilts,stint,stints,stir,stirps,
+stirrup,stirrups,stirs,stoa,stoat,stoats,stogy,stoic,stoics,stoma,stomas,stomata,stomp,stomps,stony,
+stooge,stooges,stool,stools,stoop,stoops,stop,stops,stor,stoss,stoush,stout,stoutest,stoutly,stouts,
+strap,straps,strata,strath,stratus,stray,strays,strip,strips,stript,strop,strops,strut,struts,stub,
+stubbed,stubble,stubs,stucco,stuccoes,stuccos,stuck,stud,studded,studs,stuff,stuffs,stull,stun,
+stunk,stuns,stunt,stunts,stupa,stupid,stupids,stye,styes,stylus,stypsis,styptic,styptics,subarea,
+subareas,subbase,subbases,subbed,subdeb,subdue,subdued,subdues,subhead,subheads,subj,sublet,sublets,
+submember,submerse,submerses,submiss,submit,submits,subpar,subpart,subs,subseries,subset,subsets,
+subshrub,subshrubs,subsist,subsists,substrata,subsume,subsumes,subtle,subtlest,suburb,suburbia,
+suburbs,success,successes,succubi,succubus,succubuses,succuss,succussion,succussions,such,suck,
+sucks,sudd,suds,sued,suede,suer,sues,suet,suffer,sufferer,sufferers,suffers,suffuse,suffused,
+suffuses,suing,suit,suits,sulcus,sulfide,sulfides,sulk,sulks,sullied,sullies,sully,summer,summers,
+summit,summits,sumo,sums,sundog,sundogs,sung,sunk,sunn,sunning,suns,suntan,suntans,sunup,supp,suppl,
+supple,supplies,supply,supra,sups,supt,sura,suras,surbase,surbases,surd,surds,sure,surefire,surer,
+surfer,surfers,surg,surge,surgeries,surges,surmise,surmises,surpass,surra,surtout,sushi,suss,sussed,
+susses,sussing,susurrous,susurrus,sutra,suttee,suttees,swagging,swaging,swain,swains,swam,swami,
+swamis,swan,swanning,swans,swap,swaps,sward,swards,swat,swats,sway,sways,sweat,sweats,sweep,sweeps,
+sweet,sweetest,sweets,swigging,swill,swills,swing,swinging,swings,swish,swishes,swoon,swoons,swoop,
+swoops,swop,swops,syce,sycee,sycosis,syllabary,syllepses,sylph,sylphs,sync,syncs,syne,synectics,
+synop,syphilis,syphon,syphons,sysop,sysops,syst,system,systems,syzygy,tabby,tabes,tabla,table,
+tablet,tabs,tabu,tabuli,tabus,tace,tacet,tach,tache,tacit,tack,tacket,tacks,taco,tacos,tact,tactic,
+tactical,tactician,tactile,taction,tactual,tadpole,tads,tael,taffeta,taffrail,taffy,tafia,tagging,
+tags,tahini,tahr,taiga,taigas,tail,taille,taillights,tails,tain,taint,tainting,taka,takas,take,
+takes,tala,talaria,talas,talc,talcum,tale,talent,tali,tall,tallish,talliths,tally,talus,tamale,
+tamarau,tame,tamed,tamis,tampons,tamps,tams,tana,tanh,tankas,tanks,tannate,tanned,tannic,tannin,
+tanning,tans,tansy,tantalate,tantamount,tantara,tanto,tantra,tantrum,tapas,tape,tapioca,tappet,taps,
+tariff,tarn,taro,taros,tarot,tarots,tarps,tarry,tars,tarsus,tart,tartan,tartar,tartarous,tartars,
+tartly,tarts,tarty,task,tasks,tass,tasse,tasses,tasset,tassets,taste,tastes,tasty,tatami,tatamis,
+tatouays,tats,tatted,tattie,tatting,tattle,tattled,tattletale,tattoo,tattoos,tatty,taunt,taunted,
+taunts,taus,taut,tauten,tautened,tautest,tautly,tautog,tautogs,taws,taxa,taxation,taxi,taxiing,
+taxing,taxying,tayra,tayras,tbsp,teabag,teacake,teacakes,teach,teak,teaks,teal,team,teamed,teammate,
+teapot,teas,tease,teases,teat,teatime,teats,tech,techie,tedder,teddy,teds,teed,teem,teemed,teems,
+teen,teenier,teeniest,teens,teensiest,teensy,teeny,teepee,tees,teeter,teetered,teeth,teethe,teethed,
+teethes,teetotal,teetotum,telamon,teledu,teleg,telesis,teletype,telic,tell,teller,tellies,tells,
+telltale,telly,telnet,tels,temp,temper,tempi,temple,templet,tempo,tempt,tempter,tenant,tenanted,
+tend,tended,tendon,tenement,tenet,tenets,tenge,tenia,tenner,tennis,tenno,tenon,tenoned,tenoner,
+tenor,tenorite,tenpin,tenrec,tens,tense,tenseness,tenses,tensest,tensity,tent,tented,tenter,tenth,
+tenthly,tents,tenure,tenuto,tepee,tepid,terce,tercet,teredo,terete,term,termor,tern,ternion,terr,
+terrene,terret,terrible,terribly,terrier,terrine,terror,terry,test,testa,testaceous,testas,testate,
+testates,testbed,testbeds,tested,testee,testees,testes,testiest,testiness,testis,tests,testy,
+tetanal,teth,teths,tetrode,tetryl,tetter,text,than,thar,that,thatch,thatched,thaw,theca,thecae,thee,
+thees,thegn,theist,theists,them,theme,themed,then,these,theses,thesis,theta,thetic,they,thighs,
+thill,thills,thiol,this,thistle,thistles,tholos,thorough,thoroughwort,thou,though,thought,thous,
+thrash,thrill,throb,thrombi,through,throughout,throw,throwout,thru,thud,thudded,thug,thumbs,thus,
+tiara,tibia,tibiae,tibial,tibias,tical,tics,tiddly,tide,tided,tidied,tidier,tidily,tidy,tied,
+tiemannite,tiepin,tier,tierce,tiered,ties,tiff,tiffin,tightest,tights,tigon,tile,tiler,tiles,tiling,
+till,tillable,tiller,tilling,tills,tilt,tilter,tilth,tilths,tilting,tilts,time,timely,timid,
+timidity,timidly,tinamou,tinct,tincts,tine,tinea,tined,tineid,tines,ting,tinging,tingling,tinier,
+tiniest,tininess,tinned,tinner,tinnier,tinniest,tinniness,tinning,tinny,tinpot,tins,tint,tinted,
+tinter,tinting,tints,tiny,tipcat,tipi,tipis,tipped,tippet,tipping,tipple,tips,tipsy,tiptoe,tiptoed,
+tiptop,tiptops,tire,tired,tireder,tiro,tiros,titan,titanate,titania,titanic,titanite,titanium,
+titbit,titbits,titer,tithe,tithed,tithes,titi,titian,titillate,titis,title,titles,titling,titlist,
+titlists,tits,titter,tittered,titties,tittle,tittles,titty,tmeses,toad,toast,toasts,toasty,toccata,
+toccatas,toddle,toddled,toea,toeas,toed,toes,toffee,toga,togae,togas,togged,togging,toggling,togs,
+tohubohu,toil,toiling,toils,tola,told,tole,toll,tolled,tolling,tolls,tolu,toluol,tolus,tomato,tomb,
+tome,tomes,toms,tomtit,tone,toned,toneme,toner,tong,tonging,tonguing,tonic,tonier,toning,tonne,
+tonometer,tons,tontine,tony,tool,tooled,tooling,tools,toot,tooted,tooter,tooth,toothed,toothwort,
+toothy,tooting,tootle,tootled,tootling,toots,tootsy,topcoat,tope,toped,topee,topi,topic,topics,
+toping,topis,topmast,topmasts,topmost,topped,topping,topple,toppled,tops,tora,tore,torero,tori,
+torii,torment,tormenter,tormentor,torn,tornado,toroid,torpor,torr,torrent,torrid,torrs,tors,torsi,
+torso,torsos,tort,torte,tortoni,torts,tortuous,torture,tortured,torturer,torturous,torus,tosh,toss,
+tossed,tosses,tosspot,tost,total,totaled,totalled,totals,tote,toted,totem,totems,toter,totes,toting,
+tots,totted,totter,tottered,totterer,totting,tough,toughed,toupee,tour,toured,tourer,tours,tout,
+touted,touter,touting,touts,toward,towed,tower,towered,towline,town,townee,townie,toxin,toxoid,
+toyed,toys,toyshop,tract,tracts,trad,tragus,trail,trait,tram,tramroad,traps,trash,trashy,trass,
+trauma,traumata,tray,trays,treble,trebly,trecento,tree,treed,treen,tremor,tret,trey,trial,tribe,
+trice,tricot,tricots,tricrotic,tried,trier,trill,trine,trio,triode,trios,tripos,trips,trite,tritely,
+triter,triton,triune,trivet,troat,troats,trod,troll,tron,trona,troop,troops,tropic,tropics,trot,
+troth,trots,trotted,trotter,trough,trounce,trouncer,trout,trouts,trow,trowed,truant,truce,true,
+trued,truer,trug,trugs,trull,trumpet,trumpeter,trunnion,truss,trust,trusts,truth,tsar,tsars,tsetse,
+tsetses,ttys,tuatara,tuataras,tuba,tubal,tubas,tube,tubed,tubeless,tuber,tubes,tubs,tubules,tucks,
+tufa,tuff,tuft,tufted,tufts,tugged,tugging,tugs,tuition,tulle,tumid,tumidity,tumidly,tums,tumuli,
+tumult,tuna,tunas,tune,tuned,tuner,tunicle,tuning,tunnel,tuns,turbo,turbot,turd,turds,tureen,
+turfman,turgor,turgors,turn,turner,turnery,turnon,turnout,turps,turret,turreted,tush,tusk,tusks,
+tussis,tussle,tussled,tussles,tutor,tutored,tutors,tuts,tutted,tutti,tutting,tuttis,tutty,tutu,
+tutus,twas,twat,twats,twattle,tweaks,twee,tweed,tween,tweeny,tweet,tweeted,tweeter,tweets,twenty,
+twin,twine,twiner,twitter,twittery,tying,type,typhoon,typhoons,typist,typists,typo,typos,udder,
+udders,uglier,ulema,ulna,ulnae,ulnar,ululant,ululate,ululated,umber,umlaut,umping,unarm,unary,
+unattended,unattenuated,uncle,uncoil,uncoils,unconcern,unconscious,uncool,undated,undaunted,undead,
+undenied,under,underdone,undid,undine,undo,undoing,undoings,undone,undue,undulled,uneaten,
+unenrolled,uneven,unfree,unguinous,unheeded,unhinging,unhoped,union,unions,unironed,unis,unison,
+unit,unite,uniting,unlay,unlearn,unload,unloosing,unman,unmeet,unmet,unneeded,unnerve,unopened,
+unordered,unpen,unpin,unpinning,unreal,unreel,unreeled,unreeve,unrolled,unroot,unrounded,unsling,
+unslung,unsnap,unsnaps,unsound,unstack,unstuck,unsung,untanned,untenanted,untended,untie,unto,
+untrue,untruer,untune,untuned,untuning,upas,updo,upend,upended,uphills,upland,upload,upon,upped,
+upper,uppercut,upping,uppish,uppishly,upriver,upstart,upstarts,uptempo,uraeus,urea,urease,uredo,
+ureide,ureter,urge,urged,urger,urges,urial,uric,urinal,urinary,urine,urolith,uropod,urus,uruses,
+used,useful,useless,user,users,uses,usher,ushered,ushers,using,usual,usually,usurer,usurers,
+usurious,usurp,usurps,uteri,uterine,utile,utility,utter,uttered,utterer,uvea,uvulae,vacancy,vacuity,
+vail,valance,vale,valence,valency,valet,valeted,valley,valor,valuate,valuated,value,valued,valval,
+valvate,valve,valved,valvule,vane,varas,variola,variole,vars,varve,vasa,vatic,vatted,vatu,vaulted,
+veal,vedette,veep,veeps,veer,veered,veery,veil,veils,vein,vela,velar,velate,veld,veldt,velvet,vena,
+venae,venal,venally,veneer,venin,venire,venue,verderer,verdict,verditer,verier,verite,vernier,vert,
+verve,vervet,very,vessel,vessels,veter,vetiver,vetted,vial,viatica,vice,vicereine,vier,vies,view,
+viewer,vile,viler,villa,villi,villose,vine,viol,viola,viols,viper,viral,virile,visa,visas,vise,
+vises,visor,visors,vita,vitric,vitta,vivacity,vivas,vive,vivider,voes,voids,voile,volar,vole,voles,
+volley,volleyer,vols,volva,voodoos,vulvae,wacke,wacker,wackest,wacks,wadded,wade,waded,wader,wadi,
+wadis,wads,wagging,waging,wail,wain,wains,wake,waked,wakes,wale,wall,wallah,wallet,walleye,wally,
+wame,wane,wanes,wanigan,waning,wanna,wanner,wanness,ward,warded,warder,wards,ware,warm,warmer,warn,
+warred,warren,warrener,wars,wart,wary,wasp,wasps,wast,waste,wastes,watt,wattle,watts,waws,waylay,
+ways,wayward,weak,weaker,weakest,weal,wealth,wealthy,wean,weaner,weans,weapons,wear,wearer,weber,
+wedded,wedder,wedding,wedge,wedged,wedgie,wedging,weed,weeded,weeder,weeding,weeing,week,weeks,ween,
+weened,weenie,weenier,weening,weens,weeny,weep,weeper,weepie,weepier,weeps,weer,wees,weest,weever,
+weigh,weighed,weighing,weir,weka,wekas,weld,welded,welding,well,welled,wellie,welling,wend,wended,
+wending,wens,went,were,wernerite,wert,west,wets,wetted,wetter,wettest,whale,what,wheal,wheat,whee,
+wheen,when,where,wherein,whew,whiffs,whin,whine,whined,whiner,whinge,whinged,whingeing,whinger,
+whinging,whinier,whining,whinnied,whish,whishes,whore,wide,widen,widened,widening,wield,wielded,
+wielding,wiener,wienie,wigged,wigging,wiggings,wiggle,wiggled,wigwagging,wile,wiled,wilier,will,
+willed,willie,williwaw,wills,winch,winching,wincing,winded,wine,wined,winery,wing,winged,winger,
+winging,wings,winier,wining,winner,winning,winnings,winnow,winnowing,wino,wins,winter,winterier,
+wintery,wintrier,wipe,wiper,wire,wirer,wirier,wise,wises,wish,wishes,wishful,wising,wite,witter,
+wittier,wive,woes,wont,wonton,wooded,wooed,wooer,wooing,woolen,woolie,woolier,woollier,woops,woos,
+wops,word,worded,wore,worrier,wort,worth,wowed,wowing,wows,wracked,wreak,wreaked,wreaker,wreck,
+wrecked,wrecker,wren,wrier,wringer,write,writer,written,wrote,wroth,wrought,wryer,wuss,xiii,xxii,
+xxiii,xxix,xxxi,xxxii,xxxiii,xxxix,yacht,yachts,yakka,yaks,yammer,yammerer,yams,yanqui,yapper,yappy,
+yaps,yard,yards,yare,yarn,yautia,yawl,yaws,yeah,yeahs,yean,year,yearly,years,yeas,yegg,yeggs,yell,
+yells,yelp,yelps,yens,yeps,yeses,yessed,yest,yeti,yetis,yikes,yipe,yippee,yippie,yips,ylem,yobbo,
+yock,yocks,yoga,yoke,yokes,yonks,yore,yous,ytterbite,yttria,yuan,yuckier,yulan,yule,yups,zaires,
+zazen,zees,zenana,zenned,zeroing,zest,zests,zesty,zigzag,zigzagging,zinc,zincing,zine,zing,zinger,
+zingier,zinging,zinnia,zodiacs,zombies,zombis,zone,zoned,zoning,zooids,zooms,zoos,zygoses,zygotes`;
 
 // Parse and deduplicate
 const ALL_WORDS = [...new Set(
   WORD_BANK.replace(/\n/g,'').split(',').map(w=>w.trim().toLowerCase()).filter(w=>/^[a-z]{4,}$/.test(w))
 )];
+const ALL_WORDS_SET = new Set(ALL_WORDS);
 
 /* ═══════════════════════════════════════════════
    CONFIG
@@ -439,73 +1258,226 @@ const GAME_SECS = 180;
 const ARC_CIRC  = 138.2;
 
 const PUZZLES = [
-  ['A','R','N','T','E','G','L'],['E','S','T','R','A','N','D'],
-  ['I','N','G','H','T','S','L'],['O','R','P','W','E','D','S'],
-  ['U','N','D','S','R','A','E'],['A','M','P','L','E','S','T'],
-  ['E','C','R','A','T','S','N'],['I','L','P','E','S','C','A'],
-  ['O','N','C','E','T','S','I'],['A','T','R','I','N','G','S'],
-  ['E','B','L','A','S','T','R'],['I','G','H','T','S','E','R'],
-  ['O','F','L','W','E','R','S'],['A','H','N','D','S','T','R'],
-  ['E','G','R','A','S','N','D'],['U','S','E','D','R','A','N'],
-  ['A','C','L','E','S','P','I'],['I','N','T','E','R','S','A'],
-  ['O','S','T','A','R','E','D'],['E','R','P','A','S','T','N'],
- ['A','L','E','R','T','S','D'],
-  ['S','T','O','N','E','R','A'],
-  ['R','E','L','A','T','I','O'],
-  ['P','L','A','N','E','T','S'],
-  ['A','N','G','L','E','R','S'],
-  ['C','R','E','A','T','O','R'],
-  ['T','R','I','A','N','G','L'],
-  ['S','I','L','E','N','T','R'],
-  ['A','R','T','I','S','E','N'],
-  ['F','L','O','W','E','R','T'],
-  ['G','R','A','N','D','E','S'],
-  ['S','H','A','R','E','D','T'],
-  ['S','T','R','A','I','N','E'],
-  ['C','H','A','R','T','E','S'],
-  ['B','R','I','G','H','T','E'],
-  ['T','R','E','A','S','O','N'],
-  ['P','A','R','T','I','N','G'],
-  ['R','E','A','D','I','N','G'],
-  ['D','R','E','A','M','S','T'],
-  ['M','A','R','K','E','T','S'],
-  ['A','R','O','S','E','N','T'],
-  ['L','E','A','R','N','I','T'],
-  ['A','T','T','A','I','N','R'],
-  ['S','P','A','R','K','E','T'],
-  ['A','N','T','L','E','R','S'],
-  ['S','T','E','P','A','R','N'],
-  ['A','R','C','H','E','S','T'],
-  ['C','A','R','P','E','T','S'],
-  ['S','E','R','V','A','N','T'],
-  ['S','T','A','T','I','O','N'],
-  ['P','R','O','T','E','I','N'],
-  ['A','R','T','H','E','R','S'],
-  ['S','H','E','L','T','E','R'],
-  ['S','T','R','O','N','G','E'],
-  ['S','P','O','R','T','E','D'],
-  ['S','C','A','R','L','E','T'],
-  ['S','I','D','E','N','T','R'],
-  ['F','A','S','T','E','R','N'],
-  ['S','E','C','T','O','R','A'],
-  ['A','R','E','N','A','L','S'],
-  ['C','L','E','A','R','S','T'],
-  ['S','T','R','A','W','E','D'],
-  ['S','A','L','T','E','R','N'],
-  ['G','A','R','D','E','N','S'],
-  ['S','T','E','A','D','I','N'],
-  ['S','T','R','A','N','D','E'],
-  ['A','R','M','E','D','S','T'],
-  ['S','E','A','T','E','R','N'],
-  ['L','A','T','E','R','N','S'],
-  ['T','R','A','I','N','E','D'],
-  ['S','E','R','E','N','A','T'],
-  ['R','A','T','I','N','G','S'],
-  ['T','E','A','C','H','E','R'],
-  ['R','E','C','I','P','E','T'],
-  ['S','H','A','D','E','R','T'],
-  ['S','T','A','R','I','N','G'],
-  ['A','R','E','N','D','S','T']
+  ['E','G','L','N','H','Y','T'],
+  ['S','O','L','M','D','E','N'],
+  ['S','O','G','Y','E','T','Z'],
+  ['E','W','G','L','D','N','I'],
+  ['A','O','G','L','M','R','S'],
+  ['E','C','L','U','N','T','I'],
+  ['L','V','O','A','E','R','I'],
+  ['A','C','M','N','E','R','I'],
+  ['S','W','C','A','K','E','T'],
+  ['S','F','W','E','H','J','I'],
+  ['S','O','U','A','D','N','B'],
+  ['N','O','A','M','U','T','I'],
+  ['O','C','L','U','N','S','I'],
+  ['A','D','N','Y','T','B','S'],
+  ['S','O','M','E','Z','B','I'],
+  ['E','F','L','U','D','S','I'],
+  ['A','F','L','U','N','Y','T'],
+  ['E','O','R','U','M','N','T'],
+  ['A','Q','U','N','Y','R','I'],
+  ['E','F','C','L','H','R','I'],
+  ['S','T','O','C','Y','P','I'],
+  ['A','W','C','M','E','N','R'],
+  ['T','F','A','E','N','I','X'],
+  ['E','W','R','N','Y','T','I'],
+  ['E','O','P','D','N','T','I'],
+  ['T','O','C','A','Y','P','I'],
+  ['E','T','O','W','U','D','R'],
+  ['S','L','A','K','E','B','I'],
+  ['E','T','O','C','U','N','R'],
+  ['S','O','W','A','E','N','P'],
+  ['E','O','W','L','J','R','I'],
+  ['E','O','U','D','N','R','I'],
+  ['I','O','G','L','N','T','B'],
+  ['T','O','W','G','U','H','R'],
+  ['O','A','D','H','N','R','S'],
+  ['O','C','U','K','D','R','B'],
+  ['R','O','C','A','M','K','E'],
+  ['E','O','L','D','H','B','S'],
+  ['A','C','K','E','T','B','S'],
+  ['S','F','O','I','A','N','R'],
+  ['A','O','L','D','R','B','I'],
+  ['A','C','L','M','H','Y','S'],
+  ['T','O','L','U','H','R','I'],
+  ['A','C','R','H','Y','T','S'],
+  ['A','M','E','N','T','B','I'],
+  ['S','T','I','P','U','D','R'],
+  ['E','V','W','R','U','P','I'],
+  ['O','R','M','H','T','B','I'],
+  ['R','O','C','A','D','P','I'],
+  ['A','F','C','L','N','Y','I'],
+  ['S','O','A','K','D','N','I'],
+  ['N','O','G','C','L','A','I'],
+  ['E','F','L','U','A','N','R'],
+  ['E','O','L','A','U','D','R'],
+  ['E','O','U','D','H','N','P'],
+  ['E','M','U','R','B','S','I'],
+  ['T','O','C','A','U','E','S'],
+  ['S','F','C','U','A','E','T'],
+  ['O','P','H','Y','N','T','S'],
+  ['R','O','W','C','H','E','B'],
+  ['S','O','M','A','D','N','I'],
+  ['A','L','D','H','Y','S','I'],
+  ['N','O','G','P','U','T','I'],
+  ['S','G','L','A','H','T','I'],
+  ['R','T','O','W','U','A','D'],
+  ['E','G','L','U','D','R','I'],
+  ['E','L','A','H','N','S','I'],
+  ['I','G','C','A','N','R','Z'],
+  ['E','C','U','M','H','N','R'],
+  ['N','O','G','U','D','S','I'],
+  ['R','O','D','E','T','B','I'],
+  ['A','L','U','D','N','R','I'],
+  ['O','C','L','A','K','D','P'],
+  ['L','C','A','E','T','B','I'],
+  ['E','R','A','H','N','P','I'],
+  ['T','O','R','U','N','E','I'],
+  ['E','V','O','L','A','Y','R'],
+  ['E','O','L','M','Y','R','B'],
+  ['A','C','L','K','N','E','R'],
+  ['E','O','C','L','K','D','B'],
+  ['S','I','C','A','E','R','Z'],
+  ['A','W','K','D','Y','R','S'],
+  ['O','T','C','U','M','E','P'],
+  ['A','O','C','L','N','Y','B'],
+  ['T','F','C','A','E','Y','I'],
+  ['O','T','G','U','H','R','B'],
+  ['E','C','P','D','H','T','I'],
+  ['S','O','P','M','A','N','T'],
+  ['O','C','L','M','E','P','S'],
+  ['S','O','G','C','H','E','I'],
+  ['A','C','D','N','B','S','I'],
+  ['S','O','G','C','U','A','H'],
+  ['R','F','O','A','M','E','N'],
+  ['A','O','M','D','N','R','S'],
+  ['E','F','L','U','D','R','I'],
+  ['L','O','P','A','D','E','T'],
+  ['D','Q','L','A','U','E','I'],
+  ['O','C','P','H','R','B','I'],
+  ['E','O','R','U','D','T','B'],
+  ['A','C','M','D','Y','N','I'],
+  ['S','U','A','D','H','E','B'],
+  ['E','W','G','D','H','N','I'],
+  ['A','K','E','N','R','B','S'],
+  ['L','O','U','A','D','N','P'],
+  ['E','O','A','D','N','Z','I'],
+  ['N','O','G','L','U','S','I'],
+  ['E','V','L','U','A','D','T'],
+  ['L','O','M','A','P','S','I'],
+  ['A','W','M','D','Y','S','I'],
+  ['T','O','G','U','A','R','S'],
+  ['R','A','U','K','H','E','B'],
+  ['A','C','N','H','J','T','I'],
+  ['E','F','O','L','U','D','T'],
+  ['N','O','G','U','H','S','I'],
+  ['L','C','M','U','A','E','T'],
+  ['S','V','O','L','E','P','I'],
+  ['O','L','H','N','E','P','I'],
+  ['S','G','C','A','H','N','E'],
+  ['E','C','R','U','N','Y','T'],
+  ['A','L','P','M','E','Y','R'],
+  ['S','A','U','J','R','B','I'],
+  ['S','O','K','E','H','N','Y'],
+  ['L','M','U','D','Y','P','I'],
+  ['S','C','A','Y','H','E','R'],
+  ['A','W','L','E','H','Y','T'],
+  ['A','F','R','M','U','N','T'],
+  ['A','T','O','M','D','N','R'],
+  ['E','O','M','D','Y','T','S'],
+  ['E','O','L','A','M','N','T'],
+  ['S','O','G','U','H','R','I'],
+  ['E','T','C','P','M','U','R'],
+  ['S','I','M','U','H','T','B'],
+  ['L','A','Y','H','N','E','I'],
+  ['E','T','O','G','A','P','B'],
+  ['A','V','C','L','N','E','Y'],
+  ['E','C','L','K','D','P','I'],
+  ['S','L','A','K','N','E','R'],
+  ['E','W','C','A','K','D','R'],
+  ['E','T','L','M','Y','P','I'],
+  ['I','G','M','U','N','P','B'],
+  ['S','O','U','M','E','R','I'],
+  ['N','G','L','A','K','E','I'],
+  ['S','P','U','A','D','N','T'],
+  ['S','L','U','D','E','T','B'],
+  ['N','O','C','A','T','B','I'],
+  ['E','G','L','H','T','S','I'],
+  ['I','O','A','D','N','T','X'],
+  ['E','L','A','K','N','R','I'],
+  ['A','O','G','L','M','B','S'],
+  ['A','G','M','T','B','S','I'],
+  ['S','C','U','K','H','B','I'],
+  ['S','F','W','L','U','H','I'],
+  ['A','O','C','M','H','R','Z'],
+  ['E','F','L','A','D','H','S'],
+  ['S','O','L','U','A','Y','T'],
+  ['E','C','A','M','D','H','T'],
+  ['N','I','W','G','A','J','S'],
+  ['S','T','R','A','U','P','B'],
+  ['E','C','D','N','Y','R','I'],
+  ['S','L','U','H','Y','P','I'],
+  ['I','L','M','U','D','Y','T'],
+  ['O','H','N','E','P','B','I'],
+  ['A','L','H','Y','R','B','S'],
+  ['S','L','U','D','H','E','R'],
+  ['S','O','L','Y','H','E','P'],
+  ['S','F','O','L','D','E','N'],
+  ['A','T','F','L','Y','R','I'],
+  ['T','V','C','U','A','Y','I'],
+  ['A','C','L','R','E','P','I'],
+  ['T','F','G','A','U','E','I'],
+  ['S','C','A','U','K','N','T'],
+  ['L','O','C','A','H','E','S'],
+  ['S','O','L','U','H','T','I'],
+  ['E','U','A','D','N','J','T'],
+  ['A','I','C','R','Y','P','S'],
+  ['E','O','L','U','D','N','R'],
+  ['O','C','R','P','T','S','I'],
+  ['O','F','L','A','U','D','R'],
+  ['R','T','V','C','D','E','I'],
+  ['O','C','K','E','Y','J','S'],
+  ['N','O','G','R','B','S','I'],
+  ['S','O','M','A','E','N','B'],
+  ['R','C','U','K','Y','E','I'],
+  ['S','O','C','L','U','K','P'],
+  ['L','O','U','E','P','S','I'],
+  ['S','O','M','U','H','R','B'],
+  ['G','O','E','N','Z','R','I'],
+  ['I','G','A','Y','N','T','X'],
+  ['S','V','O','A','D','R','I'],
+  ['S','O','C','A','D','Z','I'],
+  ['E','O','H','N','P','S','I'],
+  ['A','C','L','U','T','B','I'],
+  ['S','G','A','H','N','P','I'],
+  ['S','C','U','K','E','T','B'],
+  ['N','O','W','L','E','T','I'],
+  ['O','G','A','E','Y','P','B'],
+  ['L','U','A','E','Y','J','B'],
+  ['E','F','C','A','U','N','R'],
+  ['E','C','R','U','M','N','T'],
+  ['E','F','M','A','N','R','I'],
+  ['L','Q','F','A','U','Y','I'],
+  ['S','U','A','E','J','R','B'],
+  ['L','W','A','N','E','J','I'],
+  ['N','O','W','G','C','H','I'],
+  ['A','T','F','O','M','N','R'],
+  ['E','F','C','L','H','S','I'],
+  ['S','C','M','K','E','Y','I'],
+  ['E','F','G','U','R','S','I'],
+  ['E','T','L','Y','R','B','I'],
+  ['E','V','C','U','N','R','I'],
+  ['A','G','L','H','Y','T','S'],
+  ['E','O','M','A','D','N','B'],
+  ['D','O','G','U','H','E','T'],
+  ['A','F','M','D','N','Y','I'],
+  ['E','W','G','H','N','R','I'],
+  ['O','G','P','M','U','D','R'],
+  ['O','C','L','P','Y','R','I'],
+  ['I','G','L','A','N','R','B'],
+  ['C','O','A','H','N','P','I'],
+  ['S','C','Y','N','E','T','I']
 ];
 
 const RANKS = [
@@ -532,7 +1504,6 @@ newPuzzle();
 function newPuzzle() {
   clearInterval(timerInterval);
   const pick = PUZZLES[Math.floor(Math.random()*PUZZLES.length)];
-  letters==[...pick]; // reset before assigning
   letters      = [...pick];
   outerLetters = letters.slice(1);
   foundWords   = new Set();
@@ -585,6 +1556,22 @@ function updateArc() {
 function renderFlower() {
   const svg = document.getElementById('flower');
   svg.innerHTML = '';
+  const NS = "http://www.w3.org/2000/svg";
+
+  // Gradient defs — soft light-to-dark shading so petals read as domed, pressable objects
+  const defs = document.createElementNS(NS, "defs");
+  defs.innerHTML = `
+    <radialGradient id="petalGradient" cx="35%" cy="30%" r="75%">
+      <stop offset="0%" stop-color="#fbe9e6"/>
+      <stop offset="55%" stop-color="${getComputedStyle(document.documentElement).getPropertyValue('--petal').trim()||'#f0d6d2'}"/>
+      <stop offset="100%" stop-color="${getComputedStyle(document.documentElement).getPropertyValue('--petal-hover').trim()||'#e8bfc0'}"/>
+    </radialGradient>
+    <radialGradient id="centerGradient" cx="35%" cy="28%" r="80%">
+      <stop offset="0%" stop-color="#ff8a68"/>
+      <stop offset="55%" stop-color="${getComputedStyle(document.documentElement).getPropertyValue('--center').trim()||'#f0603f'}"/>
+      <stop offset="100%" stop-color="${getComputedStyle(document.documentElement).getPropertyValue('--center-hover').trim()||'#dd4c2f'}"/>
+    </radialGradient>`;
+  svg.appendChild(defs);
 
   const centerX = 150;
   const centerY = 150;
@@ -592,40 +1579,54 @@ function renderFlower() {
   const outerRadius = 42;
   const centerRadius = 48;
 
+  function tapFeedback(circle, x, y, r) {
+    circle.classList.add('pressed');
+    setTimeout(()=>circle.classList.remove('pressed'), 140);
+    const ripple = document.createElementNS(NS, "circle");
+    ripple.setAttribute("cx", x); ripple.setAttribute("cy", y); ripple.setAttribute("r", r*0.4);
+    ripple.setAttribute("class", "petal-ripple");
+    ripple.style.transformOrigin = `${x}px ${y}px`;
+    svg.appendChild(ripple);
+    setTimeout(()=>ripple.remove(), 520);
+    if (navigator.vibrate) navigator.vibrate(6);
+  }
+
   // Draw outer petals
   for (let i = 0; i < 6; i++) {
     const angle = (Math.PI / 3) * i - Math.PI / 2;
     const x = centerX + radius * Math.cos(angle);
     const y = centerY + radius * Math.sin(angle);
 
-    const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    const circle = document.createElementNS(NS, "circle");
     circle.setAttribute("cx", x);
     circle.setAttribute("cy", y);
     circle.setAttribute("r", outerRadius);
     circle.setAttribute("class", "outer-petal");
 
-    const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    const text = document.createElementNS(NS, "text");
     text.setAttribute("x", x);
     text.setAttribute("y", y + 2);
     text.setAttribute("class", "flower-letter");
     text.setAttribute("font-size", "28");
+    text.setAttribute("fill", "var(--ink)");
     text.textContent = outerLetters[i];
 
-    circle.addEventListener('click', () => addLetter(outerLetters[i]));
-    text.addEventListener('click', () => addLetter(outerLetters[i]));
+    const onTap = () => { tapFeedback(circle, x, y, outerRadius); addLetter(outerLetters[i]); };
+    circle.addEventListener('click', onTap);
+    text.addEventListener('click', onTap);
 
     svg.appendChild(circle);
     svg.appendChild(text);
   }
 
   // Draw center petal
-  const centerCircle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+  const centerCircle = document.createElementNS(NS, "circle");
   centerCircle.setAttribute("cx", centerX);
   centerCircle.setAttribute("cy", centerY);
   centerCircle.setAttribute("r", centerRadius);
   centerCircle.setAttribute("class", "center-petal");
 
-  const centerText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+  const centerText = document.createElementNS(NS, "text");
   centerText.setAttribute("x", centerX);
   centerText.setAttribute("y", centerY + 3);
   centerText.setAttribute("class", "flower-letter");
@@ -633,8 +1634,9 @@ function renderFlower() {
   centerText.setAttribute("fill", "#fff");
   centerText.textContent = letters[0];
 
-  centerCircle.addEventListener('click', () => addLetter(letters[0]));
-  centerText.addEventListener('click', () => addLetter(letters[0]));
+  const onCenterTap = () => { tapFeedback(centerCircle, centerX, centerY, centerRadius); addLetter(letters[0]); };
+  centerCircle.addEventListener('click', onCenterTap);
+  centerText.addEventListener('click', onCenterTap);
 
   svg.appendChild(centerCircle);
   svg.appendChild(centerText);
@@ -643,7 +1645,7 @@ function renderFlower() {
    INPUT
 ═══════════════════════════════════════════════ */
 function addLetter(l) { if(!gameActive||currentWord.length>=20)return; currentWord+=l.toUpperCase(); renderInput(); }
-function deleteLetter() { if(!currentWord.length)return; currentWord=currentWord.slice(0,-1); renderInput(); }
+function deleteLetter() { if(!currentWord.length)return; currentWord=currentWord.slice(0,-1); renderInput(); if(navigator.vibrate) navigator.vibrate(5); }
 function renderInput() { document.getElementById('typed-letters').textContent=currentWord; document.getElementById('word-display').classList.remove('error','success'); }
 function shakeDisplay() { const d=document.getElementById('word-display'); d.classList.add('error'); setTimeout(()=>d.classList.remove('error'),500); }
 
@@ -654,9 +1656,9 @@ function isPangram(word) { const u=new Set(word.split('')); return letters.every
 function wordScore(word) { return word.length===4?1:word.length+(isPangram(word)?7:0); }
 
 /* ═══════════════════════════════════════════════
-   WORD VALIDATION (API + local fallback)
+   WORD VALIDATION (local word bank only)
 ═══════════════════════════════════════════════ */
-async function submitWord() {
+function submitWord() {
   if (validating||!gameActive) return;
   const word=currentWord.toUpperCase();
   if (word.length<4)                                              { showToast('Too short! (4+ letters)','bad'); shakeDisplay(); return; }
@@ -664,16 +1666,7 @@ async function submitWord() {
   if (![...word].every(c=>letters.map(l=>l.toUpperCase()).includes(c))) { showToast('Use only the flower letters!','bad'); shakeDisplay(); return; }
   if (foundWords.has(word))                                       { showToast('Already found!','bad'); shakeDisplay(); return; }
 
-  validating=true;
-  document.getElementById('btn-enter').innerHTML='<span class="spinner"></span>';
-  document.getElementById('btn-enter').disabled=true;
-
-  const valid=await checkDictionary(word.toLowerCase());
-
-  validating=false;
-  document.getElementById('btn-enter').textContent='Enter Word';
-  document.getElementById('btn-enter').disabled=false;
-
+  const valid = ALL_WORDS_SET.has(word.toLowerCase());
   if (!valid) { showToast('Not a valid word','bad'); shakeDisplay(); return; }
 
   const pts=wordScore(word);
@@ -686,16 +1679,12 @@ async function submitWord() {
   showToast(msg,'good');
   document.getElementById('word-display').classList.add('success');
   setTimeout(()=>document.getElementById('word-display').classList.remove('success'),700);
-}
-
-async function checkDictionary(word) {
-  try { const r=await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word}`); return r.ok; }
-  catch { return true; }
+  if (navigator.vibrate) navigator.vibrate(isPangram(word) ? [20,40,20] : 18);
 }
 
 /* ═══════════════════════════════════════════════
-   POSSIBLE WORDS — computed from embedded list
-   then validated via API in batches
+   POSSIBLE WORDS — computed entirely from the
+   embedded local word list, no network calls
 ═══════════════════════════════════════════════ */
 function getCandidateWords() {
   const center=letters[0].toUpperCase();
@@ -706,31 +1695,11 @@ function getCandidateWords() {
   });
 }
 
-async function findAllPossibleWords(onProgress) {
+function findAllPossibleWords(onProgress) {
   const candidates = getCandidateWords();
-  const validated  = [];
-  const BATCH      = 6;   // parallel requests per tick
-  let done         = 0;
-
-  for (let i=0; i<candidates.length; i+=BATCH) {
-    const batch = candidates.slice(i, i+BATCH);
-    const results = await Promise.all(
-      batch.map(async w => {
-        try {
-          const r = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${w}`);
-          return r.ok ? w : null;
-        } catch { return w; } // offline: accept
-      })
-    );
-    results.forEach(w=>{ if(w) validated.push(w); });
-    done += batch.length;
-    onProgress(Math.min(100, Math.round((done/candidates.length)*100)));
-    // small yield so UI doesn't freeze
-    await new Promise(r=>setTimeout(r,50));
-  }
-
+  onProgress(100);
   // sort: pangrams first, then by length desc, then alpha
-  return validated.sort((a,b)=>{
+  return candidates.sort((a,b)=>{
     const pa=isPangram(a.toUpperCase()),pb=isPangram(b.toUpperCase());
     if (pa&&!pb) return -1; if (!pa&&pb) return 1;
     return b.length-a.length||a.localeCompare(b);
@@ -749,14 +1718,14 @@ function updateScoreDisplay() {
   for(let i=RANKS.length-1;i>=0;i--){ if(score>=RANKS[i].min){ri=i;break;} }
   const rank=RANKS[ri],next=RANKS[ri+1];
   document.getElementById('rank-name').textContent=rank.name;
-  if(next){ document.getElementById('rank-fill').style.width=Math.min(100,((score-rank.min)/(next.min-rank.min))*100)+'%'; document.getElementById('rank-pts').textContent=`Next rank at ${next.min} pts`; }
-  else { document.getElementById('rank-fill').style.width='100%'; document.getElementById('rank-pts').textContent='Max rank reached!'; }
+  if(next){ document.getElementById('rank-fill').style.width=Math.min(100,((score-rank.min)/(next.min-rank.min))*100)+'%'; }
+  else { document.getElementById('rank-fill').style.width='100%'; }
 }
 
 function updateFoundList() {
   document.getElementById('found-count').textContent=foundWords.size;
   const list=document.getElementById('found-list');
-  if(!foundWords.size){ list.innerHTML='<span style="font-size:0.8rem;color:var(--ink-muted)">Words you find will appear here…</span>'; return; }
+  if(!foundWords.size){ list.innerHTML='<span class="found-hint">Words you find will appear here…</span>'; return; }
   list.innerHTML='';
   [...foundWords].sort((a,b)=>b.length-a.length||a.localeCompare(b)).forEach(w=>{
     const span=document.createElement('span');
@@ -808,7 +1777,12 @@ document.addEventListener('keydown',e=>{
 ═══════════════════════════════════════════════ */
 document.getElementById('btn-delete').addEventListener('click',deleteLetter);
 document.getElementById('btn-enter').addEventListener('click',submitWord);
-document.getElementById('btn-shuffle').addEventListener('click',shuffle);
+document.getElementById('btn-shuffle').addEventListener('click',()=>{
+  const b=document.getElementById('btn-shuffle');
+  b.classList.remove('spin'); void b.offsetWidth; b.classList.add('spin');
+  if (navigator.vibrate) navigator.vibrate(10);
+  shuffle();
+});
 document.getElementById('btn-new').addEventListener('click',()=>{
   if(confirm('Start a new puzzle? Your current progress will be lost.')) newPuzzle();
 });
@@ -900,12 +1874,12 @@ async function loadPossibleWords() {
   const allGrid      = document.getElementById('endWordsAll');
   const countEl      = document.getElementById('possibleCount');
 
-  subtitle.textContent = 'Checking dictionary…';
+  subtitle.textContent = 'Finding possible words…';
   allGrid.innerHTML    = '';
+  progressFill.style.width = '0%';
 
-  allPossibleWords = await findAllPossibleWords(pct => {
+  allPossibleWords = findAllPossibleWords(pct => {
     progressFill.style.width = pct + '%';
-    subtitle.textContent = `Checking dictionary… ${pct}%`;
   });
 
   progressFill.style.width = '100%';

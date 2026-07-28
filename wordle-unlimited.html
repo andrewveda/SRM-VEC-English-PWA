@@ -1,0 +1,790 @@
+<!doctype html>
+
+<html lang="en">    
+<head>    
+<meta charset="utf-8" />    
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />    
+<title>Wordle Embed</title>    
+<style>    
+:root{    
+  --bg:#0b1220; --card:#0f1724; --text:#e6eef8;    
+  --absent:#3a3a3c; --present:#b59f3b; --correct:#538d4e;    
+  --key:#818384; --key-pressed:#565758;
+  --ivory:#FAF6EA; --ivory-card:#FFFDF7; --ivory-deep:#F0E7CE;
+  --gold:#B8935A; --gold-deep:#8C6A34; --gold-light:#E4CE9B; --ink:#2A2115; --ink-soft:#8A7A5C;
+  font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;    
+}    
+*{box-sizing:border-box;margin:0;padding:0}    
+html,body{height:100%;background:var(--bg);color:var(--text);overflow:hidden}    
+.wrap{display:flex;flex-direction:column;align-items:center;justify-content:space-between;height:100dvh;width:100%;padding:6px 8px;position:relative;overflow:hidden;gap:0}    
+.board{display:grid;grid-template-rows:repeat(6,1fr);gap:5px;width:100%;max-width:360px;flex:1 1 auto;padding:4px 0}    
+.row{display:grid;grid-template-columns:repeat(5,1fr);gap:4px}    
+.tile{display:flex;align-items:center;justify-content:center;font-weight:700;font-size:clamp(16px,5vw,28px);border-radius:6px;background:#121826;color:var(--text)}    
+.tile.absent{background:var(--absent)}    
+.tile.present{background:var(--present)}    
+.tile.correct{background:var(--correct)}    
+.keyboard{display:flex;flex-direction:column;gap:5px;width:100%;max-width:400px;flex:0 0 auto;padding:4px 0}    
+.krow{display:flex;gap:4px;justify-content:center}    
+.key{flex:1;padding:clamp(8px,1.8vh,13px) 0;border-radius:6px;text-align:center;user-select:none;background:var(--key);color:white;font-weight:700;cursor:pointer;font-size:13px}    
+.key.enter {    
+  background: var(--correct); /* green */    
+}  .key.back {  
+background: #b91c1c; /* red */  
+}  .key.wide{flex:1.5}
+.hint{color:#9fb7db;margin-top:0;font-size:12px;text-align:center;flex:0 0 auto;min-height:14px}
+@media (min-width: 1024px) {
+.container {width: 90vw; margin: 0 auto; height: auto;}
+.scorecard {position: fixed; top: 10px; right: 10px;}
+}
+
+/* ==== OVERLAY (Instructions Full Screen) ==== */
+.overlay {
+position: fixed;
+top: 0; left: 0;
+width: 100%; height: 100%;
+background: linear-gradient(180deg, #0b1220 0%, #111a2d 100%);
+display: flex;
+justify-content: center;
+align-items: center;
+z-index: 30;
+text-align: center;
+padding: 30px;
+}
+
+.overlayContent {
+background: var(--card);
+padding: 60px 40px;
+border-radius: 30px;
+max-width: 800px;
+width: 100%;
+box-shadow: 0 0 40px rgba(0,0,0,0.6);
+animation: fadeIn 0.6s ease-out;
+}
+
+.overlayContent h1 {
+font-size: 3rem;
+color: #fff;
+margin-bottom: 20px;
+text-shadow: 0 0 20px #1f6feb;
+}
+
+.overlayContent p {
+font-size: 1.5rem;
+line-height: 2rem;
+margin: 10px 0;
+color: #bcd3ef;
+}
+
+.overlayContent strong {
+color: #ffd700;
+}
+
+#startBtn {
+margin-top: 40px;
+padding: 18px 36px;
+font-size: 1.5rem;
+font-weight: 700;
+background: #1f6feb;
+color: white;
+border: none;
+border-radius: 14px;
+cursor: pointer;
+transition: background 0.3s ease;
+}
+
+#startBtn:hover {
+background: #2c8eff;
+}
+
+@keyframes fadeIn {
+from {opacity: 0; transform: scale(0.8);}
+to {opacity: 1; transform: scale(1);}
+}
+
+/* Scorecard popup */
+.scorecard{position:absolute;top:50%;left:50%;transform:translate(-50%, -50%);background:var(--card);padding:40px 60px;border-radius:20px;box-shadow:0 10px 40px rgba(0,0,0,0.8);text-align:center;display:none;z-index:20;animation:pop 0.6s ease-out;}
+.scorecard h1{font-size:48px;margin-bottom:20px;color:#fff;animation:scaleUp 1s ease-in-out;}
+.scorecard p{font-size:24px;margin-bottom:20px;color:#bcd3ef;}
+.scorecard input{padding:10px 12px;border-radius:8px;border:none;font-size:16px;margin-bottom:12px;width:80%;text-align:center;}
+.scorecard button{padding:16px 24px;border:none;border-radius:12px;background:#1f6feb;color:white;font-weight:700;font-size:18px;cursor:pointer}
+@keyframes pop{0%{transform:translate(-50%,-50%) scale(0.5);opacity:0;}50%{transform:translate(-50%,-50%) scale(1.1);opacity:1;}100%{transform:translate(-50%,-50%) scale(1);}}
+@keyframes scaleUp{0%{transform:scale(0.3);opacity:0}50%{transform:scale(1.2);opacity:1}100%{transform:scale(1);opacity:1}}
+.sparkle{position:absolute;width:10px;height:10px;background:radial-gradient(circle,#fff,#f0f0f0 70%);border-radius:50%;pointer-events:none;animation:fly 1.5s linear infinite;}
+@keyframes fly{0%{transform:translate(0,0) scale(1);}50%{transform:translate(0,-200px) scale(0.5);}100%{transform:translate(200px,-400px) scale(0);opacity:0;}}
+@media (max-width:520px){
+.overlayContent {padding: 40px 20px;}
+.overlayContent h1 {font-size: 2.2rem;}
+.overlayContent p {font-size: 1.2rem;}
+#startBtn {font-size: 1.2rem; padding: 14px 28px;}
+}
+
+/* Cheerleader coach strip — no card, no bubbles, fills remaining space */
+.coach-strip{
+  width:100%;
+  max-width:400px;
+  flex:0 0 auto;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:5px;
+  padding:4px 0 6px;
+}
+.coach-message{
+  font-size:12.5px;
+  line-height:1.35;
+  text-align:center;
+  color:#d7e6fb;
+  min-height:1.35em;
+  max-height:2.7em;
+  overflow:hidden;
+  display:-webkit-box;
+  -webkit-line-clamp:2;
+  -webkit-box-orient:vertical;
+  padding:0 6px;
+  transition:opacity 0.2s ease;
+}
+.coach-message.fade{opacity:0}
+.coach-replies{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  justify-content:center;
+  flex-wrap:wrap;
+  width:100%;
+  min-height:22px;
+}
+.reply-chip{
+  background:transparent;
+  border:1px solid rgba(255,255,255,0.25);
+  color:#d7e6fb;
+  font-size:11px;
+  padding:4px 10px;
+  border-radius:12px;
+  cursor:pointer;
+  transition:background 0.15s ease, border-color 0.15s ease;
+  white-space:nowrap;
+}
+.reply-chip:hover{
+  background:rgba(255,255,255,0.1);
+  border-color:rgba(255,255,255,0.5);
+}
+.reply-chip:active{
+  background:rgba(255,255,255,0.18);
+}
+
+/* Mode chooser + share/replay controls */
+.overlayModes{
+  display:flex;
+  gap:16px;
+  justify-content:center;
+  flex-wrap:wrap;
+  margin-top:40px;
+}
+.overlayModes button{
+  padding: 16px 28px;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: white;
+  border: none;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: background 0.3s ease, transform 0.15s ease;
+}
+.overlayModes button:hover{ transform: translateY(-2px); }
+#startDailyBtn{ background:#1f6feb; }
+#startDailyBtn:hover{ background:#2c8eff; }
+#startRandomBtn{ background:#7c3aed; }
+#startRandomBtn:hover{ background:#9256f2; }
+.modeNote{
+  margin-top:14px;
+  font-size:1rem !important;
+  color:#8fa5c4 !important;
+}
+.scorecard .secondaryRow{
+  display:flex;
+  gap:10px;
+  justify-content:center;
+  flex-wrap:wrap;
+  margin-top:6px;
+}
+.scorecard .secondaryRow button{
+  padding:12px 18px;
+  font-size:14px;
+}
+#playAgainBtn{ background:#7c3aed; }
+#copyLinkBtn{ background:#2f3a4f; }
+.modeBadge{
+  display:inline-block;
+  font-size:12px;
+  font-weight:700;
+  letter-spacing:0.04em;
+  text-transform:uppercase;
+  color:#9fb7db;
+  background:rgba(255,255,255,0.06);
+  border:1px solid rgba(255,255,255,0.15);
+  padding:3px 10px;
+  border-radius:999px;
+  margin-bottom:10px;
+}
+</style>
+
+</head>    
+<body>    
+  <div id="introOverlay" class="overlay">    
+    <div class="overlayContent">    
+      <h1>🎯 How to Play Wordle</h1>    
+      <p>Guess the <strong>5-letter word</strong> in <strong>6 tries</strong>.</p>    
+      <p>🟩 <strong>Green</strong> = correct letter, correct place</p>    
+      <p>🟨 <strong>Yellow</strong> = letter is in the word, but wrong place</p>    
+      <p>⬛ <strong>Gray</strong> = letter not in the word</p>    
+      <p style="margin-top:20px; color:#9fb7db; font-size:1.3rem;">    
+        Type letters on your keyboard or tap the on-screen keys.      
+        Press <strong>Enter</strong> to submit your guess.    
+      </p>    
+      <div class="overlayModes">
+        <button id="startDailyBtn">🎯 Today's Wordle</button>
+        <button id="startRandomBtn">🎲 Random Word (Endless)</button>
+      </div>
+      <p class="modeNote">Today's Wordle is the same for everyone today. Random Word gives you a fresh puzzle every time — and you can share the exact word with a link.</p>
+    </div>    
+  </div>    <div class="wrap">    
+    <div id="board" class="board" aria-live="polite"></div>    
+    <div class="keyboard" id="keyboard"></div>    
+    <div class="hint" id="hint"></div>
+    
+    <!-- Cheerleader coach: one or two lines, no container -->
+    <div class="coach-strip" id="coachStrip">
+      <div class="coach-message" id="coachMessage"></div>
+      <div class="coach-replies" id="coachReplies"></div>
+    </div>
+    
+    <div id="scorecard" class="scorecard">    
+      <div id="modeBadge" class="modeBadge"></div>
+      <h1 id="scoreTitle"></h1>    
+      <p id="scoreMsg"></p>    
+      <input id="playerName" type="text" placeholder="Enter your name" />   
+      <select id="playerDept">
+  <option value="">-- Select Department --</option>
+  <option value="Cyber Security">Cyber Security</option>
+  <option value="EIE">EIE</option>
+  <option value="CSE-1">CSE-1</option>
+  <option value="CSE-2">CSE-2</option>
+  <option value="CSE-3">CSE-3</option>
+  <option value="Mechanical Engineering">Mechanical Engineering</option>
+  <option value="ECE-1">ECE-1</option>
+  <option value="ECE-2">ECE-2</option>
+  <option value="ECE-3">ECE-3</option>
+  <option value="AI DS-1">AI DS-1</option>
+  <option value="AI DS-2">AI DS-2</option>
+  <option value="Agri and Civil">Agri and Civil</option>
+  <option value="EEE">EEE</option>
+  <option value="Medical Electronics">Medical Electronics</option>
+  <option value="IT-1">IT-1</option>
+  <option value="IT-2">IT-2</option>
+</select>
+
+      <p id="leaderboardText" style="margin-bottom:12px; color:#bcd3ef; font-size:18px;"></p>    
+      <button id="leaderboardBtn" style="display:none;">Check Leaderboard</button>    
+      <button id="shareBtn">Share on WhatsApp</button>
+      <div class="secondaryRow">
+        <button id="playAgainBtn" style="display:none;">🎲 New Random Word</button>
+        <button id="copyLinkBtn">🔗 Copy Link to This Word</button>
+      </div>
+    </div>    
+  </div>    <!-- Keep your full JS code here (unchanged) -->    <!-- Paste your original <script> content below this line -->  <script>    
+const EDGE_FUNCTION_URL =    
+  "https://yellow-lab-4999.andrewveda.workers.dev/functions/v1/logQuest";    async function sendViaEdgeFunction(payload) {
+try {
+const response = await fetch(EDGE_FUNCTION_URL, {
+method: "POST",
+headers: { "Content-Type": "application/json" },
+body: JSON.stringify(payload),
+});
+
+if (!response.ok) {    
+  console.error("❌ Edge function error:", await response.text());    
+  return false;    
+}    
+
+await response.json().catch(() => ({}));    
+return true;
+
+} catch (err) {
+console.error("⚠️ Error calling edge function:", err);
+return false;
+}
+}
+const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ5Z6lmXH4jxHYMKUcimj_M-IV1pwtBUF72YKJIi_BO-KD_NYwWBJBQqni7m4NmQyU9NMdve4vGZ7rh/pub?gid=0&single=true&output=csv';
+let WORDS=[],ANSWER='',guesses=[],current='',MAX_GUESSES=6;
+let MODE='daily'; // 'daily' | 'random' | 'shared'
+let startTime = Date.now(); // start timer
+const boardEl=document.getElementById('board');
+const keyboardEl=document.getElementById('keyboard');
+const hintEl=document.getElementById('hint');
+const scorecard=document.getElementById('scorecard');
+const scoreTitle=document.getElementById('scoreTitle');
+const scoreMsg=document.getElementById('scoreMsg');
+const shareBtn = document.getElementById('shareBtn');
+const introOverlay = document.getElementById('introOverlay');
+const startDailyBtn = document.getElementById('startDailyBtn');
+const startRandomBtn = document.getElementById('startRandomBtn');
+const playAgainBtn = document.getElementById('playAgainBtn');
+const copyLinkBtn = document.getElementById('copyLinkBtn');
+const modeBadgeEl = document.getElementById('modeBadge');
+const NAME_KEY = "questPlayerName";
+const DEPT_KEY = "questPlayerDept";
+
+startDailyBtn.addEventListener('click', () => {
+introOverlay.style.display = 'none';
+startRound('daily');
+initChat();
+});
+startRandomBtn.addEventListener('click', () => {
+introOverlay.style.display = 'none';
+startRound('random');
+initChat();
+});
+
+// --- Save/Load progress ---
+const STORAGE_KEY = 'wordle-progress';
+function saveProgress() {
+const data = { date: new Date().toDateString(), guesses, answer: ANSWER };
+localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+function loadProgress() {
+const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+return data;
+}
+
+// --- CSV parsing ---
+function parseCSV(text){
+const lines=text.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
+return Array.from(new Set(lines.map(l=>l.split(/,|\t/)[0].trim().toLowerCase()))).filter(w=>/^[a-z]{5}$/.test(w));
+}
+
+// --- Board & Keyboard ---
+function createBoard(){boardEl.innerHTML='';for(let r=0;r<MAX_GUESSES;r++){const row=document.createElement('div');row.className='row';for(let c=0;c<5;c++){const tile=document.createElement('div');tile.className='tile';row.appendChild(tile);}boardEl.appendChild(row);}}
+function renderKeyboard(){keyboardEl.innerHTML='';const KEYS=['qwertyuiop','asdfghjkl','zxcvbnm'];KEYS.forEach(rowStr=>{const r=document.createElement('div');r.className='krow';for(const ch of rowStr){const k=document.createElement('div');k.className='key';k.textContent=ch;k.dataset.key=ch;k.style.backgroundColor='';k.addEventListener('click',()=>onKey(ch));r.appendChild(k);}if(rowStr==='asdfghjkl'){const enter=document.createElement('div');enter.className = 'key wide back';
+;enter.textContent='⌫';enter.addEventListener('click',()=>onKey('Backspace'));r.appendChild(enter);}if(rowStr==='zxcvbnm'){const back=document.createElement('div');back.className = 'key wide enter';back.textContent='Enter';back.addEventListener('click',()=>onKey('Enter'));r.appendChild(back);}keyboardEl.appendChild(r);});}
+
+// --- Key handling ---
+function onKey(k){if(k==='Enter')return submitGuess();if(k==='Backspace')return deleteLetter();if(current.length<5 && /^[a-zA-Z]$/.test(k)){current+=k.toLowerCase();updateBoard();}}
+function deleteLetter(){if(current.length>0){current=current.slice(0,-1);updateBoard();}}
+function updateBoard(){const row=boardEl.children[guesses.length];for(let c=0;c<5;c++){const tile=row.children[c];tile.textContent=current[c]||'';tile.className='tile';}}
+function submitGuess() {
+if (current.length !== 5) { hintEl.textContent = 'Guess must be 5 letters.'; return; }
+if (!WORDS.includes(current.toLowerCase())) { hintEl.textContent = 'Not a valid English word.'; return; }
+evaluateGuess(current);
+current = '';
+}
+function evaluateGuess(guess){
+const row=boardEl.children[guesses.length];
+const answerArr=ANSWER.split('');
+const guessArr=guess.split('');
+const result=Array(5).fill('absent');
+const answerFreq={};
+for(let i=0;i<5;i++){answerFreq[answerArr[i]]=(answerFreq[answerArr[i]]||0)+1;}
+for(let i=0;i<5;i++){if(guessArr[i]===answerArr[i]){result[i]='correct';answerFreq[guessArr[i]]--;}}
+for(let i=0;i<5;i++){if(result[i]!=='correct' && answerFreq[guessArr[i]]>0){result[i]='present';answerFreq[guessArr[i]]--;}}
+for(let i=0;i<5;i++){const tile=row.children[i];tile.textContent=guessArr[i];tile.classList.add(result[i]);}
+updateKeys(guessArr,result);
+guesses.push(guess);
+saveProgress();
+
+// Trigger chatbot response based on guess
+processGuessResult(guess, result);
+
+if(guess===ANSWER){showScore(true);document.removeEventListener('keydown',keydownHandler);return;}
+if(guesses.length>=MAX_GUESSES){showScore(false);document.removeEventListener('keydown',keydownHandler);return;}
+hintEl.textContent='';
+}
+function updateKeys(letters,results){letters.forEach((ch,i)=>{
+
+const keyEls = keyboardEl.querySelectorAll('[data-key]');
+keyEls.forEach(k=>{if(k.dataset.key===ch){if(results[i]==='correct'){k.style.backgroundColor='var(--correct)';}else if(results[i]==='present'){if(k.style.backgroundColor!=='var(--correct)')k.style.backgroundColor='var(--present)';}else{if(!k.style.backgroundColor)k.style.backgroundColor='var(--absent)';}}});});}
+function keydownHandler(e){const k=e.key;if(k==='Enter')onKey('Enter');else if(k==='Backspace')onKey('Backspace');else if(/^[a-zA-Z]$/.test(k))onKey(k);}
+function createSparkles(){for(let i=0;i<30;i++){const s=document.createElement('div');s.className='sparkle';s.style.left=Math.random()*window.innerWidth+'px';s.style.top=Math.random()*window.innerHeight+'px';s.style.animationDelay=Math.random()+'s';s.style.width=s.style.height=(5+Math.random()*10)+'px';document.body.appendChild(s);}}
+
+function fetchToSheet(playerName){
+
+const totalTime = Math.floor((Date.now() - startTime) / 1000);
+
+sendViaEdgeFunction({
+student_name: playerName,
+tries: guesses.length,
+time_spent: totalTime,
+department: localStorage.getItem(DEPT_KEY) || "Unknown",
+quest_id: "Wordle", 
+  answer: ANSWER,
+  mode: MODE
+});
+}
+function showScore(win) {
+  scorecard.style.display = 'block';
+  createSparkles();
+
+  // Clear daily progress
+  localStorage.removeItem(STORAGE_KEY);
+
+  // Mode badge + replay/share controls
+  const modeLabels = { daily: "📅 Today's Wordle", random: '🎲 Random Word', shared: '🔗 Shared Word' };
+  modeBadgeEl.textContent = modeLabels[MODE] || '';
+  playAgainBtn.style.display = 'inline-block';
+  playAgainBtn.onclick = () => { startRound('random'); };
+  copyLinkBtn.onclick = () => {
+    const shareUrl = MODE === 'daily' ? buildShareUrlForWord(ANSWER) : location.href;
+    navigator.clipboard.writeText(shareUrl).then(() => {
+      copyLinkBtn.textContent = '✅ Link Copied!';
+      setTimeout(() => { copyLinkBtn.textContent = '🔗 Copy Link to This Word'; }, 2000);
+    }).catch(() => {
+      window.prompt('Copy this link:', shareUrl);
+    });
+  };
+
+  const nameInput = document.getElementById('playerName');
+  const leaderboardText = document.getElementById('leaderboardText');
+  const leaderboardBtn = document.getElementById('leaderboardBtn');
+
+  const savedName = localStorage.getItem(NAME_KEY);
+const savedDept = localStorage.getItem(DEPT_KEY);
+const deptSelect = document.getElementById('playerDept');
+
+if (savedName && savedDept) {
+
+  /* ✅ Known identity */
+
+  nameInput.value = savedName;
+  deptSelect.value = savedDept;
+
+  nameInput.style.display = "none";
+  deptSelect.style.display = "none";
+
+  leaderboardText.textContent =
+     `Score recorded for ${savedName}`;
+
+  fetchToSheet(savedName);
+
+} else {
+
+  /* ✅ New identity */
+
+  leaderboardText.textContent = "Enter details to join leaderboard";
+
+}
+
+
+  // 3️⃣ Leaderboard button
+  leaderboardBtn.style.display = "inline-block";
+  leaderboardBtn.onclick = () => {
+    window.open(
+      "https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/leaderboard_live",
+      "_blank"
+    );
+  };
+
+  // 4️⃣ When user enters/changes name
+function saveIdentity(){
+
+  const name = nameInput.value.trim();
+  const dept = document.getElementById('playerDept').value;
+
+  if (!name || !dept) return;
+
+  localStorage.setItem(NAME_KEY, name);
+  localStorage.setItem(DEPT_KEY, dept);
+
+  fetchToSheet(name);
+
+  leaderboardText.textContent =
+     `Thanks ${name}, score recorded!`;
+
+}
+
+nameInput.addEventListener('change', saveIdentity);
+document.getElementById('playerDept').addEventListener('change', saveIdentity);
+
+
+  // 5️⃣ Result message
+  if (win) {
+    const tries = guesses.length;
+    if (tries === 1) {
+      scoreTitle.textContent = '🎉 Genius!';
+      scoreMsg.textContent = `You got it in one try! The word was ${ANSWER.toUpperCase()}!`;
+      // Add special chat message for genius
+      setCoachMessage("👑 LEGENDARY! One guess?! You're unstoppable!");
+      showReplyChips([{ text: "🎉 I'm on fire!", reply: "You truly are — legendary round! 🏆" }]);
+    } else if (tries === 2) {
+      scoreTitle.textContent = '✨ Excellent!';
+      scoreMsg.textContent = `Got it in 2 tries! The word was ${ANSWER.toUpperCase()}!`;
+      // Add special chat message for excellent
+      setCoachMessage("🌟 Incredible! Two tries — sharp and confident!");
+      showReplyChips([{ text: "😄 Feeling sharp!", reply: "That instinct is paying off big time! ✨" }]);
+    } else if (tries <= 4) {
+      scoreTitle.textContent = '🌟 Great!';
+      scoreMsg.textContent = `Solved in ${tries} tries! The word was ${ANSWER.toUpperCase()}!`;
+      // Add special chat message for great
+      setCoachMessage("🎯 Nice! You stuck with it and it paid off!");
+      showReplyChips([{ text: "💪 Proud of that!", reply: "You should be — great persistence! 🎯" }]);
+    } else {
+      scoreTitle.textContent = '👍 Good!';
+      scoreMsg.textContent = `You solved it in ${tries} tries! The word was ${ANSWER.toUpperCase()}!`;
+      // Add special chat message for good
+      setCoachMessage("👍 You did it! Persistence wins the day!");
+      showReplyChips([{ text: "🙌 I stuck with it!", reply: "And it paid off — nice work! 🙌" }]);
+    }
+  } else {
+    scoreTitle.textContent = '💔 Hard Luck';
+    scoreMsg.textContent =
+      `Hard luck. I could not crack today's Wordle. ` +
+      `The word was ${ANSWER.toUpperCase()}! 😎 ` +
+      `Check it out: https://andrewveda.github.io/SRM-VEC-English-PWA/buttons/wordle`;
+    
+    // Add special chat message for losing
+    setCoachMessage("💛 Tough one today — you gave it your all. Come back stronger tomorrow!");
+    showReplyChips([{ text: "💪 I'll be back!", reply: "That's the spirit — see you tomorrow! 🌤️" }]);
+  }
+
+  // 6️⃣ WhatsApp share
+  shareBtn.onclick = () => {
+    let grid = guesses.map((guess) => {
+      const answerArr = ANSWER.split('');
+      const guessArr = guess.split('');
+      const result = Array(5).fill('⬜');
+      const answerFreq = {};
+
+      answerArr.forEach(ch => answerFreq[ch] = (answerFreq[ch] || 0) + 1);
+
+      for (let i = 0; i < 5; i++) {
+        if (guessArr[i] === answerArr[i]) {
+          result[i] = '🟩';
+          answerFreq[guessArr[i]]--;
+        }
+      }
+
+      for (let i = 0; i < 5; i++) {
+        if (result[i] === '⬜' && answerFreq[guessArr[i]] > 0) {
+          result[i] = '🟨';
+          answerFreq[guessArr[i]]--;
+        }
+      }
+
+      return result.join('');
+    }).join('\n');
+
+    const shareLink = MODE === 'daily' ? buildShareUrlForWord(ANSWER) : location.href;
+    const msg = win
+      ? `I solved today's Wordle in ${guesses.length} tries! 🎉\n${grid}\n😎 Try this exact word: ${shareLink}`
+      : `Hard luck. I could not crack today's Wordle. 😢\n${grid}\nCan you beat me? Try this exact word: ${shareLink}`;
+
+    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+  };
+}
+function chooseDailyWord() {
+const today = new Date();
+const start = new Date(today.getFullYear(), 0, 1);
+const diff = today - start;
+const dayOfYear = Math.floor(diff / (1000 * 60 * 60 * 24));
+const index = dayOfYear % WORDS.length;
+ANSWER = WORDS[index];
+}
+
+// --- Word sharing: encode/decode a 5-letter word into a URL-safe token ---
+function encodeWord(word) {
+  try {
+    return btoa(word.toLowerCase()).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  } catch (e) {
+    return word;
+  }
+}
+function decodeWord(token) {
+  try {
+    let t = token.replace(/-/g, '+').replace(/_/g, '/');
+    while (t.length % 4) t += '=';
+    const w = atob(t).toLowerCase();
+    if (/^[a-z]{5}$/.test(w)) return w;
+  } catch (e) {}
+  return null;
+}
+function buildShareUrlForWord(word) {
+  const url = new URL(location.href);
+  url.searchParams.delete('mode');
+  url.searchParams.set('w', encodeWord(word));
+  return url.toString();
+}
+function pickRandomWord() {
+  return WORDS[Math.floor(Math.random() * WORDS.length)];
+}
+
+// --- Word loading (fetched once, cached) ---
+async function loadWords() {
+  if (WORDS.length) return;
+  const r = await fetch(CSV_URL);
+  const txt = await r.text();
+  WORDS = parseCSV(txt);
+}
+
+function resetRoundState() {
+  guesses = [];
+  current = '';
+  startTime = Date.now();
+  createBoard();
+  renderKeyboard();
+  scorecard.style.display = 'none';
+  hintEl.textContent = '';
+}
+
+// forcedMode: 'daily' | 'random' | null (null = read from URL, default daily)
+async function startRound(forcedMode) {
+  try {
+    await loadWords();
+    if (!WORDS.length) {
+      hintEl.textContent = 'No valid 5-letter words found.';
+      return;
+    }
+
+    if (forcedMode === 'daily') {
+      const url = new URL(location.href);
+      url.searchParams.delete('w');
+      url.searchParams.delete('mode');
+      history.replaceState({}, '', url);
+      chooseDailyWord();
+      MODE = 'daily';
+    } else if (forcedMode === 'random') {
+      ANSWER = pickRandomWord();
+      MODE = 'random';
+      history.replaceState({}, '', buildShareUrlForWord(ANSWER));
+    } else {
+      const params = new URLSearchParams(location.search);
+      const wParam = params.get('w');
+      const decoded = wParam ? decodeWord(wParam) : null;
+      if (decoded) {
+        ANSWER = decoded;
+        MODE = 'shared';
+        if (!WORDS.includes(ANSWER)) WORDS.push(ANSWER);
+      } else if (params.get('mode') === 'random') {
+        ANSWER = pickRandomWord();
+        MODE = 'random';
+        history.replaceState({}, '', buildShareUrlForWord(ANSWER));
+      } else {
+        chooseDailyWord();
+        MODE = 'daily';
+      }
+    }
+
+    resetRoundState();
+    document.removeEventListener('keydown', keydownHandler);
+    document.addEventListener('keydown', keydownHandler);
+  } catch (e) {
+    hintEl.textContent = 'Failed to load word list.';
+    console.error(e);
+  }
+}
+
+// ===== CHEERLEADER COACH (minimal, 1-2 lines, tap-to-reply only) =====
+const coachMessageEl = document.getElementById('coachMessage');
+const coachRepliesEl = document.getElementById('coachReplies');
+
+// Swap the single line of text with a quick fade so it never scrolls or stacks
+function setCoachMessage(text) {
+  coachMessageEl.classList.add('fade');
+  setTimeout(() => {
+    coachMessageEl.textContent = text;
+    coachMessageEl.classList.remove('fade');
+  }, 180);
+}
+
+// Render a small row of tappable self-affirmation chips. Tapping one
+// "says" it and gets a short cheer back from the coach.
+// Pool of high-energy self-affirmation chips — carpe diem style
+const CHAT_CHIPS = [
+  { text: "I'm feeling great! 😄", reply: "That joy is your secret weapon today! 🌟" },
+  { text: "I love carpe diem! ☀️", reply: "Seize this word — it's yours for the taking! 🎯" },
+  { text: "I'm going to conquer this! 🏆", reply: "Absolutely — nothing can stop you! 🔥" },
+  { text: "I am filled with energy! ⚡", reply: "Channel that energy into your next guess! 🚀" },
+  { text: "I believe in myself! 💫", reply: "And so do I — you've totally got this! 💛" },
+  { text: "I'm unstoppable! 🚀", reply: "Yes you are — now show that word who's boss! 👊" },
+  { text: "I thrive under pressure! 💎", reply: "Diamonds are made under pressure — shine on! ✨" },
+  { text: "I love a challenge! 🎯", reply: "And this challenge is lucky to have you! 🌠" },
+  { text: "My mind is sharp today! 🧠", reply: "That sharp mind is going to crack this in style! 💡" },
+  { text: "I was born for this! ⭐", reply: "The universe agrees — go get it! 🌍" },
+  { text: "Nothing can stop me! 🛡️", reply: "Not even a tricky 5-letter word! 😄🔥" },
+  { text: "I'm on fire today! 🔥", reply: "Let that fire light the way to the answer! 🏅" },
+  { text: "Every guess counts! 🎲", reply: "Every single one — you're playing it perfectly! ✅" },
+  { text: "I've got this feeling! 🎵", reply: "Trust that feeling — it's pointing you right! 🎶" },
+  { text: "Victory is mine! 🏅", reply: "Claim it — it's already written in the stars! ⭐" }
+];
+
+function pickRandomChips(n, excludeTexts) {
+  excludeTexts = excludeTexts || [];
+  const pool = CHAT_CHIPS.filter(c => excludeTexts.indexOf(c.text) === -1);
+  const shuffled = pool.slice().sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, n);
+}
+
+// Render a small row of tappable self-affirmation chips. Tapping one
+// "says" it, gets a short cheer back, then offers a fresh set of chips
+// so the conversation keeps going like a real back-and-forth chat.
+function showReplyChips(options) {
+  coachRepliesEl.innerHTML = '';
+  options.forEach(opt => {
+    const chip = document.createElement('button');
+    chip.className = 'reply-chip';
+    chip.textContent = opt.text;
+    chip.addEventListener('click', () => {
+      coachRepliesEl.innerHTML = '';
+      setCoachMessage(opt.reply);
+      setTimeout(() => {
+        showReplyChips(pickRandomChips(2, [opt.text]));
+      }, 350);
+    });
+    coachRepliesEl.appendChild(chip);
+  });
+}
+
+function initChat() {
+  setCoachMessage("👽 Let's crush today's word — you've got this!");
+  showReplyChips(pickRandomChips(2));
+}
+
+// Short, punchy, self-affirmation style cheers
+const CHEERS = [
+  "You've got this! 🔥",
+  "Keep shining! ✨",
+  "Trust yourself! 💪",
+  "You're a word wizard! 🧙",
+  "Believe in your next guess! 🌟",
+  "On a roll! 🚀",
+  "Stay confident! 💛",
+  "You're crushing it! 🙌"
+];
+
+// One compact line: the word tried, a per-letter result track, and a cheer
+function letterFeedbackText(guess, result) {
+  const g = guess.toUpperCase();
+  const track = guess.split('').map((ch, i) => {
+    const L = ch.toUpperCase();
+    const mark = result[i] === 'correct' ? '✅' : result[i] === 'present' ? '🟡' : '⬛';
+    return L + mark;
+  }).join(' ');
+  const cheer = CHEERS[Math.floor(Math.random() * CHEERS.length)];
+  return `${g} → ${track} · ${cheer}`;
+}
+
+function processGuessResult(guess, result) {
+  setCoachMessage(letterFeedbackText(guess, result));
+  showReplyChips(pickRandomChips(2));
+}
+
+// --- Boot: if this is a shared-word or random link, skip the overlay and jump right in ---
+(function boot() {
+  const params = new URLSearchParams(location.search);
+  if (params.get('w') || params.get('mode') === 'random') {
+    introOverlay.style.display = 'none';
+    startRound(null);
+    initChat();
+  }
+  // otherwise wait for the user to pick Daily or Random from the overlay
+})();
+</script>  </body>
+
+</html>

@@ -1,0 +1,1682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Profile Building</title>
+<meta name="description" content="A guided, step-by-step resume builder grounded in behavioural science, that exports an ATS-friendly HTML resume. Built with MCA / computer science students in mind.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#FBF8F2;
+    --paper-dim:#F1ECDF;
+    --ink:#23292E;
+    --ink-soft:#5B6570;
+    --line:#D8D2C0;
+    --pine:#1F5E52;
+    --pine-dark:#153F38;
+    --amber:#C97A2B;
+    --amber-soft:#F3E3CB;
+    --danger:#B0473E;
+    --radius:10px;
+    font-size:16px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Inter',system-ui,-apple-system,sans-serif;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+    padding-bottom:60px;
+  }
+  h1,h2,h3{
+    font-family:'Source Serif 4', Georgia, serif;
+    font-weight:700;
+    margin:0 0 .3em 0;
+    color:var(--ink);
+  }
+  .mono{ font-family:'IBM Plex Mono', monospace; letter-spacing:.02em; }
+  a{color:var(--pine-dark);}
+
+  header.top{ padding:28px 20px 18px; max-width:640px; margin:0 auto; }
+  header.top h1{ font-size:clamp(1.5rem,5vw,2rem); line-height:1.15; }
+  header.top p{ color:var(--ink-soft); margin:8px 0 0; font-size:.95rem; max-width:52ch; }
+
+  .progress-wrap{ max-width:640px; margin:0 auto; padding:0 20px 8px; }
+  .progress-track{ display:flex; gap:4px; margin-top:6px; flex-wrap:wrap; }
+  .progress-seg{ flex:1; min-width:12px; height:5px; border-radius:3px; background:var(--line); transition:background .25s ease; }
+  .progress-seg.done{background:var(--pine);}
+  .progress-label{
+    font-family:'IBM Plex Mono', monospace; font-size:.72rem; color:var(--ink-soft);
+    text-transform:uppercase; letter-spacing:.08em;
+  }
+
+  .util-row{ max-width:640px; margin:6px auto 0; padding:0 20px; display:flex; gap:8px; flex-wrap:wrap; }
+  .btn-ghost{
+    background:transparent; border:1px solid var(--line); color:var(--ink-soft);
+    font-family:'IBM Plex Mono', monospace; font-size:.72rem; padding:6px 10px; border-radius:20px; cursor:pointer;
+  }
+  .btn-ghost:hover{border-color:var(--pine); color:var(--pine-dark);}
+
+  main{ max-width:640px; margin:18px auto 0; padding:0 20px; }
+  .card{
+    background:#fff; border:1px solid var(--line); border-radius:var(--radius);
+    padding:22px 20px 24px; box-shadow:0 1px 0 rgba(35,41,46,.03), 0 8px 24px -18px rgba(35,41,46,.25);
+    position:relative;
+  }
+  .step{display:none;}
+  .step.active{display:block; animation:fadein .25s ease;}
+  @keyframes fadein{from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:translateY(0);}}
+
+  .step-eyebrow{
+    font-family:'IBM Plex Mono', monospace; font-size:.72rem; color:var(--pine);
+    text-transform:uppercase; letter-spacing:.08em; margin-bottom:4px;
+  }
+  .step h2{font-size:1.3rem; margin-bottom:6px;}
+  .step-intro{color:var(--ink-soft); font-size:.92rem; margin-bottom:14px;}
+
+  .coach-note{
+    background:var(--amber-soft); border:1px solid #E4C384; border-radius:8px;
+    padding:14px 14px 14px 16px; margin:0 0 20px; position:relative;
+    transform:rotate(-0.6deg); box-shadow:0 3px 8px -4px rgba(0,0,0,.25);
+  }
+  .coach-note::before{
+    content:""; position:absolute; top:-8px; left:24px; width:34px; height:14px;
+    background:rgba(255,255,255,.55); border:1px solid rgba(255,255,255,.7);
+    transform:rotate(-3deg); border-radius:2px;
+  }
+  .coach-note .tag{
+    font-family:'IBM Plex Mono', monospace; font-size:.68rem; letter-spacing:.08em;
+    text-transform:uppercase; color:#8A5417; display:block; margin-bottom:5px;
+  }
+  .coach-note p{margin:0 0 6px; font-size:.87rem; color:#4A3611;}
+  .coach-note p:last-child{margin-bottom:0;}
+
+  label{ display:block; font-size:.82rem; font-weight:600; margin:14px 0 5px; color:var(--ink); }
+  label .req{color:var(--danger); margin-left:2px;}
+  label .hint{ display:block; font-weight:400; color:var(--ink-soft); font-size:.78rem; margin-top:2px; }
+  input[type=text], input[type=email], input[type=tel], input[type=url], textarea, select{
+    width:100%; padding:10px 11px; border:1px solid var(--line); border-radius:7px;
+    font-family:inherit; font-size:.95rem; background:#FEFDFB; color:var(--ink);
+  }
+  textarea{resize:vertical; min-height:60px;}
+  input:focus, textarea:focus, select:focus{ outline:2px solid var(--pine); outline-offset:1px; border-color:var(--pine); }
+  ::placeholder{color:#A9A296;}
+
+  .entry{
+    border:1px dashed var(--line); border-radius:8px; padding:14px 14px 6px; margin-top:14px; position:relative;
+  }
+  .entry-remove{
+    position:absolute; top:8px; right:8px; background:none; border:none; color:var(--ink-soft);
+    font-size:.78rem; cursor:pointer; font-family:'IBM Plex Mono',monospace;
+  }
+  .entry-remove:hover{color:var(--danger);}
+  .add-entry{
+    margin-top:14px; background:none; border:1px solid var(--pine); color:var(--pine-dark);
+    padding:8px 14px; border-radius:20px; font-size:.82rem; font-weight:600; cursor:pointer;
+  }
+  .add-entry:hover{background:var(--pine); color:#fff;}
+
+  .skill-add-grid{ display:grid; grid-template-columns:1fr; gap:0; }
+  .skill-add-row{display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap;}
+  .skill-add-row > div{flex:1; min-width:130px;}
+  .tag-add-btn{
+    background:var(--pine); color:#fff; border:none; border-radius:7px;
+    padding:10px 16px; font-weight:600; cursor:pointer; height:40px;
+  }
+  .tag-list{display:flex; flex-wrap:wrap; gap:7px; margin-top:12px;}
+  .tag-chip{
+    background:var(--paper-dim); border:1px solid var(--line); border-radius:16px;
+    padding:6px 8px 6px 12px; font-size:.82rem; display:flex; align-items:center; gap:6px; max-width:100%;
+  }
+  .tag-chip .chip-evidence{color:var(--ink-soft); font-size:.78rem;}
+  .tag-chip button{
+    background:none; border:none; color:var(--ink-soft); cursor:pointer; font-size:.9rem; line-height:1; padding:0 2px;
+  }
+
+  .samples-box{
+    margin-top:16px; background:var(--paper); border:1px solid var(--line); border-radius:8px; padding:12px 14px;
+    max-height: 320px; overflow-y: auto;
+  }
+  .samples-box h4{ margin:0 0 8px 0; font-family:'IBM Plex Mono', monospace; font-size:.75rem; text-transform:uppercase; letter-spacing:.06em; color:var(--pine); }
+  .sample-item{ background:#fff; border:1px solid var(--line); border-radius:6px; padding:8px 10px; margin-bottom:8px; font-size:.84rem; }
+  .sample-item:last-child{ margin-bottom:0; }
+  .sample-title{ font-weight:600; color:var(--ink); font-size:.82rem; margin-bottom:2px; }
+
+  .step-nav{
+    display:flex; justify-content:space-between; gap:10px; margin-top:24px; padding-top:16px; border-top:1px solid var(--line);
+  }
+  button.primary{
+    background:var(--pine); color:#fff; border:none; padding:11px 20px; border-radius:7px;
+    font-weight:600; font-size:.95rem; cursor:pointer;
+  }
+  button.primary:hover{background:var(--pine-dark);}
+  button.secondary{
+    background:none; border:1px solid var(--line); color:var(--ink); padding:11px 18px;
+    border-radius:7px; font-weight:600; font-size:.95rem; cursor:pointer;
+  }
+  button.secondary:disabled{opacity:.35; cursor:default;}
+  button:focus-visible{outline:2px solid var(--pine); outline-offset:2px;}
+
+  .resume-preview{
+    border:1px solid var(--line); border-radius:8px; padding:20px; background:#FEFDFB;
+    font-family:'Source Serif 4', Georgia, serif; max-height:440px; overflow-y:auto; font-size:.88rem;
+  }
+  .resume-preview h1{font-size:1.25rem; margin-bottom:2px;}
+  .resume-preview h2{
+    font-size:.82rem; font-family:'IBM Plex Mono', monospace; text-transform:uppercase;
+    letter-spacing:.08em; border-bottom:1px solid var(--line); padding-bottom:3px; margin-top:16px;
+  }
+  .resume-preview h3{font-size:.95rem; font-family:'Inter',sans-serif; font-weight:700; margin-bottom:0;}
+  .resume-preview p.project-tech{font-family:'IBM Plex Mono',monospace; font-size:.78rem; color:var(--ink-soft); margin:1px 0 4px;}
+  .resume-preview p, .resume-preview li{font-family:'Inter',sans-serif; font-size:.86rem;}
+  .resume-preview ul{margin:4px 0 8px; padding-left:20px;}
+
+  .export-actions{display:flex; flex-wrap:wrap; gap:10px; margin-top:16px;}
+
+  .pr-panel{ margin-top:22px; border-top:1px solid var(--line); padding-top:18px; }
+  .pr-panel h3{font-size:1rem; margin-bottom:4px;}
+
+  footer{ max-width:640px; margin:26px auto 0; padding:0 20px; color:var(--ink-soft); font-size:.78rem; text-align:center; }
+
+  @media (min-width:640px){ .step h2{font-size:1.5rem;} }
+  [hidden]{display:none !important;}
+
+  .status-msg{ font-size:.82rem; margin-top:10px; padding:8px 10px; border-radius:6px; }
+  .status-msg.ok{background:#E5F1EA; color:#1F5E3E; border:1px solid #BEE0CC;}
+  .status-msg.err{background:#FBE9E7; color:#8A2E24; border:1px solid #F1C3BC;}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <h1>Career Launch Toolkit</h1>
+  <p>Build a profile that opens doors. Go beyond a resume with a guided, section-by-section webpage that helps you craft your professional identity.</p>
+</header>
+
+<div class="progress-wrap">
+  <div class="progress-label"><span id="progressText">Step 1 of 12 — Target Role</span></div>
+  <div class="progress-track" id="progressTrack"></div>
+</div>
+
+<div class="util-row">
+  <button class="btn-ghost" id="saveProgressBtn" type="button">↓ Save progress (.json)</button>
+  <button class="btn-ghost" id="loadProgressBtn" type="button">↑ Load saved progress</button>
+  <input type="file" id="loadProgressFile" accept="application/json" hidden>
+</div>
+
+<main>
+  <div class="card">
+    <form id="resumeForm" novalidate>
+
+      <!-- STEP 0: TARGET ROLE & COMPANY -->
+      <section class="step active" data-step="0">
+        <div class="step-eyebrow">Step 1 / 12</div>
+        <h2>Target Role &amp; Expectation</h2>
+        <p class="step-intro">Tailoring your resume to a target role dramatically increases ATS keyword match and recruiter interest.</p>
+
+        <div class="coach-note">
+          <span class="tag">Strategic Targeting</span>
+          <p>Different roles look for completely different signals. A backend role wants system architecture, API design, and SQL optimization. A frontend role looks for dynamic UI state management, performance, and responsive design.</p>
+        </div>
+
+        <label for="targetRole">Target Role / Job Title<span class="req">*</span></label>
+        <input type="text" id="targetRole" placeholder="e.g. Full Stack Developer, Backend Intern, Data Analyst">
+
+        <label for="targetCompany">Target Company<span class="req">*</span></label>
+        <input type="text" id="targetCompany" placeholder="e.g. Zoho, TCS, Amazon, Early-stage Startup">
+
+        <label for="expectedSkills">Expected Key Skills for this Role<span class="req">*</span>
+          <span class="hint">List 4–6 core technologies or competencies recruiters will search for.</span>
+        </label>
+        <input type="text" id="expectedSkills" placeholder="e.g. React, Node.js, PostgreSQL, REST APIs, Git">
+
+        <label for="expectedProjects">Types of Projects Recruiter Expects<span class="req">*</span>
+          <span class="hint">What kind of real-world problem should your projects demonstrate?</span>
+        </label>
+        <textarea id="expectedProjects" placeholder="e.g. Production-ready web apps with authentication, database indexing, and CRUD functionality. Real-time updates or API integrations."></textarea>
+
+        <div class="samples-box">
+          <h4>💡 Well-crafted sample target profiles</h4>
+          <div class="sample-item">
+            <div class="sample-title">Full-Stack / Web Engineer</div>
+            <div>React, Node.js, PostgreSQL, REST APIs, Git, Docker • Production apps with user auth, state management, DB optimization.</div>
+          </div>
+          <div class="sample-item">
+            <div class="sample-title">Backend Engineer</div>
+            <div>Python, FastAPI, Node.js, MySQL, Redis, AWS • Microservices, API optimization, DB indexing, authentication protocols.</div>
+          </div>
+          <div class="sample-item">
+            <div class="sample-title">Frontend Developer</div>
+            <div>React.js, TypeScript, Next.js, Tailwind CSS, Redux • Responsive web UI, accessibility standards, state management, performance tuning.</div>
+          </div>
+          <div class="sample-item">
+            <div class="sample-title">Data Analyst / ML Trainee</div>
+            <div>Python, Pandas, SQL, Tableau, Scikit-learn • Data pipeline cleaning, statistical modeling, dashboard visualization.</div>
+          </div>
+          <div class="sample-item">
+            <div class="sample-title">Cloud / DevOps Associate</div>
+            <div>Docker, Linux, AWS (S3/EC2), CI/CD, Shell Scripting • Containerization, automated deployment pipelines, infrastructure security.</div>
+          </div>
+          <div class="sample-item">
+            <div class="sample-title">Mobile Application Developer</div>
+            <div>Flutter, Dart, React Native, Firebase, SQLite • Cross-platform UI development, offline-first syncing, native push notifications.</div>
+          </div>
+          <div class="sample-item">
+            <div class="sample-title">Cybersecurity / QA Analyst</div>
+            <div>Python, OWASP Top 10, Selenium, Wireshark, Linux • Automated UI testing, vulnerability scanning, penetration testing basics.</div>
+          </div>
+        </div>
+
+        <div class="step-nav">
+          <button type="button" class="secondary" id="backBtn" disabled>Back</button>
+          <button type="button" class="primary" id="nextBtn">Continue</button>
+        </div>
+      </section>
+
+      <!-- STEP 1: CONTACT & LINKS -->
+      <section class="step" data-step="1">
+        <div class="step-eyebrow">Step 2 / 12</div>
+        <h2>Contact &amp; links</h2>
+        <p class="step-intro">The plain facts a recruiter needs to reach you, plus the links that do a lot of quiet work for a technical resume.</p>
+
+        <div class="coach-note">
+          <span class="tag">Privacy &amp; Signal Note</span>
+          <p>Please enter full contact details. Professional profiles like GitHub and LinkedIn serve as living proof of your codebase quality and network.</p>
+        </div>
+
+        <label for="fullName">Full name<span class="req">*</span></label>
+        <input type="text" id="fullName" placeholder="Andrew Veda">
+
+        <label for="email">Email address<span class="req">*</span></label>
+        <input type="email" id="email" value="firstname.secondname@domain.com">
+
+        <label for="phone">Phone number<span class="req">*</span></label>
+        <input type="tel" id="phone" value="91 2345 6789">
+
+        <label for="location">City, State<span class="req">*</span></label>
+        <input type="text" id="location" placeholder="Chennai, Tamil Nadu">
+
+        <label for="linkedin">LinkedIn profile URL<span class="req">*</span></label>
+        <input type="url" id="linkedin" placeholder="linkedin.com/in/andrewveda">
+
+        <label for="github">GitHub profile URL<span class="req">*</span>
+          <span class="hint">Pin your 2–3 best repos on your GitHub profile before sending this out.</span>
+        </label>
+        <input type="url" id="github" placeholder="github.com/andrewveda">
+
+        <label for="portfolio">Personal website / portfolio URL<span class="req">*</span>
+          <span class="hint">The one-page resume acts as a curated highlight reel — your portfolio is where the depth lives.</span>
+        </label>
+        <input type="url" id="portfolio" placeholder="andrewveda.github.io">
+
+        <label for="otherProfiles">Other coding profiles<span class="req">*</span>
+          <span class="hint">LeetCode, Codeforces, HackerRank, GeeksforGeeks profiles</span>
+        </label>
+        <input type="text" id="otherProfiles" placeholder="LeetCode: leetcode.com/u/andrewveda">
+
+        <div class="samples-box">
+          <h4>💡 Well-crafted sample contact setups</h4>
+          <div class="sample-item">
+            <div class="sample-title">Standard Professional Profile Suite</div>
+            <div>LinkedIn: linkedin.com/in/andrewveda • GitHub: github.com/andrewveda • Portfolio: andrewveda.github.io • LeetCode: leetcode.com/u/andrewveda</div>
+          </div>
+          <div class="sample-item">
+            <div class="sample-title">Competitive Programming Focus</div>
+            <div>GitHub: github.com/dev-student • Codeforces: codeforces.com/profile/dev_rank • LeetCode: leetcode.com/u/dev_rank</div>
+          </div>
+        </div>
+
+        <div class="step-nav">
+          <button type="button" class="secondary" data-back>Back</button>
+          <button type="button" class="primary" data-next>Continue</button>
+        </div>
+      </section>
+
+      <!-- STEP 2: SUMMARY -->
+      <section class="step" data-step="2">
+        <div class="step-eyebrow">Step 3 / 12</div>
+        <h2>Summary</h2>
+        <p class="step-intro">Two to three lines. This is the part almost everyone reads, even when they skim the rest.</p>
+
+        <div class="coach-note">
+          <span class="tag">Why this works</span>
+          <p>People judge an experience mostly by its high point and how it ends — the peak-end rule. Open with your single strongest, most specific result, not a vague adjective like "hardworking."</p>
+        </div>
+
+        <label for="summary">Professional summary<span class="req">*</span>
+          <span class="hint">Try: [what you are] specializing in [target role focus] with a track record of [one specific result].</span>
+        </label>
+        <textarea id="summary" placeholder="MCA student specializing in full-stack web systems, with a track record of shipping production code — built and deployed a campus event platform used by 1,200+ students."></textarea>
+
+        <div class="samples-box">
+          <h4>💡 Comprehensive Role-Tailored Sample Summaries</h4>
+          <div class="sample-item">
+            <div class="sample-title">Full-Stack Web Development</div>
+            <div>MCA student specializing in modern web development with React and Node.js. Track record of shipping production-ready applications, including a full-stack campus event platform deployed to 1,200+ active users.</div>
+          </div>
+          <div class="sample-item">
+            <div class="sample-title">Backend &amp; API Engineering</div>
+            <div>MCA graduate with a strong foundation in database architecture and RESTful service design. Engineered scalable backend services using Python/FastAPI and PostgreSQL, reducing search API latency by 35% in personal projects.</div>
+          </div>
+          <div class="sample-item">
+            <div class="sample-title">Data Analytics &amp; Applied AI</div>
+            <div>MCA candidate focusing on data engineering and machine learning workflows. Applied Pandas and Scikit-learn to analyze 50K+ data points for a predictive maintenance project, achieving 88% model precision.</div>
+          </div>
+          <div class="sample-item">
+            <div class="sample-title">Cloud Infrastructure &amp; DevOps</div>
+            <div>MCA student experienced in containerized deployments and CI/CD automation. Designed automated cloud workflows using Docker and AWS S3/EC2, cutting build deployment times by 40% for departmental web apps.</div>
+          </div>
+          <div class="sample-item">
+            <div class="sample-title">Frontend Specialist</div>
+            <div>Computer Science student passionate about building highly performant, accessible web interfaces. Expert in React, Redux, and Tailwind CSS; refactored student portal UI to achieve 98+ Google Lighthouse performance score.</div>
+          </div>
+          <div class="sample-item">
+            <div class="sample-title">Mobile App Engineer</div>
+            <div>Software engineering student specializing in cross-platform mobile development using Flutter and Firebase. Published 2 apps to Google Play Store with 500+ combined downloads and a 4.8-star average user rating.</div>
+          </div>
+          <div class="sample-item">
+            <div class="sample-title">Cybersecurity &amp; System Administration</div>
+            <div>Computer Applications post-graduate with focused expertise in network security and vulnerability assessments. Conducted security audits for 3 academic web portals, identifying and patching 8 OWASP vulnerabilities.</div>
+          </div>
+        </div>
+
+        <div class="step-nav">
+          <button type="button" class="secondary" data-back>Back</button>
+          <button type="button" class="primary" data-next>Continue</button>
+        </div>
+      </section>
+
+      <!-- STEP 3: TECHNICAL SKILLS -->
+      <section class="step" data-step="3">
+        <div class="step-eyebrow">Step 4 / 12</div>
+        <h2>Technical skills</h2>
+        <p class="step-intro">Languages, frameworks, tools, databases — kept to what you can actually defend in an interview. <strong>At least 3 technical skills are required.</strong></p>
+
+        <div class="coach-note">
+          <span class="tag">Why this works</span>
+          <p>Quantify where you can — "Python — 2 years, used in 4 projects" beats a bare word. An unattached skill is a claim; an attached one is proof.</p>
+        </div>
+
+        <div class="skill-add-grid">
+          <div class="skill-add-row">
+            <div>
+              <label for="techSkillInput">Skill<span class="req">*</span></label>
+              <input type="text" id="techSkillInput" placeholder="e.g. Python, React, Firebase, Docker">
+            </div>
+            <div>
+              <label for="techSkillEvidence">Quantify it / which project used it?<span class="req">*</span></label>
+              <input type="text" id="techSkillEvidence" placeholder="e.g. 2 yrs, used in Campus Library System">
+            </div>
+            <button type="button" class="tag-add-btn" id="techSkillAddBtn">Add</button>
+          </div>
+        </div>
+        <div class="tag-list" id="techSkillList"></div>
+
+        <div class="samples-box">
+          <h4>💡 Extensive Technical Skills Samples</h4>
+          <div class="sample-item"><div class="sample-title">Python</div>2 years — Built RESTful APIs (FastAPI) &amp; data analysis scripts across 4 projects.</div>
+          <div class="sample-item"><div class="sample-title">JavaScript / TypeScript</div>2 years — Modern ES6+, Async/Await, DOM Manipulation, React UI development.</div>
+          <div class="sample-item"><div class="sample-title">Java</div>1.5 years — Core OOP concepts, Data Structures, Multithreading, JDBC connectivity.</div>
+          <div class="sample-item"><div class="sample-title">C / C++</div>2 years — Algorithm design, memory management, competitive programming (300+ problems solved).</div>
+          <div class="sample-item"><div class="sample-title">React.js</div>1.5 years — Hooks, Context API, Redux Toolkit, client-side routing, responsive UI layout.</div>
+          <div class="sample-item"><div class="sample-title">Node.js &amp; Express</div>1.5 years — JWT authentication, RESTful service architecture, middleware integration.</div>
+          <div class="sample-item"><div class="sample-title">PostgreSQL / MySQL</div>2 years — Relational database design, query optimization, indexed views, ACID compliance.</div>
+          <div class="sample-item"><div class="sample-title">MongoDB / Supabase</div>1 year — NoSQL document modeling, real-time subscriptions, cloud backend serverless logic.</div>
+          <div class="sample-item"><div class="sample-title">Git &amp; GitHub</div>2 years — Branching strategies, PR code reviews, merge conflict resolution, GitHub Actions.</div>
+          <div class="sample-item"><div class="sample-title">Docker</div>1 year — Containerizing Node.js and Python microservices for local and cloud deployment.</div>
+          <div class="sample-item"><div class="sample-title">HTML5 &amp; CSS3 / Tailwind</div>2 years — Semantic markup, Flexbox, CSS Grid, mobile-first responsive design.</div>
+          <div class="sample-item"><div class="sample-title">Linux / Shell Scripting</div>1.5 years — Bash automation scripts, SSH server management, cron jobs, environment setup.</div>
+          <div class="sample-item"><div class="sample-title">FastAPI / Flask</div>1 year — Lightweight REST API creation, Swagger documentation, asynchronous handlers.</div>
+          <div class="sample-item"><div class="sample-title">Redis</div>1 year — In-memory caching, session storage management, key-value lookup acceleration.</div>
+          <div class="sample-item"><div class="sample-title">AWS (S3, EC2, Lambda)</div>1 year — Cloud deployment, bucket policy setup, serverless execution functions.</div>
+          <div class="sample-item"><div class="sample-title">GraphQL</div>1 year — Schema design, resolvers execution, preventing over-fetching in React apps.</div>
+          <div class="sample-item"><div class="sample-title">Pandas &amp; NumPy</div>1.5 years — Data cleaning, array manipulation, data frame aggregations on 100k+ rows.</div>
+        </div>
+
+        <div class="step-nav">
+          <button type="button" class="secondary" data-back>Back</button>
+          <button type="button" class="primary" data-next>Continue</button>
+        </div>
+      </section>
+
+      <!-- STEP 4: SOFT SKILLS -->
+      <section class="step" data-step="4">
+        <div class="step-eyebrow">Step 5 / 12</div>
+        <h2>Soft skills</h2>
+        <p class="step-intro">Kept separate from technical skills on purpose — they need concrete proof. <strong>At least 3 soft skills are required.</strong></p>
+
+        <div class="coach-note">
+          <span class="tag">Why this works</span>
+          <p>Give each soft skill a specific proof point: "Time management — organized an entire college tech fest for 500 students, on schedule."</p>
+        </div>
+
+        <div class="skill-add-grid">
+          <div class="skill-add-row">
+            <div>
+              <label for="softSkillInput">Soft skill<span class="req">*</span></label>
+              <input type="text" id="softSkillInput" placeholder="e.g. Technical Writing, Team Leadership">
+            </div>
+            <div>
+              <label for="softSkillEvidence">What's the proof?<span class="req">*</span></label>
+              <input type="text" id="softSkillEvidence" placeholder="e.g. Authored documentation used by 4 team members">
+            </div>
+            <button type="button" class="tag-add-btn" id="softSkillAddBtn">Add</button>
+          </div>
+        </div>
+        <div class="tag-list" id="softSkillList"></div>
+
+        <div class="samples-box">
+          <h4>💡 Extensive Soft Skills Samples</h4>
+          <div class="sample-item"><div class="sample-title">Technical Communication</div>Presented 3 technical research papers at inter-college symposiums &amp; authored documentation.</div>
+          <div class="sample-item"><div class="sample-title">Agile &amp; Team Collaboration</div>Served as student team lead for a 4-person capstone project, managing sprint backlogs.</div>
+          <div class="sample-item"><div class="sample-title">Problem Solving &amp; Analytical Thinking</div>Solved 250+ LeetCode algorithmic challenges with focus on dynamic programming and graphs.</div>
+          <div class="sample-item"><div class="sample-title">Adaptability &amp; Self-Learning</div>Independently learned Docker and AWS deployment in 3 weeks to deploy final year project.</div>
+          <div class="sample-item"><div class="sample-title">Event &amp; Time Management</div>Organized a national 24-hour hackathon coordinating 150+ participants on schedule.</div>
+          <div class="sample-item"><div class="sample-title">Mentorship &amp; Knowledge Sharing</div>Conducted 6 hands-on workshops on Git/GitHub for 60+ junior MCA students.</div>
+          <div class="sample-item"><div class="sample-title">Attention to Detail</div>Reviewed and refactored 3,000+ lines of codebase for security vulnerabilities and bugs.</div>
+          <div class="sample-item"><div class="sample-title">Cross-Functional Coordination</div>Liaised between department faculty, alumni sponsors, and student participants for college symposium.</div>
+          <div class="sample-item"><div class="sample-title">Conflict Resolution</div>Successfully managed technical design disagreements during capstone development, keeping team on schedule.</div>
+          <div class="sample-item"><div class="sample-title">Crisis Management</div>Resolved real-time database server crashes during live college event, restoring service within 10 minutes.</div>
+        </div>
+
+        <div class="step-nav">
+          <button type="button" class="secondary" data-back>Back</button>
+          <button type="button" class="primary" data-next>Continue</button>
+        </div>
+      </section>
+
+      <!-- STEP 5: PROJECTS -->
+      <section class="step" data-step="5">
+        <div class="step-eyebrow">Step 6 / 12</div>
+        <h2>Projects</h2>
+        <p class="step-intro">Academic, personal, or hackathon projects. For a student resume, this section carries the most weight.</p>
+
+        <div class="coach-note">
+          <span class="tag">Why this works</span>
+          <p>Structure your projects cleanly: Title, key Tech Stack line, followed by tight impact bullet points starting with strong action verbs.</p>
+        </div>
+
+        <div id="projectEntries"></div>
+        <button type="button" class="add-entry" id="addProject">+ Add another project</button>
+
+        <div class="samples-box">
+          <h4>💡 Well-crafted sample project entries</h4>
+          <div class="sample-item">
+            <div class="sample-title">Campus Library Management System (React, Firebase, Node.js)</div>
+            <div>• Developed a QR-based check-in application deployed for 1,200+ active students.<br>• Reduced average queue waiting time from 12 minutes to under 3 minutes per student.<br>• Implemented real-time database listeners to track live library seat availability.</div>
+          </div>
+          <div class="sample-item">
+            <div class="sample-title">Automated Exam Seat Allocation System (Python, Flask, SQLite)</div>
+            <div>• Designed an algorithmic seat scheduler preventing consecutive student seating for concurrent exams.<br>• Automated seat matrix PDF export for 800+ hall candidates, cutting faculty preparation time by 80%.</div>
+          </div>
+          <div class="sample-item">
+            <div class="sample-title">Real-Time E-Commerce Analytics Dashboard (React, Node.js, PostgreSQL, Socket.io)</div>
+            <div>• Built a real-time order tracking portal rendering live sales metrics with dynamic charts.<br>• Optimized SQL query indexing, reducing dashboard payload load time by 45%.</div>
+          </div>
+          <div class="sample-item">
+            <div class="sample-title">AI-Powered Resume Screening Engine (Python, FastAPI, Scikit-learn, SpaCy)</div>
+            <div>• Developed an automated parser extracting skills, experience, and keywords from 200+ PDF resumes.<br>• Implemented TF-IDF and cosine similarity metrics to rank candidates against job descriptions with 91% accuracy.</div>
+          </div>
+          <div class="sample-item">
+            <div class="sample-title">Distributed Task Scheduler &amp; Queue (Go, Redis, Docker)</div>
+            <div>• Built a lightweight asynchronous task execution engine processing job queues in concurrent worker pools.<br>• Integrated dead-letter queue recovery mechanism reducing failed payload loss to 0%.</div>
+          </div>
+          <div class="sample-item">
+            <div class="sample-title">IoT Smart Agriculture Monitoring Portal (Node.js, Express, MongoDB, ESP8266)</div>
+            <div>• Connected hardware sensors to stream real-time soil moisture and temperature metrics every 30 seconds.<br>• Configured automated SMS notifications to alert farm supervisors when soil thresholds dropped below target levels.</div>
+          </div>
+        </div>
+
+        <div class="step-nav">
+          <button type="button" class="secondary" data-back>Back</button>
+          <button type="button" class="primary" data-next>Continue</button>
+        </div>
+      </section>
+
+      <!-- STEP 6: EXPERIENCE -->
+      <section class="step" data-step="6">
+        <div class="step-eyebrow">Step 7 / 12</div>
+        <h2>Experience &amp; internships</h2>
+        <p class="step-intro">Jobs, internships, or teaching assistantships. Most recent first.</p>
+
+        <div class="coach-note">
+          <span class="tag">Why this works</span>
+          <p>Write what changed because of you, not what you were assigned to do. Start each bullet with a strong verb and include numbers where possible.</p>
+        </div>
+
+        <div id="experienceEntries"></div>
+        <button type="button" class="add-entry" id="addExperience">+ Add another role</button>
+
+        <div class="samples-box">
+          <h4>💡 Well-crafted sample experience entries</h4>
+          <div class="sample-item">
+            <div class="sample-title">Software Engineering Intern — Bluepeak Systems (Jun 2025 – Aug 2025)</div>
+            <div>• Rebuilt automated onboarding email pipeline, cutting user drop-off rate from 22% to 9%.<br>• Designed and integrated 3 RESTful endpoints consumed by mobile app teams.<br>• Authored unit test coverage improving core module reliability by 28%.</div>
+          </div>
+          <div class="sample-item">
+            <div class="sample-title">Web Development Intern — CyberTech Solutions (Jan 2025 – Apr 2025)</div>
+            <div>• Converted static client landing pages into responsive, accessible UI modules using React.<br>• Fixed 15+ high-priority frontend bugs reported in client ticketing system during 12-week sprint.</div>
+          </div>
+          <div class="sample-item">
+            <div class="sample-title">Graduate Teaching Assistant — Department of Computer Science (Aug 2024 – Dec 2024)</div>
+            <div>• Assisted professors in mentoring 90+ undergraduate students in C++ Data Structures laboratory.<br>• Conducted weekly code review sessions and graded 300+ programming assignments with constructive feedback.</div>
+          </div>
+          <div class="sample-item">
+            <div class="sample-title">Data Analytics Intern — Apex Metrics (May 2024 – Jul 2024)</div>
+            <div>• Cleaned and structured 100K+ raw customer transaction records using Pandas and SQL.<br>• Built 4 interactive Tableau dashboards utilized by senior management to evaluate quarterly sales trends.</div>
+          </div>
+          <div class="sample-item">
+            <div class="sample-title">Open Source Developer Apprentice — Tech Community (Sep 2024 – Nov 2024)</div>
+            <div>• Contributed 6 accepted pull requests to community UI library, resolving keyboard navigation bugs.<br>• Improved repository documentation, helping reduce new contributor onboarding queries by 30%.</div>
+          </div>
+        </div>
+
+        <div class="step-nav">
+          <button type="button" class="secondary" data-back>Back</button>
+          <button type="button" class="primary" data-next>Continue</button>
+        </div>
+      </section>
+
+      <!-- STEP 7: ROLES & RESPONSIBILITIES -->
+      <section class="step" data-step="7">
+        <div class="step-eyebrow">Step 8 / 12</div>
+        <h2>Roles &amp; Responsibilities</h2>
+        <p class="step-intro">Leadership roles, student coordinators, club positions, or campus representative duties.</p>
+
+        <div class="coach-note">
+          <span class="tag">Why this works</span>
+          <p>Highlights ownership, initiative, and administrative ability outside standard coursework. Shows recruiters you take responsibility.</p>
+        </div>
+
+        <div id="roleEntries"></div>
+        <button type="button" class="add-entry" id="addRole">+ Add another role &amp; responsibility</button>
+
+        <div class="samples-box">
+          <h4>💡 Well-crafted sample leadership entries</h4>
+          <div class="sample-item">
+            <div class="sample-title">Student Coordinator — National Level Tech Symposium (2025)</div>
+            <div>• Led a 12-member student team organizing coding contests for 600+ external participants.<br>• Managed budget allocation, venue arrangements, and sponsor communications.</div>
+          </div>
+          <div class="sample-item">
+            <div class="sample-title">Head of Technical Content — Campus Developer Club (2024 – 2025)</div>
+            <div>• Conducted 8 hands-on weekend workshops on Git and Web Development for junior students.<br>• Curated technical problem sets and mentored 40+ beginner programmers.</div>
+          </div>
+          <div class="sample-item">
+            <div class="sample-title">Placement Representative — Department of Computer Applications (2025)</div>
+            <div>• Coordinated campus placement drives for 120 MCA students, interfacing with 15+ visiting company HR teams.<br>• Managed candidate scheduling, resume collation, and technical lab readiness.</div>
+          </div>
+          <div class="sample-item">
+            <div class="sample-title">Lead Editor — College Technical Magazine (2024)</div>
+            <div>• Managed publication lifecycle of bi-annual department journal featuring 20+ student research articles.<br>• Oversaw peer reviews, formatting, and final print distribution to 500+ faculty and students.</div>
+          </div>
+          <div class="sample-item">
+            <div class="sample-title">Class Representative — MCA Program (2024 – 2026)</div>
+            <div>• Acted as primary liaison between 60 students and department faculty regarding schedule changes and academic resources.<br>• Facilitated study groups that improved overall class pass percentage by 12% in Advanced DBMS.</div>
+          </div>
+        </div>
+
+        <div class="step-nav">
+          <button type="button" class="secondary" data-back>Back</button>
+          <button type="button" class="primary" data-next>Continue</button>
+        </div>
+      </section>
+
+      <!-- STEP 8: EDUCATION -->
+      <section class="step" data-step="8">
+        <div class="step-eyebrow">Step 9 / 12</div>
+        <h2>Education</h2>
+        <p class="step-intro">Degree titles, institution details, CGPA/marks, and core coursework.</p>
+
+        <div class="coach-note">
+          <span class="tag">Why this works</span>
+          <p>Lead with what's genuinely strong (CGPA, honors, specialization); detail relevant coursework to pass keyword ATS scans.</p>
+        </div>
+
+        <div id="educationEntries"></div>
+        <button type="button" class="add-entry" id="addEducation">+ Add another degree/course</button>
+
+        <div class="samples-box">
+          <h4>💡 Well-crafted sample education entries</h4>
+          <div class="sample-item">
+            <div class="sample-title">Master of Computer Applications (MCA) — Anna University (2024 – 2026)</div>
+            <div>CGPA: 8.9/10 • Relevant Coursework: Data Structures &amp; Algorithms, Database Management Systems, Web Architecture, Distributed Systems.</div>
+          </div>
+          <div class="sample-item">
+            <div class="sample-title">B.Sc. Computer Science — University of Madras (2021 – 2024)</div>
+            <div>Percentage: 84% • First Class with Distinction • Core Subjects: Object-Oriented Programming, Java, Software Engineering.</div>
+          </div>
+          <div class="sample-item">
+            <div class="sample-title">B.C.A. (Bachelor of Computer Applications) — SRM Institute (2021 – 2024)</div>
+            <div>CGPA: 9.1/10 • Department Rank 2 • Core Coursework: C++, Data Structures, Computer Networks, Operating Systems, Web Tech.</div>
+          </div>
+          <div class="sample-item">
+            <div class="sample-title">B.Tech. Computer Science &amp; Engineering — State University (2020 – 2024)</div>
+            <div>CGPA: 8.5/10 • Specialization in Artificial Intelligence &amp; Machine Learning • Capstone Project: Automated Anomaly Detection.</div>
+          </div>
+        </div>
+
+        <div class="step-nav">
+          <button type="button" class="secondary" data-back>Back</button>
+          <button type="button" class="primary" data-next>Continue</button>
+        </div>
+      </section>
+
+      <!-- STEP 9: ACHIEVEMENTS & CERTIFICATIONS -->
+      <section class="step" data-step="9">
+        <div class="step-eyebrow">Step 10 / 12</div>
+        <h2>Achievements &amp; certifications</h2>
+        <p class="step-intro">Hackathon results, certifications, awards, competitive-coding ranks.</p>
+
+        <div class="coach-note">
+          <span class="tag">Why this works</span>
+          <p>A certification or hackathon placement is hard to fake. Include what's relevant to your target role.</p>
+        </div>
+
+        <div id="achievementEntries"></div>
+        <button type="button" class="add-entry" id="addAchievement">+ Add an achievement/certification</button>
+
+        <div class="samples-box">
+          <h4>💡 Well-crafted sample achievement entries</h4>
+          <div class="sample-item">
+            <div class="sample-title">Smart India Hackathon — Finalist (2025)</div>
+            <div>Top 5 team among 200+ applicants for developing a smart traffic monitoring web system.</div>
+          </div>
+          <div class="sample-item">
+            <div class="sample-title">AWS Certified Developer – Associate (2025)</div>
+            <div>Validated expertise in developing, deploying, and debugging cloud-based applications.</div>
+          </div>
+          <div class="sample-item">
+            <div class="sample-title">LeetCode 50 Days Badge &amp; 1650+ Contest Rating (2025)</div>
+            <div>Solved 300+ algorithmic coding problems covering Trees, Dynamic Programming, and Graphs.</div>
+          </div>
+          <div class="sample-item">
+            <div class="sample-title">1st Place — Inter-College Coding Competition (2024)</div>
+            <div>Awarded 1st place among 80 participants in speed debugging and algorithm optimization.</div>
+          </div>
+          <div class="sample-item">
+            <div class="sample-title">Oracle Certified Associate, Java SE 11 Developer (2024)</div>
+            <div>Demonstrated proficiency in Java object-oriented programming, concurrency, and memory optimization.</div>
+          </div>
+          <div class="sample-item">
+            <div class="sample-title">NPTEL Elite Gold Certification — Cloud Computing (2024)</div>
+            <div>Scored 92% in 12-week national course administered by IIT Kharagpur.</div>
+          </div>
+          <div class="sample-item">
+            <div class="sample-title">Meta Front-End Developer Professional Certificate (2024)</div>
+            <div>Completed 9-course series covering React, Javascript UI state, version control, and UX principles.</div>
+          </div>
+        </div>
+
+        <div class="step-nav">
+          <button type="button" class="secondary" data-back>Back</button>
+          <button type="button" class="primary" data-next>Continue</button>
+        </div>
+      </section>
+
+      <!-- STEP 10: INTERESTS -->
+      <section class="step" data-step="10">
+        <div class="step-eyebrow">Step 11 / 12</div>
+        <h2>Interests</h2>
+        <p class="step-intro">Personal pursuits that demonstrate discipline, technical curiosity, or creative drive.</p>
+
+        <div class="coach-note">
+          <span class="tag">Signal-to-Noise Rule</span>
+          <p>Only mention pursuits if they signal commitment, achievement, or skills relevant to your career.</p>
+        </div>
+
+        <div id="interestEntries"></div>
+        <button type="button" class="add-entry" id="addInterest">+ Add an interest</button>
+
+        <div class="samples-box">
+          <h4>💡 Well-crafted sample interest entries</h4>
+          <div class="sample-item">
+            <div class="sample-title">Open Source Technical Writing</div>
+            <div>Authored 12+ technical articles on Hashnode discussing Web Performance and SQL Optimization, gaining 4,000+ total views.</div>
+          </div>
+          <div class="sample-item">
+            <div class="sample-title">Competitive Chess</div>
+            <div>Rated 1600+ on Chess.com; active participant in regional collegiate tournaments demonstrating tactical planning.</div>
+          </div>
+          <div class="sample-item">
+            <div class="sample-title">Open Source Bug Hunting</div>
+            <div>Submitted pull requests and fixed documentation/minor UI bugs for 3 open-source developer tool repositories on GitHub.</div>
+          </div>
+          <div class="sample-item">
+            <div class="sample-title">Distance Running</div>
+            <div>Trained for and completed two 10K amateur city runs, demonstrating physical endurance and discipline.</div>
+          </div>
+          <div class="sample-item">
+            <div class="sample-title">UI/UX Design Exploration</div>
+            <div>Designed 10+ open-source mobile wireframes on Figma, focusing on mobile app accessibility and dark mode themes.</div>
+          </div>
+          <div class="sample-item">
+            <div class="sample-title">Raspberry Pi Hardware Projects</div>
+            <div>Built a personal home media server and network-level ad-blocker (Pi-hole) managing local network DNS.</div>
+          </div>
+        </div>
+
+        <div class="step-nav">
+          <button type="button" class="secondary" data-back>Back</button>
+          <button type="button" class="primary" data-next>Continue</button>
+        </div>
+      </section>
+
+      <!-- STEP 11: REVIEW & EXPORT -->
+      <section class="step" data-step="11">
+        <div class="step-eyebrow">Step 12 / 12</div>
+        <h2>Review &amp; export</h2>
+        <p class="step-intro">One last review, then your resume is ready to download or publish.</p>
+
+        <div class="coach-note">
+          <span class="tag">ATS-Friendly Design</span>
+          <p>Standard headings, clean structure, and semantic elements ensure your resume parses perfectly through Applicant Tracking Systems (ATS).</p>
+        </div>
+
+        <div class="resume-preview" id="resumePreview" aria-live="polite"></div>
+
+        <div class="export-actions">
+          <button type="button" class="primary" id="downloadHtmlBtn">Download ATS-friendly HTML</button>
+          <button type="button" class="secondary" id="downloadTwoColHtmlBtn">Download 2-Column HTML (For Printing)</button>
+        </div>
+
+        <div class="pr-panel">
+          <h3>Publish this resume via a pull request</h3>
+          <p class="step-intro" style="margin-bottom:10px;">Opens GitHub's file editor pre-filled with your resume to submit directly to a target repository.</p>
+
+          <!-- Hidden default repo parameters -->
+          <input type="hidden" id="ghOwner" value="andrewveda">
+          <input type="hidden" id="ghRepo" value="resume">
+          <input type="hidden" id="ghBranch" value="main">
+
+          <div style="margin-bottom:14px;">
+            <label for="ghPath">Filename in repository. resumes/yourname.html<span class="req">*</span></label>
+            <input type="text" id="ghPath" value="resumes/" placeholder="resumes/name.html">
+          </div>
+
+          <div class="export-actions">
+            <button type="button" class="primary" id="openPrBtn">Open GitHub &amp; start pull request</button>
+            <button type="button" class="secondary" id="copyHtmlBtn">Copy resume HTML</button>
+          </div>
+          <div id="prStatus"></div>
+        </div>
+
+        <div class="step-nav">
+          <button type="button" class="secondary" data-back>Back</button>
+          <button type="button" class="secondary" disabled>You're done</button>
+        </div>
+      </section>
+
+    </form>
+  </div>
+</main>
+
+<footer>
+  Live long and Prosper!✨
+</footer>
+
+<template id="projectTemplate">
+  <div class="entry" data-entry="project">
+    <button type="button" class="entry-remove" data-remove>Remove ✕</button>
+    <label>Project title<span class="req">*</span></label>
+    <input type="text" data-field="title" placeholder="Campus Library Management System">
+    
+    <label>Technologies used<span class="req">*</span>
+      <span class="hint">Bullet or dot separated — e.g. React • Firebase • QR Code</span>
+    </label>
+    <input type="text" data-field="tech" placeholder="React • Firebase • QR Code">
+
+    <label>Project URL / Link<span class="req">*</span></label>
+    <input type="url" data-field="link" placeholder="github.com/andrewveda/library-system">
+
+    <label>Key Achievements / Bullet Points<span class="req">*</span>
+      <span class="hint">One bullet point per line. Focus on actions, results, and features.</span>
+    </label>
+    <textarea data-field="bullets" style="min-height:100px;" placeholder="Developed a QR-based library check-in system.&#10;Generated unique QR codes for every student.&#10;Reduced average check-in time from 12 minutes to 3 minutes.&#10;Implemented real-time attendance updates using Firebase."></textarea>
+  </div>
+</template>
+
+<template id="experienceTemplate">
+  <div class="entry" data-entry="experience">
+    <button type="button" class="entry-remove" data-remove>Remove ✕</button>
+    <label>Role / title<span class="req">*</span></label>
+    <input type="text" data-field="role" placeholder="Software Engineering Intern">
+    <label>Organization<span class="req">*</span></label>
+    <input type="text" data-field="org" placeholder="Bluepeak Systems">
+    <label>Dates<span class="req">*</span>
+      <span class="hint">e.g. Jun 2025 – Aug 2025</span>
+    </label>
+    <input type="text" data-field="dates" placeholder="Jun 2025 – Aug 2025">
+    <label>What changed because you were there?<span class="req">*</span>
+      <span class="hint">One bullet per line. Start with a verb, end with a number where you can.</span>
+    </label>
+    <textarea data-field="bullets" placeholder="Rebuilt onboarding email flow, cutting drop-off from 22% to 9%&#10;Shipped internal API used by 3 downstream teams"></textarea>
+  </div>
+</template>
+
+<template id="roleTemplate">
+  <div class="entry" data-entry="role">
+    <button type="button" class="entry-remove" data-remove>Remove ✕</button>
+    <label>Position / Role title<span class="req">*</span></label>
+    <input type="text" data-field="title" placeholder="Student Coordinator — National Tech Fest">
+    <label>Organization / Event<span class="req">*</span></label>
+    <input type="text" data-field="org" placeholder="Department of Computer Applications">
+    <label>Dates<span class="req">*</span></label>
+    <input type="text" data-field="dates" placeholder="2024 – 2025">
+    <label>Key Responsibilities &amp; Impact<span class="req">*</span>
+      <span class="hint">One bullet per line. Detail your leadership and coordination work.</span>
+    </label>
+    <textarea data-field="bullets" placeholder="Led a team of 10 students to coordinate technical events for 500+ attendees.&#10;Managed event logistics, external participant registrations, and sponsorship."></textarea>
+  </div>
+</template>
+
+<template id="educationTemplate">
+  <div class="entry" data-entry="education">
+    <button type="button" class="entry-remove" data-remove>Remove ✕</button>
+    <label>Degree / course<span class="req">*</span></label>
+    <input type="text" data-field="degree" placeholder="Master of Computer Applications (MCA)">
+    <label>Institution<span class="req">*</span></label>
+    <input type="text" data-field="school" placeholder="Anna University">
+    <label>Dates<span class="req">*</span></label>
+    <input type="text" data-field="dates" placeholder="2024 – 2026">
+    <label>Notable detail<span class="req">*</span>
+      <span class="hint">CGPA, honors, specialization.</span>
+    </label>
+    <input type="text" data-field="detail" placeholder="CGPA 8.9/10 · Specialization: Web Engineering">
+    <label>Relevant coursework<span class="req">*</span></label>
+    <input type="text" data-field="coursework" placeholder="Data Structures, DBMS, Web Development, Distributed Systems">
+  </div>
+</template>
+
+<template id="achievementTemplate">
+  <div class="entry" data-entry="achievement">
+    <button type="button" class="entry-remove" data-remove>Remove ✕</button>
+    <label>Title<span class="req">*</span></label>
+    <input type="text" data-field="title" placeholder="Smart India Hackathon — Finalist">
+    <label>Context / issuer<span class="req">*</span></label>
+    <input type="text" data-field="context" placeholder="Govt. of India, national-level hackathon">
+    <label>Date<span class="req">*</span></label>
+    <input type="text" data-field="date" placeholder="Sep 2025">
+    <label>Link<span class="req">*</span></label>
+    <input type="url" data-field="link" placeholder="credential or announcement URL">
+  </div>
+</template>
+
+<template id="interestTemplate">
+  <div class="entry" data-entry="interest">
+    <button type="button" class="entry-remove" data-remove>Remove ✕</button>
+    <label>Interest / Pursuit<span class="req">*</span></label>
+    <input type="text" data-field="title" placeholder="Open Source Technical Writing">
+    <label>Demonstrated Signal / Proof<span class="req">*</span></label>
+    <input type="text" data-field="details" placeholder="Published 10+ technical blogs on Web Performance, 4k+ total readers.">
+  </div>
+</template>
+
+<script>
+(function(){
+  "use strict";
+
+  var TOTAL_STEPS = 12;
+  var currentStep = 0;
+
+  var state = {
+    target: {},
+    contact: { name: "Andrew Veda", email: "firstname.secondname@domain.com", phone: "91 2345 6789", github: "github.com/andrewveda", portfolio: "andrewveda.github.io" },
+    summary: "",
+    techSkills: [],
+    softSkills: [],
+    projects: [],
+    experience: [],
+    roles: [],
+    education: [],
+    achievements: [],
+    interests: []
+  };
+
+  // ---------- Progress bar ----------
+  var track = document.getElementById('progressTrack');
+  for (var i=0; i<TOTAL_STEPS; i++){
+    var seg = document.createElement('div');
+    seg.className = 'progress-seg';
+    track.appendChild(seg);
+  }
+  var stepLabels = [
+    'Target Role','Contact & links','Summary','Technical skills','Soft skills',
+    'Projects','Experience','Roles & Responsibilities','Education','Achievements & certs','Interests','Review & export'
+  ];
+
+  function updateProgress(){
+    var segs = track.querySelectorAll('.progress-seg');
+    segs.forEach(function(s, idx){ s.classList.toggle('done', idx <= currentStep); });
+    document.getElementById('progressText').textContent =
+      'Step ' + (currentStep+1) + ' of ' + TOTAL_STEPS + ' — ' + stepLabels[currentStep];
+  }
+
+  var steps = Array.prototype.slice.call(document.querySelectorAll('.step'));
+
+  function showStep(idx){
+    steps.forEach(function(s){ s.classList.toggle('active', parseInt(s.dataset.step,10) === idx); });
+    currentStep = idx;
+    updateProgress();
+    window.scrollTo({top:0, behavior:'smooth'});
+    if (idx === TOTAL_STEPS-1){ renderPreview(); }
+  }
+
+  function val(id){
+    var el = document.getElementById(id);
+    return el ? el.value.trim() : '';
+  }
+
+  function collectEntries(containerId, fields){
+    var container = document.getElementById(containerId);
+    var entries = [];
+    container.querySelectorAll('.entry').forEach(function(entryEl){
+      var obj = {};
+      fields.forEach(function(f){
+        var input = entryEl.querySelector('[data-field="'+f+'"]');
+        obj[f] = input ? input.value.trim() : '';
+      });
+      var hasContent = Object.keys(obj).some(function(k){ return obj[k]; });
+      if (hasContent) entries.push(obj);
+    });
+    return entries;
+  }
+
+  function validateEntries(containerId, fields){
+    var container = document.getElementById(containerId);
+    var entries = container.querySelectorAll('.entry');
+    if (entries.length === 0) return false;
+    
+    var allValid = true;
+    entries.forEach(function(entryEl){
+      fields.forEach(function(f){
+        var input = entryEl.querySelector('[data-field="'+f+'"]');
+        if (!input || !input.value.trim()){
+          allValid = false;
+        }
+      });
+    });
+    return allValid;
+  }
+
+  function collectTarget(){
+    state.target = {
+      role: val('targetRole'),
+      company: val('targetCompany'),
+      expectedSkills: val('expectedSkills'),
+      expectedProjects: val('expectedProjects')
+    };
+  }
+  function collectContact(){
+    state.contact = {
+      name: val('fullName'), email: val('email'), phone: val('phone'),
+      location: val('location'), linkedin: val('linkedin'),
+      github: val('github'), portfolio: val('portfolio'), otherProfiles: val('otherProfiles')
+    };
+  }
+  function collectSummary(){ state.summary = val('summary'); }
+  function collectProjects(){ state.projects = collectEntries('projectEntries', ['title','tech','link','bullets']); }
+  function collectExperience(){ state.experience = collectEntries('experienceEntries', ['role','org','dates','bullets']); }
+  function collectRoles(){ state.roles = collectEntries('roleEntries', ['title','org','dates','bullets']); }
+  function collectEducation(){ state.education = collectEntries('educationEntries', ['degree','school','dates','detail','coursework']); }
+  function collectAchievements(){ state.achievements = collectEntries('achievementEntries', ['title','context','date','link']); }
+  function collectInterests(){ state.interests = collectEntries('interestEntries', ['title','details']); }
+
+  var collectByStep = [
+    collectTarget, collectContact, collectSummary, function(){}, function(){},
+    collectProjects, collectExperience, collectRoles, collectEducation, collectAchievements, collectInterests, function(){}
+  ];
+  function collectStepData(idx){ collectByStep[idx](); }
+  function collectAll(){ collectByStep.forEach(function(fn){ fn(); }); }
+
+  function validateStep(idx) {
+    if (idx === 0) {
+      if (!val('targetRole') || !val('targetCompany') || !val('expectedSkills') || !val('expectedProjects')) {
+        alert('All fields in Target Role & Expectation are mandatory.');
+        return false;
+      }
+    } else if (idx === 1) {
+      if (!val('fullName') || !val('email') || !val('phone') || !val('location') || !val('linkedin') || !val('github') || !val('portfolio') || !val('otherProfiles')) {
+        alert('All contact details and links are mandatory.');
+        return false;
+      }
+    } else if (idx === 2) {
+      if (!val('summary')) {
+        alert('Professional summary is mandatory.');
+        return false;
+      }
+    } else if (idx === 3) {
+      if (state.techSkills.length < 3) {
+        alert('Please add at least 3 mandatory technical skills.');
+        return false;
+      }
+    } else if (idx === 4) {
+      if (state.softSkills.length < 3) {
+        alert('Please add at least 3 mandatory soft skills.');
+        return false;
+      }
+    } else if (idx === 5) {
+      if (!validateEntries('projectEntries', ['title','tech','link','bullets'])) {
+        alert('All project fields are mandatory. Please fill in every field for each added entry.');
+        return false;
+      }
+    } else if (idx === 6) {
+      if (!validateEntries('experienceEntries', ['role','org','dates','bullets'])) {
+        alert('All experience fields are mandatory. Please fill in every field for each added entry.');
+        return false;
+      }
+    } else if (idx === 7) {
+      if (!validateEntries('roleEntries', ['title','org','dates','bullets'])) {
+        alert('All leadership role fields are mandatory. Please fill in every field for each added entry.');
+        return false;
+      }
+    } else if (idx === 8) {
+      if (!validateEntries('educationEntries', ['degree','school','dates','detail','coursework'])) {
+        alert('All education fields are mandatory. Please fill in every field for each added entry.');
+        return false;
+      }
+    } else if (idx === 9) {
+      if (!validateEntries('achievementEntries', ['title','context','date','link'])) {
+        alert('All achievement/certification fields are mandatory. Please fill in every field for each added entry.');
+        return false;
+      }
+    } else if (idx === 10) {
+      if (!validateEntries('interestEntries', ['title','details'])) {
+        alert('All interest fields are mandatory. Please fill in every field for each added entry.');
+        return false;
+      }
+    }
+    return true;
+  }
+
+  document.getElementById('nextBtn').addEventListener('click', function(){
+    collectTarget();
+    if (!validateStep(0)) return;
+    showStep(1);
+  });
+
+  document.querySelectorAll('[data-next]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var idx = parseInt(btn.closest('.step').dataset.step,10);
+      collectStepData(idx);
+      if (!validateStep(idx)) return;
+      if (idx < TOTAL_STEPS-1) showStep(idx+1);
+    });
+  });
+
+  document.querySelectorAll('[data-back]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var idx = parseInt(btn.closest('.step').dataset.step,10);
+      collectStepData(idx);
+      if (idx > 0) showStep(idx-1);
+    });
+  });
+
+  // ---------- Repeatable entries ----------
+  function addEntry(containerId, templateId){
+    var tpl = document.getElementById(templateId);
+    var container = document.getElementById(containerId);
+    var clone = tpl.content.cloneNode(true);
+    var entryEl = clone.querySelector('.entry');
+    entryEl.querySelector('[data-remove]').addEventListener('click', function(){
+      if (container.querySelectorAll('.entry').length <= 1) {
+        alert('At least one entry is mandatory for this section.');
+        return;
+      }
+      entryEl.remove();
+    });
+    container.appendChild(clone);
+  }
+
+  document.getElementById('addProject').addEventListener('click', function(){ addEntry('projectEntries','projectTemplate'); });
+  document.getElementById('addExperience').addEventListener('click', function(){ addEntry('experienceEntries','experienceTemplate'); });
+  document.getElementById('addRole').addEventListener('click', function(){ addEntry('roleEntries','roleTemplate'); });
+  document.getElementById('addEducation').addEventListener('click', function(){ addEntry('educationEntries','educationTemplate'); });
+  document.getElementById('addAchievement').addEventListener('click', function(){ addEntry('achievementEntries','achievementTemplate'); });
+  document.getElementById('addInterest').addEventListener('click', function(){ addEntry('interestEntries','interestTemplate'); });
+
+  // seed initial mandatory entries
+  addEntry('projectEntries','projectTemplate');
+  addEntry('experienceEntries','experienceTemplate');
+  addEntry('roleEntries','roleTemplate');
+  addEntry('educationEntries','educationTemplate');
+  addEntry('achievementEntries','achievementTemplate');
+  addEntry('interestEntries','interestTemplate');
+
+  // ---------- Skill tags (technical + soft) ----------
+  function renderSkillTags(listElId, arrKey){
+    var listEl = document.getElementById(listElId);
+    listEl.innerHTML = '';
+    state[arrKey].forEach(function(item, i){
+      var chip = document.createElement('span');
+      chip.className = 'tag-chip';
+      var label = document.createElement('span');
+      label.textContent = item.skill;
+      chip.appendChild(label);
+      if (item.evidence){
+        var ev = document.createElement('span');
+        ev.className = 'chip-evidence';
+        ev.textContent = '— ' + item.evidence;
+        chip.appendChild(ev);
+      }
+      var rm = document.createElement('button');
+      rm.type = 'button';
+      rm.textContent = '✕';
+      rm.setAttribute('aria-label','Remove ' + item.skill);
+      rm.addEventListener('click', function(){
+        state[arrKey].splice(i,1);
+        renderSkillTags(listElId, arrKey);
+      });
+      chip.appendChild(rm);
+      listEl.appendChild(chip);
+    });
+  }
+
+  function wireSkillAdder(inputId, evidenceId, addBtnId, listElId, arrKey){
+    function add(){
+      var input = document.getElementById(inputId);
+      var evInput = document.getElementById(evidenceId);
+      var v = input.value.trim();
+      var ev = evInput.value.trim();
+      if (!v || !ev) { 
+        alert('Both Skill and Evidence/Quantification fields are mandatory.');
+        input.focus(); 
+        return; 
+      }
+      state[arrKey].push({skill:v, evidence:ev});
+      renderSkillTags(listElId, arrKey);
+      input.value = ''; evInput.value = '';
+      input.focus();
+    }
+    document.getElementById(addBtnId).addEventListener('click', add);
+    [inputId, evidenceId].forEach(function(id){
+      document.getElementById(id).addEventListener('keydown', function(e){
+        if (e.key === 'Enter'){ e.preventDefault(); add(); }
+      });
+    });
+  }
+
+  wireSkillAdder('techSkillInput','techSkillEvidence','techSkillAddBtn','techSkillList','techSkills');
+  wireSkillAdder('softSkillInput','softSkillEvidence','softSkillAddBtn','softSkillList','softSkills');
+
+  // ---------- Escaping & Formatters ----------
+  function esc(str){
+    return (str||'').replace(/[&<>"']/g, function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+  function bulletsToLis(text){
+    return (text||'').split('\n').map(function(l){return l.trim();}).filter(Boolean)
+      .map(function(l){
+        var cleanLine = l.replace(/^[\bullet\-\*\s]+/, '');
+        return '<li>' + esc(cleanLine) + '</li>';
+      }).join('');
+  }
+
+  // ---------- ATS-friendly standard single-column HTML ----------
+  function buildResumeBody(){
+    var c = state.contact;
+    var parts = [];
+
+    parts.push('<h1>'+esc(c.name||'Andrew Veda')+'</h1>');
+    var line1 = [c.location, c.phone, c.email].filter(Boolean).map(esc).join(' | ');
+    if (line1) parts.push('<p class="contact-line">'+line1+'</p>');
+    var linkBits = [];
+    if (c.linkedin) linkBits.push('LinkedIn: '+esc(c.linkedin));
+    if (c.github) linkBits.push('GitHub: '+esc(c.github));
+    if (c.portfolio) linkBits.push('Portfolio: '+esc(c.portfolio));
+    if (c.otherProfiles) linkBits.push(esc(c.otherProfiles));
+    if (linkBits.length) parts.push('<p class="contact-line">'+linkBits.join(' | ')+'</p>');
+
+    if (state.summary){
+      parts.push('<h2>Summary</h2>');
+      parts.push('<p>'+esc(state.summary)+'</p>');
+    }
+
+    if (state.techSkills.length){
+      parts.push('<h2>Technical Skills</h2>');
+      parts.push('<ul>' + state.techSkills.map(function(s){
+        return '<li><strong>'+esc(s.skill)+'</strong>' + (s.evidence ? ' — '+esc(s.evidence) : '') + '</li>';
+      }).join('') + '</ul>');
+    }
+
+    if (state.softSkills.length){
+      parts.push('<h2>Soft Skills</h2>');
+      parts.push('<ul>' + state.softSkills.map(function(s){
+        return '<li><strong>'+esc(s.skill)+'</strong>' + (s.evidence ? ' — '+esc(s.evidence) : '') + '</li>';
+      }).join('') + '</ul>');
+    }
+
+    if (state.projects.length){
+      parts.push('<h2>Projects</h2>');
+      state.projects.forEach(function(p){
+        var titleStr = esc(p.title||'');
+        if (p.link) {
+          titleStr += ' <span style="font-weight:400; font-size:0.85em;">(' + esc(p.link) + ')</span>';
+        }
+        parts.push('<h3>' + titleStr + '</h3>');
+        if (p.tech) {
+          parts.push('<p class="project-tech"><strong>' + esc(p.tech) + '</strong></p>');
+        }
+        var lis = bulletsToLis(p.bullets);
+        if (lis) parts.push('<ul>' + lis + '</ul>');
+      });
+    }
+
+    if (state.experience.length){
+      parts.push('<h2>Experience</h2>');
+      state.experience.forEach(function(e){
+        parts.push('<h3>'+esc(e.role||'')+(e.org? ' — '+esc(e.org):'')+'</h3>');
+        if (e.dates) parts.push('<p class="dates">'+esc(e.dates)+'</p>');
+        var lis = bulletsToLis(e.bullets);
+        if (lis) parts.push('<ul>'+lis+'</ul>');
+      });
+    }
+
+    if (state.roles.length){
+      parts.push('<h2>Roles &amp; Responsibilities</h2>');
+      state.roles.forEach(function(r){
+        parts.push('<h3>'+esc(r.title||'')+(r.org? ' — '+esc(r.org):'')+'</h3>');
+        if (r.dates) parts.push('<p class="dates">'+esc(r.dates)+'</p>');
+        var lis = bulletsToLis(r.bullets);
+        if (lis) parts.push('<ul>'+lis+'</ul>');
+      });
+    }
+
+    if (state.education.length){
+      parts.push('<h2>Education</h2>');
+      state.education.forEach(function(ed){
+        parts.push('<h3>'+esc(ed.degree||'')+(ed.school? ' — '+esc(ed.school):'')+'</h3>');
+        var line = [ed.dates, ed.detail].filter(Boolean).map(esc).join(' | ');
+        if (line) parts.push('<p class="dates">'+line+'</p>');
+        if (ed.coursework) parts.push('<p>Relevant coursework: '+esc(ed.coursework)+'</p>');
+      });
+    }
+
+    if (state.achievements.length){
+      parts.push('<h2>Achievements &amp; Certifications</h2>');
+      state.achievements.forEach(function(a){
+        parts.push('<h3>'+esc(a.title||'')+'</h3>');
+        var line = [a.context, a.date].filter(Boolean).map(esc).join(' | ');
+        if (line) parts.push('<p class="dates">'+line+'</p>');
+        if (a.link) parts.push('<p>'+esc(a.link)+'</p>');
+      });
+    }
+
+    if (state.interests.length){
+      parts.push('<h2>Interests</h2>');
+      parts.push('<ul>' + state.interests.map(function(it){
+        return '<li><strong>'+esc(it.title)+'</strong>' + (it.details ? ' — '+esc(it.details) : '') + '</li>';
+      }).join('') + '</ul>');
+    }
+
+    return parts.join('\n');
+  }
+
+  function buildFullAtsHtml(){
+    var name = esc(state.contact.name || 'Andrew Veda');
+    var body = buildResumeBody();
+    return '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="UTF-8">\n' +
+      '<meta name="viewport" content="width=device-width, initial-scale=1">\n' +
+      '<title>' + name + ' — Resume</title>\n' +
+      '<style>\n' +
+      'body{font-family:Georgia,\'Times New Roman\',serif;max-width:720px;margin:40px auto;padding:0 20px;color:#1a1a1a;line-height:1.45;}\n' +
+      'h1{font-size:1.6rem;margin:0 0 4px;}\n' +
+      'h2{font-size:0.95rem;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid #777;padding-bottom:2px;margin-top:18px;margin-bottom:8px;}\n' +
+      'h3{font-size:1rem;margin:10px 0 1px;}\n' +
+      'p.project-tech{font-family:\'Courier New\', Courier, monospace; font-size:0.88rem; color:#333; margin:1px 0 4px;}\n' +
+      'p.contact-line{margin:0 0 4px;font-size:0.92rem;}\n' +
+      'p.dates{margin:0 0 4px;font-style:italic;font-size:0.88rem;color:#444;}\n' +
+      'ul{margin:3px 0 8px;padding-left:20px;}\n' +
+      'li{margin-bottom:3px;font-size:0.92rem;}\n' +
+      'p{margin:3px 0 8px;font-size:0.92rem;}\n' +
+      '@media print{body{margin:0;padding:0 10px;}}\n' +
+      '</style>\n</head>\n<body>\n' + body + '\n</body>\n</html>\n';
+  }
+
+  // ---------- Professional Two-Column Print Layout Generation ----------
+  function buildTwoColumnHtml(){
+    var c = state.contact;
+    var name = esc(c.name || 'Andrew Veda');
+
+    var sidebarHtml = [];
+    var mainHtml = [];
+
+    // Header (Top of Sidebar)
+    sidebarHtml.push('<div class="header-block">');
+    sidebarHtml.push('<h1>' + name + '</h1>');
+    if (state.target.role) sidebarHtml.push('<div class="subhead">' + esc(state.target.role) + '</div>');
+    sidebarHtml.push('</div>');
+
+    // Contact Details (Sidebar)
+    sidebarHtml.push('<div class="section">');
+    sidebarHtml.push('<h2>Contact</h2>');
+    sidebarHtml.push('<div class="contact-item">📍 ' + esc(c.location || 'Chennai, India') + '</div>');
+    if (c.email) sidebarHtml.push('<div class="contact-item">✉ ' + esc(c.email) + '</div>');
+    if (c.phone) sidebarHtml.push('<div class="contact-item">📞 ' + esc(c.phone) + '</div>');
+    if (c.portfolio) sidebarHtml.push('<div class="contact-item">🌐 ' + esc(c.portfolio) + '</div>');
+    if (c.github) sidebarHtml.push('<div class="contact-item">💻 ' + esc(c.github) + '</div>');
+    if (c.linkedin) sidebarHtml.push('<div class="contact-item">🔗 ' + esc(c.linkedin) + '</div>');
+    sidebarHtml.push('</div>');
+
+    // Education (Sidebar)
+    if (state.education.length){
+      sidebarHtml.push('<div class="section">');
+      sidebarHtml.push('<h2>Education</h2>');
+      state.education.forEach(function(ed){
+        sidebarHtml.push('<div class="item">');
+        sidebarHtml.push('<div class="item-title">' + esc(ed.degree||'') + '</div>');
+        sidebarHtml.push('<div class="item-sub">' + esc(ed.school||'') + '</div>');
+        if (ed.dates) sidebarHtml.push('<div class="item-date">' + esc(ed.dates) + '</div>');
+        if (ed.detail) sidebarHtml.push('<div class="item-desc">' + esc(ed.detail) + '</div>');
+        sidebarHtml.push('</div>');
+      });
+      sidebarHtml.push('</div>');
+    }
+
+    // Technical Skills (Sidebar)
+    if (state.techSkills.length){
+      sidebarHtml.push('<div class="section">');
+      sidebarHtml.push('<h2>Technical Skills</h2>');
+      sidebarHtml.push('<ul class="skill-list">');
+      state.techSkills.forEach(function(s){
+        sidebarHtml.push('<li><strong>' + esc(s.skill) + '</strong>' + (s.evidence ? ' <span class="ev">(' + esc(s.evidence) + ')</span>' : '') + '</li>');
+      });
+      sidebarHtml.push('</ul></div>');
+    }
+
+    // Soft Skills (Sidebar)
+    if (state.softSkills.length){
+      sidebarHtml.push('<div class="section">');
+      sidebarHtml.push('<h2>Soft Skills</h2>');
+      sidebarHtml.push('<ul class="skill-list">');
+      state.softSkills.forEach(function(s){
+        sidebarHtml.push('<li><strong>' + esc(s.skill) + '</strong>' + (s.evidence ? ' <span class="ev">(' + esc(s.evidence) + ')</span>' : '') + '</li>');
+      });
+      sidebarHtml.push('</ul></div>');
+    }
+
+    // Interests (Sidebar)
+    if (state.interests.length){
+      sidebarHtml.push('<div class="section">');
+      sidebarHtml.push('<h2>Interests</h2>');
+      sidebarHtml.push('<ul class="skill-list">');
+      state.interests.forEach(function(it){
+        sidebarHtml.push('<li><strong>' + esc(it.title) + '</strong>' + (it.details ? ' — ' + esc(it.details) : '') + '</li>');
+      });
+      sidebarHtml.push('</ul></div>');
+    }
+
+    // --- Main Column Content ---
+
+    // Summary
+    if (state.summary){
+      mainHtml.push('<div class="section">');
+      mainHtml.push('<h2>Profile Summary</h2>');
+      mainHtml.push('<p class="summary-p">' + esc(state.summary) + '</p>');
+      mainHtml.push('</div>');
+    }
+
+    // Projects
+    if (state.projects.length){
+      mainHtml.push('<div class="section">');
+      mainHtml.push('<h2>Key Projects</h2>');
+      state.projects.forEach(function(p){
+        mainHtml.push('<div class="item">');
+        var t = esc(p.title||'');
+        if (p.link) t += ' <span class="link-span">[' + esc(p.link) + ']</span>';
+        mainHtml.push('<div class="item-header"><span class="item-title">' + t + '</span></div>');
+        if (p.tech) mainHtml.push('<div class="tech-tag">Stack: ' + esc(p.tech) + '</div>');
+        var lis = bulletsToLis(p.bullets);
+        if (lis) mainHtml.push('<ul>' + lis + '</ul>');
+        mainHtml.push('</div>');
+      });
+      mainHtml.push('</div>');
+    }
+
+    // Experience
+    if (state.experience.length){
+      mainHtml.push('<div class="section">');
+      mainHtml.push('<h2>Experience</h2>');
+      state.experience.forEach(function(e){
+        mainHtml.push('<div class="item">');
+        mainHtml.push('<div class="item-header"><span class="item-title">' + esc(e.role||'') + '</span><span class="item-date">' + esc(e.dates||'') + '</span></div>');
+        if (e.org) mainHtml.push('<div class="item-sub">' + esc(e.org) + '</div>');
+        var lis = bulletsToLis(e.bullets);
+        if (lis) mainHtml.push('<ul>' + lis + '</ul>');
+        mainHtml.push('</div>');
+      });
+      mainHtml.push('</div>');
+    }
+
+    // Roles & Responsibilities
+    if (state.roles.length){
+      mainHtml.push('<div class="section">');
+      mainHtml.push('<h2>Roles &amp; Responsibilities</h2>');
+      state.roles.forEach(function(r){
+        mainHtml.push('<div class="item">');
+        mainHtml.push('<div class="item-header"><span class="item-title">' + esc(r.title||'') + '</span><span class="item-date">' + esc(r.dates||'') + '</span></div>');
+        if (r.org) mainHtml.push('<div class="item-sub">' + esc(r.org) + '</div>');
+        var lis = bulletsToLis(r.bullets);
+        if (lis) mainHtml.push('<ul>' + lis + '</ul>');
+        mainHtml.push('</div>');
+      });
+      mainHtml.push('</div>');
+    }
+
+    // Achievements & Certifications
+    if (state.achievements.length){
+      mainHtml.push('<div class="section">');
+      mainHtml.push('<h2>Achievements &amp; Certifications</h2>');
+      state.achievements.forEach(function(a){
+        mainHtml.push('<div class="item">');
+        mainHtml.push('<div class="item-header"><span class="item-title">' + esc(a.title||'') + '</span><span class="item-date">' + esc(a.date||'') + '</span></div>');
+        if (a.context) mainHtml.push('<div class="item-sub">' + esc(a.context) + '</div>');
+        if (a.link) mainHtml.push('<div class="item-desc">' + esc(a.link) + '</div>');
+        mainHtml.push('</div>');
+      });
+      mainHtml.push('</div>');
+    }
+
+    return '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="UTF-8">\n' +
+      '<title>' + name + ' — Resume</title>\n' +
+      '<style>\n' +
+      '@import url(\'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap\');\n' +
+      '*{box-sizing:border-box;margin:0;padding:0;}\n' +
+      'body{font-family:\'Inter\', sans-serif; background:#e0e0e0; color:#222; line-height:1.45; font-size:13px;}\n' +
+      '.page{width:210mm; min-height:297mm; margin:20px auto; background:#fff; display:grid; grid-template-columns:260px 1fr; box-shadow:0 0 10px rgba(0,0,0,0.15);}\n' +
+      '.sidebar{background:#1e293b; color:#f8fafc; padding:28px 20px;}\n' +
+      '.main{padding:28px 24px; color:#1e293b;}\n' +
+      '/* Sidebar styles */\n' +
+      '.header-block{border-bottom:1px solid #334155; padding-bottom:16px; margin-bottom:20px;}\n' +
+      '.header-block h1{font-size:22px; font-weight:700; color:#fff; line-height:1.2;}\n' +
+      '.header-block .subhead{font-size:12px; color:#38bdf8; font-weight:600; margin-top:4px; text-transform:uppercase; letter-spacing:.05em;}\n' +
+      '.sidebar .section{margin-bottom:20px;}\n' +
+      '.sidebar h2{font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:#94a3b8; border-bottom:1px solid #334155; padding-bottom:4px; margin-bottom:10px; font-weight:700;}\n' +
+      '.contact-item{font-size:11.5px; color:#cbd5e1; margin-bottom:6px; word-break:break-all;}\n' +
+      '.sidebar .item{margin-bottom:10px;}\n' +
+      '.sidebar .item-title{font-weight:600; font-size:12px; color:#f1f5f9;}\n' +
+      '.sidebar .item-sub{font-size:11px; color:#94a3b8;}\n' +
+      '.sidebar .item-date{font-size:10.5px; color:#64748b; font-style:italic;}\n' +
+      '.sidebar .item-desc{font-size:11px; color:#cbd5e1; margin-top:2px;}\n' +
+      '.skill-list{list-style:none; padding:0;}\n' +
+      '.skill-list li{font-size:11.5px; color:#cbd5e1; margin-bottom:6px; line-height:1.35;}\n' +
+      '.skill-list li strong{color:#f8fafc;}\n' +
+      '.skill-list .ev{color:#94a3b8; font-size:10.5px;}\n' +
+      '/* Main styles */\n' +
+      '.main .section{margin-bottom:20px;}\n' +
+      '.main h2{font-size:12px; text-transform:uppercase; letter-spacing:.08em; color:#0284c7; border-bottom:1.5px solid #0284c7; padding-bottom:3px; margin-bottom:10px; font-weight:700;}\n' +
+      '.summary-p{font-size:12.5px; color:#334155; line-height:1.5;}\n' +
+      '.main .item{margin-bottom:12px;}\n' +
+      '.item-header{display:flex; justify-content:space-between; align-items:baseline;}\n' +
+      '.main .item-title{font-size:13px; font-weight:700; color:#0f172a;}\n' +
+      '.link-span{font-weight:400; font-size:11px; color:#0284c7;}\n' +
+      '.main .item-sub{font-size:12px; font-weight:600; color:#475569;}\n' +
+      '.main .item-date{font-size:11px; color:#64748b; font-weight:500;}\n' +
+      '.tech-tag{font-size:11px; font-family:monospace; color:#0369a1; margin:2px 0 4px; font-weight:600;}\n' +
+      '.main ul{padding-left:16px; margin-top:4px;}\n' +
+      '.main li{font-size:12px; color:#334155; margin-bottom:3px; line-height:1.4;}\n' +
+      '/* Print Optimization */\n' +
+      '@media print{\n' +
+      '  body{background:#fff;}\n' +
+      '  .page{margin:0; width:100%; box-shadow:none; min-height:auto;}\n' +
+      '  @page{margin:0; size:A4;}\n' +
+      '}\n' +
+      '</style>\n</head>\n<body>\n' +
+      '<div class="page">\n' +
+      '  <div class="sidebar">\n' + sidebarHtml.join('\n') + '  </div>\n' +
+      '  <div class="main">\n' + mainHtml.join('\n') + '  </div>\n' +
+      '</div>\n</body>\n</html>\n';
+  }
+
+  function renderPreview(){
+    collectAll();
+    document.getElementById('resumePreview').innerHTML = buildResumeBody();
+  }
+
+  // ---------- Downloads & Actions ----------
+  document.getElementById('downloadHtmlBtn').addEventListener('click', function(){
+    var html = buildFullAtsHtml();
+    var blob = new Blob([html], {type:'text/html'});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    var fname = (state.contact.name || 'andrew-veda').trim().toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'') || 'andrew-veda';
+    a.href = url; a.download = fname + '-resume.html';
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  });
+
+  document.getElementById('downloadTwoColHtmlBtn').addEventListener('click', function(){
+    var html = buildTwoColumnHtml();
+    var blob = new Blob([html], {type:'text/html'});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    var fname = (state.contact.name || 'andrew-veda').trim().toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'') || 'andrew-veda';
+    a.href = url; a.download = fname + '-2column-printable.html';
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  });
+
+  document.getElementById('copyHtmlBtn').addEventListener('click', function(){
+    var html = buildFullAtsHtml();
+    navigator.clipboard.writeText(html).then(function(){
+      showPrStatus('Copied. Paste it into GitHub\'s "Create new file" editor.', true);
+    }, function(){
+      showPrStatus('Couldn\'t copy automatically — download file and copy manually.', false);
+    });
+  });
+
+  // ---------- PR Action ----------
+  function showPrStatus(msg, ok){
+    var el = document.getElementById('prStatus');
+    el.innerHTML = '<div class="status-msg '+(ok?'ok':'err')+'">'+esc(msg)+'</div>';
+  }
+
+  document.getElementById('openPrBtn').addEventListener('click', function(){
+    var owner = val('ghOwner') || 'andrewveda', repo = val('ghRepo') || 'resume', branch = val('ghBranch') || 'main';
+    var path = val('ghPath') || 'resumes/andrew-veda.html';
+    if (!owner || !repo || !path){
+      showPrStatus('Fill in filename first.', false);
+      return;
+    }
+    var html = buildFullAtsHtml();
+    var url = 'https://github.com/' + encodeURIComponent(owner) + '/' + encodeURIComponent(repo) +
+      '/new/' + encodeURIComponent(branch) +
+      '?filename=' + encodeURIComponent(path) +
+      '&value=' + encodeURIComponent(html);
+
+    if (url.length > 7500){
+      showPrStatus('Resume is long. Opening GitHub anyway — if blank, use "Copy resume HTML" and paste manually.', false);
+    } else {
+      showPrStatus('Opening GitHub — review pre-filled file, then click "Propose new file".', true);
+    }
+    window.open(url, '_blank');
+  });
+
+  // ---------- Save / Load State ----------
+  document.getElementById('saveProgressBtn').addEventListener('click', function(){
+    collectAll();
+    var data = JSON.stringify(state, null, 2);
+    var blob = new Blob([data], {type:'application/json'});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = 'resume-progress.json';
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  });
+
+  document.getElementById('loadProgressBtn').addEventListener('click', function(){
+    document.getElementById('loadProgressFile').click();
+  });
+  document.getElementById('loadProgressFile').addEventListener('change', function(e){
+    var file = e.target.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function(){
+      try{
+        var loaded = JSON.parse(reader.result);
+        state = Object.assign({
+          target:{}, contact:{}, summary:'', techSkills:[], softSkills:[],
+          projects:[], experience:[], roles:[], education:[], achievements:[], interests:[]
+        }, loaded);
+        applyStateToForm();
+      } catch(err){
+        alert('File is not a valid saved-progress JSON file.');
+      }
+    };
+    reader.readAsText(file);
+  });
+
+  function applyStateToForm(){
+    var t = state.target || {};
+    document.getElementById('targetRole').value = t.role || '';
+    document.getElementById('targetCompany').value = t.company || '';
+    document.getElementById('expectedSkills').value = t.expectedSkills || '';
+    document.getElementById('expectedProjects').value = t.expectedProjects || '';
+
+    var c = state.contact || {};
+    document.getElementById('fullName').value = c.name || 'Andrew Veda';
+    document.getElementById('email').value = c.email || 'firstname.secondname@domain.com';
+    document.getElementById('phone').value = c.phone || '91 2345 6789';
+    document.getElementById('location').value = c.location || '';
+    document.getElementById('linkedin').value = c.linkedin || '';
+    document.getElementById('github').value = c.github || 'github.com/andrewveda';
+    document.getElementById('portfolio').value = c.portfolio || 'andrewveda.github.io';
+    document.getElementById('otherProfiles').value = c.otherProfiles || '';
+    document.getElementById('summary').value = state.summary || '';
+
+    fillEntries('projectEntries','projectTemplate', state.projects, ['title','tech','link','bullets']);
+    fillEntries('experienceEntries','experienceTemplate', state.experience, ['role','org','dates','bullets']);
+    fillEntries('roleEntries','roleTemplate', state.roles, ['title','org','dates','bullets']);
+    fillEntries('educationEntries','educationTemplate', state.education, ['degree','school','dates','detail','coursework']);
+    fillEntries('achievementEntries','achievementTemplate', state.achievements, ['title','context','date','link']);
+    fillEntries('interestEntries','interestTemplate', state.interests, ['title','details']);
+
+    renderSkillTags('techSkillList','techSkills');
+    renderSkillTags('softSkillList','softSkills');
+    showStep(0);
+  }
+
+  function fillEntries(containerId, templateId, list, fields){
+    var container = document.getElementById(containerId);
+    container.innerHTML = '';
+    if (!list || !list.length){ addEntry(containerId, templateId); return; }
+    list.forEach(function(item){
+      addEntry(containerId, templateId);
+      var entryEl = container.lastElementChild;
+      fields.forEach(function(f){
+        var input = entryEl.querySelector('[data-field="'+f+'"]');
+        if (input) input.value = item[f] || '';
+      });
+    });
+  }
+
+  updateProgress();
+})();
+</script>
+</body>
+</html>

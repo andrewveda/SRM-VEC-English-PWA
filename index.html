@@ -19,17 +19,6 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;900&family=DM+Mono:wght@300;400;500&family=Crimson+Pro:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
 
-  <!--
-    NOTE: auth-guard.js is intentionally NOT loaded on this page.
-    It performs a synchronous, unconditional redirect to auth.html the moment
-    it runs (before the login overlay below ever gets a chance to render),
-    which makes a "Skip for now" button impossible to reach.
-    This page reimplements the same localStorage checks inline, but only
-    redirects when the person actually taps "Continue with GitHub".
-    Other pages in the PWA that should stay GitHub-only can keep using
-    auth-guard.js as before.
-  -->
-
   <style>
     :root {
       --obsidian: #ffffff;
@@ -454,145 +443,6 @@
       margin-top: 5px;
     }
 
-    /* ── GitHub CTA ── */
-    .btn-github {
-      width: 100%;
-      padding: .9rem;
-      background: linear-gradient(135deg, #24292e, #40474f);
-      color: #ffffff;
-      font-family: 'DM Mono', monospace;
-      font-size: .82rem;
-      font-weight: 700;
-      border: none;
-      border-radius: 10px;
-      cursor: pointer;
-      letter-spacing: .05em;
-      text-transform: uppercase;
-      box-shadow: 0 4px 15px rgba(36,41,46,0.25);
-      transition: all .2s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: .55rem;
-    }
-    .btn-github:hover { transform: translateY(-1px); filter: brightness(1.15); }
-    .btn-github-icon { font-size: 1.1rem; line-height: 1; }
-
-    .github-hint {
-      font-size: .66rem;
-      line-height: 1.55;
-      color: var(--text-muted);
-      text-align: center;
-      margin-top: .75rem;
-      padding: 0 .2rem;
-    }
-    .github-hint strong { color: var(--gold); font-weight: 700; }
-
-    .auth-divider {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin: 1.15rem 0;
-      color: var(--text-dim);
-      font-size: .6rem;
-      letter-spacing: 1.5px;
-      text-transform: uppercase;
-    }
-    .auth-divider::before,
-    .auth-divider::after {
-      content: '';
-      flex: 1;
-      height: 1px;
-      background: var(--border-dim);
-    }
-
-    /* ── Skip CTA — same size/weight as the GitHub button, outlined instead of solid ── */
-    .btn-skip {
-      width: 100%;
-      padding: .9rem;
-      background: transparent;
-      color: var(--text);
-      font-family: 'DM Mono', monospace;
-      font-size: .82rem;
-      font-weight: 700;
-      border: 1.5px solid var(--border);
-      border-radius: 10px;
-      cursor: pointer;
-      letter-spacing: .05em;
-      text-transform: uppercase;
-      transition: all .2s;
-    }
-    .btn-skip:hover {
-      background: var(--gold-dim);
-      border-color: var(--gold);
-      color: var(--gold);
-    }
-
-    .skip-note {
-      font-size: .6rem;
-      line-height: 1.5;
-      color: var(--text-dim);
-      text-align: center;
-      margin-top: .6rem;
-    }
-
-    .back-link {
-      display: inline-block;
-      margin-top: 1rem;
-      font-size: .65rem;
-      letter-spacing: .05em;
-      color: var(--text-muted);
-      text-decoration: none;
-      cursor: pointer;
-      background: none;
-      border: none;
-      font-family: 'DM Mono', monospace;
-    }
-    .back-link:hover { color: var(--gold); }
-
-    .gh-identity {
-      margin-bottom: 1.5rem;
-      border: 1px solid rgba(201,168,76,0.3);
-      border-radius: 14px;
-      padding: 1rem;
-      background: var(--gold-dim);
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-    }
-
-    .gh-avatar {
-      width: 48px; height: 48px; border-radius: 50%;
-      border: 2px solid var(--gold);
-      object-fit: cover; flex-shrink: 0;
-      background: #ffffff;
-    }
-
-    .gh-avatar-fallback {
-      width: 48px; height: 48px; border-radius: 50%;
-      border: 2px solid var(--gold);
-      background: var(--surface2);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 1.2rem; color: var(--gold); flex-shrink: 0;
-    }
-
-    .gh-info { flex: 1; min-width: 0; }
-    .gh-name {
-      font-size: .92rem; font-weight: 700; color: var(--text);
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    }
-    .gh-handle { font-size: .75rem; color: var(--text-muted); margin-top: .1rem; }
-    .gh-badge {
-      display: inline-flex; align-items: center; gap: .35rem;
-      font-size: .65rem; letter-spacing: .08em; text-transform: uppercase;
-      color: var(--green); margin-top: .25rem;
-    }
-    .gh-badge::before {
-      content: ''; display: inline-block;
-      width: 6px; height: 6px; border-radius: 50%;
-      background: var(--green);
-    }
-
     .field-label {
       display: block;
       font-size: .68rem; letter-spacing: .12em; text-transform: uppercase;
@@ -737,7 +587,7 @@
 
 <div class="ambient"></div>
 
-<!-- Login / Auth Selection Overlay -->
+<!-- Login / User Details Screen Overlay -->
 <div class="login-overlay" id="screenLogin">
   <div class="login-card">
     <div class="login-title">
@@ -745,40 +595,13 @@
       <div class="login-title-sub">Department of English</div>
     </div>
 
-    <!-- Step 1: choose how to sign in -->
-    <div id="authChoice">
-      <button class="btn-github" id="githubBtn" onclick="startGithubLogin()">
-        <span class="btn-github-icon">🐙</span> Continue with GitHub
-      </button>
-      <p class="github-hint">
-        New here? Creating a GitHub account takes under a minute — just tap
-        <strong>"Sign in with Google"</strong> on GitHub's page and use your Google account.
-      </p>
-
-      <div class="auth-divider"><span>or</span></div>
-
-      <button class="btn-skip" id="skipBtn" onclick="showGuestForm()">
-        Skip for now →
-      </button>
-    </div>
-
-    <!-- Step 2a: GitHub identity, populated after redirect back from auth.html -->
-    <div class="gh-identity" id="ghIdentityCard" style="display:none;">
-      <div id="ghAvatarSlot"></div>
-      <div class="gh-info">
-        <div class="gh-name" id="ghDisplayName">Loading…</div>
-        <div class="gh-handle" id="ghHandleText"></div>
-        <div class="gh-badge">GitHub Authenticated</div>
-      </div>
-    </div>
-
-    <!-- Step 2b: Guest name entry -->
-    <div id="guestForm" style="display:none;">
+    <!-- Student Details Form -->
+    <div id="guestForm">
       <label class="field-label" for="guestName">Your Name</label>
       <input type="text" id="guestName" placeholder="Enter your name…">
     </div>
 
-    <div id="deptRow" style="display:none;">
+    <div id="deptRow">
       <label class="field-label" for="deptSelect">Department</label>
       <select id="deptSelect">
         <option value="">— Select your department —</option>
@@ -802,9 +625,7 @@
       </select>
     </div>
 
-    <button class="btn-launch" id="launchBtn" onclick="handleLaunch()" style="display:none;">Enter Mission Control 🚀</button>
-
-    <button class="back-link" id="backLink" onclick="showAuthChoice()" style="display:none;">← Back</button>
+    <button class="btn-launch" id="launchBtn" onclick="handleLaunch()">Enter Mission Control 🚀</button>
   </div>
 </div>
 
@@ -847,17 +668,6 @@
     <button class="drawer-install-btn" id="drawerInstallBtn" onclick="installApp()">
       📲 Install App
     </button>
-
-    <!-- Guests get a nudge to link a real account -->
-    <div id="drawerGithubPrompt" style="display:none; margin-top:16px; padding:12px; border:1px dashed var(--gold); border-radius:10px; background:var(--gold-dim);">
-      <div style="font-size:0.7rem; font-weight:700; color:var(--text); margin-bottom:4px;">Browsing as a guest</div>
-      <div style="font-size:0.65rem; color:var(--text-muted); line-height:1.5; margin-bottom:8px;">
-        Sign in with GitHub to keep your progress permanently — you can even use your Google account to create one in seconds.
-      </div>
-      <button class="btn-github" style="padding:.6rem;" onclick="startGithubLogin()">
-        <span class="btn-github-icon">🐙</span> Continue with GitHub
-      </button>
-    </div>
   </div>
 
   <div class="drawer-footer">
@@ -1080,125 +890,29 @@
     });
   };
 
-  function makeAvatar(src, fallbackChar, size) {
-    if (src) {
-      const img = document.createElement('img');
-      img.src = src;
-      img.className = 'gh-avatar';
-      img.style.cssText = `width:${size}px;height:${size}px;`;
-      img.onerror = () => img.replaceWith(makeFallback(fallbackChar, size));
-      return img;
-    }
-    return makeFallback(fallbackChar, size);
-  }
-
-  function makeFallback(char, size) {
+  function makeAvatar(fallbackChar, size) {
     const d = document.createElement('div');
     d.className = 'gh-avatar-fallback';
-    d.style.cssText = `width:${size}px;height:${size}px;`;
-    d.textContent = (char || '?')[0].toUpperCase();
+    d.style.cssText = `width:${size}px;height:${size}px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:var(--gold-dim);color:var(--gold);font-family:'Playfair Display',serif;font-weight:700;`;
+    d.textContent = (fallbackChar || '?')[0].toUpperCase();
     return d;
-  }
-
-  // ─── Read the same localStorage keys auth-guard.js checks, WITHOUT redirecting ───
-  function getGHFromStorage() {
-    const loggedIn = localStorage.getItem('logged_in');
-    const githubUser = localStorage.getItem('github_username');
-    const githubId = localStorage.getItem('github_id');
-    if (loggedIn === 'true' && githubUser && githubId) {
-      return {
-        loggedIn: true,
-        username: githubUser,
-        githubId: githubId,
-        profile: localStorage.getItem('github_profile'),
-        avatar: localStorage.getItem('avatar'),
-        name: localStorage.getItem('userName'),
-        dept: localStorage.getItem('userDept')
-      };
-    }
-    return null;
-  }
-
-  // ─── Step navigation on the login card ───
-  window.startGithubLogin = function () {
-    const current = window.location.pathname + window.location.search;
-    const returnTo = encodeURIComponent(current);
-    window.location.href = `/SRM-VEC-English-PWA/auth.html?return=${returnTo}`;
-  };
-
-  window.showGuestForm = function () {
-    window.__authMode = 'guest';
-    document.getElementById('authChoice').style.display = 'none';
-    document.getElementById('guestForm').style.display = 'block';
-    document.getElementById('deptRow').style.display = 'block';
-    document.getElementById('launchBtn').style.display = 'block';
-    document.getElementById('backLink').style.display = 'inline-block';
-    document.getElementById('guestName').focus();
-  };
-
-  window.showAuthChoice = function () {
-    window.__authMode = null;
-    document.getElementById('authChoice').style.display = 'block';
-    document.getElementById('guestForm').style.display = 'none';
-    document.getElementById('ghIdentityCard').style.display = 'none';
-    document.getElementById('deptRow').style.display = 'none';
-    document.getElementById('launchBtn').style.display = 'none';
-    document.getElementById('backLink').style.display = 'none';
-  };
-
-  function populateIdentity() {
-    window.__authMode = 'github';
-    document.getElementById('authChoice').style.display = 'none';
-    document.getElementById('ghIdentityCard').style.display = 'flex';
-    document.getElementById('deptRow').style.display = 'block';
-    document.getElementById('launchBtn').style.display = 'block';
-
-    const displayName = window.GH?.name || window.GH?.username || 'GitHub User';
-    const handle = window.GH?.username ? `@${window.GH.username}` : '';
-    const avatar = window.GH?.avatar || '';
-
-    document.getElementById('ghDisplayName').textContent = displayName;
-    document.getElementById('ghHandleText').textContent = handle;
-    const ghSlot = document.getElementById('ghAvatarSlot');
-    ghSlot.innerHTML = '';
-    ghSlot.appendChild(makeAvatar(avatar, displayName, 48));
-
-    const savedDept = localStorage.getItem('vfv_dept') || localStorage.getItem('userDept') || window.GH?.dept;
-    if (savedDept) {
-      const sel = document.getElementById('deptSelect');
-      if ([...sel.options].some(o => o.value === savedDept)) sel.value = savedDept;
-      enterApp(displayName, savedDept, avatar);
-    }
   }
 
   window.handleLaunch = function () {
     const dept = document.getElementById('deptSelect').value;
+    const name = document.getElementById('guestName').value.trim();
+
+    if (!name) { alert('Please enter your name!'); return; }
     if (!dept) { alert('Please select your department!'); return; }
 
-    if (window.__authMode === 'guest') {
-      const name = document.getElementById('guestName').value.trim();
-      if (!name) { alert('Please enter your name!'); return; }
-
-      localStorage.setItem('guest_mode', 'true');
-      localStorage.setItem('userName', name);
-      localStorage.setItem('userDept', dept);
-      localStorage.setItem('vfv_dept', dept);
-
-      enterApp(name, dept, '');
-      return;
-    }
-
-    // GitHub mode
-    if (window.GH) window.GH.dept = dept;
-    localStorage.setItem('vfv_dept', dept);
+    localStorage.setItem('userName', name);
     localStorage.setItem('userDept', dept);
+    localStorage.setItem('vfv_dept', dept);
 
-    const displayName = window.GH?.name || window.GH?.username || 'GitHub User';
-    const avatar = window.GH?.avatar || '';
-    enterApp(displayName, dept, avatar);
+    enterApp(name, dept);
   };
 
-  async function enterApp(name, dept, avatar) {
+  async function enterApp(name, dept) {
     document.getElementById('screenLogin').style.display = 'none';
     document.getElementById('appShell').style.display = 'flex';
 
@@ -1208,12 +922,9 @@
     document.getElementById('drawerName').textContent = name;
     document.getElementById('drawerDept').textContent = dept;
 
-    const isGuest = window.__authMode === 'guest';
-    document.getElementById('drawerGithubPrompt').style.display = isGuest ? 'block' : 'none';
-
     const avatarBtn = document.getElementById('avatarBtn');
     avatarBtn.innerHTML = '';
-    avatarBtn.appendChild(makeAvatar(avatar, name, 38));
+    avatarBtn.appendChild(makeAvatar(name, 38));
 
     await fetchUserData(name);
   }
@@ -1256,30 +967,19 @@
   };
 
   window.logout = () => {
-    ['vfv_dept', 'userDept', 'userName', 'guest_mode',
-     'logged_in', 'auth_provider', 'github_username', 'github_id',
-     'github_profile', 'avatar'
-    ].forEach(k => localStorage.removeItem(k));
+    ['vfv_dept', 'userDept', 'userName'].forEach(k => localStorage.removeItem(k));
     window.location.reload();
   };
 
   (function init() {
-    window.GH = getGHFromStorage();
-    const guestMode = localStorage.getItem('guest_mode') === 'true';
+    const name = localStorage.getItem('userName');
+    const dept = localStorage.getItem('userDept');
 
-    if (window.GH) {
-      populateIdentity();
-    } else if (guestMode) {
-      window.__authMode = 'guest';
-      const name = localStorage.getItem('userName');
-      const dept = localStorage.getItem('userDept');
-      if (name && dept) {
-        enterApp(name, dept, '');
-      } else {
-        showGuestForm();
-      }
+    if (name && dept) {
+      enterApp(name, dept);
+    } else {
+      document.getElementById('guestName').focus();
     }
-    // else: authChoice (GitHub vs Skip) stays visible — the default state in the HTML
   })();
 </script>
 
@@ -1296,7 +996,7 @@
 
   const isStandalone = () =>
     window.matchMedia('(display-mode: standalone)').matches ||
-    window.navigator.standalone === true; // iOS Safari flag
+    window.navigator.standalone === true;
 
   const isIOS = () =>
     /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
@@ -1309,8 +1009,6 @@
     if (drawerBtn) drawerBtn.style.display = visible ? 'flex' : 'none';
   }
 
-  // Show install affordances by default on iOS (no beforeinstallprompt there),
-  // hide immediately if already running standalone.
   if (isStandalone()) {
     setInstallUI(false);
   } else if (isIOS()) {

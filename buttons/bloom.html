@@ -1,166 +1,189 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no" />
-<title>Herbarium — Sentence Press</title>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700;9..144,900&family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-<style>
-  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-  :root{
-    --paper:#f3ead4; --card:#fffbf2; --card-line:#e3d5b0;
-    --ink:#2d2620; --ink-muted:#8c7c62;
-    --forest:#2f5233; --forest-dark:#20391f; --moss:#6f8f5a;
-    --clay:#b5651d; --gold:#c9a227; --rust:#a4392c;
-    --noun:#33607e; --verb:#2f6b3f; --adj:#7a4a83; --adv:#b5651d;
-    --prep:#1f7a6c; --art:#7c7267; --conj:#a4392c; --pron:#6a5a2f;
-    --shadow-sm:0 1px 2px rgba(45,38,32,.08),0 3px 8px rgba(45,38,32,.06);
-    --shadow-md:0 2px 6px rgba(45,38,32,.10),0 10px 26px rgba(45,38,32,.12);
-    --ease:cubic-bezier(.16,1,.3,1);
-  }
-  html,body{min-height:100%;overscroll-behavior-x:none;}
-  body{
-    font-family:'Inter',sans-serif; background:var(--paper); color:var(--ink);
-    min-height:100dvh; display:flex; flex-direction:column; align-items:center;
-    background-image:
-      radial-gradient(ellipse 70% 50% at 12% 8%, rgba(111,143,90,.14) 0%, transparent 60%),
-      radial-gradient(ellipse 60% 45% at 92% 88%, rgba(181,101,29,.10) 0%, transparent 60%);
-  }
-  .screen{display:none;flex-direction:column;align-items:center;width:100%;min-height:100dvh;}
-  .screen.active{display:flex;}
-  #gameScreen{align-items:stretch;}
-  .col{display:flex;flex-direction:column;width:100%;min-height:100%;max-width:520px;margin:0 auto;
-    padding:calc(env(safe-area-inset-top) + 12px) 16px calc(env(safe-area-inset-bottom) + 12px);
-    gap:clamp(10px,1.6dvh,16px);}
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no" />
+  <title>Herbarium — Sentence Press</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700;9..144,900&family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    :root{
+      --paper:#f3ead4; --card:#fffbf2; --card-line:#e3d5b0;
+      --ink:#2d2620; --ink-muted:#8c7c62;
+      --forest:#2f5233; --forest-dark:#20391f; --moss:#6f8f5a;
+      --clay:#b5651d; --gold:#c9a227; --rust:#a4392c;
+      --noun:#33607e; --verb:#2f6b3f; --adj:#7a4a83; --adv:#b5651d;
+      --prep:#1f7a6c; --art:#7c7267; --conj:#a4392c; --pron:#6a5a2f;
+      --shadow-sm:0 1px 2px rgba(45,38,32,.08),0 3px 8px rgba(45,38,32,.06);
+      --shadow-md:0 2px 6px rgba(45,38,32,.10),0 10px 26px rgba(45,38,32,.12);
+      --ease:cubic-bezier(.16,1,.3,1);
+    }
+    html,body{min-height:100%;overscroll-behavior-x:none;}
+    body{
+      font-family:'Inter',sans-serif; background:var(--paper); color:var(--ink);
+      min-height:100dvh; display:flex; flex-direction:column; align-items:center;
+      background-image:
+        radial-gradient(ellipse 70% 50% at 12% 8%, rgba(111,143,90,.14) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 45% at 92% 88%, rgba(181,101,29,.10) 0%, transparent 60%);
+    }
+    .screen{display:none;flex-direction:column;align-items:center;width:100%;min-height:100dvh;}
+    .screen.active{display:flex;}
+    #gameScreen{align-items:stretch;}
+    .col{
+      display:flex;flex-direction:column;width:100%;min-height:100%;max-width:520px;margin:0 auto;
+      padding:calc(env(safe-area-inset-top) + 12px) 16px calc(env(safe-area-inset-bottom) + 12px);
+      gap:clamp(10px,1.6dvh,16px);
+    }
 
-  /* header */
-  .top-bar{display:flex;align-items:center;justify-content:space-between;gap:8px;}
-  .top-actions{display:flex;gap:6px;}
-  .icon-btn{width:36px;height:36px;border-radius:9px;border:1.5px solid var(--card-line);background:var(--card);
-    display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink-muted);
-    box-shadow:var(--shadow-sm);transition:all .18s var(--ease);}
-  .icon-btn svg{width:46%;height:46%;}
-  .icon-btn:hover{background:#f7ede0;color:var(--rust);}
-  .icon-btn:active{transform:scale(.9);}
-  .brand{text-align:center;}
-  .brand h1{font-family:'Fraunces',serif;font-weight:700;font-size:clamp(1.15rem,3.6dvh,1.55rem);letter-spacing:-.3px;color:var(--forest);}
-  .brand span{color:var(--rust);}
-  .brand .sub{font-family:'Space Mono',monospace;font-size:.58rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-muted);margin-top:1px;}
-  .timer-pill{display:flex;align-items:center;gap:6px;background:var(--card);border:1.5px solid var(--card-line);border-radius:99px;padding:4px 12px 4px 4px;box-shadow:var(--shadow-sm);}
-  .arc-wrap{position:relative;width:30px;height:30px;}
-  #timerArc{transform:rotate(-90deg);width:100%;height:100%;}
-  .timer-text{font-family:'Space Mono',monospace;font-size:.78rem;font-weight:700;color:var(--ink);white-space:nowrap;}
-  .timer-text.amber{color:var(--gold);}
-  .timer-text.danger{color:var(--rust);animation:pulse .6s ease-in-out infinite;}
-  @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.15)}}
+    /* Top Bar */
+    .top-bar{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+    .top-actions{display:flex;gap:6px;}
+    .icon-btn{
+      width:36px;height:36px;border-radius:9px;border:1.5px solid var(--card-line);background:var(--card);
+      display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink-muted);
+      box-shadow:var(--shadow-sm);transition:all .18s var(--ease);
+    }
+    .icon-btn svg{width:46%;height:46%;}
+    .icon-btn:hover{background:#f7ede0;color:var(--rust);}
+    .icon-btn:active{transform:scale(.9);}
+    .brand{text-align:center;}
+    .brand h1{font-family:'Fraunces',serif;font-weight:700;font-size:clamp(1.15rem,3.6dvh,1.55rem);letter-spacing:-.3px;color:var(--forest);}
+    .brand span{color:var(--rust);}
+    .brand .sub{font-family:'Space Mono',monospace;font-size:.58rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-muted);margin-top:1px;}
+    
+    .timer-pill{display:flex;align-items:center;gap:6px;background:var(--card);border:1.5px solid var(--card-line);border-radius:99px;padding:6px 14px;box-shadow:var(--shadow-sm);}
+    .timer-text{font-family:'Space Mono',monospace;font-size:.85rem;font-weight:700;color:var(--forest);white-space:nowrap;}
 
-  /* stats */
-  .stat-strip{background:var(--card);border:1.5px solid var(--card-line);border-radius:12px;padding:9px 14px;box-shadow:var(--shadow-sm);display:flex;flex-direction:column;gap:6px;}
-  .stat-top{display:flex;justify-content:space-between;align-items:baseline;gap:10px;}
-  .rank-name{font-family:'Fraunces',serif;font-weight:700;font-size:.86rem;color:var(--forest);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .stat-nums{font-family:'Space Mono',monospace;font-size:.66rem;color:var(--ink-muted);white-space:nowrap;}
-  .stat-nums b{color:var(--clay);font-weight:700;font-size:1.05em;margin:0 2px;}
-  .rank-track{height:5px;background:#e9dcbb;border-radius:99px;overflow:hidden;}
-  .rank-fill{height:100%;background:linear-gradient(90deg,var(--moss),var(--forest));border-radius:99px;transition:width .6s var(--ease);}
+    /* Stats Strip */
+    .stat-strip{background:var(--card);border:1.5px solid var(--card-line);border-radius:12px;padding:9px 14px;box-shadow:var(--shadow-sm);display:flex;flex-direction:column;gap:6px;}
+    .stat-top{display:flex;justify-content:space-between;align-items:baseline;gap:10px;}
+    .rank-name{font-family:'Fraunces',serif;font-weight:700;font-size:.86rem;color:var(--forest);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .stat-nums{font-family:'Space Mono',monospace;font-size:.66rem;color:var(--ink-muted);white-space:nowrap;}
+    .stat-nums b{color:var(--clay);font-weight:700;font-size:1.05em;margin:0 2px;}
+    .rank-track{height:5px;background:#e9dcbb;border-radius:99px;overflow:hidden;}
+    .rank-fill{height:100%;background:linear-gradient(90deg,var(--moss),var(--forest));border-radius:99px;transition:width .6s var(--ease);}
 
-  /* specimen mount */
-  .mount{background:var(--card);border:1.5px solid var(--card-line);border-radius:14px;padding:18px 16px 14px;box-shadow:var(--shadow-md);position:relative;}
-  .mount::before{content:'';position:absolute;top:8px;left:8px;right:8px;bottom:8px;border:1px dashed #d8c69a;border-radius:8px;pointer-events:none;}
-  .mount.error{animation:shake .35s ease;}
-  .mount.success{animation:pop .4s var(--ease);}
-  @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
-  @keyframes pop{0%{transform:scale(1)}45%{transform:scale(1.02)}100%{transform:scale(1)}}
-  .slots{display:flex;flex-wrap:wrap;align-items:flex-end;gap:8px 6px;justify-content:center;min-height:64px;position:relative;z-index:1;}
-  .slot{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:46px;}
-  .slot .word{font-family:'Fraunces',serif;font-weight:600;font-size:1.02rem;color:var(--ink);}
-  .slot .pos-cap{font-family:'Space Mono',monospace;font-size:.52rem;letter-spacing:.08em;text-transform:uppercase;opacity:.55;}
-  .slot .dash{width:100%;min-width:34px;border-bottom:2px dashed #c9b98d;height:1.3rem;}
-  .slot.filled{animation:tileIn .25s cubic-bezier(.2,1.5,.4,1);}
-  @keyframes tileIn{from{transform:translateY(6px) scale(.85);opacity:0}to{transform:none;opacity:1}}
-  .mount-caption{text-align:center;font-family:'Space Mono',monospace;font-size:.62rem;color:var(--ink-muted);margin-top:10px;letter-spacing:.03em;position:relative;z-index:1;}
+    /* Specimen Mount */
+    .mount{background:var(--card);border:1.5px solid var(--card-line);border-radius:14px;padding:18px 16px 14px;box-shadow:var(--shadow-md);position:relative;}
+    .mount::before{content:'';position:absolute;top:8px;left:8px;right:8px;bottom:8px;border:1px dashed #d8c69a;border-radius:8px;pointer-events:none;}
+    .mount.error{animation:shake .35s ease;}
+    .mount.success{animation:pop .4s var(--ease);}
+    @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+    @keyframes pop{0%{transform:scale(1)}45%{transform:scale(1.02)}100%{transform:scale(1)}}
+    
+    .slots{display:flex;flex-wrap:wrap;align-items:flex-end;gap:8px 6px;justify-content:center;min-height:64px;position:relative;z-index:1;}
+    .slot{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:46px;}
+    .slot .word{font-family:'Fraunces',serif;font-weight:600;font-size:1.02rem;color:var(--ink);}
+    .slot .pos-cap{font-family:'Space Mono',monospace;font-size:.52rem;letter-spacing:.08em;text-transform:uppercase;opacity:.55;}
+    .slot .dash{width:100%;min-width:34px;border-bottom:2px dashed #c9b98d;height:1.3rem;}
+    .slot.filled{animation:tileIn .25s cubic-bezier(.2,1.5,.4,1);}
+    .slot.retained{opacity:0.9;transform:none;}
+    @keyframes tileIn{from{transform:translateY(6px) scale(.85);opacity:0}to{transform:none;opacity:1}}
+    .mount-caption{text-align:center;font-family:'Space Mono',monospace;font-size:.62rem;color:var(--ink-muted);margin-top:10px;letter-spacing:.03em;position:relative;z-index:1;}
 
-  /* tray */
-  .tray{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;min-height:56px;}
-  .tile{display:inline-flex;flex-direction:column;align-items:center;gap:1px;padding:8px 13px 6px;border-radius:10px;
-    background:#fffdf7;border:1.5px solid;cursor:pointer;user-select:none;
-    box-shadow:var(--shadow-sm);transition:transform .15s var(--ease),box-shadow .15s;animation:tileSpawn .22s cubic-bezier(.2,1.5,.4,1);}
-  .tile:hover{transform:translateY(-2px);box-shadow:var(--shadow-md);}
-  .tile:active{transform:scale(.94);}
-  .tile.wrong{animation:tileShake .4s ease;}
-  @keyframes tileShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}50%{transform:translateX(5px)}75%{transform:translateX(-3px)}}
-  @keyframes tileSpawn{from{transform:scale(.6);opacity:0}to{transform:scale(1);opacity:1}}
-  .tile .word{font-family:'Fraunces',serif;font-weight:600;font-size:.92rem;text-transform:lowercase;}
-  .tile .pos-cap{font-family:'Space Mono',monospace;font-size:.5rem;letter-spacing:.07em;text-transform:uppercase;opacity:.65;}
-  .tile.noun{border-color:#bcd4e4;color:var(--noun);} .tile.noun .word{color:var(--noun);}
-  .tile.verb{border-color:#bfe0c8;color:var(--verb);} .tile.verb .word{color:var(--verb);}
-  .tile.adj{border-color:#ddc3e2;color:var(--adj);} .tile.adj .word{color:var(--adj);}
-  .tile.adv{border-color:#f0d3ac;color:var(--adv);} .tile.adv .word{color:var(--adv);}
-  .tile.prep{border-color:#b7ddd4;color:var(--prep);} .tile.prep .word{color:var(--prep);}
-  .tile.art{border-color:#d9d2c4;color:var(--art);} .tile.art .word{color:var(--art);}
-  .tile.conj{border-color:#e6bcb5;color:var(--conj);} .tile.conj .word{color:var(--conj);}
-  .tile.pron{border-color:#dcd0ab;color:var(--pron);} .tile.pron .word{color:var(--pron);}
-  .slot .word.noun{color:var(--noun);} .slot .word.verb{color:var(--verb);} .slot .word.adj{color:var(--adj);}
-  .slot .word.adv{color:var(--adv);} .slot .word.prep{color:var(--prep);} .slot .word.art{color:var(--art);}
-  .slot .word.conj{color:var(--conj);} .slot .word.pron{color:var(--pron);}
+    /* Tense Tracker Strip */
+    .tense-tracker{display:flex;flex-direction:column;gap:6px;align-items:center;}
+    .tense-label{font-family:'Space Mono',monospace;font-size:.62rem;text-transform:uppercase;letter-spacing:.08em;color:var(--forest);font-weight:700;}
+    .tense-steps{
+      display:flex;background:var(--card);border:1.5px solid var(--card-line);
+      border-radius:12px;padding:5px;gap:4px;box-shadow:var(--shadow-sm);width:100%;overflow-x:auto;
+    }
+    .tense-step{
+      flex:1;padding:6px 2px;border:none;background:transparent;border-radius:8px;
+      font-family:'Space Mono',monospace;font-size:.58rem;font-weight:700;color:var(--ink-muted);
+      text-align:center;text-transform:uppercase;letter-spacing:.02em;white-space:nowrap;
+      border:1px solid transparent;transition:all .2s var(--ease);
+    }
+    .tense-step.active{
+      background:linear-gradient(135deg,var(--forest),var(--moss));color:#fff;
+      box-shadow:0 2px 6px rgba(47,82,51,.25);
+    }
+    .tense-step.done{
+      background:#e2ebd8;color:var(--forest);border-color:#b5caa3;
+    }
 
-  /* actions */
-  .action-row{display:flex;gap:8px;}
-  .btn-ghost{flex:0 0 auto;display:flex;align-items:center;gap:5px;padding:10px 14px;background:var(--card);
-    border:1.5px solid var(--card-line);border-radius:12px;font-family:'Inter',sans-serif;font-size:.76rem;font-weight:600;
-    color:var(--ink-muted);cursor:pointer;box-shadow:var(--shadow-sm);transition:all .18s var(--ease);}
-  .btn-ghost svg{width:15px;height:15px;}
-  .btn-ghost:hover{background:#f7ede0;color:var(--rust);}
-  .btn-ghost:active{transform:scale(.94);}
-  .btn-primary{flex:1 1 auto;padding:12px;background:linear-gradient(160deg,var(--forest),var(--forest-dark));color:#fff;
-    border:none;border-radius:12px;font-family:'Inter',sans-serif;font-size:.86rem;font-weight:700;letter-spacing:.04em;
-    text-transform:uppercase;cursor:pointer;box-shadow:0 3px 10px rgba(47,82,51,.35);transition:all .18s var(--ease);}
-  .btn-primary:hover{transform:translateY(-1px);}
-  .btn-primary:active{transform:translateY(1px) scale(.99);}
-  .btn-primary:disabled{background:#cbd0c5;box-shadow:none;cursor:default;transform:none;}
+    /* Word Tray */
+    .tray{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;min-height:56px;}
+    .tile{
+      display:inline-flex;flex-direction:column;align-items:center;gap:1px;padding:8px 13px 6px;border-radius:10px;
+      background:#fffdf7;border:1.5px solid;cursor:pointer;user-select:none;
+      box-shadow:var(--shadow-sm);transition:transform .15s var(--ease),box-shadow .15s;
+      animation:tileSpawn .22s cubic-bezier(.2,1.5,.4,1);
+    }
+    .tile:hover{transform:translateY(-2px);box-shadow:var(--shadow-md);}
+    .tile:active{transform:scale(.94);}
+    .tile.wrong{animation:tileShake .4s ease;}
+    @keyframes tileShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}50%{transform:translateX(5px)}75%{transform:translateX(-3px)}}
+    @keyframes tileSpawn{from{transform:scale(.6);opacity:0}to{transform:scale(1);opacity:1}}
+    .tile .word{font-family:'Fraunces',serif;font-weight:600;font-size:.92rem;text-transform:lowercase;}
+    .tile .pos-cap{font-family:'Space Mono',monospace;font-size:.5rem;letter-spacing:.07em;text-transform:uppercase;opacity:.65;}
+    
+    .tile.noun{border-color:#bcd4e4;color:var(--noun);} .tile.noun .word{color:var(--noun);}
+    .tile.verb{border-color:#bfe0c8;color:var(--verb);} .tile.verb .word{color:var(--verb);}
+    .tile.adj{border-color:#ddc3e2;color:var(--adj);} .tile.adj .word{color:var(--adj);}
+    .tile.adv{border-color:#f0d3ac;color:var(--adv);} .tile.adv .word{color:var(--adv);}
+    .tile.prep{border-color:#b7ddd4;color:var(--prep);} .tile.prep .word{color:var(--prep);}
+    .tile.art{border-color:#d9d2c4;color:var(--art);} .tile.art .word{color:var(--art);}
+    .tile.conj{border-color:#e6bcb5;color:var(--conj);} .tile.conj .word{color:var(--conj);}
+    .tile.pron{border-color:#dcd0ab;color:var(--pron);} .tile.pron .word{color:var(--pron);}
+    
+    .slot .word.noun{color:var(--noun);} .slot .word.verb{color:var(--verb);} .slot .word.adj{color:var(--adj);}
+    .slot .word.adv{color:var(--adv);} .slot .word.prep{color:var(--prep);} .slot .word.art{color:var(--art);}
+    .slot .word.conj{color:var(--conj);} .slot .word.pron{color:var(--pron);}
 
-  /* found ticker */
-  .found-ticker{background:var(--card);border:1.5px solid var(--card-line);border-radius:12px;padding:8px 12px;
-    box-shadow:var(--shadow-sm);display:flex;gap:8px;align-items:flex-start;min-height:40px;}
-  .found-label{font-family:'Space Mono',monospace;font-size:.6rem;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;padding-top:2px;}
-  .found-label b{color:var(--forest);font-size:1.05em;}
-  .found-list{flex:1;min-width:0;display:flex;flex-wrap:wrap;gap:5px 6px;align-content:flex-start;overflow:hidden;max-height:60px;}
-  .found-hint{color:var(--ink-muted);font-size:.7rem;}
-  .found-chip{background:#eef3e9;border:1.5px solid #cfe0c3;color:var(--forest);border-radius:8px;padding:3px 9px;
-    font-size:.7rem;font-weight:500;white-space:nowrap;animation:pop-in .3s cubic-bezier(.2,1.5,.4,1);}
-  @keyframes pop-in{from{transform:scale(.6);opacity:0}to{transform:scale(1);opacity:1}}
+    /* Found Ticker */
+    .found-ticker{
+      background:var(--card);border:1.5px solid var(--card-line);border-radius:12px;padding:8px 12px;
+      box-shadow:var(--shadow-sm);display:flex;gap:8px;align-items:flex-start;min-height:40px;margin-top:auto;
+    }
+    .found-label{font-family:'Space Mono',monospace;font-size:.6rem;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;padding-top:2px;}
+    .found-label b{color:var(--forest);font-size:1.05em;}
+    .found-list{flex:1;min-width:0;display:flex;flex-wrap:wrap;gap:5px 6px;align-content:flex-start;overflow:hidden;max-height:60px;}
+    .found-hint{color:var(--ink-muted);font-size:.7rem;}
+    .found-chip{
+      background:#eef3e9;border:1.5px solid #cfe0c3;color:var(--forest);border-radius:8px;padding:3px 9px;
+      font-size:.7rem;font-weight:500;white-space:nowrap;animation:pop-in .3s cubic-bezier(.2,1.5,.4,1);
+    }
+    @keyframes pop-in{from{transform:scale(.6);opacity:0}to{transform:scale(1);opacity:1}}
 
-  .toast{position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-80px);background:var(--ink);color:#fff;
-    padding:9px 20px;border-radius:99px;font-size:.85rem;font-weight:500;z-index:200;pointer-events:none;
-    transition:transform .35s var(--ease),opacity .35s;opacity:0;white-space:nowrap;box-shadow:0 10px 30px rgba(0,0,0,.25);}
-  .toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
-  .toast.good{background:linear-gradient(135deg,var(--forest),var(--moss));}
-  .toast.bad{background:linear-gradient(135deg,var(--rust),#c0503f);}
+    .toast{
+      position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-80px);background:var(--ink);color:#fff;
+      padding:9px 20px;border-radius:99px;font-size:.85rem;font-weight:500;z-index:200;pointer-events:none;
+      transition:transform .35s var(--ease),opacity .35s;opacity:0;white-space:nowrap;box-shadow:0 10px 30px rgba(0,0,0,.25);
+    }
+    .toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
+    .toast.good{background:linear-gradient(135deg,var(--forest),var(--moss));}
+    .toast.bad{background:linear-gradient(135deg,var(--rust),#c0503f);}
 
-  /* end screen */
-  #endScreen{justify-content:flex-start;padding:30px 16px 50px;overflow-y:auto;-webkit-overflow-scrolling:touch;}
-  .end-card{background:var(--card);border:1.5px solid var(--card-line);border-radius:20px;padding:32px 26px;max-width:520px;
-    width:100%;box-shadow:0 20px 60px rgba(45,38,32,.14);animation:cardIn .55s cubic-bezier(.34,1.4,.64,1) forwards;}
-  @keyframes cardIn{from{opacity:0;transform:translateY(30px) scale(.96)}to{opacity:1;transform:none}}
-  .end-title{font-family:'Fraunces',serif;font-size:2rem;font-weight:900;text-align:center;color:var(--forest);margin-bottom:4px;}
-  .end-subtitle{text-align:center;font-family:'Space Mono',monospace;font-size:.7rem;color:var(--ink-muted);letter-spacing:.06em;text-transform:uppercase;margin-bottom:20px;}
-  .end-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:18px;}
-  .stat-box{background:var(--paper);border-radius:12px;padding:13px 8px;text-align:center;border:1.5px solid var(--card-line);}
-  .stat-num{font-family:'Fraunces',serif;font-size:1.7rem;font-weight:700;color:var(--forest);line-height:1;}
-  .stat-lbl{font-family:'Space Mono',monospace;font-size:.6rem;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.06em;margin-top:4px;}
-  .end-sentences-title{font-family:'Space Mono',monospace;font-size:.68rem;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.08em;margin:16px 0 8px;}
-  .end-sentence-chip{background:#eef3e9;border:1.5px solid #cfe0c3;color:var(--forest);border-radius:8px;padding:6px 14px;
-    font-size:.84rem;font-weight:500;margin-bottom:6px;display:block;animation:pop-in .35s cubic-bezier(.2,1.5,.4,1) backwards;}
-  .end-btn-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px;}
-  .btn-end{flex:1;padding:13px 10px;border:none;border-radius:12px;font-family:'Inter',sans-serif;font-size:.86rem;font-weight:700;
-    letter-spacing:.03em;cursor:pointer;transition:transform .15s;text-transform:uppercase;min-width:90px;}
-  .btn-end:hover{transform:scale(1.03);}
-  .btn-end-primary{background:linear-gradient(135deg,var(--forest),var(--moss));color:#fff;box-shadow:0 4px 16px rgba(47,82,51,.25);}
-  .btn-end-share{background:linear-gradient(135deg,#128c7e,#25d366);color:#fff;}
-  .btn-end-secondary{background:var(--paper);color:var(--ink-muted);border:1.5px solid var(--card-line);}
-</style>
+    /* End Screen */
+    #endScreen{justify-content:flex-start;padding:30px 16px 50px;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+    .end-card{
+      background:var(--card);border:1.5px solid var(--card-line);border-radius:20px;padding:32px 26px;max-width:520px;
+      width:100%;box-shadow:0 20px 60px rgba(45,38,32,.14);animation:cardIn .55s cubic-bezier(.34,1.4,.64,1) forwards;
+    }
+    @keyframes cardIn{from{opacity:0;transform:translateY(30px) scale(.96)}to{opacity:1;transform:none}}
+    .end-title{font-family:'Fraunces',serif;font-size:2rem;font-weight:900;text-align:center;color:var(--forest);margin-bottom:4px;}
+    .end-subtitle{text-align:center;font-family:'Space Mono',monospace;font-size:.7rem;color:var(--ink-muted);letter-spacing:.06em;text-transform:uppercase;margin-bottom:20px;}
+    .end-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:18px;}
+    .stat-box{background:var(--paper);border-radius:12px;padding:13px 8px;text-align:center;border:1.5px solid var(--card-line);}
+    .stat-num{font-family:'Fraunces',serif;font-size:1.7rem;font-weight:700;color:var(--forest);line-height:1;}
+    .stat-lbl{font-family:'Space Mono',monospace;font-size:.6rem;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.06em;margin-top:4px;}
+    .end-sentences-title{font-family:'Space Mono',monospace;font-size:.68rem;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.08em;margin:16px 0 8px;}
+    .end-sentence-chip{
+      background:#eef3e9;border:1.5px solid #cfe0c3;color:var(--forest);border-radius:8px;padding:6px 14px;
+      font-size:.84rem;font-weight:500;margin-bottom:6px;display:block;animation:pop-in .35s cubic-bezier(.2,1.5,.4,1) backwards;
+    }
+    .end-btn-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px;}
+    .btn-end{
+      flex:1;padding:13px 10px;border:none;border-radius:12px;font-family:'Inter',sans-serif;font-size:.86rem;font-weight:700;
+      letter-spacing:.03em;cursor:pointer;transition:transform .15s;text-transform:uppercase;min-width:90px;
+    }
+    .btn-end:hover{transform:scale(1.03);}
+    .btn-end-primary{background:linear-gradient(135deg,var(--forest),var(--moss));color:#fff;box-shadow:0 4px 16px rgba(47,82,51,.25);}
+    .btn-end-share{background:linear-gradient(135deg,#128c7e,#25d366);color:#fff;}
+  </style>
 </head>
 <body>
-
 <div class="toast" id="toast"></div>
 
 <div class="screen active" id="gameScreen">
@@ -176,13 +199,7 @@
       </div>
       <div class="brand"><h1>Herbari<span>✿</span>m</h1><div class="sub">Sentence Press</div></div>
       <div class="timer-pill">
-        <div class="arc-wrap">
-          <svg id="timerArc" width="30" height="30" viewBox="0 0 56 56">
-            <circle cx="28" cy="28" r="22" fill="none" stroke="rgba(45,38,32,0.1)" stroke-width="4"/>
-            <circle id="arcPath" cx="28" cy="28" r="22" fill="none" stroke="var(--forest)" stroke-width="4" stroke-dasharray="138.2" stroke-dashoffset="0" stroke-linecap="round" style="transition:stroke-dashoffset 1s linear,stroke .5s ease;"/>
-          </svg>
-        </div>
-        <div class="timer-text" id="timerText">3:00</div>
+        <div class="timer-text" id="timerText">00:00</div>
       </div>
     </div>
 
@@ -196,22 +213,23 @@
 
     <div class="mount" id="mount">
       <div class="slots" id="slots"></div>
-      <div class="mount-caption" id="mount-caption">tap the words below, in order</div>
+      <div class="mount-caption" id="mount-caption">tap the missing words to adapt the tense</div>
+    </div>
+
+    <!-- Tense Tracker Strip -->
+    <div class="tense-tracker">
+      <span class="tense-label" id="active-tense-label">Target: Present Simple</span>
+      <div class="tense-steps" id="tense-steps">
+        <div class="tense-step" id="step-0">Pres. Simple</div>
+        <div class="tense-step" id="step-1">Past Simple</div>
+        <div class="tense-step" id="step-2">Fut. Simple</div>
+        <div class="tense-step" id="step-3">Pres. Cont.</div>
+        <div class="tense-step" id="step-4">Past Cont.</div>
+        <div class="tense-step" id="step-5">Pres. Perf.</div>
+      </div>
     </div>
 
     <div class="tray" id="tray"></div>
-
-    <div class="action-row">
-      <button class="btn-ghost" id="btn-undo">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-1"/></svg>
-        Undo
-      </button>
-      <button class="btn-primary" id="btn-skip" style="background:linear-gradient(160deg,var(--clay),#8f4c14);flex:1;">Skip specimen</button>
-      <button class="btn-ghost" id="btn-shuffle">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M4 20 21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>
-        Shuffle
-      </button>
-    </div>
 
     <div class="found-ticker">
       <span class="found-label">Pressed <b id="found-count">0</b></span>
@@ -239,68 +257,94 @@
 </div>
 
 <script>
-/* ═══════════════════════════════════════
-   PRE-BUILT SENTENCES — every sentence here is
-   already grammatical. The game never needs to
-   validate grammar live; it only checks word order.
-═══════════════════════════════════════ */
-const SENTENCES = [
-  {w:["the","cat","sleeps","quietly"],            p:["art","noun","verb","adv"]},
-  {w:["a","bright","star","shines","above","the","sea"], p:["art","adj","noun","verb","prep","art","noun"]},
-  {w:["birds","sing","and","children","dance"],   p:["noun","verb","conj","noun","verb"]},
-  {w:["she","walks","slowly","but","thinks","quickly"], p:["pron","verb","adv","conj","verb","adv"]},
-  {w:["the","old","oak","stands","beside","a","quiet","river"], p:["art","adj","noun","verb","prep","art","adj","noun"]},
-  {w:["we","planted","flowers","in","the","garden"], p:["pron","verb","noun","prep","art","noun"]},
-  {w:["the","gardener","waters","the","roses","each","morning"], p:["art","noun","verb","art","noun","adj","noun"]},
-  {w:["a","gentle","wind","moved","through","the","tall","grass"], p:["art","adj","noun","verb","prep","art","adj","noun"]},
-  {w:["he","reads","a","book","and","writes","a","letter"], p:["pron","verb","art","noun","conj","verb","art","noun"]},
-  {w:["the","bees","buzz","softly","among","the","flowers"], p:["art","noun","verb","adv","prep","art","noun"]},
-  {w:["mother","baked","bread","and","sang","a","song"], p:["noun","verb","noun","conj","verb","art","noun"]},
-  {w:["the","river","flows","gently","under","the","old","bridge"], p:["art","noun","verb","adv","prep","art","adj","noun"]},
-  {w:["a","small","dog","chased","the","ball","happily"], p:["art","adj","noun","verb","art","noun","adv"]},
-  {w:["the","moon","rose","slowly","over","the","dark","hills"], p:["art","noun","verb","adv","prep","art","adj","noun"]},
-  {w:["they","laughed","loudly","and","clapped","their","hands"], p:["pron","verb","adv","conj","verb","art","noun"]},
-  {w:["the","farmer","planted","seeds","and","watched","them","grow"], p:["art","noun","verb","noun","conj","verb","pron","verb"]},
-  {w:["a","curious","fox","watched","the","sleeping","village"], p:["art","adj","noun","verb","art","adj","noun"]},
-  {w:["the","children","played","happily","in","the","warm","sun"], p:["art","noun","verb","adv","prep","art","adj","noun"]},
-  {w:["she","painted","the","fence","a","bright","blue"], p:["pron","verb","art","noun","art","adj","noun"]},
-  {w:["the","wind","whispered","through","the","ancient","trees"], p:["art","noun","verb","prep","art","adj","noun"]},
-  {w:["we","walked","slowly","and","talked","for","hours"], p:["pron","verb","adv","conj","verb","prep","noun"]},
-  {w:["the","baker","kneaded","dough","before","the","sunrise"], p:["art","noun","verb","noun","prep","art","noun"]},
-  {w:["a","tiny","seed","became","a","mighty","tree"], p:["art","adj","noun","verb","art","adj","noun"]},
-  {w:["the","storm","passed","and","the","sky","cleared"], p:["art","noun","verb","conj","art","noun","verb"]},
-  {w:["he","climbed","the","hill","and","watched","the","sunset"], p:["pron","verb","art","noun","conj","verb","art","noun"]},
-  {w:["the","lake","sparkled","under","the","morning","light"], p:["art","noun","verb","prep","art","adj","noun"]},
-  {w:["a","soft","rain","fell","upon","the","sleeping","town"], p:["art","adj","noun","verb","prep","art","adj","noun"]},
-  {w:["the","old","clock","ticked","quietly","on","the","wall"], p:["art","adj","noun","verb","adv","prep","art","noun"]}
+const TENSE_KEYS = ['present', 'past', 'future', 'pres_cont', 'past_cont', 'pres_perf'];
+const TENSE_NAMES = {
+  present: 'Present Simple',
+  past: 'Past Simple',
+  future: 'Future Simple',
+  pres_cont: 'Present Continuous',
+  past_cont: 'Past Continuous',
+  pres_perf: 'Present Perfect'
+};
+
+const MULTI_TENSE_SENTENCES = [
+  {
+    present:   { w: ["the","cat","sleeps","quietly"], p: ["art","noun","verb","adv"] },
+    past:      { w: ["the","cat","slept","quietly"], p: ["art","noun","verb","adv"] },
+    future:    { w: ["the","cat","will","sleep","quietly"], p: ["art","noun","verb","verb","adv"] },
+    pres_cont: { w: ["the","cat","is","sleeping","quietly"], p: ["art","noun","verb","verb","adv"] },
+    past_cont: { w: ["the","cat","was","sleeping","quietly"], p: ["art","noun","verb","verb","adv"] },
+    pres_perf: { w: ["the","cat","has","slept","quietly"], p: ["art","noun","verb","verb","adv"] }
+  },
+  {
+    present:   { w: ["a","bright","star","shines","above","the","sea"], p: ["art","adj","noun","verb","prep","art","noun"] },
+    past:      { w: ["a","bright","star","shone","above","the","sea"], p: ["art","adj","noun","verb","prep","art","noun"] },
+    future:    { w: ["a","bright","star","will","shine","above","the","sea"], p: ["art","adj","noun","verb","verb","prep","art","noun"] },
+    pres_cont: { w: ["a","bright","star","is","shining","above","the","sea"], p: ["art","adj","noun","verb","verb","prep","art","noun"] },
+    past_cont: { w: ["a","bright","star","was","shining","above","the","sea"], p: ["art","adj","noun","verb","verb","prep","art","noun"] },
+    pres_perf: { w: ["a","bright","star","has","shone","above","the","sea"], p: ["art","adj","noun","verb","verb","prep","art","noun"] }
+  },
+  {
+    present:   { w: ["the","old","oak","stands","beside","a","quiet","river"], p: ["art","adj","noun","verb","prep","art","adj","noun"] },
+    past:      { w: ["the","old","oak","stood","beside","a","quiet","river"], p: ["art","adj","noun","verb","prep","art","adj","noun"] },
+    future:    { w: ["the","old","oak","will","stand","beside","a","quiet","river"], p: ["art","adj","noun","verb","verb","prep","art","adj","noun"] },
+    pres_cont: { w: ["the","old","oak","is","standing","beside","a","quiet","river"], p: ["art","adj","noun","verb","verb","prep","art","adj","noun"] },
+    past_cont: { w: ["the","old","oak","was","standing","beside","a","quiet","river"], p: ["art","adj","noun","verb","verb","prep","art","adj","noun"] },
+    pres_perf: { w: ["the","old","oak","has","stood","beside","a","quiet","river"], p: ["art","adj","noun","verb","verb","prep","art","adj","noun"] }
+  },
+  {
+    present:   { w: ["we","plant","flowers","in","the","garden"], p: ["pron","verb","noun","prep","art","noun"] },
+    past:      { w: ["we","planted","flowers","in","the","garden"], p: ["pron","verb","noun","prep","art","noun"] },
+    future:    { w: ["we","will","plant","flowers","in","the","garden"], p: ["pron","verb","verb","noun","prep","art","noun"] },
+    pres_cont: { w: ["we","are","planting","flowers","in","the","garden"], p: ["pron","verb","verb","noun","prep","art","noun"] },
+    past_cont: { w: ["we","were","planting","flowers","in","the","garden"], p: ["pron","verb","verb","noun","prep","art","noun"] },
+    pres_perf: { w: ["we","have","planted","flowers","in","the","garden"], p: ["pron","verb","verb","noun","prep","art","noun"] }
+  },
+  {
+    present:   { w: ["the","gardener","waters","the","roses","each","morning"], p: ["art","noun","verb","art","noun","adj","noun"] },
+    past:      { w: ["the","gardener","watered","the","roses","each","morning"], p: ["art","noun","verb","art","noun","adj","noun"] },
+    future:    { w: ["the","gardener","will","water","the","roses","each","morning"], p: ["art","noun","verb","verb","art","noun","adj","noun"] },
+    pres_cont: { w: ["the","gardener","is","watering","the","roses","each","morning"], p: ["art","noun","verb","verb","art","noun","adj","noun"] },
+    past_cont: { w: ["the","gardener","was","watering","the","roses","each","morning"], p: ["art","noun","verb","verb","art","noun","adj","noun"] },
+    pres_perf: { w: ["the","gardener","has","watered","the","roses","each","morning"], p: ["art","noun","verb","verb","art","noun","adj","noun"] }
+  }
 ];
 
 const POS_ABBR = {noun:'noun',verb:'verb',adj:'adj',adv:'adv',prep:'prep',art:'art',conj:'conj',pron:'pron'};
-
 const RANKS = [
   {name:'Seed 🌰',min:0},{name:'Sprout 🌱',min:40},{name:'Bud 🌿',min:100},
   {name:'Bloom 🌸',min:200},{name:'Specimen 🗒️',min:340},{name:'Botanist ✿',min:500}
 ];
 
 const BEST_KEY = 'herbariumBest';
-const GAME_SECS = 180;
-const ARC_CIRC = 138.2;
 
 let deck = [];
-let current = null;          // {words, pos}
+let currentSpecimen = null;
+let currentTenseIndex = 0;
+let current = null;           // Active target structure
+let previousSentence = null;  // Previously completed structure
+
 let placedCount = 0;
 let placedTileIds = [];
-let trayTiles = [];          // {id, text, pos, used}
+let trayTiles = [];
 let tileIdCounter = 0;
+let retainedIndices = [];     // Indices of words kept from previous step
+
 let score = 0, streak = 0, completedCount = 0, correctTaps = 0, wrongTaps = 0, currentMistakes = 0;
 let sentenceStart = 0;
 let completedList = [];
 let bestScore = parseInt(localStorage.getItem(BEST_KEY) || '0');
-let timeLeft = GAME_SECS, timerInterval = null, gameActive = true;
+
+let elapsedSeconds = 0;
+let timerInterval = null;
+let gameActive = true;
 
 function shuffledDeck(){
-  const idx = SENTENCES.map((_,i)=>i);
-  for(let i=idx.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [idx[i],idx[j]]=[idx[j],idx[i]]; }
+  const idx = MULTI_TENSE_SENTENCES.map((_,i)=>i);
+  for(let i=idx.length-1;i>0;i--){ 
+    const j=Math.floor(Math.random()*(i+1)); 
+    [idx[i],idx[j]]=[idx[j],idx[i]]; 
+  }
   return idx;
 }
 
@@ -308,64 +352,140 @@ function newGame(){
   clearInterval(timerInterval);
   deck = shuffledDeck();
   score=0; streak=0; completedCount=0; correctTaps=0; wrongTaps=0;
-  completedList=[]; timeLeft=GAME_SECS; gameActive=true;
+  completedList=[]; elapsedSeconds=0; gameActive=true;
   updateStats(); updateFoundList();
-  loadNextSentence();
-  updateTimerDisplay(); updateArc();
-  startTimer();
+  loadNextSentenceSpecimen();
+  updateTimerDisplay();
+  startStopwatch();
 }
 
-function loadNextSentence(){
+function loadNextSentenceSpecimen(){
   if(!deck.length) deck = shuffledDeck();
   const i = deck.pop();
-  current = SENTENCES[i];
+  currentSpecimen = MULTI_TENSE_SENTENCES[i];
+  currentTenseIndex = 0;
+  previousSentence = null;
+  applyTenseData();
+}
+
+/* ═══════════════ WORD RETENTION & DIFF LOGIC ═══════════════ */
+function applyTenseData(){
+  const activeKey = TENSE_KEYS[currentTenseIndex];
+  current = currentSpecimen[activeKey];
   placedCount = 0; placedTileIds = []; currentMistakes = 0;
   sentenceStart = Date.now();
-  trayTiles = current.w.map(word => ({id: tileIdCounter++, text: word, pos: current.p[current.w.indexOf(word)]}));
-  // pos array by parallel index rather than indexOf (handles duplicate words safely)
-  trayTiles = current.w.map((word, i2) => ({id: tileIdCounter++, text: word, pos: current.p[i2]}));
+  retainedIndices = [];
+
+  // Determine retained words from previous tense if starting step > 0
+  if (previousSentence) {
+    const oldW = previousSentence.w;
+    const newW = current.w;
+    
+    // Check matching prefix words
+    let prefixCount = 0;
+    while (prefixCount < oldW.length && prefixCount < newW.length && oldW[prefixCount] === newW[prefixCount]) {
+      prefixCount++;
+    }
+    
+    // Check matching suffix words
+    let suffixCount = 0;
+    while (
+      suffixCount < (oldW.length - prefixCount) && 
+      suffixCount < (newW.length - prefixCount) && 
+      oldW[oldW.length - 1 - suffixCount] === newW[newW.length - 1 - suffixCount]
+    ) {
+      suffixCount++;
+    }
+    
+    // Mark prefix indices as retained
+    for (let i = 0; i < prefixCount; i++) {
+      retainedIndices.push(i);
+    }
+    // Mark suffix indices as retained
+    for (let i = newW.length - suffixCount; i < newW.length; i++) {
+      retainedIndices.push(i);
+    }
+  }
+
+  // Pre-fill retained prefix count (if continuous starting from index 0)
+  let initialPlaced = 0;
+  while (retainedIndices.includes(initialPlaced)) {
+    initialPlaced++;
+  }
+  placedCount = initialPlaced;
+
+  // Build tray with ONLY non-retained target words
+  trayTiles = [];
+  current.w.forEach((word, idx) => {
+    if (!retainedIndices.includes(idx)) {
+      trayTiles.push({
+        id: tileIdCounter++,
+        text: word,
+        pos: current.p[idx],
+        targetIdx: idx
+      });
+    }
+  });
+
   shuffleArray(trayTiles);
-  renderSlots(); renderTray();
-  document.getElementById('mount-caption').textContent = current.w.length + ' words · tap them in order';
+  renderSlots(); renderTray(); updateTenseTrackerUI();
+
+  const neededWordsCount = current.w.length - retainedIndices.length;
+  document.getElementById('mount-caption').textContent = 
+    neededWordsCount > 0 
+      ? `tap the ${neededWordsCount} verb tile${neededWordsCount > 1 ? 's' : ''} to shift tense` 
+      : 'specimen set!';
+}
+
+function updateTenseTrackerUI(){
+  const activeKey = TENSE_KEYS[currentTenseIndex];
+  document.getElementById('active-tense-label').textContent = `Target: ${TENSE_NAMES[activeKey]}`;
+  
+  TENSE_KEYS.forEach((_, idx) => {
+    const el = document.getElementById(`step-${idx}`);
+    if(!el) return;
+    el.classList.remove('active', 'done');
+    if(idx < currentTenseIndex) el.classList.add('done');
+    else if(idx === currentTenseIndex) el.classList.add('active');
+  });
 }
 
 function shuffleArray(arr){
-  for(let i=arr.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; }
+  for(let i=arr.length-1;i>0;i--){ 
+    const j=Math.floor(Math.random()*(i+1)); 
+    [arr[i],arr[j]]=[arr[j],arr[i]]; 
+  }
 }
 
-/* ═══════════════ TIMER ═══════════════ */
-function startTimer(){
+/* ═══════════════ STOPWATCH ═══════════════ */
+function startStopwatch(){
   timerInterval = setInterval(()=>{
     if(!gameActive) return;
-    timeLeft--; updateTimerDisplay(); updateArc();
-    if(timeLeft<=0) endGame();
-  },1000);
+    elapsedSeconds++;
+    updateTimerDisplay();
+  }, 1000);
 }
+
 function updateTimerDisplay(){
-  const m=Math.floor(Math.max(0,timeLeft)/60), s=Math.max(0,timeLeft)%60;
-  const el=document.getElementById('timerText');
-  el.textContent=m+':'+(s<10?'0':'')+s;
-  el.classList.remove('amber','danger');
-  if(timeLeft<=30) el.classList.add('danger'); else if(timeLeft<=60) el.classList.add('amber');
+  const m = Math.floor(elapsedSeconds / 60);
+  const s = elapsedSeconds % 60;
+  document.getElementById('timerText').textContent = (m < 10 ? '0' + m : m) + ':' + (s < 10 ? '0' + s : s);
 }
-function updateArc(){
-  const frac=Math.max(0,timeLeft/GAME_SECS);
-  const arc=document.getElementById('arcPath');
-  arc.style.strokeDashoffset=ARC_CIRC*(1-frac);
-  arc.style.stroke=timeLeft<=30?'var(--rust)':timeLeft<=60?'var(--gold)':'var(--forest)';
-}
-function adjustTime(secs){ timeLeft=Math.max(0,Math.min(GAME_SECS,timeLeft+secs)); updateTimerDisplay(); updateArc(); }
 
 /* ═══════════════ RENDER ═══════════════ */
 function renderSlots(){
   const wrap=document.getElementById('slots'); wrap.innerHTML='';
-  current.w.forEach((word,i)=>{
+  current.w.forEach((word, i)=>{
     const slot=document.createElement('div'); slot.className='slot';
-    if(i<placedCount){
+    const isRetained = retainedIndices.includes(i);
+    
+    if (i < placedCount || isRetained) {
       slot.classList.add('filled');
+      if (isRetained) slot.classList.add('retained');
+      
       const pos = current.p[i];
-      const display = i===0 ? word.charAt(0).toUpperCase()+word.slice(1) : word;
-      slot.innerHTML = `<span class="word ${pos}">${display}${i===current.w.length-1?'.':''}</span><span class="pos-cap">${POS_ABBR[pos]}</span>`;
+      const display = i === 0 ? word.charAt(0).toUpperCase() + word.slice(1) : word;
+      slot.innerHTML = `<span class="word ${pos}">${display}${i === current.w.length-1 ? '.' : ''}</span><span class="pos-cap">${POS_ABBR[pos]}</span>`;
     } else {
       slot.innerHTML = `<span class="dash"></span>`;
     }
@@ -389,16 +509,28 @@ function tapTile(id, el){
   if(!gameActive) return;
   const tile = trayTiles.find(t=>t.id===id);
   if(!tile || tile.used) return;
+  
+  // Skip retained suffix tiles automatically when advancing
+  while (retainedIndices.includes(placedCount)) {
+    placedCount++;
+  }
+
   const required = current.w[placedCount];
   if(tile.text === required){
     tile.used = true;
     placedTileIds.push(id);
     placedCount++;
     correctTaps++;
+    
+    // Skip any trailing retained slots
+    while (retainedIndices.includes(placedCount) && placedCount < current.w.length) {
+      placedCount++;
+    }
+
     renderSlots(); renderTray();
     document.getElementById('mount').classList.remove('error');
-    if(placedCount === current.w.length){
-      completeSentence();
+    if(placedCount >= current.w.length){
+      completeTense();
     }
   } else {
     wrongTaps++; currentMistakes++; streak = 0;
@@ -406,53 +538,48 @@ function tapTile(id, el){
     setTimeout(()=>el.classList.remove('wrong'),400);
     document.getElementById('mount').classList.add('error');
     setTimeout(()=>document.getElementById('mount').classList.remove('error'),350);
-    adjustTime(-2);
     updateStats();
     if(navigator.vibrate) navigator.vibrate(15);
   }
 }
 
-function undoLast(){
-  if(!gameActive || !placedCount) return;
-  placedCount--;
-  const id = placedTileIds.pop();
-  const tile = trayTiles.find(t=>t.id===id);
-  if(tile) tile.used = false;
-  renderSlots(); renderTray();
-}
-
-function completeSentence(){
+function completeTense(){
   const elapsedSec = (Date.now()-sentenceStart)/1000;
   const base = current.w.length*8;
-  const speedBonus = Math.max(0, Math.round(20 - elapsedSec));
+  const speedBonus = Math.max(0, Math.round(15 - elapsedSec));
   const penalty = currentMistakes*3;
   const pts = Math.max(5, base+speedBonus-penalty);
+  
   score += pts; completedCount++;
   if(currentMistakes===0) streak++; else streak=0;
+  
+  const activeKey = TENSE_KEYS[currentTenseIndex];
   const text = current.w[0].charAt(0).toUpperCase()+current.w[0].slice(1)+' '+current.w.slice(1).join(' ')+'.';
-  completedList.push({text, pts});
+  completedList.push({text, pts, tense: TENSE_NAMES[activeKey]});
+  
   updateStats(); updateFoundList();
+  
   document.getElementById('mount').classList.add('success');
   setTimeout(()=>document.getElementById('mount').classList.remove('success'),650);
-  let msg = `+${pts} pts`;
+  
+  let msg = `+${pts} pts [${TENSE_NAMES[activeKey]}]`;
   if(streak>=3) msg = `🔥 ${streak} streak! `+msg;
   showToast(msg,'good');
+  
   if(navigator.vibrate) navigator.vibrate(streak>=3?[20,40,20]:18);
-  setTimeout(()=>{ if(gameActive) loadNextSentence(); }, 550);
-}
+  
+  previousSentence = current; // Save reference for next diff
 
-function skipSentence(){
-  if(!gameActive) return;
-  streak = 0; adjustTime(-10);
-  showToast('Skipped — new specimen','bad');
-  loadNextSentence();
-}
-
-function shuffleTray(){
-  if(!gameActive) return;
-  shuffleArray(trayTiles);
-  renderTray();
-  if(navigator.vibrate) navigator.vibrate(8);
+  setTimeout(()=>{ 
+    if(!gameActive) return;
+    if(currentTenseIndex < TENSE_KEYS.length - 1){
+      currentTenseIndex++;
+      applyTenseData();
+    } else {
+      showToast('🌿 Specimen Complete!', 'good');
+      loadNextSentenceSpecimen();
+    }
+  }, 600);
 }
 
 /* ═══════════════ STATS / RANK ═══════════════ */
@@ -461,14 +588,17 @@ function getRank(pts){
   for(const rk of RANKS) if(pts>=rk.min) r=rk;
   return r;
 }
+
 function updateStats(){
   document.getElementById('score').textContent=score;
   document.getElementById('streak').textContent=streak;
   if(score>bestScore){ bestScore=score; localStorage.setItem(BEST_KEY,bestScore); }
   document.getElementById('best-score').textContent=bestScore;
+  
   const rank=getRank(score);
   const idx=RANKS.indexOf(rank), next=RANKS[idx+1];
   document.getElementById('rank-name').textContent=rank.name;
+  
   const fill=document.getElementById('rank-fill');
   fill.style.width = next ? Math.min(100,((score-rank.min)/(next.min-rank.min))*100)+'%' : '100%';
 }
@@ -476,13 +606,16 @@ function updateStats(){
 function updateFoundList(){
   document.getElementById('found-count').textContent=completedCount;
   const list=document.getElementById('found-list');
-  if(!completedList.length){ list.innerHTML='<span class="found-hint">Completed specimens will appear here…</span>'; return; }
+  if(!completedList.length){ 
+    list.innerHTML='<span class="found-hint">Completed specimens will appear here…</span>'; 
+    return; 
+  }
   list.innerHTML='';
   completedList.slice().reverse().slice(0,20).forEach(s=>{
     const span=document.createElement('span');
     span.className='found-chip';
     span.textContent=s.text;
-    span.title=s.pts+' pts';
+    span.title=`${s.pts} pts (${s.tense})`;
     list.appendChild(span);
   });
 }
@@ -497,9 +630,6 @@ function showToast(msg,type=''){
 }
 
 /* ═══════════════ CONTROLS ═══════════════ */
-document.getElementById('btn-undo').addEventListener('click',undoLast);
-document.getElementById('btn-skip').addEventListener('click',skipSentence);
-document.getElementById('btn-shuffle').addEventListener('click',shuffleTray);
 document.getElementById('btn-new').addEventListener('click',()=>{
   if(confirm('Start a new round? Current progress will be lost.')) newGame();
 });
@@ -508,31 +638,43 @@ document.getElementById('btn-end-game').addEventListener('click',()=>{
 });
 
 /* ═══════════════ END GAME ═══════════════ */
+function submitScoreToSupabase(finalScore, totalSeconds, totalCompleted){
+  console.log('Sending metrics to Supabase:', { score: finalScore, duration: totalSeconds, count: totalCompleted });
+}
+
 function endGame(){
-  gameActive=false; clearInterval(timerInterval);
+  gameActive=false; 
+  clearInterval(timerInterval);
+  submitScoreToSupabase(score, elapsedSeconds, completedCount);
   setTimeout(showEndScreen,250);
 }
+
 function showEndScreen(){
   document.getElementById('gameScreen').classList.remove('active');
   document.getElementById('endScreen').classList.add('active');
+  
   const tm=[[500,'✿ Botanist!'],[340,'🗒️ Specimen Master'],[200,'🌸 In Full Bloom'],[100,'🌿 Budding Talent'],[40,'🌱 Nice Sprout'],[0,'🌰 Good Start']];
   document.getElementById('endTitle').textContent=(tm.find(([m])=>score>=m)||tm[5])[1];
   document.getElementById('endSubtitle').textContent=`Herbarium · ${completedCount} specimen${completedCount!==1?'s':''} · ${getRank(score).name}`;
   document.getElementById('endScore').textContent=score;
   document.getElementById('endSentences').textContent=completedCount;
+  
   const totalTaps = correctTaps+wrongTaps;
   document.getElementById('endAccuracy').textContent = totalTaps ? Math.round(correctTaps/totalTaps*100)+'%' : '100%';
 
   const list=document.getElementById('endSentencesList');
   list.innerHTML='';
-  if(!completedList.length){ list.innerHTML='<span style="color:var(--ink-muted);font-size:.9rem;">No specimens pressed this round.</span>'; }
-  else completedList.slice().reverse().forEach((s,i)=>{
-    const div=document.createElement('div');
-    div.className='end-sentence-chip';
-    div.textContent=s.text+'  ·  +'+s.pts;
-    div.style.animationDelay=(i*0.05)+'s';
-    list.appendChild(div);
-  });
+  if(!completedList.length){ 
+    list.innerHTML='<span style="color:var(--ink-muted);font-size:.9rem;">No specimens pressed this round.</span>'; 
+  } else {
+    completedList.slice().reverse().forEach((s,i)=>{
+      const div=document.createElement('div');
+      div.className='end-sentence-chip';
+      div.textContent=`${s.text} (+${s.pts}) · ${s.tense}`;
+      div.style.animationDelay=(i*0.05)+'s';
+      list.appendChild(div);
+    });
+  }
 
   document.getElementById('btnPlayAgain').onclick=()=>{
     document.getElementById('endScreen').classList.remove('active');
@@ -541,11 +683,15 @@ function showEndScreen(){
   };
   document.getElementById('btnShare').onclick=shareResult;
 }
+
 function shareResult(){
-  const top = completedList.slice().sort((a,b)=>b.pts-a.pts).slice(0,3).map(s=>`"${s.text}" (+${s.pts})`).join('\n');
-  const msg=`🌿 Herbarium — Sentence Press\nScore: ${score} pts · ${completedCount} specimens · ${getRank(score).name}\n${top?'\nTop specimens:\n'+top+'\n':''}\nPress your own sentences!`;
-  if(navigator.share){ navigator.share({title:'Herbarium — Sentence Press',text:msg}).catch(()=>{}); }
-  else { window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank'); }
+  const top = completedList.slice().sort((a,b)=>b.pts-a.pts).slice(0,3).map(s=>`"${s.text}" (+${s.pts}) [${s.tense}]`).join('\n');
+  const msg=`🌿 Herbarium — Sentence Press\nScore: ${score} pts · Time: ${document.getElementById('timerText').textContent} · ${completedCount} specimens · ${getRank(score).name}\n${top?'\nTop specimens:\n'+top+'\n':''}\nPress your own sentences!`;
+  if(navigator.share){ 
+    navigator.share({title:'Herbarium — Sentence Press',text:msg}).catch(()=>{}); 
+  } else { 
+    window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank'); 
+  }
 }
 
 /* ═══════════════ INIT ═══════════════ */

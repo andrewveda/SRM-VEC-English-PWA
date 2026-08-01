@@ -182,7 +182,7 @@
     .archive-card .arc-tense{font-family:'Space Mono',monospace;font-size:.52rem;color:var(--ink-muted);text-transform:uppercase;margin-right:6px;}
 
     .toast{
-      position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-80px);background:var(--ink);color:#fff;
+      position:fixed;bottom:calc(env(safe-area-inset-bottom) + 24px);left:50%;transform:translateX(-50%) translateY(80px);background:var(--ink);color:#fff;
       padding:9px 20px;border-radius:99px;font-size:.85rem;font-weight:500;z-index:200;pointer-events:none;
       transition:transform .35s var(--ease),opacity .35s;opacity:0;white-space:nowrap;box-shadow:0 10px 30px rgba(0,0,0,.25);
     }
@@ -304,7 +304,7 @@
 
     <!-- Paradigm panel: all tense forms of the current specimen -->
     <div class="paradigm-panel">
-      <div class="paradigm-title">This specimen · <b id="paradigm-count">0</b>/6 forms</div>
+      <div class="paradigm-title">Specimen <b id="specimen-num">1</b>/10 · <b id="paradigm-count">0</b>/6 forms</div>
       <div class="paradigm-rows" id="paradigm-rows"></div>
       <div class="archive-title" id="archive-title" style="display:none;">Earlier specimens</div>
       <div class="archive-list" id="archive-list"></div>
@@ -350,48 +350,111 @@ const TENSE_TIMELINE_POS = {
   future: 0.94
 };
 
+// 10 base sentences × 6 tense forms each = the full session.
+// Design rules applied (ESL pedagogy):
+//  - Every verb is dynamic/telic (water, plant, paint, build, write, bake,
+//    catch, feed, clean, draw) so Present/Past Continuous read naturally —
+//    no stative verbs (e.g. "stand", "shine") that turn awkward in -ing form.
+//  - No frequency/time adverbs ("every day", "each morning") are attached,
+//    since those only agree with certain tenses and would otherwise create
+//    a contradiction when reused across all 6 forms (e.g. "is watering ...
+//    each morning" wrongly mixes habitual + continuous).
+//  - Present Perfect sentences describe a completed action with a visible
+//    result (a built dam, a baked cake, a drawn map) so they sound complete
+//    on their own, without requiring signal words like "already"/"just"
+//    that haven't necessarily been taught yet.
+//  - 5 regular verbs (water, plant, paint, bake, clean) and 5 irregular
+//    verbs (build, write, catch, feed, draw) are balanced, and the irregular
+//    set itself mixes participles that equal the past form (built, caught,
+//    fed) with ones that differ from it (wrote/written, drew/drawn) — both
+//    patterns learners need repeated exposure to.
+//  - Subjects mix singular (gardener, artist, baker, fisherman, farmer, boy)
+//    and plural (children, beavers, students, workers) so both 3rd-person
+//    "-s" agreement and plural base-form agreement get practiced.
 const MULTI_TENSE_SENTENCES = [
   {
-    present:   { w: ["the","cat","sleeps","quietly"], p: ["art","noun","verb","adv"] },
-    past:      { w: ["the","cat","slept","quietly"], p: ["art","noun","verb","adv"] },
-    future:    { w: ["the","cat","will","sleep","quietly"], p: ["art","noun","verb","verb","adv"] },
-    pres_cont: { w: ["the","cat","is","sleeping","quietly"], p: ["art","noun","verb","verb","adv"] },
-    past_cont: { w: ["the","cat","was","sleeping","quietly"], p: ["art","noun","verb","verb","adv"] },
-    pres_perf: { w: ["the","cat","has","slept","quietly"], p: ["art","noun","verb","verb","adv"] }
+    present:   { w: ["the","gardener","waters","the","flowers","in","the","yard"], p: ["art","noun","verb","art","noun","prep","art","noun"] },
+    past:      { w: ["the","gardener","watered","the","flowers","in","the","yard"], p: ["art","noun","verb","art","noun","prep","art","noun"] },
+    future:    { w: ["the","gardener","will","water","the","flowers","in","the","yard"], p: ["art","noun","verb","verb","art","noun","prep","art","noun"] },
+    pres_cont: { w: ["the","gardener","is","watering","the","flowers","in","the","yard"], p: ["art","noun","verb","verb","art","noun","prep","art","noun"] },
+    past_cont: { w: ["the","gardener","was","watering","the","flowers","in","the","yard"], p: ["art","noun","verb","verb","art","noun","prep","art","noun"] },
+    pres_perf: { w: ["the","gardener","has","watered","the","flowers","in","the","yard"], p: ["art","noun","verb","verb","art","noun","prep","art","noun"] }
   },
   {
-    present:   { w: ["a","bright","star","shines","above","the","sea"], p: ["art","adj","noun","verb","prep","art","noun"] },
-    past:      { w: ["a","bright","star","shone","above","the","sea"], p: ["art","adj","noun","verb","prep","art","noun"] },
-    future:    { w: ["a","bright","star","will","shine","above","the","sea"], p: ["art","adj","noun","verb","verb","prep","art","noun"] },
-    pres_cont: { w: ["a","bright","star","is","shining","above","the","sea"], p: ["art","adj","noun","verb","verb","prep","art","noun"] },
-    past_cont: { w: ["a","bright","star","was","shining","above","the","sea"], p: ["art","adj","noun","verb","verb","prep","art","noun"] },
-    pres_perf: { w: ["a","bright","star","has","shone","above","the","sea"], p: ["art","adj","noun","verb","verb","prep","art","noun"] }
+    present:   { w: ["the","children","plant","a","young","tree","behind","the","school"], p: ["art","noun","verb","art","adj","noun","prep","art","noun"] },
+    past:      { w: ["the","children","planted","a","young","tree","behind","the","school"], p: ["art","noun","verb","art","adj","noun","prep","art","noun"] },
+    future:    { w: ["the","children","will","plant","a","young","tree","behind","the","school"], p: ["art","noun","verb","verb","art","adj","noun","prep","art","noun"] },
+    pres_cont: { w: ["the","children","are","planting","a","young","tree","behind","the","school"], p: ["art","noun","verb","verb","art","adj","noun","prep","art","noun"] },
+    past_cont: { w: ["the","children","were","planting","a","young","tree","behind","the","school"], p: ["art","noun","verb","verb","art","adj","noun","prep","art","noun"] },
+    pres_perf: { w: ["the","children","have","planted","a","young","tree","behind","the","school"], p: ["art","noun","verb","verb","art","adj","noun","prep","art","noun"] }
   },
   {
-    present:   { w: ["the","old","oak","stands","beside","a","quiet","river"], p: ["art","adj","noun","verb","prep","art","adj","noun"] },
-    past:      { w: ["the","old","oak","stood","beside","a","quiet","river"], p: ["art","adj","noun","verb","prep","art","adj","noun"] },
-    future:    { w: ["the","old","oak","will","stand","beside","a","quiet","river"], p: ["art","adj","noun","verb","verb","prep","art","adj","noun"] },
-    pres_cont: { w: ["the","old","oak","is","standing","beside","a","quiet","river"], p: ["art","adj","noun","verb","verb","prep","art","adj","noun"] },
-    past_cont: { w: ["the","old","oak","was","standing","beside","a","quiet","river"], p: ["art","adj","noun","verb","verb","prep","art","adj","noun"] },
-    pres_perf: { w: ["the","old","oak","has","stood","beside","a","quiet","river"], p: ["art","adj","noun","verb","verb","prep","art","adj","noun"] }
+    present:   { w: ["the","artist","paints","a","colorful","picture","in","the","studio"], p: ["art","noun","verb","art","adj","noun","prep","art","noun"] },
+    past:      { w: ["the","artist","painted","a","colorful","picture","in","the","studio"], p: ["art","noun","verb","art","adj","noun","prep","art","noun"] },
+    future:    { w: ["the","artist","will","paint","a","colorful","picture","in","the","studio"], p: ["art","noun","verb","verb","art","adj","noun","prep","art","noun"] },
+    pres_cont: { w: ["the","artist","is","painting","a","colorful","picture","in","the","studio"], p: ["art","noun","verb","verb","art","adj","noun","prep","art","noun"] },
+    past_cont: { w: ["the","artist","was","painting","a","colorful","picture","in","the","studio"], p: ["art","noun","verb","verb","art","adj","noun","prep","art","noun"] },
+    pres_perf: { w: ["the","artist","has","painted","a","colorful","picture","in","the","studio"], p: ["art","noun","verb","verb","art","adj","noun","prep","art","noun"] }
   },
   {
-    present:   { w: ["we","plant","flowers","in","the","garden"], p: ["pron","verb","noun","prep","art","noun"] },
-    past:      { w: ["we","planted","flowers","in","the","garden"], p: ["pron","verb","noun","prep","art","noun"] },
-    future:    { w: ["we","will","plant","flowers","in","the","garden"], p: ["pron","verb","verb","noun","prep","art","noun"] },
-    pres_cont: { w: ["we","are","planting","flowers","in","the","garden"], p: ["pron","verb","verb","noun","prep","art","noun"] },
-    past_cont: { w: ["we","were","planting","flowers","in","the","garden"], p: ["pron","verb","verb","noun","prep","art","noun"] },
-    pres_perf: { w: ["we","have","planted","flowers","in","the","garden"], p: ["pron","verb","verb","noun","prep","art","noun"] }
+    present:   { w: ["the","beavers","build","a","strong","dam","across","the","stream"], p: ["art","noun","verb","art","adj","noun","prep","art","noun"] },
+    past:      { w: ["the","beavers","built","a","strong","dam","across","the","stream"], p: ["art","noun","verb","art","adj","noun","prep","art","noun"] },
+    future:    { w: ["the","beavers","will","build","a","strong","dam","across","the","stream"], p: ["art","noun","verb","verb","art","adj","noun","prep","art","noun"] },
+    pres_cont: { w: ["the","beavers","are","building","a","strong","dam","across","the","stream"], p: ["art","noun","verb","verb","art","adj","noun","prep","art","noun"] },
+    past_cont: { w: ["the","beavers","were","building","a","strong","dam","across","the","stream"], p: ["art","noun","verb","verb","art","adj","noun","prep","art","noun"] },
+    pres_perf: { w: ["the","beavers","have","built","a","strong","dam","across","the","stream"], p: ["art","noun","verb","verb","art","adj","noun","prep","art","noun"] }
   },
   {
-    present:   { w: ["the","gardener","waters","the","roses","each","morning"], p: ["art","noun","verb","art","noun","adj","noun"] },
-    past:      { w: ["the","gardener","watered","the","roses","each","morning"], p: ["art","noun","verb","art","noun","adj","noun"] },
-    future:    { w: ["the","gardener","will","water","the","roses","each","morning"], p: ["art","noun","verb","verb","art","noun","adj","noun"] },
-    pres_cont: { w: ["the","gardener","is","watering","the","roses","each","morning"], p: ["art","noun","verb","verb","art","noun","adj","noun"] },
-    past_cont: { w: ["the","gardener","was","watering","the","roses","each","morning"], p: ["art","noun","verb","verb","art","noun","adj","noun"] },
-    pres_perf: { w: ["the","gardener","has","watered","the","roses","each","morning"], p: ["art","noun","verb","verb","art","noun","adj","noun"] }
+    present:   { w: ["the","students","write","a","short","letter","to","the","teacher"], p: ["art","noun","verb","art","adj","noun","prep","art","noun"] },
+    past:      { w: ["the","students","wrote","a","short","letter","to","the","teacher"], p: ["art","noun","verb","art","adj","noun","prep","art","noun"] },
+    future:    { w: ["the","students","will","write","a","short","letter","to","the","teacher"], p: ["art","noun","verb","verb","art","adj","noun","prep","art","noun"] },
+    pres_cont: { w: ["the","students","are","writing","a","short","letter","to","the","teacher"], p: ["art","noun","verb","verb","art","adj","noun","prep","art","noun"] },
+    past_cont: { w: ["the","students","were","writing","a","short","letter","to","the","teacher"], p: ["art","noun","verb","verb","art","adj","noun","prep","art","noun"] },
+    pres_perf: { w: ["the","students","have","written","a","short","letter","to","the","teacher"], p: ["art","noun","verb","verb","art","adj","noun","prep","art","noun"] }
+  },
+  {
+    present:   { w: ["the","baker","bakes","a","sweet","cake","for","the","festival"], p: ["art","noun","verb","art","adj","noun","prep","art","noun"] },
+    past:      { w: ["the","baker","baked","a","sweet","cake","for","the","festival"], p: ["art","noun","verb","art","adj","noun","prep","art","noun"] },
+    future:    { w: ["the","baker","will","bake","a","sweet","cake","for","the","festival"], p: ["art","noun","verb","verb","art","adj","noun","prep","art","noun"] },
+    pres_cont: { w: ["the","baker","is","baking","a","sweet","cake","for","the","festival"], p: ["art","noun","verb","verb","art","adj","noun","prep","art","noun"] },
+    past_cont: { w: ["the","baker","was","baking","a","sweet","cake","for","the","festival"], p: ["art","noun","verb","verb","art","adj","noun","prep","art","noun"] },
+    pres_perf: { w: ["the","baker","has","baked","a","sweet","cake","for","the","festival"], p: ["art","noun","verb","verb","art","adj","noun","prep","art","noun"] }
+  },
+  {
+    present:   { w: ["the","fisherman","catches","a","large","fish","near","the","bridge"], p: ["art","noun","verb","art","adj","noun","prep","art","noun"] },
+    past:      { w: ["the","fisherman","caught","a","large","fish","near","the","bridge"], p: ["art","noun","verb","art","adj","noun","prep","art","noun"] },
+    future:    { w: ["the","fisherman","will","catch","a","large","fish","near","the","bridge"], p: ["art","noun","verb","verb","art","adj","noun","prep","art","noun"] },
+    pres_cont: { w: ["the","fisherman","is","catching","a","large","fish","near","the","bridge"], p: ["art","noun","verb","verb","art","adj","noun","prep","art","noun"] },
+    past_cont: { w: ["the","fisherman","was","catching","a","large","fish","near","the","bridge"], p: ["art","noun","verb","verb","art","adj","noun","prep","art","noun"] },
+    pres_perf: { w: ["the","fisherman","has","caught","a","large","fish","near","the","bridge"], p: ["art","noun","verb","verb","art","adj","noun","prep","art","noun"] }
+  },
+  {
+    present:   { w: ["the","farmer","feeds","the","hungry","hens","near","the","barn"], p: ["art","noun","verb","art","adj","noun","prep","art","noun"] },
+    past:      { w: ["the","farmer","fed","the","hungry","hens","near","the","barn"], p: ["art","noun","verb","art","adj","noun","prep","art","noun"] },
+    future:    { w: ["the","farmer","will","feed","the","hungry","hens","near","the","barn"], p: ["art","noun","verb","verb","art","adj","noun","prep","art","noun"] },
+    pres_cont: { w: ["the","farmer","is","feeding","the","hungry","hens","near","the","barn"], p: ["art","noun","verb","verb","art","adj","noun","prep","art","noun"] },
+    past_cont: { w: ["the","farmer","was","feeding","the","hungry","hens","near","the","barn"], p: ["art","noun","verb","verb","art","adj","noun","prep","art","noun"] },
+    pres_perf: { w: ["the","farmer","has","fed","the","hungry","hens","near","the","barn"], p: ["art","noun","verb","verb","art","adj","noun","prep","art","noun"] }
+  },
+  {
+    present:   { w: ["the","workers","clean","the","tall","windows","above","the","shop"], p: ["art","noun","verb","art","adj","noun","prep","art","noun"] },
+    past:      { w: ["the","workers","cleaned","the","tall","windows","above","the","shop"], p: ["art","noun","verb","art","adj","noun","prep","art","noun"] },
+    future:    { w: ["the","workers","will","clean","the","tall","windows","above","the","shop"], p: ["art","noun","verb","verb","art","adj","noun","prep","art","noun"] },
+    pres_cont: { w: ["the","workers","are","cleaning","the","tall","windows","above","the","shop"], p: ["art","noun","verb","verb","art","adj","noun","prep","art","noun"] },
+    past_cont: { w: ["the","workers","were","cleaning","the","tall","windows","above","the","shop"], p: ["art","noun","verb","verb","art","adj","noun","prep","art","noun"] },
+    pres_perf: { w: ["the","workers","have","cleaned","the","tall","windows","above","the","shop"], p: ["art","noun","verb","verb","art","adj","noun","prep","art","noun"] }
+  },
+  {
+    present:   { w: ["the","boy","draws","a","simple","map","of","the","island"], p: ["art","noun","verb","art","adj","noun","prep","art","noun"] },
+    past:      { w: ["the","boy","drew","a","simple","map","of","the","island"], p: ["art","noun","verb","art","adj","noun","prep","art","noun"] },
+    future:    { w: ["the","boy","will","draw","a","simple","map","of","the","island"], p: ["art","noun","verb","verb","art","adj","noun","prep","art","noun"] },
+    pres_cont: { w: ["the","boy","is","drawing","a","simple","map","of","the","island"], p: ["art","noun","verb","verb","art","adj","noun","prep","art","noun"] },
+    past_cont: { w: ["the","boy","was","drawing","a","simple","map","of","the","island"], p: ["art","noun","verb","verb","art","adj","noun","prep","art","noun"] },
+    pres_perf: { w: ["the","boy","has","drawn","a","simple","map","of","the","island"], p: ["art","noun","verb","verb","art","adj","noun","prep","art","noun"] }
   }
 ];
+
+const TOTAL_SPECIMENS = 10; // exactly 10 base sentences per session
 
 const POS_ABBR = {noun:'noun',verb:'verb',adj:'adj',adv:'adv',prep:'prep',art:'art',conj:'conj',pron:'pron'};
 const RANKS = [
@@ -453,7 +516,7 @@ function beginQuiz(){
 }
 
 function shuffledDeck(){
-  const idx = MULTI_TENSE_SENTENCES.map((_,i)=>i);
+  const idx = MULTI_TENSE_SENTENCES.map((_,i)=>i); // exactly TOTAL_SPECIMENS entries
   for(let i=idx.length-1;i>0;i--){ 
     const j=Math.floor(Math.random()*(i+1)); 
     [idx[i],idx[j]]=[idx[j],idx[i]]; 
@@ -473,7 +536,7 @@ function newGame(){
 }
 
 function loadNextSentenceSpecimen(){
-  if(!deck.length) deck = shuffledDeck();
+  if(!deck.length) return; // session already covers exactly TOTAL_SPECIMENS — nothing left to load
   const i = deck.pop();
   currentSpecimen = MULTI_TENSE_SENTENCES[i];
   currentTenseIndex = 0;
@@ -678,12 +741,18 @@ function completeTense(){
       applyTenseData();
       renderParadigm();
     } else {
-      showToast('🌿 Specimen Complete!', 'good');
       // Archive this specimen's full set of forms (ordered by TENSE_KEYS)
       const ordered = TENSE_KEYS.map(k => currentForms.find(f=>f.tenseKey===k)).filter(Boolean);
       specimenArchive.push({ forms: ordered });
       renderArchive();
-      loadNextSentenceSpecimen();
+
+      if (specimenArchive.length >= TOTAL_SPECIMENS) {
+        showToast('🌿 Collection Complete! 10/10 specimens pressed', 'good');
+        setTimeout(endGame, 1400); // let the toast register before showing results
+      } else {
+        showToast('🌿 Specimen Complete!', 'good');
+        loadNextSentenceSpecimen();
+      }
     }
   }, 600);
 }
@@ -704,6 +773,7 @@ function renderParadigm(){
     rows.appendChild(row);
   });
   document.getElementById('paradigm-count').textContent = currentForms.length;
+  document.getElementById('specimen-num').textContent = specimenArchive.length + 1;
 }
 
 function renderArchive(){

@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no" />
+  <title>The Silver Blaze Grammar Mystery</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700;9..144,900&family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    :root{
+      --paper:#f3ead4; --card:#fffbf2; --card-line:#e3d5b0;
+      --ink:#2d2620; --ink-muted:#8c7c62;
+      --forest:#2f5233; --forest-dark:#20391f; --moss:#6f8f5a;
+      --clay:#b5651d; --gold:#c9a227; --rust:#a4392c;
+      --verb:#2f6b3f; --wrong:#a4392c;
+      --shadow-sm:0 1px 2px rgba(45,38,32,.08),0 3px 8px rgba(45,38,32,.06);
+      --shadow-md:0 2px 6px rgba(45,38,32,.10),0 10px 26px rgba(45,38,32,.12);
+      --ease:cubic-bezier(.16,1,.3,1);
+    }
+    html,body{min-height:100%;overscroll-behavior-x:none;}
+    body{
+      font-family:'Inter',sans-serif; background:var(--paper); color:var(--ink);
+      min-height:100dvh; display:flex; flex-direction:column; align-items:center;
+      background-image:
+        radial-gradient(ellipse 70% 50% at 12% 8%, rgba(111,143,90,.14) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 45% at 92% 88%, rgba(181,101,29,.10) 0%, transparent 60%);
+    }
+    .screen{display:none;flex-direction:column;align-items:center;width:100%;min-height:100dvh;}
+    .screen.active{display:flex;}
+    #gameScreen{align-items:stretch;}
+    .col{
+      display:flex;flex-direction:column;width:100%;min-height:100%;max-width:520px;margin:0 auto;
+      padding:calc(env(safe-area-inset-top) + 12px) 16px calc(env(safe-area-inset-bottom) + 12px);
+      gap:clamp(9px,1.4dvh,14px);
+    }
+    #nameForm{align-items:center;justify-content:center;padding:24px;gap:0;}
+    .gate-card{
+      width:100%;max-width:420px;background:var(--card);border:1.5px solid var(--card-line);
+      border-radius:20px;padding:34px 26px 28px;box-shadow:0 20px 60px rgba(45,38,32,.14);
+      display:flex;flex-direction:column;align-items:stretch;gap:14px;
+      animation:cardIn .5s cubic-bezier(.34,1.4,.64,1) forwards;
+    }
+    .hero-quote{text-align:center;margin-bottom:8px;}
+    .hero-text{font-family:'Fraunces',serif;font-weight:900;font-size:1.7rem;color:var(--forest);letter-spacing:-.5px;}
+    .hero-author{font-size:1.1rem;margin-top:4px;color:var(--ink-muted);font-family:'Space Mono',monospace;}
+    .gate-label{font-family:'Space Mono',monospace;font-size:.62rem;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-muted);margin:6px 0 -6px;}
+    #nameInput, #departmentSelect{
+      width:100%;padding:14px 15px;border-radius:12px;border:1.5px solid var(--card-line);
+      background:#fffdf7;font-family:'Inter',sans-serif;font-size:1rem;color:var(--ink);
+      appearance:none;-webkit-appearance:none;
+    }
+    #departmentSelect{
+      background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238c7c62' stroke-width='2'><path d='M6 9l6 6 6-6'/></svg>");
+      background-repeat:no-repeat;background-position:right 14px center;background-size:18px;
+    }
+    #nameInput:focus, #departmentSelect:focus{outline:none;border-color:var(--moss);}
+    #gateError{color:var(--rust);font-size:.78rem;font-family:'Space Mono',monospace;text-align:center;min-height:1em;}
+    .btn-start{
+      margin-top:6px;padding:15px;border:none;border-radius:12px;
+      background:linear-gradient(135deg,var(--forest),var(--moss));color:#fff;
+      font-family:'Inter',sans-serif;font-weight:700;font-size:.95rem;letter-spacing:.03em;
+      text-transform:uppercase;cursor:pointer;box-shadow:0 4px 16px rgba(47,82,51,.25);
+      transition:transform .15s;
+    }
+    .btn-start:active{transform:scale(.97);}
+    .btn-start:disabled{opacity:.6;cursor:default;}
+    .test-info{
+      background:#faf5e6;border:1.5px solid #ecdfb9;border-radius:10px;padding:12px 14px;
+      font-size:.78rem;line-height:1.5;color:var(--ink-muted);
+    }
+    .test-info b{color:var(--forest);}
+    .top-bar{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+    .top-actions{display:flex;gap:6px;}
+    .icon-btn{
+      width:38px;height:38px;border-radius:9px;border:1.5px solid var(--card-line);background:var(--card);
+      display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink-muted);
+      box-shadow:var(--shadow-sm);transition:all .18s var(--ease);
+    }
+    .icon-btn svg{width:46%;height:46%;}
+    .icon-btn:hover{background:#f7ede0;color:var(--rust);}
+    .icon-btn:active{transform:scale(.9);}
+    .brand{text-align:center;}
+    .brand h1{font-family:'Fraunces',serif;font-weight:700;font-size:clamp(1.05rem,3.2dvh,1.4rem);letter-spacing:-.3px;color:var(--forest);}
+    .brand .sub{font-family:'Space Mono',monospace;font-size:.56rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-muted);margin-top:1px;}
+    .timer-pill{display:flex;align-items:center;gap:6px;background:var(--card);border:1.5px solid var(--card-line);border-radius:99px;padding:6px 13px;box-shadow:var(--shadow-sm);}
+    .timer-text{font-family:'Space Mono',monospace;font-size:.8rem;font-weight:700;color:var(--forest);white-space:nowrap;}
+    .progress-wrap{display:flex;flex-direction:column;gap:4px;}
+    .progress-top{display:flex;justify-content:space-between;align-items:center;}
+    .progress-label{font-family:'Space Mono',monospace;font-size:.6rem;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.06em;}
+    .progress-count{font-family:'Space Mono',monospace;font-size:.72rem;color:var(--clay);font-weight:700;}
+    .progress-track{height:6px;background:#e9dcbb;border-radius:99px;overflow:hidden;}
+    .progress-fill{height:100%;background:linear-gradient(90deg,var(--moss),var(--forest));border-radius:99px;transition:width .5s var(--ease);}
+    .type-badge{
+      display:inline-flex;align-items:center;gap:6px;
+      font-family:'Space Mono',monospace;font-size:.58rem;text-transform:uppercase;letter-spacing:.06em;
+      color:var(--clay);background:#faf5e6;border:1.5px solid #ecdfb9;border-radius:99px;
+      padding:4px 12px;align-self:flex-start;
+    }
+    .toggle-card{
+      background:var(--card);border:1.5px solid var(--card-line);border-radius:14px;padding:14px 16px;
+      box-shadow:var(--shadow-sm);display:flex;flex-direction:column;gap:10px;
+    }
+    .toggle-header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;}
+    .toggle-title{font-family:'Space Mono',monospace;font-size:.58rem;text-transform:uppercase;color:var(--clay);font-weight:700;letter-spacing:.05em;}
+    .toggle-wrap{display:flex;background:#e2d4b0;border-radius:99px;padding:2px;gap:2px;flex-wrap:wrap;}
+    .toggle-btn{
+      padding:5px 14px;border:none;border-radius:99px;background:transparent;
+      font-family:'Space Mono',monospace;font-size:.64rem;font-weight:700;color:var(--ink-muted);
+      cursor:pointer;transition:all .2s var(--ease);white-space:nowrap;
+    }
+    .toggle-btn.active{background:var(--forest);color:#fff;box-shadow:0 1px 4px rgba(0,0,0,.15);}
+    .toggle-sentence{font-family:'Fraunces',serif;font-size:.9rem;color:var(--ink);line-height:1.45;text-align:center;}
+    .toggle-sentence b{color:var(--verb);text-decoration:underline;text-underline-offset:3px;}
+    .toggle-note{
+      font-size:.72rem;line-height:1.4;color:var(--ink);background:#faf5e6;
+      padding:8px 10px;border-radius:8px;border:1px solid var(--card-line);
+      display:flex;align-items:flex-start;gap:6px;
+    }
+    .toggle-icon{font-size:1.05rem;line-height:1;flex-shrink:0;}
+    .mount{background:var(--card);border:1.5px solid var(--card-line);border-radius:14px;padding:20px 18px 14px;box-shadow:var(--shadow-md);position:relative;}
+    .mount::before{content:'';position:absolute;top:8px;left:8px;right:8px;bottom:8px;border:1px dashed #d8c69a;border-radius:8px;pointer-events:none;}
+    .mount.error{animation:shake .35s ease;}
+    .mount.success{animation:pop .4s var(--ease);}
+    @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+    @keyframes pop{0%{transform:scale(1)}45%{transform:scale(1.02)}100%{transform:scale(1)}}
+    .sentence-line{font-family:'Fraunces',serif;font-size:1.1rem;line-height:1.7;text-align:center;position:relative;z-index:1;}
+    .blank-slot{
+      display:inline-block;min-width:70px;padding:1px 8px;border-bottom:2.5px dashed #c9b98d;
+      font-weight:700;color:var(--ink-muted);text-align:center;
+    }
+    .blank-slot.filled{border-bottom-style:solid;border-bottom-color:var(--verb);color:var(--verb);animation:tileIn .25s cubic-bezier(.2,1.5,.4,1);}
+    .blank-slot.filled.wrong{border-bottom-color:var(--rust);color:var(--rust);}
+    @keyframes tileIn{from{transform:translateY(6px) scale(.85);opacity:0}to{transform:none;opacity:1}}
+    .mount-caption{text-align:center;font-family:'Space Mono',monospace;font-size:.62rem;color:var(--ink-muted);margin-top:10px;letter-spacing:.03em;position:relative;z-index:1;}
+    .tray{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;min-height:52px;align-content:flex-start;}
+    .tile{
+      display:inline-flex;flex-direction:column;align-items:center;gap:1px;padding:10px 22px;border-radius:12px;
+      background:#fffdf7;border:1.5px solid #bfe0c8;cursor:pointer;user-select:none;
+      box-shadow:var(--shadow-sm);transition:transform .15s var(--ease),box-shadow .15s,opacity .15s;
+      animation:tileSpawn .22s cubic-bezier(.2,1.5,.4,1);
+    }
+    .tile:hover{transform:translateY(-2px);box-shadow:var(--shadow-md);}
+    .tile:active{transform:scale(.94);}
+    .tile.wrong{animation:tileShake .4s ease;}
+    .tile.solved{opacity:0;pointer-events:none;}
+    .tile.disabled{pointer-events:none;opacity:.5;}
+    @keyframes tileShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}50%{transform:translateX(5px)}75%{transform:translateX(-3px)}}
+    @keyframes tileSpawn{from{transform:scale(.6);opacity:0}to{transform:scale(1);opacity:1}}
+    .tile .word{font-family:'Fraunces',serif;font-weight:600;font-size:1.05rem;color:var(--verb);text-transform:lowercase;}
+    .nav-row{display:flex;gap:10px;margin-top:4px;}
+    .nav-btn{
+      flex:1;padding:14px 10px;border:none;border-radius:12px;font-family:'Inter',sans-serif;
+      font-size:.9rem;font-weight:700;letter-spacing:.03em;cursor:pointer;transition:all .15s;
+      text-transform:uppercase;
+    }
+    .nav-btn:disabled{opacity:.5;cursor:default;}
+    .nav-btn-primary{background:linear-gradient(135deg,var(--forest),var(--moss));color:#fff;box-shadow:0 4px 16px rgba(47,82,51,.25);}
+    .nav-btn-primary:hover:not(:disabled){transform:scale(1.02);}
+    .nav-btn-secondary{background:var(--card);color:var(--ink);border:1.5px solid var(--card-line);}
+    .nav-btn-secondary:hover:not(:disabled){background:#f7ede0;}
+    .review-strip{display:flex;gap:5px;flex-wrap:wrap;justify-content:center;margin-top:4px;}
+    .review-dot{
+      width:28px;height:28px;border-radius:8px;border:1.5px solid var(--card-line);background:var(--card);
+      display:flex;align-items:center;justify-content:center;font-family:'Space Mono',monospace;
+      font-size:.6rem;font-weight:700;color:var(--ink-muted);cursor:pointer;transition:all .15s;
+    }
+    .review-dot:hover{transform:scale(1.1);border-color:var(--moss);}
+    .review-dot.answered{background:var(--moss);color:#fff;border-color:var(--moss);}
+    .review-dot.current{box-shadow:0 0 0 2px var(--clay);}
+    .review-dot.correct-ans{background:var(--forest);color:#fff;border-color:var(--forest);}
+    .review-dot.wrong-ans{background:var(--rust);color:#fff;border-color:var(--rust);}
+    .toast{
+      position:fixed;bottom:calc(env(safe-area-inset-bottom) + 24px);left:50%;transform:translateX(-50%) translateY(80px);background:var(--ink);color:#fff;
+      padding:10px 20px;border-radius:16px;font-size:.82rem;font-weight:500;z-index:200;pointer-events:none;
+      transition:transform .35s var(--ease),opacity .35s;opacity:0;max-width:90vw;text-align:center;line-height:1.4;box-shadow:0 10px 30px rgba(0,0,0,.25);
+    }
+    .toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
+    .toast.good{background:linear-gradient(135deg,var(--forest),var(--moss));}
+    .toast.bad{background:linear-gradient(135deg,var(--rust),#c0503f);}
+    .toast b{display:block;font-family:'Fraunces',serif;font-size:.95rem;margin-bottom:2px;}
+    #endScreen{justify-content:flex-start;padding:30px 16px 50px;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+    .end-card{
+      background:var(--card);border:1.5px solid var(--card-line);border-radius:20px;padding:32px 26px;max-width:520px;
+      width:100%;box-shadow:0 20px 60px rgba(45,38,32,.14);animation:cardIn .55s cubic-bezier(.34,1.4,.64,1) forwards;
+    }
+    @keyframes cardIn{from{opacity:0;transform:translateY(30px) scale(.96)}to{opacity:1;transform:none}}
+    .end-title{font-family:'Fraunces',serif;font-size:2rem;font-weight:900;text-align:center;color:var(--forest);margin-bottom:4px;}
+    .end-subtitle{text-align:center;font-family:'Space Mono',monospace;font-size:.7rem;color:var(--ink-muted);letter-spacing:.06em;text-transform:uppercase;margin-bottom:20px;}
+    .cefr-badge{
+      display:flex;align-items:center;justify-content:center;gap:10px;
+      background:linear-gradient(135deg,var(--forest),var(--moss));color:#fff;
+      border-radius:16px;padding:16px 24px;margin-bottom:20px;
+      box-shadow:0 8px 24px rgba(47,82,51,.25);
+    }
+    .cefr-badge .level{font-family:'Fraunces',serif;font-size:2.4rem;font-weight:900;}
+    .cefr-badge .label{font-family:'Space Mono',monospace;font-size:.65rem;text-transform:uppercase;letter-spacing:.08em;opacity:.9;}
+    .end-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:18px;}
+    .stat-box{background:var(--paper);border-radius:12px;padding:13px 8px;text-align:center;border:1.5px solid var(--card-line);}
+    .stat-num{font-family:'Fraunces',serif;font-size:1.6rem;font-weight:700;color:var(--forest);line-height:1;}
+    .stat-lbl{font-family:'Space Mono',monospace;font-size:.58rem;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.06em;margin-top:4px;}
+    .breakdown-title{font-family:'Space Mono',monospace;font-size:.68rem;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.08em;margin:16px 0 8px;}
+    .breakdown-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+    .breakdown-item{background:#faf5e6;border:1.5px solid #ecdfb9;border-radius:10px;padding:10px 12px;display:flex;justify-content:space-between;align-items:center;}
+    .breakdown-name{font-family:'Inter',sans-serif;font-size:.78rem;color:var(--ink);}
+    .breakdown-score{font-family:'Space Mono',monospace;font-size:.78rem;font-weight:700;color:var(--forest);}
+    .end-btn-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px;}
+    .btn-end{
+      flex:1;padding:13px 10px;border:none;border-radius:12px;font-family:'Inter',sans-serif;font-size:.86rem;font-weight:700;
+      letter-spacing:.03em;cursor:pointer;transition:transform .15s;text-transform:uppercase;min-width:90px;
+    }
+    .btn-end:hover{transform:scale(1.03);}
+    .btn-end-primary{background:linear-gradient(135deg,var(--forest),var(--moss));color:#fff;box-shadow:0 4px 16px rgba(47,82,51,.25);}
+    .btn-end-share{background:linear-gradient(135deg,#128c7e,#25d366);color:#fff;}
+    .review-overlay{
+      display:none;position:fixed;inset:0;background:var(--paper);z-index:250;overflow-y:auto;
+      -webkit-overflow-scrolling:touch;padding:calc(env(safe-area-inset-top) + 16px) 16px calc(env(safe-area-inset-bottom) + 32px);
+    }
+    .review-overlay.show{display:block;}
+    .review-inner{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:12px;}
+    .review-header{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding-bottom:10px;border-bottom:1.5px solid var(--card-line);}
+    .review-title{font-family:'Fraunces',serif;font-weight:700;font-size:1.15rem;color:var(--forest);}
+    .review-card{background:var(--card);border:1.5px solid var(--card-line);border-radius:14px;padding:16px;box-shadow:var(--shadow-sm);}
+    .review-card.correct{border-color:rgba(47,82,51,.4);background:linear-gradient(180deg,#f4f9f2,var(--card));}
+    .review-card.wrong{border-color:rgba(164,57,44,.4);background:linear-gradient(180deg,#fdf2f0,var(--card));}
+    .review-q-num{font-family:'Space Mono',monospace;font-size:.6rem;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;}
+    .review-q-text{font-family:'Fraunces',serif;font-size:.9rem;color:var(--ink);line-height:1.5;margin-bottom:8px;}
+    .review-q-text b{color:var(--verb);}
+    .review-ans-row{display:flex;flex-direction:column;gap:4px;font-size:.78rem;}
+    .review-your{color:var(--rust);}
+    .review-correct{color:var(--forest);font-weight:600;}
+    .review-explain{font-size:.74rem;color:var(--ink-muted);margin-top:6px;padding-top:6px;border-top:1px dashed var(--card-line);line-height:1.4;}
+  </style>
+</head>
+<body>
+<div class="toast" id="toast"></div>
+
+<div class="screen active" id="nameForm">
+  <div class="gate-card">
+    <div class="hero-quote">
+      <div class="hero-text">The Silver Blaze Mystery</div>
+      <div class="hero-author">A Grammar Proficiency Test</div>
+    </div>
+    <div class="test-info">
+      <b>50 questions</b> woven into the narrative of <b>Sherlock Holmes and the Adventure of Silver Blaze</b>. Colonel Ross's famous racehorse has vanished, and his trainer lies dead on Dartmoor. Follow Holmes and Watson through the stables, the heath, and the curious incident of the dog in the nighttime — solving grammar puzzles to uncover the truth. Results include <b>CEFR level</b>, percentage, and topic breakdown.
+    </div>
+    <div class="gate-label">Your Name</div>
+    <input type="text" id="nameInput" placeholder="Enter your name" autocomplete="off"/>
+    <div class="gate-label">Department</div>
+    <select id="departmentSelect">
+      <option value="">-- Select Department --</option>
+      <option value="Cyber Security">Cyber Security</option>
+      <option value="EIE">EIE</option>
+      <option value="CSE-1">CSE-1</option>
+      <option value="CSE-2">CSE-2</option>
+      <option value="CSE-3">CSE-3</option>
+      <option value="Mechanical Engineering">Mechanical Engineering</option>
+      <option value="ECE-1">ECE-1</option>
+      <option value="ECE-2">ECE-2</option>
+      <option value="ECE-3">ECE-3</option>
+      <option value="AI DS-1">AI DS-1</option>
+      <option value="AI DS-2">AI DS-2</option>
+      <option value="Agri and Civil">Agri and Civil</option>
+      <option value="EEE">EEE</option>
+      <option value="Medical Electronics">Medical Electronics</option>
+      <option value="IT-1">IT-1</option>
+      <option value="IT-2">IT-2</option>
+    </select>
+    <div id="gateError"></div>
+    <button class="btn-start" id="btnBeginQuiz">🔍 Begin Investigation</button>
+  </div>
+</div>
+
+<div class="screen" id="gameScreen">
+  <div class="col">
+    <div class="top-bar">
+      <div class="top-actions">
+        <button class="icon-btn" id="btn-end-game" aria-label="End test">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3v18"/><path d="M5 4h11l-2 3.5L16 11H5"/></svg>
+        </button>
+      </div>
+      <div class="brand"><h1>The Silver Blaze</h1><div class="sub">A Holmes Grammar Mystery</div></div>
+      <div class="timer-pill">
+        <div class="timer-text" id="timerText">00:00</div>
+      </div>
+    </div>
+    <div class="progress-wrap">
+      <div class="progress-top">
+        <span class="progress-label">Progress</span>
+        <span class="progress-count"><span id="qCurrent">1</span> / <span id="qTotal">50</span></span>
+      </div>
+      <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:2%"></div></div>
+    </div>
+    <div class="type-badge" id="typeBadge">📰 Articles</div>
+    <div class="toggle-card" id="toggleCard">
+      <div class="toggle-header">
+        <span class="toggle-title" id="toggleTitle">Context</span>
+        <div class="toggle-wrap" id="toggleWrap"></div>
+      </div>
+      <div class="toggle-sentence" id="toggleSentence"></div>
+      <div class="toggle-note">
+        <span class="toggle-icon" id="toggleIcon">💡</span>
+        <span id="toggleNote">Study the contrast above before answering.</span>
+      </div>
+    </div>
+    <div class="mount" id="mount">
+      <div class="sentence-line" id="sentence-line"></div>
+      <div class="mount-caption" id="mount-caption">tap the correct form</div>
+    </div>
+    <div class="tray" id="tray"></div>
+    <div class="nav-row">
+      <button class="nav-btn nav-btn-secondary" id="btnPrev" disabled>← Prev</button>
+      <button class="nav-btn nav-btn-primary" id="btnNext" disabled>Next →</button>
+    </div>
+    <div class="review-strip" id="reviewStrip"></div>
+  </div>
+</div>
+
+<div class="screen" id="endScreen">
+  <div class="end-card">
+    <div class="end-title" id="endTitle">🎯 Case Closed</div>
+    <div class="end-subtitle" id="endSubtitle">The Silver Blaze Grammar Mystery</div>
+    <div class="cefr-badge" id="cefrBadge">
+      <div>
+        <div class="level" id="cefrLevel">B1</div>
+        <div class="label" id="cefrLabel">Intermediate</div>
+      </div>
+    </div>
+    <div class="end-stats">
+      <div class="stat-box"><div class="stat-num" id="endCorrect">0</div><div class="stat-lbl">Correct</div></div>
+      <div class="stat-box"><div class="stat-num" id="endWrong">0</div><div class="stat-lbl">Wrong</div></div>
+      <div class="stat-box"><div class="stat-num" id="endPercent">0%</div><div class="stat-lbl">Score</div></div>
+    </div>
+    <div class="breakdown-title">Performance by Topic</div>
+    <div class="breakdown-grid" id="breakdownGrid"></div>
+    <div class="end-btn-row">
+      <button class="btn-end btn-end-primary" id="btnReview">📋 Review Clues</button>
+      <button class="btn-end btn-end-share" id="btnShare">📲 Share Result</button>
+    </div>
+    <div class="end-btn-row">
+      <button class="btn-end btn-end-primary" id="btnPlayAgain" style="flex:1;background:linear-gradient(135deg,var(--clay),var(--gold));color:#fff;">🔍 Reopen Case</button>
+    </div>
+  </div>
+</div>
+
+<div class="review-overlay" id="reviewOverlay">
+  <div class="review-inner">
+    <div class="review-header">
+      <div><div class="review-title">📋 Case File Review</div></div>
+      <button class="icon-btn" id="btnReviewClose" aria-label="Close review">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div id="reviewList"></div>
+  </div>
+</div>
+
+<script type="module">
+import QUESTIONS from './questions.js';
+
+const TOTAL_QUESTIONS = QUESTIONS.length;
+const CEFR_BANDS = [
+  { level: 'A1', label: 'Beginner', min: 0, max: 20, color: '#4f8f5f' },
+  { level: 'A2', label: 'Elementary', min: 21, max: 27, color: '#5a9e6a' },
+  { level: 'B1', label: 'Intermediate', min: 28, max: 35, color: '#c9932a' },
+  { level: 'B2', label: 'Upper-Intermediate', min: 36, max: 42, color: '#b07d1f' },
+  { level: 'C1', label: 'Advanced', min: 43, max: 45, color: '#a4392c' },
+  { level: 'C2', label: 'Proficiency', min: 46, max: 50, color: '#7c1e1e' }
+];
+function getCEFR(correct) {
+  for (let i = CEFR_BANDS.length - 1; i >= 0; i--) {
+    if (correct >= CEFR_BANDS[i].min) return CEFR_BANDS[i];
+  }
+  return CEFR_BANDS[0];
+}
+
+let playerName = '', playerDept = '';
+let currentQ = 0;
+let answers = new Array(TOTAL_QUESTIONS).fill(null);
+let elapsedSeconds = 0, timerInterval = null, gameActive = false;
+let testStartTime = 0;
+let answered = false;
+
+function shuffleArray(arr){
+  for(let i=arr.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [arr[i],arr[j]]=[arr[j],arr[i]];
+  }
+}
+
+function beginQuiz(){
+  const nameEl = document.getElementById('nameInput');
+  const deptEl = document.getElementById('departmentSelect');
+  const errEl = document.getElementById('gateError');
+  const name = nameEl.value.trim();
+  const dept = deptEl.value;
+  if(!name){ errEl.textContent = 'Please enter your name.'; nameEl.focus(); return; }
+  if(!dept){ errEl.textContent = 'Please select your department.'; deptEl.focus(); return; }
+  errEl.textContent = '';
+  playerName = name; playerDept = dept;
+  document.getElementById('nameForm').classList.remove('active');
+  document.getElementById('gameScreen').classList.add('active');
+  startTest();
+}
+document.getElementById('btnBeginQuiz').addEventListener('click', beginQuiz);
+
+function startTest(){
+  currentQ = 0;
+  answers = new Array(TOTAL_QUESTIONS).fill(null);
+  elapsedSeconds = 0;
+  gameActive = true;
+  testStartTime = Date.now();
+  shuffleArray(QUESTIONS);
+  updateTimerDisplay();
+  timerInterval = setInterval(()=>{
+    if(!gameActive) return;
+    elapsedSeconds++;
+    updateTimerDisplay();
+  },1000);
+  renderQuestion();
+  renderReviewStrip();
+}
+
+function updateTimerDisplay(){
+  const m = Math.floor(elapsedSeconds/60);
+  const s = elapsedSeconds%60;
+  document.getElementById('timerText').textContent = (m<10?'0'+m:m)+':'+(s<10?'0'+s:s);
+}
+
+function renderQuestion(){
+  answered = false;
+  const q = QUESTIONS[currentQ];
+  document.getElementById('qCurrent').textContent = currentQ+1;
+  document.getElementById('qTotal').textContent = TOTAL_QUESTIONS;
+  document.getElementById('progressFill').style.width = ((currentQ+1)/TOTAL_QUESTIONS*100)+'%';
+  document.getElementById('typeBadge').textContent = q.icon + ' ' + q.type;
+  document.getElementById('mount-caption').textContent = 'tap the correct form';
+
+  const t = q.toggle;
+  document.getElementById('toggleTitle').textContent = t.title;
+  const wrap = document.getElementById('toggleWrap');
+  wrap.innerHTML = '';
+  t.options.forEach((key,idx)=>{
+    const btn = document.createElement('button');
+    btn.className = 'toggle-btn' + (idx===0?' active':'');
+    btn.textContent = key;
+    btn.dataset.key = key;
+    btn.onclick = () => selectToggle(key, q);
+    wrap.appendChild(btn);
+  });
+  selectToggle(t.options[0], q);
+
+  const blankHTML = `<span class="blank-slot" id="blankSlot">____</span>`;
+  document.getElementById('sentence-line').innerHTML = `${q.before} ${blankHTML} ${q.after}`;
+
+  const tray = document.getElementById('tray');
+  tray.innerHTML = '';
+  let tiles = q.choices.map((c,i)=>({id:i+'-'+Date.now(), text:c, correct:c===q.answer}));
+  shuffleArray(tiles);
+  tiles.forEach(t=>{
+    const el = document.createElement('div');
+    el.className = 'tile';
+    el.innerHTML = `<span class="word">${t.text}</span>`;
+    el.onclick = () => tapTile(t.text, el);
+    tray.appendChild(el);
+  });
+
+  document.getElementById('btnPrev').disabled = currentQ === 0;
+  document.getElementById('btnNext').disabled = true;
+  document.getElementById('btnNext').textContent = currentQ === TOTAL_QUESTIONS-1 ? 'Close Case ✓' : 'Next Clue →';
+
+  updateReviewStrip();
+}
+
+function selectToggle(key, q){
+  document.querySelectorAll('#toggleWrap .toggle-btn').forEach(b=>{
+    b.classList.toggle('active', b.dataset.key === key);
+  });
+  document.getElementById('toggleSentence').innerHTML = q.toggle.sentences[key];
+  const note = q.toggle.notes[key];
+  document.getElementById('toggleNote').textContent = note;
+  document.getElementById('toggleIcon').textContent = '💡';
+}
+
+function tapTile(text, el){
+  if(answered) return;
+  answered = true;
+  const q = QUESTIONS[currentQ];
+  const blank = document.getElementById('blankSlot');
+  const mount = document.getElementById('mount');
+  const allTiles = document.querySelectorAll('.tile');
+
+  blank.textContent = text;
+  allTiles.forEach(t => t.classList.add('disabled'));
+
+  if(text === q.answer){
+    blank.classList.add('filled');
+    mount.classList.add('success');
+    answers[currentQ] = true;
+    showToast('<b>Correct!</b> A vital clue!','good',true);
+  } else {
+    blank.classList.add('filled','wrong');
+    el.classList.add('wrong');
+    mount.classList.add('error');
+    answers[currentQ] = false;
+    allTiles.forEach(t => {
+      if(t.querySelector('.word').textContent === q.answer){
+        t.style.opacity = '1';
+        t.style.borderColor = 'var(--moss)';
+        t.style.background = '#e8f5e9';
+      }
+    });
+    showToast('<b>Incorrect</b> The truth reveals itself.','bad',true);
+  }
+
+  setTimeout(()=>{
+    mount.classList.remove('error','success');
+  },650);
+
+  document.getElementById('btnNext').disabled = false;
+  updateReviewStrip();
+}
+
+function nextQuestion(){
+  if(currentQ < TOTAL_QUESTIONS-1){
+    currentQ++;
+    renderQuestion();
+  } else {
+    finishTest();
+  }
+}
+function prevQuestion(){
+  if(currentQ > 0){
+    currentQ--;
+    renderQuestion();
+  }
+}
+document.getElementById('btnNext').addEventListener('click', nextQuestion);
+document.getElementById('btnPrev').addEventListener('click', prevQuestion);
+
+document.getElementById('btn-end-game').addEventListener('click', ()=>{
+  if(confirm('Close the case and see the final report? Unanswered clues will be marked as failed deductions.')) finishTest();
+});
+
+function renderReviewStrip(){
+  const strip = document.getElementById('reviewStrip');
+  strip.innerHTML = '';
+  for(let i=0;i<TOTAL_QUESTIONS;i++){
+    const dot = document.createElement('div');
+    dot.className = 'review-dot';
+    dot.textContent = i+1;
+    dot.onclick = () => { currentQ = i; renderQuestion(); };
+    strip.appendChild(dot);
+  }
+  updateReviewStrip();
+}
+function updateReviewStrip(){
+  const dots = document.querySelectorAll('.review-dot');
+  dots.forEach((dot,i)=>{
+    dot.classList.remove('current','answered','correct-ans','wrong-ans');
+    if(i === currentQ) dot.classList.add('current');
+    if(answers[i] !== null){
+      dot.classList.add('answered');
+      if(answers[i] === true) dot.classList.add('correct-ans');
+      else dot.classList.add('wrong-ans');
+    }
+  });
+}
+
+let toastTimer;
+function showToast(msg,type='',isHTML=false){
+  const t=document.getElementById('toast');
+  if(isHTML){ t.innerHTML=msg; } else { t.textContent=msg; }
+  t.className='toast show '+type;
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove('show'),2400);
+}
+
+function finishTest(){
+  gameActive = false;
+  clearInterval(timerInterval);
+  let correct = 0, wrong = 0, unanswered = 0;
+  const topicStats = {};
+  QUESTIONS.forEach((q,i)=>{
+    if(!topicStats[q.type]) topicStats[q.type] = {total:0,correct:0};
+    topicStats[q.type].total++;
+    if(answers[i] === null){ unanswered++; wrong++; }
+    else if(answers[i] === true){ correct++; topicStats[q.type].correct++; }
+    else { wrong++; }
+  });
+  const percent = Math.round(correct/TOTAL_QUESTIONS*100);
+  const cefr = getCEFR(correct);
+  const timeSpent = Math.round((Date.now()-testStartTime)/1000);
+
+  document.getElementById('gameScreen').classList.remove('active');
+  document.getElementById('endScreen').classList.add('active');
+  document.getElementById('endTitle').textContent = '🎯 Case Closed';
+  document.getElementById('endSubtitle').textContent = playerName + ' · ' + playerDept;
+  document.getElementById('cefrLevel').textContent = cefr.level;
+  document.getElementById('cefrLabel').textContent = cefr.label;
+  document.getElementById('cefrBadge').style.background = 'linear-gradient(135deg,' + cefr.color + ',var(--moss))';
+  document.getElementById('endCorrect').textContent = correct;
+  document.getElementById('endWrong').textContent = wrong;
+  document.getElementById('endPercent').textContent = percent + '%';
+
+  const grid = document.getElementById('breakdownGrid');
+  grid.innerHTML = '';
+  Object.entries(topicStats).forEach(([topic,stat])=>{
+    const div = document.createElement('div');
+    div.className = 'breakdown-item';
+    div.innerHTML = `<span class="breakdown-name">${topic}</span><span class="breakdown-score">${stat.correct}/${stat.total}</span>`;
+    grid.appendChild(div);
+  });
+
+  document.getElementById('btnPlayAgain').onclick = () => {
+    document.getElementById('endScreen').classList.remove('active');
+    document.getElementById('gameScreen').classList.add('active');
+    startTest();
+  };
+  document.getElementById('btnShare').onclick = () => {
+    const msg = `🔍 The Silver Blaze Grammar Mystery\n${playerName} (${playerDept})\nCEFR: ${cefr.level} (${cefr.label})\nScore: ${percent}% (${correct}/${TOTAL_QUESTIONS})\nTime: ${document.getElementById('timerText').textContent}\n\nElementary, my dear friend!`;
+    if(navigator.share){ navigator.share({title:'The Silver Blaze Grammar Mystery',text:msg}).catch(()=>{}); }
+    else { window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank'); }
+  };
+  document.getElementById('btnReview').onclick = openReview;
+}
+
+function openReview(){
+  document.getElementById('reviewOverlay').classList.add('show');
+  const list = document.getElementById('reviewList');
+  list.innerHTML = '';
+  QUESTIONS.forEach((q,i)=>{
+    const card = document.createElement('div');
+    const isCorrect = answers[i] === true;
+    card.className = 'review-card ' + (isCorrect ? 'correct' : 'wrong');
+    const yourAns = answers[i] !== null ? (isCorrect ? q.answer : 'wrong choice') : '(unanswered)';
+    const correctAns = q.answer;
+    card.innerHTML = `
+      <div class="review-q-num">Clue ${i+1} · ${q.type} ${isCorrect?'✓':'✗'}</div>
+      <div class="review-q-text">${q.before} <b>${q.answer}</b> ${q.after}</div>
+      <div class="review-ans-row">
+        <span class="review-your">Your deduction: ${yourAns}</span>
+        <span class="review-correct">Correct deduction: ${correctAns}</span>
+      </div>
+      <div class="review-explain">${q.explain}</div>
+    `;
+    list.appendChild(card);
+  });
+}
+document.getElementById('btnReviewClose').addEventListener('click', ()=>{
+  document.getElementById('reviewOverlay').classList.remove('show');
+});
+document.getElementById('reviewOverlay').addEventListener('click', function(e){
+  if(e.target === this) document.getElementById('reviewOverlay').classList.remove('show');
+});
+</script>
+</body>
+</html>

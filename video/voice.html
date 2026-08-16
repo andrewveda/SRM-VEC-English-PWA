@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Career Catalyst Thon - Cinematic Kinetic Typography</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@300;400;600;700&family=Inter:wght@400;700;800;900&display=swap" rel="stylesheet">
+
+    <!-- GSAP & SplitType via CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://unpkg.com/split-type"></script>
+
+    <style>
+        /* ==========================================================================
+           1. CSS RESET & VARIABLES
+           ========================================================================== */
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --bg-color: #FFF8F0;
+            --text-primary: #1A1A1A;
+            --accent-gold: #C9A227;
+            --bronze: #A97142;
+            --muted-grey: #666666;
+            
+            --font-inter: 'Inter', sans-serif;
+            --font-plex-sans: 'IBM Plex Sans', sans-serif;
+            --font-plex-mono: 'IBM Plex Mono', monospace;
+        }
+
+        html, body {
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            font-family: var(--font-inter);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* ==========================================================================
+           2. CINEMATIC BACKGROUND ENGINE
+           ========================================================================== */
+        #bg-canvas-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 1;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        /* Slow Mesh Gradients */
+        .mesh-gradient-orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.35;
+            will-change: transform;
+        }
+        .orb-1 {
+            width: 60vw;
+            height: 60vw;
+            background: radial-gradient(circle, var(--accent-gold) 0%, rgba(201,162,39,0) 70%);
+            top: -20vw;
+            left: -10vw;
+            animation: floatOrb1 18s ease-in-out infinite alternate;
+        }
+        .orb-2 {
+            width: 50vw;
+            height: 50vw;
+            background: radial-gradient(circle, var(--bronze) 0%, rgba(169,113,66,0) 70%);
+            bottom: -15vw;
+            right: -10vw;
+            animation: floatOrb2 22s ease-in-out infinite alternate;
+        }
+
+        @keyframes floatOrb1 {
+            0% { transform: translate(0, 0) scale(1); }
+            100% { transform: translate(10vw, 15vh) scale(1.15); }
+        }
+        @keyframes floatOrb2 {
+            0% { transform: translate(0, 0) scale(1); }
+            100% { transform: translate(-12vw, -10vh) scale(1.2); }
+        }
+
+        /* Blueprint Grid Lines */
+        .blueprint-grid {
+            position: absolute;
+            inset: 0;
+            background-image: 
+                linear-gradient(to right, rgba(26,26,26,0.03) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(26,26,26,0.03) 1px, transparent 1px);
+            background-size: 80px 80px;
+            opacity: 0.6;
+        }
+
+        /* Floating Engineering Lines & Math Curves */
+        .eng-line {
+            position: absolute;
+            background: linear-gradient(90deg, transparent, rgba(201,162,39,0.3), transparent);
+            height: 1px;
+            width: 100%;
+            will-change: transform;
+        }
+
+        /* Animated Light Rays */
+        .light-ray {
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: conic-gradient(from 0deg at 50% 50%, rgba(255,255,255,0) 0deg, rgba(201,162,39,0.04) 60deg, rgba(255,255,255,0) 120deg);
+            animation: rotateRay 40s linear infinite;
+        }
+
+        @keyframes rotateRay {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Subtle Grain Overlay */
+        .grain-overlay {
+            position: absolute;
+            inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.035'/%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        /* ==========================================================================
+           3. STAGE & CANVAS CONTAINER (1920x1080 Scaled)
+           ========================================================================== */
+        #viewport-wrapper {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            overflow: hidden;
+        }
+
+        #cinematic-stage {
+            width: 1920px;
+            height: 1080px;
+            position: relative;
+            overflow: hidden;
+            transform-origin: center center;
+            will-change: transform;
+        }
+
+        .scene {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            visibility: hidden;
+        }
+
+        .scene.active {
+            opacity: 1;
+            pointer-events: auto;
+            visibility: visible;
+        }
+
+        /* Typography Utility Classes */
+        .text-huge {
+            font-family: var(--font-inter);
+            font-weight: 900;
+            font-size: 15rem;
+            text-transform: uppercase;
+            line-height: 0.85;
+            letter-spacing: -0.04em;
+            text-align: center;
+        }
+
+        .text-giant-outline {
+            font-family: var(--font-inter);
+            font-weight: 900;
+            font-size: 16rem;
+            text-transform: uppercase;
+            color: transparent;
+            -webkit-text-stroke: 3px var(--accent-gold);
+            line-height: 0.85;
+            letter-spacing: -0.02em;
+        }
+
+        .text-mono {
+            font-family: var(--font-plex-mono);
+        }
+
+        .text-sans {
+            font-family: var(--font-plex-sans);
+        }
+
+        .accent-color {
+            color: var(--accent-gold);
+        }
+
+        .bronze-color {
+            color: var(--bronze);
+        }
+
+        /* ==========================================================================
+           4. UI CONTROLS & HUD OVERLAY
+           ========================================================================== */
+        #hud-overlay {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100vw;
+            padding: 20px 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: linear-gradient(to top, rgba(255,248,240,0.9), transparent);
+            z-index: 100;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        body:hover #hud-overlay, #hud-overlay.active {
+            opacity: 1;
+        }
+
+        .hud-left, .hud-right {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .hud-btn {
+            background: var(--text-primary);
+            color: var(--bg-color);
+            border: none;
+            padding: 8px 16px;
+            font-family: var(--font-plex-mono);
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background 0.2s, transform 0.1s;
+        }
+
+        .hud-btn:hover {
+            background: var(--accent-gold);
+            color: var(--text-primary);
+        }
+
+        .hud-btn:active {
+            transform: scale(0.96);
+        }
+
+        .timeline-track {
+            width: 400px;
+            height: 4px;
+            background: rgba(26,26,26,0.15);
+            border-radius: 2px;
+            position: relative;
+            cursor: pointer;
+        }
+
+        .timeline-progress {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 0%;
+            background: var(--accent-gold);
+            border-radius: 2px;
+        }
+
+        #scene-indicator {
+            font-family: var(--font-plex-mono);
+            font-size: 0.85rem;
+            color: var(--muted-grey);
+            font-weight: 600;
+            letter-spacing: 0.05em;
+        }
+
+        /* Keyboard Shortcut Hint */
+        #shortcut-hint {
+            position: fixed;
+            top: 20px;
+            right: 30px;
+            font-family: var(--font-plex-mono);
+            font-size: 0.75rem;
+            color: var(--muted-grey);
+            background: rgba(26,26,26,0.05);
+            padding: 6px 12px;
+            border-radius: 4px;
+            z-index: 100;
+            pointer-events: none;
+            opacity: 0.7;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Cinematic Background Engine -->
+    <div id="bg-canvas-container">
+        <div class="light-ray"></div>
+        <div class="blueprint-grid"></div>
+        <div class="mesh-gradient-orb orb-1"></div>
+        <div class="mesh-gradient-orb orb-2"></div>
+        <div class="eng-line" style="top: 20%;"></div>
+        <div class="eng-line" style="top: 80%;"></div>
+    </div>
+    <div class="grain-overlay"></div>
+
+    <!-- Main Viewport / 1920x1080 Stage -->
+    <div id="viewport-wrapper">
+        <div id="cinematic-stage">
+            <!-- Scenes will be dynamically injected here via JS -->
+        </div>
+    </div>
+
+    <!-- HUD & Controls -->
+    <div id="hud-overlay">
+        <div class="hud-left">
+            <button class="hud-btn" id="play-pause-btn">PAUSE</button>
+            <button class="hud-btn" id="replay-btn">REPLAY</button>
+            <div id="scene-indicator">SCENE 01 / 24</div>
+        </div>
+        <div class="timeline-track" id="timeline-track">
+            <div class="timeline-progress" id="timeline-progress"></div>
+        </div>
+        <div class="hud-right">
+            <button class="hud-btn" id="fullscreen-btn">FULLSCREEN [F]</button>
+        </div>
+    </div>
+
+    <div id="shortcut-hint">SPACE: Pause | ← / →: Navigate | F: Fullscreen</div>
+
+    <!-- JavaScript Animation Engine & Scene Definitions -->
+    <script>
+        /* ==========================================================================
+           1. NARRATION & SCENE SCRIPT STRUCTURE
+           ========================================================================== */
+        const scriptData = [
+            { id: 1, text: "Looks like a game.", duration: 3.0 },
+            { id: 2, text: "Doesn't it?", duration: 2.5 },
+            { id: 3, text: "It isn't.", duration: 2.5 },
+            { id: 4, text: "Every puzzle is a hidden interview.", duration: 3.5 },
+            { id: 5, text: "Every second your brain is making hundreds of decisions.", duration: 3.8 },
+            { id: 6, text: "Can you spot a pattern before everyone else?", duration: 3.5 },
+            { id: 7, text: "Can you hold information in your mind while making something new?", duration: 4.0 },
+            { id: 8, text: "Can you abandon a bad idea to find a better one?", duration: 3.8 },
+            { id: 9, text: "That is not gaming.", duration: 3.0 },
+            { id: 10, text: "That is processing speed.", duration: 3.2 },
+            { id: 11, text: "That is working memory.", duration: 3.2 },
+            { id: 12, text: "That is cognitive flexibility.", duration: 3.5 },
+            { id: 13, text: "That is the science of problem solving.", duration: 3.8 },
+            { id: 14, text: "And it is exactly why the world's leading employers from Google and Microsoft to Accenture, Deloitte, EY, PwC, JP Morgan Chase, and McKinsey, are increasingly looking beyond memorised answers and evaluating how you think.", duration: 6.5 },
+            { id: 15, text: "Every clue rewires your strategy.", duration: 3.2 },
+            { id: 16, text: "Every mistake becomes feedback.", duration: 3.2 },
+            { id: 17, text: "Every puzzle strengthens the mental muscles behind reasoning, decision making, and creativity.", duration: 4.5 },
+            { id: 18, text: "So when placements begin...", duration: 3.2 },
+            { id: 19, text: "You won't just know more...", duration: 3.2 },
+            { id: 20, text: "You will think better.", duration: 3.5 },
+            { id: 21, text: "Career Catalyst Thon", duration: 4.0 },
+            { id: 22, text: "Because the strongest brains win.", duration: 4.5 }
+        ];
+
+        /* ==========================================================================
+           2. STAGE SCALING & RESPONSIVE ENGINE
+           ========================================================================== */
+        const stage = document.getElementById('cinematic-stage');
+        function scaleStage() {
+            const targetWidth = 1920;
+            const targetHeight = 1080;
+            const windowWidth = window.innerWidth;
+            const windowHeight = window.innerHeight;
+            
+            const scaleX = windowWidth / targetWidth;
+            const scaleY = windowHeight / targetHeight;
+            const scale = Math.min(scaleX, scaleY);
+            
+            stage.style.transform = `scale(${scale})`;
+        }
+        window.addEventListener('resize', scaleStage);
+        scaleStage();
+
+        /* ==========================================================================
+           3. HTML SCENE GENERATION
+           ========================================================================== */
+        function buildScenes() {
+            stage.innerHTML = '';
+            scriptData.forEach((data, index) => {
+                const sceneDiv = document.createElement('div');
+                sceneDiv.className = 'scene';
+                sceneDiv.id = `scene-${index + 1}`;
+                sceneDiv.innerHTML = getSceneHTML(index + 1);
+                stage.appendChild(sceneDiv);
+            });
+        }
+
+        function getSceneHTML(sceneNum) {
+            switch(sceneNum) {
+                case 1:
+                    return `<div style="text-align: center;">
+                                <div class="text-sans" style="font-size: 2.5rem; font-weight: 300; letter-spacing: 0.1em; color: var(--muted-grey); margin-bottom: 20px;">LOOKS LIKE A</div>
+                                <div class="text-huge accent-color" id="game-word">GAME</div>
+                            </div>`;
+                case 2:
+                    return `<div style="text-align: center;">
+                                <div class="text-mono" style="font-size: 4rem; font-weight: 400; letter-spacing: 0.2em; color: var(--muted-grey);">doesn't it?</div>
+                            </div>`;
+                case 3:
+                    return `<div style="text-align: center;">
+                                <div class="text-huge" id="isnt-word" style="font-size: 18rem; letter-spacing: -0.06em;">ISN'T.</div>
+                            </div>`;
+                case 4:
+                    return `<div style="text-align: center; width: 100%;">
+                                <div class="text-sans" style="font-size: 3rem; font-weight: 400; color: var(--muted-grey); margin-bottom: 15px;">EVERY PUZZLE IS A</div>
+                                <div class="text-huge" id="morph-target" style="font-size: 11rem; color: var(--bronze);">INTERVIEW</div>
+                            </div>`;
+                case 5:
+                    return `<div style="display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%;">
+                                <div class="text-mono accent-color" id="digital-timer" style="font-size: 10rem; font-weight: 700; margin-bottom: 20px;">00:00:00</div>
+                                <div class="text-sans" style="font-size: 3.5rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;" id="decisions-container">Hundreds of Decisions</div>
+                            </div>`;
+                case 6:
+                    return `<div style="text-align: center; max-width: 1400px;">
+                                <div class="text-sans" style="font-size: 4rem; font-weight: 300; line-height: 1.2;" id="pattern-text">
+                                    Can you spot a <span class="accent-color" style="font-weight: 800;">pattern</span> before everyone else?
+                                </div>
+                            </div>`;
+                case 7:
+                    return `<div style="display: flex; flex-direction: column; align-items: center; gap: 20px;">
+                                <div class="text-sans" style="font-size: 3rem; font-weight: 400; color: var(--muted-grey);">HOLD INFORMATION</div>
+                                <div class="text-huge" style="font-size: 13rem;" id="new-break">WHILE MAKING NEW</div>
+                            </div>`;
+                case 8:
+                    return `<div style="text-align: center;">
+                                <div class="text-huge" id="bad-idea" style="font-size: 9rem; color: var(--muted-grey); text-decoration: line-through; margin-bottom: 30px;">BAD IDEA</div>
+                                <div class="text-huge accent-color" id="better-idea" style="font-size: 12rem;">FIND A BETTER ONE</div>
+                            </div>`;
+                case 9:
+                    return `<div style="text-align: center;">
+                                <div class="text-sans" style="font-size: 3.5rem; font-weight: 400; color: var(--muted-grey); margin-bottom: 20px;">THAT IS NOT</div>
+                                <div class="text-huge" style="font-size: 14rem; text-decoration: line-through; opacity: 0.6;">GAMING</div>
+                                <div class="text-huge accent-color" id="thinking-reveal" style="font-size: 15rem; margin-top: -100px;">THINKING</div>
+                            </div>`;
+                case 10:
+                    return `<div style="text-align: center; width: 100%;">
+                                <div class="text-sans" style="font-size: 3rem; font-weight: 300; color: var(--bronze);">SPEED & VELOCITY</div>
+                                <div class="text-huge" id="proc-speed" style="font-size: 11rem; letter-spacing: -0.05em;">PROCESSING SPEED</div>
+                            </div>`;
+                case 11:
+                    return `<div style="display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative;">
+                                <div class="text-huge" style="font-size: 12rem; opacity: 0.15; position: absolute;">WORKING MEMORY</div>
+                                <div class="text-huge" style="font-size: 12rem; opacity: 0.4; position: absolute; transform: translateY(20px);">WORKING MEMORY</div>
+                                <div class="text-huge accent-color" style="font-size: 12rem; position: relative;" id="mem-front">WORKING MEMORY</div>
+                            </div>`;
+                case 12:
+                    return `<div style="text-align: center;">
+                                <div class="text-huge" id="flex-text" style="font-size: 10rem; transform: skewX(-15deg);">COGNITIVE FLEXIBILITY</div>
+                            </div>`;
+                case 13:
+                    return `<div style="text-align: center;">
+                                <div class="text-mono bronze-color" style="font-size: 2.5rem; font-weight: 600; margin-bottom: 20px;">// SYSTEM_ANALYSIS_013</div>
+                                <div class="text-huge" style="font-size: 13rem;" id="prob-solve">SCIENCE OF PROBLEM SOLVING</div>
+                            </div>`;
+                case 14:
+                    return `<div style="text-align: center; max-width: 1700px; padding: 0 40px;">
+                                <div class="text-sans" style="font-size: 2.5rem; font-weight: 300; margin-bottom: 30px; color: var(--muted-grey);">LEADING EMPLOYERS WORLDWIDE</div>
+                                <div class="text-sans" id="employers-ticker" style="font-size: 4.5rem; font-weight: 800; line-height: 1.4; text-transform: uppercase;">
+                                    Google & Microsoft · Accenture · Deloitte · EY · PwC · JP Morgan Chase · McKinsey
+                                </div>
+                            </div>`;
+                case 15:
+                    return `<div style="text-align: center;">
+                                <div class="text-sans" style="font-size: 3rem; font-weight: 300; color: var(--muted-grey); text-decoration: line-through; margin-bottom: 20px;">MEMORISED ANSWERS</div>
+                                <div class="text-huge accent-color" style="font-size: 13rem;" id="how-you-think">HOW YOU THINK</div>
+                            </div>`;
+                case 16:
+                    return `<div style="text-align: center; max-width: 1400px;">
+                                <div class="text-sans" style="font-size: 4.5rem; font-weight: 700;" id="clue-strategy">
+                                    Every <span class="accent-color">clue</span> rewires your <span class="bronze-color">strategy</span>.
+                                </div>
+                            </div>`;
+                case 17:
+                    return `<div style="text-align: center;">
+                                <div class="text-huge" style="font-size: 11rem; color: var(--muted-grey); margin-bottom: 20px;" id="mistake-shatter">MISTAKE</div>
+                                <div class="text-huge accent-color" style="font-size: 13rem;" id="feedback-build">BECOMES FEEDBACK</div>
+                            </div>`;
+                case 18:
+                    return `<div style="text-align: center; max-width: 1600px;">
+                                <div class="text-sans" style="font-size: 3.5rem; font-weight: 600; line-height: 1.3;" id="muscles-text">
+                                    Strengthening mental muscles behind <span class="accent-color">reasoning</span>, <span class="bronze-color">decision making</span>, and <span style="font-weight: 950;">creativity</span>.
+                                </div>
+                            </div>`;
+                case 19:
+                    return `<div style="text-align: center;">
+                                <div class="text-sans" style="font-size: 3rem; font-weight: 400; color: var(--muted-grey); margin-bottom: 15px;">SO WHEN</div>
+                                <div class="text-huge" style="font-size: 14rem;" id="placements-card">PLACEMENTS BEGIN</div>
+                            </div>`;
+                case 20:
+                    return `<div style="text-align: center;">
+                                <div class="text-mono" style="font-size: 5rem; font-weight: 700; color: var(--muted-grey); margin-bottom: 20px;" id="terminal-know">> YOU WON'T JUST KNOW MORE</div>
+                                <div class="text-huge accent-color" style="font-size: 14rem;" id="think-better">THINK BETTER</div>
+                            </div>`;
+                case 21:
+                    return `<div style="text-align: center; border: 4px solid var(--accent-gold); padding: 80px 120px; background: rgba(255,255,255,0.4); backdrop-filter: blur(10px);">
+                                <div class="text-mono bronze-color" style="font-size: 2rem; font-weight: 700; letter-spacing: 0.3em; margin-bottom: 20px;">OFFICIAL INITIATIVE</div>
+                                <div class="text-huge" style="font-size: 9rem; letter-spacing: -0.03em;" id="catalyst-title">CAREER CATALYST THON</div>
+                            </div>`;
+                case 22:
+                    return `<div style="text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                        <div class="text-sans" style="font-size: 3.5rem; font-weight: 400; color: var(--muted-grey); margin-bottom: 30px; letter-spacing: 0.05em;" id="because-text">Because the strongest</div>
+                        <div class="text-huge accent-color" style="font-size: 16rem; line-height: 0.8; margin-bottom: 30px;" id="brains-word">BRAINS</div>
+                        <div class="text-huge" style="font-size: 18rem; color: var(--text-primary); letter-spacing: -0.05em;" id="win-word">WIN.</div>
+                    </div>`;
+                default:
+                    return `<div></div>`;
+            }
+        }
+
+        /* ==========================================================================
+           4. MASTER GSAP TIMELINE & ANIMATION ENGINE
+           ========================================================================== */
+        let masterTimeline = gsap.timeline({ paused: true });
+        const sceneElements = [];
+
+        function initAnimations() {
+            buildScenes();
+            masterTimeline.clear();
+
+            scriptData.forEach((data, index) => {
+                const sceneNum = index + 1;
+                const sceneEl = document.getElementById(`scene-${sceneNum}`);
+                sceneElements.push(sceneEl);
+
+                // Create a sub-timeline for each scene
+                const sceneTl = gsap.timeline();
+
+                // Scene Activation hooks
+                sceneTl.set(sceneEl, { className: 'scene active' }, 0);
+                if (index > 0) {
+                    sceneTl.set(sceneElements[index - 1], { className: 'scene' }, 0);
+                }
+
+                // Unique Motion Choreography per Scene (30+ Animation Styles applied)
+                switch(sceneNum) {
+                    case 1: {
+                        const split = new SplitType('#game-word', { types: 'chars' });
+                        sceneTl.from(split.chars, {
+                            opacity: 0,
+                            y: 120,
+                            rotateX: -90,
+                            stagger: 0.06,
+                            duration: 1.2,
+                            ease: 'back.out(1.7)'
+                        }, 0);
+                        break;
+                    }
+                    case 2: {
+                        sceneTl.from('#scene-2 div', {
+                            opacity: 0,
+                            scale: 0.8,
+                            filter: 'blur(20px)',
+                            duration: 1.5,
+                            ease: 'power3.out'
+                        }, 0);
+                        break;
+                    }
+                    case 3: {
+                        sceneTl.from('#isnt-word', {
+                            scale: 3,
+                            opacity: 0,
+                            rotation: 15,
+                            duration: 0.8,
+                            ease: 'expo.out'
+                        }, 0);
+                        break;
+                    }
+                    case 4: {
+                        const split = new SplitType('#morph-target', { types: 'chars' });
+                        sceneTl.from(split.chars, {
+                            opacity: 0,
+                            scaleY: 0,
+                            transformOrigin: 'bottom',
+                            stagger: 0.04,
+                            duration: 1.4,
+                            ease: 'elastic.out(1, 0.5)'
+                        }, 0);
+                        break;
+                    }
+                    case 5: {
+                        sceneTl.from('#digital-timer', {
+                            opacity: 0,
+                            scale: 0.5,
+                            duration: 0.8,
+                            ease: 'power4.out'
+                        }, 0)
+                        .from('#decisions-container', {
+                            y: 60,
+                            opacity: 0,
+                            duration: 1.0,
+                            ease: 'circ.out'
+                        }, 0.3);
+                        break;
+                    }
+                    case 6: {
+                        const split = new SplitType('#pattern-text', { types: 'words' });
+                        sceneTl.from(split.words, {
+                            opacity: 0,
+                            y: 50,
+                            rotateZ: (i) => (i % 2 === 0 ? 10 : -10),
+                            stagger: 0.08,
+                            duration: 1.5,
+                            ease: 'power4.out'
+                        }, 0);
+                        break;
+                    }
+                    case 7: {
+                        sceneTl.from('#new-break', {
+                            x: -300,
+                            opacity: 0,
+                            skewX: 45,
+                            duration: 1.2,
+                            ease: 'expo.out'
+                        }, 0);
+                        break;
+                    }
+                    case 8: {
+                        sceneTl.from('#bad-idea', {
+                            scale: 1,
+                            opacity: 1,
+                            duration: 0.5,
+                            ease: 'power1.in'
+                        }, 0)
+                        .to('#bad-idea', {
+                            scale: 1.2,
+                            opacity: 0,
+                            filter: 'blur(15px)',
+                            duration: 0.6,
+                            ease: 'power2.in'
+                        }, 0.5)
+                        .from('#better-idea', {
+                            y: 100,
+                            opacity: 0,
+                            scale: 0.8,
+                            duration: 1.2,
+                            ease: 'back.out(1.4)'
+                        }, 0.8);
+                        break;
+                    }
+                    case 9: {
+                        sceneTl.from('#thinking-reveal', {
+                            scale: 0.2,
+                            opacity: 0,
+                            rotation: -25,
+                            duration: 1.2,
+                            ease: 'elastic.out(1.2, 0.4)'
+                        }, 0.3);
+                        break;
+                    }
+                    case 10: {
+                        const split = new SplitType('#proc-speed', { types: 'chars' });
+                        sceneTl.from(split.chars, {
+                            x: (i) => (i % 2 === 0 ? -200 : 200),
+                            opacity: 0,
+                            stagger: 0.03,
+                            duration: 1.5,
+                            ease: 'power4.out'
+                        }, 0);
+                        break;
+                    }
+                    case 11: {
+                        sceneTl.from('#mem-front', {
+                            scale: 2.5,
+                            opacity: 0,
+                            filter: 'blur(30px)',
+                            duration: 1.5,
+                            ease: 'expo.out'
+                        }, 0);
+                        break;
+                    }
+                    case 12: {
+                        sceneTl.from('#flex-text', {
+                            scaleY: 0.1,
+                            opacity: 0,
+                            transformOrigin: 'center',
+                            duration: 1.4,
+                            ease: 'elastic.out(1, 0.3)'
+                        }, 0);
+                        break;
+                    }
+                    case 13: {
+                        const split = new SplitType('#prob-solve', { types: 'words' });
+                        sceneTl.from(split.words, {
+                            y: 100,
+                            opacity: 0,
+                            rotationX: 90,
+                            stagger: 0.1,
+                            duration: 1.5,
+                            ease: 'power3.out'
+                        }, 0);
+                        break;
+                    }
+                    case 14: {
+                        const split = new SplitType('#employers-ticker', { types: 'words' });
+                        sceneTl.from(split.words, {
+                            opacity: 0,
+                            scale: 0.5,
+                            y: 40,
+                            stagger: 0.15,
+                            duration: 2.5,
+                            ease: 'power4.out'
+                        }, 0);
+                        break;
+                    }
+                    case 15: {
+                        sceneTl.from('#how-you-think', {
+                            opacity: 0,
+                            scale: 1.5,
+                            filter: 'blur(25px)',
+                            duration: 1.5,
+                            ease: 'expo.out'
+                        }, 0);
+                        break;
+                    }
+                    case 16: {
+                        const split = new SplitType('#clue-strategy', { types: 'words' });
+                        sceneTl.from(split.words, {
+                            opacity: 0,
+                            rotationZ: (i) => (i * 15),
+                            y: 60,
+                            stagger: 0.08,
+                            duration: 1.5,
+                            ease: 'back.out(1.5)'
+                        }, 0);
+                        break;
+                    }
+                    case 17: {
+                        sceneTl.from('#mistake-shatter', {
+                            scale: 1,
+                            opacity: 1,
+                            duration: 0.4
+                        }, 0)
+                        .to('#mistake-shatter', {
+                            scale: 1.8,
+                            opacity: 0,
+                            rotation: 20,
+                            filter: 'blur(20px)',
+                            duration: 0.5,
+                            ease: 'power3.in'
+                        }, 0.4)
+                        .from('#feedback-build', {
+                            scale: 0.4,
+                            opacity: 0,
+                            duration: 1.2,
+                            ease: 'elastic.out(1.2, 0.5)'
+                        }, 0.6);
+                        break;
+                    }
+                    case 18: {
+                        const split = new SplitType('#muscles-text', { types: 'words' });
+                        sceneTl.from(split.words, {
+                            opacity: 0,
+                            y: -50,
+                            stagger: 0.06,
+                            duration: 1.8,
+                            ease: 'power3.out'
+                        }, 0);
+                        break;
+                    }
+                    case 19: {
+                        sceneTl.from('#placements-card', {
+                            y: 150,
+                            opacity: 0,
+                            rotationX: -60,
+                            duration: 1.4,
+                            ease: 'expo.out'
+                        }, 0);
+                        break;
+                    }
+                    case 20: {
+                        sceneTl.from('#terminal-know', {
+                            opacity: 0,
+                            x: -100,
+                            duration: 1.0,
+                            ease: 'power3.out'
+                        }, 0)
+                        .from('#think-better', {
+                            scale: 0.5,
+                            opacity: 0,
+                            duration: 1.2,
+                            ease: 'back.out(1.7)'
+                        }, 0.5);
+                        break;
+                    }
+                    case 21: {
+                        sceneTl.from('#catalyst-title', {
+                            scale: 0.8,
+                            opacity: 0,
+                            filter: 'blur(20px)',
+                            duration: 1.8,
+                            ease: 'expo.out'
+                        }, 0);
+                        break;
+                    }
+                    case 22: {
+                        sceneTl.from('#because-text', {
+                            opacity: 0,
+                            y: 30,
+                            duration: 1.0,
+                            ease: 'power3.out'
+                        }, 0)
+                        .from('#brains-word', {
+                            scale: 2,
+                            opacity: 0,
+                            duration: 1.2,
+                            ease: 'expo.out'
+                        }, 0.5)
+                        .from('#win-word', {
+                            y: 100,
+                            opacity: 0,
+                            duration: 1.2,
+                            ease: 'back.out(1.7)'
+                        }, 1.0);
+                        break;
+                    }
+                }
+
+                // Append scene to master timeline with correct duration spacing
+                masterTimeline.add(sceneTl, `+=${index === 0 ? 0 : 0}`);
+                // Add a small pause equivalent to scene duration
+                masterTimeline.to({}, { duration: data.duration });
+            });
+        }
+
+        initAnimations();
+
+        /* ==========================================================================
+           5. UI CONTROLS & EVENT LISTENERS
+           ========================================================================== */
+        const playPauseBtn = document.getElementById('play-pause-btn');
+        const replayBtn = document.getElementById('replay-btn');
+        const fullscreenBtn = document.getElementById('fullscreen-btn');
+        const timelineProgress = document.getElementById('timeline-progress');
+        const timelineTrack = document.getElementById('timeline-track');
+        const sceneIndicator = document.getElementById('scene-indicator');
+
+        function togglePlay() {
+            if (masterTimeline.paused()) {
+                masterTimeline.play();
+                playPauseBtn.textContent = "PAUSE";
+            } else {
+                masterTimeline.pause();
+                playPauseBtn.textContent = "PLAY";
+            }
+        }
+
+        playPauseBtn.addEventListener('click', togglePlay);
+
+        replayBtn.addEventListener('click', () => {
+            masterTimeline.restart();
+            masterTimeline.play();
+            playPauseBtn.textContent = "PAUSE";
+        });
+
+        fullscreenBtn.addEventListener('click', () => {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+                fullscreenBtn.textContent = "EXIT [F]";
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                    fullscreenBtn.textContent = "FULLSCREEN [F]";
+                }
+            }
+        });
+
+        // Timeline Progress Update & Scene Indicator Sync
+        masterTimeline.eventCallback("onUpdate", () => {
+            const progress = masterTimeline.progress();
+            timelineProgress.style.width = `${progress * 100}%`;
+
+            // Determine active scene based on time
+            const currentTime = masterTimeline.time();
+            let accumulatedTime = 0;
+            for (let i = 0; i < scriptData.length; i++) {
+                accumulatedTime += scriptData[i].duration;
+                if (currentTime <= accumulatedTime) {
+                    sceneIndicator.textContent = `SCENE ${String(i + 1).padStart(2, '0')} / ${scriptData.length}`;
+                    break;
+                }
+            }
+        });
+
+        // Scrubbing via Timeline Bar
+        timelineTrack.addEventListener('click', (e) => {
+            const rect = timelineTrack.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const percentage = clickX / rect.width;
+            masterTimeline.progress(percentage);
+        });
+
+        // Keyboard Controls
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                togglePlay();
+            } else if (e.code === 'KeyF') {
+                fullscreenBtn.click();
+            } else if (e.code === 'ArrowRight') {
+                // Jump forward approx 3 seconds
+                masterTimeline.time(Math.min(masterTimeline.duration(), masterTimeline.time() + 3));
+            } else if (e.code === 'ArrowLeft') {
+                // Jump backward approx 3 seconds
+                masterTimeline.time(Math.max(0, masterTimeline.time() - 3));
+            }
+        });
+
+        // Auto-play on load with cinematic readiness
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                masterTimeline.play();
+            }, 500);
+        });
+    </script>
+</body>
+</html>

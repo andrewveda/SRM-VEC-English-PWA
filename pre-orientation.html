@@ -153,27 +153,51 @@ body::before{
 .hero-stat-lbl{font-size:7px;letter-spacing:.22em;text-transform:uppercase;color:var(--ash);}
 .growth-feedback{font-size:7px;color:var(--emerald);margin-top:2px;letter-spacing:.05em;}
 
-/* ── SIGN-IN PROMPT ── */
-.hero-signin{
-  text-align:center;padding:22px 20px 14px;position:relative;z-index:1;
+/* ── WELCOME INTRO SCREEN (FIRST-TIME OVERLAY) ── */
+.welcome-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  z-index: 300;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  text-align: center;
+  transition: opacity 0.5s ease;
 }
-.hero-signin-title{
-  font-family:'Playfair Display',serif;font-size:24px;font-weight:400;
-  color:var(--gold-light);letter-spacing:.04em;line-height:1.2;margin-bottom:4px;
+.welcome-card {
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
-.hero-signin-sub{font-size:8px;letter-spacing:.28em;text-transform:uppercase;color:var(--ash);margin-bottom:14px;}
-.hero-signin-btn{
-  display:inline-flex;align-items:center;gap:6px;
-  background:linear-gradient(135deg,var(--gold),#8a5e00);color:#0e0b05;
-  border:none;border-radius:8px;padding:9px 20px;
-  font-family:'DM Mono',monospace;font-size:10px;font-weight:500;
-  letter-spacing:.12em;text-transform:uppercase;cursor:pointer;
+.welcome-prose {
+  font-family: 'Playfair Display', serif;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--gold-light);
+}
+.welcome-dept {
+  font-size: 9px;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--ash);
+  margin-top: 4px;
 }
 
-/* ── SECTIONS ── */
+/* ── SECTIONS & BLUR LOCK STATE ── */
 .sections{
   flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;
   padding:0 14px 24px;position:relative;z-index:1;
+  transition: filter 0.4s ease, opacity 0.4s ease;
+}
+.sections.locked-state {
+  filter: blur(6px);
+  opacity: 0.35;
+  pointer-events: none;
+  user-select: none;
 }
 
 .section{margin-bottom:6px;}
@@ -279,7 +303,6 @@ body::before{
   transform: translateY(-2px);
   border-color: rgba(59, 130, 246, 0.5);
 }
-/* Tile color variants */
 .adv-tile.purple { border-color: rgba(147, 51, 234, 0.4); background: linear-gradient(135deg, #181022, #0e0b16); }
 .adv-tile.blue { border-color: rgba(37, 99, 235, 0.4); background: linear-gradient(135deg, #0e1526, #090d16); }
 .adv-tile.emerald { border-color: rgba(16, 185, 129, 0.4); background: linear-gradient(135deg, #0b1a14, #08100c); }
@@ -377,6 +400,22 @@ html.light .modal-card{background:linear-gradient(160deg,#ede0c0,#f5efe0);}
 </head>
 <body>
 
+<!-- WELCOME INTRO OVERLAY -->
+<div class="welcome-overlay" id="welcomeOverlay">
+  <div class="welcome-card">
+    <div class="welcome-prose">
+      Civilization advances because generation after generation chooses to learn, to question and to create.<br><br>
+      Today, you join that tradition.<br><br>
+      The years ahead will ask much of you, but they will also reveal what you are capable of becoming. Let curiosity be your compass, integrity your foundation and excellence your destination.
+    </div>
+    <div>
+      <div class="welcome-prose" style="font-size:13px; color:var(--gold);">Welcome to SRM Valliammai Engineering College.<br>Your future begins now.</div>
+      <div class="welcome-dept">The Department of English welcomes you!</div>
+    </div>
+    <button class="btn-gold" style="margin-top:8px;" onclick="dismissWelcome()">Continue &rarr;</button>
+  </div>
+</div>
+
 <div class="chrome">
   <div class="chrome-left">
     <span class="wordmark">PRE-ORIENTATION</span>
@@ -394,10 +433,10 @@ html.light .modal-card{background:linear-gradient(160deg,#ede0c0,#f5efe0);}
     <div class="nba-title" id="nbaTitle">Day One Warm-up Quest</div>
     <div class="nba-sub" id="nbaSub">Build momentum with core tenses</div>
   </div>
-  <a class="nba-btn" id="nbaBtn" href="#">Resume &rarr;</a>
+  <a class="nba-btn" id="nbaBtn" href="#">Start &rarr;</a>
 </div>
 
-<!-- Hero: shown when signed in (Redesigned Stats Dashboard Layout) -->
+<!-- Hero: shown when signed in -->
 <div class="hero" id="heroStats" style="display:none;">
   <div class="hero-ring-wrap">
     <svg viewBox="0 0 96 96" xmlns="http://www.w3.org/2000/svg">
@@ -433,7 +472,7 @@ html.light .modal-card{background:linear-gradient(160deg,#ede0c0,#f5efe0);}
   <button class="hero-signin-btn" onclick="openModal()">&#9654;&ensp;Sign in to track progress</button>
 </div>
 
-<div class="sections" id="sections">
+<div class="sections locked-state" id="sections">
   <!-- rendered by JS -->
 </div>
 
@@ -475,6 +514,13 @@ const supabase = createClient(
 
 // ── DATA ──────────────────────────────────────────────────────────
 const SECTIONS = [
+   {
+    name: 'Foundation & Special Quests',
+    packs: [
+      { id:'warmup', icon:'🌅', name:'Day One Warm-up Quest', sub:'Tenses - Grammar essentials', min:1, max:100, total:10, href:'https://andrewveda.com/verve/CEFR/tenses.html', external:true },
+      { id:'fun', icon:'⚡', name:'Fun Quest', sub:'Wordle blitz challenge', min:201, max:300, total:10, href:'https://andrewveda.com/SRM-VEC-English-PWA/wordleblitz', external:true, isFun:true }
+    ]
+  },
   {
     name: 'Vocabulary',
     packs: [
@@ -512,19 +558,10 @@ const SECTIONS = [
     ]
   },
   {
-    name: 'Foundation & Special Quests',
-    packs: [
-      { id:'warmup', icon:'🌅', name:'Day One Warm-up Quest', sub:'Tenses & grammar essentials', min:1, max:100, total:10, href:'https://andrewveda.com/verve/CEFR/tenses.html', external:true },
-      { id:'main', icon:'📖', name:'Main Quest', sub:'Book insights & reading comprehension', min:101, max:200, total:10, href:'https://andrewveda.com/SRM-VEC-English-PWA/buttons/bookinsights', external:true },
-      { id:'fun', icon:'⚡', name:'Fun Quest', sub:'Wordle blitz challenge', min:201, max:300, total:10, href:'https://andrewveda.com/SRM-VEC-English-PWA/wordleblitz', external:true, isFun:true }
-    ]
-  },
-  {
     name: 'Advanced Challenges',
     isAdvancedGrid: true,
     packs: [
-      { id:'cont1', icon:'🔄', name:'Continuous Quest — Day 1', sub:'Unlock at 3,600s active focus time', min:301, max:350, total:10, href:'https://andrewveda.com/SRM-VEC-English-PWA/buttons/bookinsights', external:true, unlockTime:3600, tileVariant:'purple' },
-      { id:'cont2', icon:'🔄', name:'Continuous Quest — Day 2', sub:'Unlock at 3,600s active focus time', min:351, max:400, total:10, href:'https://andrewveda.com/SRM-VEC-English-PWA/buttons/bookinsights', external:true, unlockTime:3600, tileVariant:'blue' },
+      { id:'cont1', icon:'🔄', name:'Main Quest — Day 1', sub:'Unlock at 3,600s active focus time', min:301, max:350, total:10, href:'https://andrewveda.com/SRM-VEC-English-PWA/buttons/bookinsights', external:true, unlockTime:3600, tileVariant:'purple' },
       { id:'philosophy', icon:'👾', name:'Approaching Philosophy with the heart of a child!', sub:'Unlock at 5,000s active focus time', min:401, max:500, total:10, href:'https://andrewveda.com/verve/buttons/jigsaw_thon', external:true, unlockTime:5000, tileVariant:'emerald' }
     ]
   }
@@ -547,6 +584,13 @@ function savePlayer(name, dept) {
   ['userName','questPlayerName','idiomPlayerName'].forEach(k => localStorage.setItem(k, name));
   ['userDept','questPlayerDept'].forEach(k => localStorage.setItem(k, dept));
 }
+
+// ── WELCOME DISMISS ───────────────────────────────────────────────
+window.dismissWelcome = function() {
+  const overlay = document.getElementById('welcomeOverlay');
+  overlay.style.opacity = '0';
+  setTimeout(() => overlay.remove(), 500);
+};
 
 // ── PLAYER PILL ───────────────────────────────────────────────────
 function renderPlayerArea() {
@@ -608,11 +652,12 @@ function renderSections(ids) {
     });
   });
 
-  // Update NBA Card default/dynamic actions
   if (nextBestAction) {
     document.getElementById('nbaTitle').textContent = nextBestAction.name;
     document.getElementById('nbaSub').textContent = nextBestAction.sub;
-    document.getElementById('nbaBtn').href = nextBestAction.external ? nextBestAction.href : (BASE + nextBestAction.href);
+    const nbaBtn = document.getElementById('nbaBtn');
+    nbaBtn.href = nextBestAction.external ? nextBestAction.href : (BASE + nextBestAction.href);
+    nbaBtn.textContent = 'Start →';
   } else {
     document.getElementById('nbaTitle').textContent = 'All Quests Completed!';
     document.getElementById('nbaSub').textContent = 'You have mastered the pre-orientation module.';
@@ -667,7 +712,6 @@ function renderSections(ids) {
         const microOffset = CIRC_MICRO * (1 - pct / 100);
 
         if (p.isFun) {
-          // Render Fun Quest as a standalone button without percentages
           const funBtn = document.createElement('a');
           funBtn.className = 'fun-quest-btn';
           funBtn.href = p.external ? p.href : (BASE + p.href);
@@ -776,7 +820,12 @@ function animateHero(pct, accuracy, score, time) {
 
 // ── FETCH ─────────────────────────────────────────────────────────
 async function fetchAndRender() {
-  if (!playerName) { renderSections(null); showHero(false); return; }
+  if (!playerName) { 
+    renderSections(null); 
+    showHero(false); 
+    document.getElementById('sections').classList.add('locked-state');
+    return; 
+  }
   const pip = document.getElementById('playerPip'); if (pip) pip.classList.add('loading');
   renderSkeleton();
   showHero(true);
@@ -787,27 +836,43 @@ async function fetchAndRender() {
     const { data, error } = await supabase.from('report_card_view').select('quest_list, accuracy, total_score, total_time').ilike('name', playerName);
     const ids = new Set();
     playerStatsData = { accuracy: 0, total_score: 0, total_time: 0 };
+    let hasTenseQuest = false;
+    
     if (!error && data && data.length > 0) {
       data.forEach(row => {
         playerStatsData.accuracy = row.accuracy || 0;
         playerStatsData.total_score = row.total_score || 0;
         playerStatsData.total_time = row.total_time || 0;
-        (row.quest_list||'').split(',').forEach(item => {
+        const qList = row.quest_list || '';
+        if (/Quest Tense\s*\d+/i.test(qList)) {
+          hasTenseQuest = true;
+        }
+        qList.split(',').forEach(item => {
           const m = item.trim().match(/Quest\s+(\d+)/i);
           if (m) ids.add(Number(m[1]));
         });
       });
     }
+
     ['heroAccuracy','heroScore','heroTime'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.className = 'hero-stat-num';
     });
     renderSections(ids);
+
+    const sectionsEl = document.getElementById('sections');
+    if (hasTenseQuest) {
+      sectionsEl.classList.remove('locked-state');
+    } else {
+      sectionsEl.classList.add('locked-state');
+    }
+
   } catch {
     ['heroAccuracy','heroScore','heroTime'].forEach(id => {
       const el = document.getElementById(id); if (el) { el.className='hero-stat-num'; el.textContent='—'; }
     });
     renderSections(null);
+    document.getElementById('sections').classList.add('locked-state');
   }
   const p = document.getElementById('playerPip'); if (p) p.classList.remove('loading');
 }
@@ -874,6 +939,7 @@ if (playerName) {
 } else {
   showHero(false);
   renderSections(null);
+  document.getElementById('sections').classList.add('locked-state');
   openModal();
 }
 </script>

@@ -492,9 +492,9 @@ body::before{
 <!-- Next Best Action Card -->
 <div class="nba-card" id="nbaCard" style="display:none;">
   <div class="nba-content">
-    <div class="nba-tag">Today's Main quest</div>
-    <div class="nba-title" id="nbaTitle">Day One Warm-up Quest</div>
-    <div class="nba-sub" id="nbaSub">Build momentum with core tenses</div>
+    <div class="nba-tag" id="nbaTag">Vocabulary Quest</div>
+    <div class="nba-title" id="nbaTitle">Words That Make You Hungry</div>
+    <div class="nba-sub" id="nbaSub">Gluttons & gourmands</div>
   </div>
   <a class="nba-btn" id="nbaBtn" href="#">Start &rarr;</a>
 </div>
@@ -575,7 +575,7 @@ const supabase = createClient(
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoZXpzc29jenZwYmt0ZWZmY2d6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI4NTk1ODUsImV4cCI6MjA3ODQzNTU4NX0.2ZlqXnZxv0opkhynAT7OlK4S-xPygcc7ETUyTXRfGHE"
 );
 
-// ── DATA (Foundation & Special Quests at top, Advanced Challenges below) ──────────────
+// ── DATA ──────────────────────────────────────────────────────────
 const SECTIONS = [
   {
     name: 'Foundation & Special Quests',
@@ -701,6 +701,7 @@ function renderSections(ids) {
   const packStats = {};
   let nextBestAction = null;
 
+  // Filter recommendations specifically from Vocabulary and Idioms sections
   SECTIONS.forEach(sec => {
     sec.packs.forEach(p => {
       const done = ids ? [...ids].filter(id => id >= p.min && id <= p.max).length : 0;
@@ -708,22 +709,25 @@ function renderSections(ids) {
       packStats[p.id] = { done, pct, complete: done >= p.total };
       totalDone += done;
 
-      const isLocked = p.unlockTime && playerStatsData.total_time < p.unlockTime;
-      if (!nextBestAction && !packStats[p.id].complete && !isLocked) {
-        nextBestAction = p;
+      const isEligibleForNBA = (sec.name === 'Vocabulary' || sec.name === 'Idioms');
+      if (!nextBestAction && isEligibleForNBA && !packStats[p.id].complete) {
+        nextBestAction = { pack: p, category: sec.name };
       }
     });
   });
 
   if (nextBestAction) {
-    document.getElementById('nbaTitle').textContent = nextBestAction.name;
-    document.getElementById('nbaSub').textContent = nextBestAction.sub;
+    const p = nextBestAction.pack;
+    document.getElementById('nbaTag').textContent = `${nextBestAction.category} Quest`;
+    document.getElementById('nbaTitle').textContent = p.name;
+    document.getElementById('nbaSub').textContent = p.sub;
     const nbaBtn = document.getElementById('nbaBtn');
-    nbaBtn.href = nextBestAction.external ? nextBestAction.href : (BASE + nextBestAction.href);
+    nbaBtn.href = p.external ? p.href : (BASE + p.href);
     nbaBtn.textContent = 'Start →';
   } else {
-    document.getElementById('nbaTitle').textContent = 'All Quests Completed!';
-    document.getElementById('nbaSub').textContent = 'You have mastered the pre-orientation module.';
+    document.getElementById('nbaTag').textContent = 'Completed';
+    document.getElementById('nbaTitle').textContent = 'All Vocabulary & Idioms Mastered!';
+    document.getElementById('nbaSub').textContent = 'Explore advanced challenges and special quests.';
     document.getElementById('nbaBtn').style.display = 'none';
   }
 

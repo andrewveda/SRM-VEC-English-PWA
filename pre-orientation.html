@@ -492,11 +492,11 @@ body::before{
 <!-- Next Best Action Card -->
 <div class="nba-card" id="nbaCard" style="display:none;">
   <div class="nba-content">
-    <div class="nba-tag" id="nbaTag">Vocabulary Quest</div>
-    <div class="nba-title" id="nbaTitle">Words That Make You Hungry</div>
-    <div class="nba-sub" id="nbaSub">Gluttons & gourmands</div>
+    <div class="nba-tag" id="nbaTag">Foundation Quest</div>
+    <div class="nba-title" id="nbaTitle">Day One Warm-up Quest</div>
+    <div class="nba-sub" id="nbaSub">Tenses - Grammar essentials</div>
   </div>
-  <a class="nba-btn" id="nbaBtn" href="#">Start &rarr;</a>
+  <a class="nba-btn" id="nbaBtn" href="https://andrewveda.com/verve/CEFR/tenses.html">Play &rarr;</a>
 </div>
 
 <!-- Hero: shown when signed in -->
@@ -691,7 +691,7 @@ function renderSkeleton() {
 }
 
 // ── RENDER SECTIONS WITH DATA ─────────────────────────────────────
-function renderSections(ids) {
+function renderSections(ids, isLocked) {
   const el = document.getElementById('sections');
   el.innerHTML = '';
 
@@ -701,20 +701,28 @@ function renderSections(ids) {
   const packStats = {};
   let nextBestAction = null;
 
-  // Filter recommendations specifically from Vocabulary and Idioms sections
-  SECTIONS.forEach(sec => {
-    sec.packs.forEach(p => {
-      const done = ids ? [...ids].filter(id => id >= p.min && id <= p.max).length : 0;
-      const pct  = Math.round(done / p.total * 100);
-      packStats[p.id] = { done, pct, complete: done >= p.total };
-      totalDone += done;
+  if (isLocked) {
+    // When locked/blurred, top recommendation is strictly Day One Warm-up Quest
+    nextBestAction = {
+      pack: { name: 'Day One Warm-up Quest', sub: 'Tenses - Grammar essentials', href: 'https://andrewveda.com/verve/CEFR/tenses.html', external: true },
+      category: 'Foundation Quest'
+    };
+  } else {
+    // When unlocked, recommendation cycles through Vocabulary and Idioms
+    SECTIONS.forEach(sec => {
+      sec.packs.forEach(p => {
+        const done = ids ? [...ids].filter(id => id >= p.min && id <= p.max).length : 0;
+        const pct  = Math.round(done / p.total * 100);
+        packStats[p.id] = { done, pct, complete: done >= p.total };
+        totalDone += done;
 
-      const isEligibleForNBA = (sec.name === 'Vocabulary' || sec.name === 'Idioms');
-      if (!nextBestAction && isEligibleForNBA && !packStats[p.id].complete) {
-        nextBestAction = { pack: p, category: sec.name };
-      }
+        const isEligibleForNBA = (sec.name === 'Vocabulary' || sec.name === 'Idioms');
+        if (!nextBestAction && isEligibleForNBA && !packStats[p.id].complete) {
+          nextBestAction = { pack: p, category: sec.name };
+        }
+      });
     });
-  });
+  }
 
   if (nextBestAction) {
     const p = nextBestAction.pack;
@@ -723,7 +731,7 @@ function renderSections(ids) {
     document.getElementById('nbaSub').textContent = p.sub;
     const nbaBtn = document.getElementById('nbaBtn');
     nbaBtn.href = p.external ? p.href : (BASE + p.href);
-    nbaBtn.textContent = 'Start →';
+    nbaBtn.textContent = isLocked ? 'Play →' : 'Start →';
   } else {
     document.getElementById('nbaTag').textContent = 'Completed';
     document.getElementById('nbaTitle').textContent = 'All Vocabulary & Idioms Mastered!';
@@ -731,7 +739,7 @@ function renderSections(ids) {
     document.getElementById('nbaBtn').style.display = 'none';
   }
 
-  if (ids) {
+  if (ids && !isLocked) {
     const totalPct = Math.round(totalDone / totalAll * 100);
     animateHero(totalPct, playerStatsData.accuracy, playerStatsData.total_score, playerStatsData.total_time);
     updateGrowthFeedback(playerStatsData.accuracy);
@@ -741,7 +749,7 @@ function renderSections(ids) {
   let globalRowIdx = 0;
   SECTIONS.forEach(sec => {
     const div = document.createElement('div'); div.className = 'section';
-    const secDone = sec.packs.filter(p => packStats[p.id].complete).length;
+    const secDone = sec.packs.filter(p => packStats[p.id] && packStats[p.id].complete).length;
     div.innerHTML = `<div class="section-head"><span class="section-name">${sec.name}</span><span class="section-meta">${secDone}/${sec.packs.length} complete</span></div>`;
 
     if (sec.isAdvancedGrid) {
@@ -749,14 +757,14 @@ function renderSections(ids) {
       grid.className = 'advanced-grid';
 
       sec.packs.forEach(p => {
-        const isLocked = p.unlockTime && playerStatsData.total_time < p.unlockTime;
-        const tile = document.createElement(isLocked ? 'div' : 'a');
-        tile.className = `adv-tile ${p.tileVariant || 'purple'} ${isLocked ? 'locked' : ''}`;
-        if (!isLocked) {
+        const isLockedTile = p.unlockTime && playerStatsData.total_time < p.unlockTime;
+        const tile = document.createElement(isLockedTile ? 'div' : 'a');
+        tile.className = `adv-tile ${p.tileVariant || 'purple'} ${isLockedTile ? 'locked' : ''}`;
+        if (!isLockedTile) {
           tile.href = p.external ? p.href : (BASE + p.href);
         }
 
-        let badgeText = isLocked ? `🔒 ${p.unlockTime}s req` : 'Available';
+        let badgeText = isLockedTile ? `🔒 ${p.unlockTime}s req` : 'Available';
         tile.innerHTML = `
           <div class="adv-tile-header">
             <span class="adv-tile-icon">${p.icon}</span>
@@ -770,12 +778,13 @@ function renderSections(ids) {
       div.appendChild(grid);
     } else {
       sec.packs.forEach((p) => {
-        const { done, pct, complete } = packStats[p.id];
+        const stats = packStats[p.id] || { done: 0, pct: 0, complete: false };
+        const { done, pct, complete } = stats;
         const state = complete ? 'done' : done > 0 ? 'in-progress' : 'untouched';
         const delay = (globalRowIdx * 0.04).toFixed(2);
         globalRowIdx++;
 
-        const isLocked = p.unlockTime && playerStatsData.total_time < p.unlockTime;
+        const isLockedTile = p.unlockTime && playerStatsData.total_time < p.unlockTime;
         const microOffset = CIRC_MICRO * (1 - pct / 100);
 
         if (p.isFun || p.isWarmup) {
@@ -796,16 +805,16 @@ function renderSections(ids) {
           return;
         }
 
-        const row = document.createElement(isLocked ? 'div' : 'a');
-        row.className = `pack-row ${isLocked ? 'locked' : state}`;
-        if (!isLocked) {
+        const row = document.createElement(isLockedTile ? 'div' : 'a');
+        row.className = `pack-row ${isLockedTile ? 'locked' : state}`;
+        if (!isLockedTile) {
           row.href = p.external ? p.href : (BASE + p.href);
         }
         row.style.setProperty('--delay', delay + 's');
         row.style.animationDelay = delay + 's';
 
         let rightContent = '';
-        if (isLocked) {
+        if (isLockedTile) {
           const remainingTime = p.unlockTime - playerStatsData.total_time;
           rightContent = `<span class="lock-timer">&#128274; ${remainingTime}s req</span>`;
         } else {
@@ -830,7 +839,7 @@ function renderSections(ids) {
 
         div.appendChild(row);
 
-        if (ids && pct > 0 && !isLocked) {
+        if (ids && pct > 0 && !isLockedTile) {
           requestAnimationFrame(() => setTimeout(() => {
             const mf = document.getElementById('mf-' + p.id);
             if (mf) mf.style.strokeDashoffset = microOffset;
@@ -888,7 +897,7 @@ function animateHero(pct, accuracy, score, time) {
 // ── FETCH ─────────────────────────────────────────────────────────
 async function fetchAndRender() {
   if (!playerName) { 
-    renderSections(null); 
+    renderSections(null, true); 
     showHero(false); 
     document.getElementById('sections').classList.add('locked-state');
     return; 
@@ -927,20 +936,21 @@ async function fetchAndRender() {
       const el = document.getElementById(id);
       if (el) el.className = 'hero-stat-num';
     });
-    renderSections(ids);
 
     const sectionsEl = document.getElementById('sections');
     if (hasTenseQuest) {
       sectionsEl.classList.remove('locked-state');
+      renderSections(ids, false);
     } else {
       sectionsEl.classList.add('locked-state');
+      renderSections(ids, true);
     }
 
   } catch {
     ['heroAccuracy','heroScore','heroTime'].forEach(id => {
       const el = document.getElementById(id); if (el) { el.className='hero-stat-num'; el.textContent='—'; }
     });
-    renderSections(null);
+    renderSections(null, true);
     document.getElementById('sections').classList.add('locked-state');
   }
   const p = document.getElementById('playerPip'); if (p) p.classList.remove('loading');
@@ -995,7 +1005,7 @@ if (playerName) {
   fetchAndRender();
 } else {
   showHero(false);
-  renderSections(null);
+  renderSections(null, true);
   document.getElementById('sections').classList.add('locked-state');
   openModal();
 }

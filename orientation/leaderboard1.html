@@ -67,15 +67,20 @@
     reportData = (data || []).filter(s => (s.department || "").trim().toUpperCase() !== "FRIENDS & FAMILY").map(s => {
       const quests = parseItems(s.quest_list);
       
-      // All 4-digit Quests (1000-9999) are Vocabulary
+  
+     // All 4-digit Quests (1000-9999) are Vocabulary (1 word each)
       const vocabQuests = quests.filter(q => 
           (q.type.toLowerCase() === 'quest' || q.type.toLowerCase() === 'velocity') && 
           q.number >= 1000 && q.number <= 9999
       );
+
+      // Vocab Themes (10 words each)
+      const vocabThemes = quests.filter(q => q.label.includes("VocabTheme_"));
       
-     const oldVocabCount = parseVocabDates(s.vocab_list).length;
-const vocabThemeCount = quests.filter(q => q.label.startsWith("Quest VocabTheme_")).length;
-s.vocab_completed = oldVocabCount + (vocabThemeCount * 10);
+      const oldVocabCount = parseVocabDates(s.vocab_list).length;
+      
+      // Add 1 for old/4-digit quests, and 10 for each VocabTheme
+      s.vocab_completed = oldVocabCount + vocabQuests.length + (vocabThemes.length * 10);
 
       // Book Insight Integration
       const bookQuests = quests.filter(q => BOOK_MAP[q.number]);

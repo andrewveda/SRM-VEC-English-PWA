@@ -55,27 +55,6 @@
     .reveal-counter { text-align: center; font-size: .82em; color: var(--text-muted); font-style: italic; margin-bottom: 12px; letter-spacing:.02em; transition: color .3s; }
     .reveal-counter.all-done { color: var(--green); font-weight: 600; }
     
-    /* ── STUDY TIMER ── */
-    .study-timer { display:flex; align-items:center; gap:16px; background:transparent; border-radius:14px; padding:12px 16px; margin-bottom:20px; border:1px solid rgba(201,168,76,0.18); position:relative; transition:border-color .6s; }
-    .study-timer.milestone-glow { border-color:rgba(61,163,103,0.45); }
-    .timer-ring-wrap { flex-shrink:0; position:relative; width:52px; height:52px; }
-    .timer-ring-wrap svg { width:52px; height:52px; transform:rotate(-90deg); }
-    .timer-ring-track { fill:none; stroke:rgba(201,168,76,0.12); stroke-width:3; }
-    .timer-ring-fill { fill:none; stroke:var(--gold); stroke-width:3; stroke-linecap:round; stroke-dasharray:138.2; stroke-dashoffset:138.2; transition:stroke-dashoffset .9s ease,stroke .6s; }
-    .timer-ring-fill.green { stroke:var(--green-light); }
-    .timer-ring-center { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-family:'Playfair Display',serif; font-size:.72em; font-weight:700; color:var(--gold); letter-spacing:.02em; transition:color .6s; }
-    .timer-ring-center.green { color:var(--green); }
-    .timer-body { display:flex; flex-direction:column; gap:2px; flex:1; min-width:0; }
-    .timer-label { font-size:.64em; color:var(--text-dim); letter-spacing:.1em; text-transform:uppercase; font-family:'EB Garamond',serif; }
-    .timer-display { font-family:'Playfair Display',serif; font-size:1.55em; font-weight:700; color:var(--text); letter-spacing:.04em; line-height:1; transition:color .6s; }
-    .timer-display.green { color:var(--green); }
-    .timer-sub-label { font-size:.72em; color:var(--text-muted); font-style:italic; font-family:'EB Garamond',serif; transition:color .4s; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .timer-sub-label.active { color:var(--green); }
-    .timer-milestone-badge { position:absolute; right:12px; bottom:-34px; background:var(--green); color:white; font-size:.72em; padding:4px 12px; border-radius:20px; font-family:'EB Garamond',serif; font-style:italic; opacity:0; pointer-events:none; white-space:nowrap; box-shadow:0 2px 10px rgba(45,122,79,0.35); transition:opacity .4s; z-index:2; }
-    .timer-milestone-badge.show { opacity:1; animation:badge-pop .4s cubic-bezier(0.34,1.56,0.64,1); }
-    @keyframes badge-pop { from{transform:scale(0.7) translateY(4px);opacity:0;} to{transform:scale(1) translateY(0);opacity:1;} }
-    @keyframes pulse-icon { 0%,100%{transform:scale(1);} 50%{transform:scale(1.15);} }
-    
     /* ── THEME MENU ── */
     .theme-container { background:var(--surface); border-radius:10px; padding:16px; border:1px solid var(--border-dim); margin-bottom:20px; display:none; max-height: 320px; overflow-y: auto; box-shadow: inset 0 -10px 10px -10px rgba(0,0,0,0.1);}
     .theme-header { text-align: center; font-weight:bold; font-size:1.1em; color:var(--text); font-family:'Playfair Display',serif; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border-dim);}
@@ -119,6 +98,7 @@
     .speak-btn { background:none; border:none; cursor:pointer; font-size:1em; opacity:.6; transition:opacity .2s,transform .15s; padding:2px 4px; border-radius:6px; }
     .speak-btn:hover { opacity:1; transform:scale(1.2); }
     .speak-btn.speaking { opacity:1; animation:pulse-icon .6s ease-in-out infinite; }
+    @keyframes pulse-icon { 0%,100%{transform:scale(1);} 50%{transform:scale(1.15);} }
     .pronunciation { font-style:italic; color:var(--text-muted); font-size:.9em; }
     .meaning { margin-top:5px; line-height:1.55; font-size:.97em; }
     
@@ -275,23 +255,6 @@
       <span class="theme-pill-chevron">▾</span>
     </div>
 
-    <!-- STUDY TIMER -->
-    <div class="study-timer" id="study-timer" style="display:none">
-      <div class="timer-ring-wrap">
-        <svg viewBox="0 0 52 52" xmlns="http://www.w3.org/2000/svg">
-          <circle class="timer-ring-track" cx="26" cy="26" r="22"/>
-          <circle class="timer-ring-fill" id="timer-ring-fill" cx="26" cy="26" r="22"/>
-        </svg>
-        <div class="timer-ring-center" id="timer-ring-center">0:00</div>
-      </div>
-      <div class="timer-body">
-        <div class="timer-label">Study Time</div>
-        <div class="timer-display" id="timer-display">0:00</div>
-        <div class="timer-sub-label" id="timer-sub-label">Tap each card to reveal a word ✨</div>
-      </div>
-      <div class="timer-milestone-badge" id="milestone-badge"></div>
-    </div>
-
     <div class="theme-container" id="theme-container">
       <div class="theme-header">Select a Learning Theme</div>
       <div id="theme-grid"></div>
@@ -338,7 +301,13 @@
     </div>
   </div>
 
-<script>
+<script type="module">
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm";
+const supabase = createClient(
+  "https://yellow-lab-4999.andrewveda.workers.dev",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoZXpzc29jenZwYmt0ZWZmY2d6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI4NTk1ODUsImV4cCI6MjA3ODQzNTU4NX0.2ZlqXnZxv0opkhynAT7OlK4S-xPygcc7ETUyTXRfGHE"
+);
+
 // ── CONSTANTS ──
 const sheetCSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQsGIvL6Tfe9VMLQxiNtLVflhrTA1GcTKYtouNCqDTHpiA6G7Id3QilvntH5xIICpTrRuQyNGW_ouZi/pub?output=csv";
 const SUPABASE_URL = "https://ahezssoczvpbkteffcgz.supabase.co/functions/v1/logQuest";
@@ -352,9 +321,6 @@ let availableThemes = [];
 let selectedTheme = "";
 let checkedWords = new Set();
 let completionLogged = false;
-let timerInterval = null;
-let timerSeconds = 0;
-let lastMilestone = 0;
 let streakData = { current: 0, best: 0, lastQuizDate: null, completedThemes: [] };
 let quizWords = [];
 let quizQueue = [];
@@ -407,96 +373,6 @@ function markQuizDone(themeName) {
   renderThemeList();
 }
 
-// ── TIMER ──
-const MILESTONES = [
-  { secs:60,  icon:"🌱", label:"1 min — warming up!" },
-  { secs:120, icon:"📖", label:"2 min — nice focus!" },
-  { secs:180, icon:"✨", label:"3 min — words are sticking!" },
-  { secs:300, icon:"🔥", label:"5 min — deep learner!" },
-  { secs:600, icon:"🏆", label:"10 min — champion!" },
-];
-
-const SUBLABELS = [
-  { secs:0,   text:"Tap each card to reveal a word ✨" },
-  { secs:60,  text:"Say each word aloud as you reveal it" },
-  { secs:120, text:"Try to use a word in a sentence" },
-  { secs:180, text:"Visualise each word's meaning" },
-  { secs:300, text:"Excellent depth of study!" },
-  { secs:600, text:"You're truly mastering these words 🏆" },
-];
-
-function formatTimer(secs) { 
-  return `${Math.floor(secs/60)}:${(secs%60).toString().padStart(2,'0')}`; 
-}
-
-function startTimer() {
-  clearInterval(timerInterval); 
-  timerSeconds = 0; 
-  lastMilestone = 0;
-  
-  const display = document.getElementById('timer-display');
-  const sublabel = document.getElementById('timer-sub-label');
-  const badge = document.getElementById('milestone-badge');
-  const ringFill = document.getElementById('timer-ring-fill');
-  const ringCtr = document.getElementById('timer-ring-center');
-  const timerEl = document.getElementById('study-timer');
-  const RING_FULL = 138.2;
-  const RING_CYCLE = 300;
-  
-  timerEl.style.display = 'flex';
-  display.className = 'timer-display'; 
-  ringFill.className = 'timer-ring-fill'; 
-  ringCtr.className = 'timer-ring-center';
-  badge.className = 'timer-milestone-badge'; 
-  sublabel.textContent = SUBLABELS[0].text; 
-  sublabel.className = 'timer-sub-label';
-  display.textContent = '0:00'; 
-  ringCtr.textContent = '0:00'; 
-  ringFill.style.strokeDashoffset = RING_FULL;
-  
-  timerInterval = setInterval(() => {
-    timerSeconds++;
-    const fmt = formatTimer(timerSeconds);
-    display.textContent = fmt; 
-    ringCtr.textContent = fmt;
-    
-    const progress = (timerSeconds % RING_CYCLE) / RING_CYCLE;
-    ringFill.style.strokeDashoffset = RING_FULL * (1 - progress);
-    
-    let lbl = SUBLABELS[0].text;
-    for(const sl of SUBLABELS){ 
-      if(timerSeconds >= sl.secs) lbl = sl.text; 
-    }
-    sublabel.textContent = lbl;
-    
-    for(const m of MILESTONES){
-      if(timerSeconds === m.secs && lastMilestone < m.secs){
-        lastMilestone = m.secs;
-        display.className = 'timer-display green'; 
-        ringFill.className = 'timer-ring-fill green'; 
-        ringCtr.className = 'timer-ring-center green';
-        sublabel.classList.add('active'); 
-        timerEl.classList.add('milestone-glow');
-        badge.textContent = m.label; 
-        badge.className = 'timer-milestone-badge show';
-        
-        setTimeout(() => { 
-          display.className = 'timer-display'; 
-          ringFill.className = 'timer-ring-fill'; 
-          ringCtr.className = 'timer-ring-center'; 
-          sublabel.classList.remove('active'); 
-          timerEl.classList.remove('milestone-glow'); 
-        }, 3000);
-        
-        setTimeout(() => { 
-          badge.className = 'timer-milestone-badge'; 
-        }, 4000);
-        break;
-      }
-    }
-  }, 1000);
-}
-
 // ── TTS ──
 function speak(text, btn) {
   if (!window.speechSynthesis) return;
@@ -541,7 +417,7 @@ async function sendToSupabase(payload) {
   } catch(e){}
 }
 
-function startApp(name, dept) {
+async function startApp(name, dept) {
   playerName = name; 
   playerDept = dept;
   
@@ -559,28 +435,55 @@ function startApp(name, dept) {
   loadStreak(); 
   completionLogged = false;
   
-  fetch(sheetCSV)
-    .then(r => r.text())
-    .then(csvText => {
-      const parsed = Papa.parse(csvText, {header: true});
-      
-      allWords = parsed.data.map(row => ({
-        theme: row["Theme"] ? row["Theme"].trim() : (row["Date"] ? row["Date"].trim() : "Uncategorized"),
-        word: row["Word"] ? row["Word"].trim() : "",
-        pronunciation: row["Pronunciation"] ? row["Pronunciation"].trim() : "",
-        meaning: row["Meaning"] ? row["Meaning"].trim() : ""
-      })).filter(w => w.word);
-      
-      const themeSet = new Set(allWords.map(w => w.theme));
-      availableThemes = Array.from(themeSet);
-      
-      if (availableThemes.length > 0) {
-        selectedTheme = availableThemes[0];
+  try {
+    const csvResponse = await fetch(sheetCSV);
+    const csvText = await csvResponse.text();
+    const parsed = window.Papa.parse(csvText, {header: true});
+    
+    allWords = parsed.data.map(row => ({
+      theme: row["Theme"] ? row["Theme"].trim() : (row["Date"] ? row["Date"].trim() : "Uncategorized"),
+      word: row["Word"] ? row["Word"].trim() : "",
+      pronunciation: row["Pronunciation"] ? row["Pronunciation"].trim() : "",
+      meaning: row["Meaning"] ? row["Meaning"].trim() : ""
+    })).filter(w => w.word);
+    
+    const themeSet = new Set(allWords.map(w => w.theme));
+    availableThemes = Array.from(themeSet);
+    
+    // Fetch mastered themes from Supabase report_card_view
+    try {
+      const { data, error } = await supabase
+        .from('report_card_view')
+        .select('quest_list')
+        .ilike('name', name);
+        
+      if (!error && data && data.length > 0) {
+        data.forEach(row => {
+          const qList = row.quest_list || '';
+          availableThemes.forEach(theme => {
+            if (qList.includes(`Quest VocabTheme_${theme}`)) {
+              if (!streakData.completedThemes.includes(theme)) {
+                streakData.completedThemes.push(theme);
+              }
+            }
+          });
+        });
+        saveStreak();
       }
-      
-      renderThemeList(); 
-      displayWords();
-    });
+    } catch(e) {
+      console.warn("Failed to fetch report_card_view", e);
+    }
+    
+    // Start from a new theme
+    if (availableThemes.length > 0) {
+      selectedTheme = availableThemes.find(t => !streakData.completedThemes.includes(t)) || availableThemes[0];
+    }
+    
+    renderThemeList(); 
+    displayWords();
+  } catch(e) {
+    console.error("Error loading words", e);
+  }
 }
 
 try {
@@ -708,15 +611,12 @@ function displayWords() {
   revealCounter.classList.remove('all-done');
 
   const themeWords = allWords.filter(w => w.theme === selectedTheme);
-  const timerEl = document.getElementById('study-timer');
 
   if (allWords.length === 0 || themeWords.length === 0) {
     wordListDiv.innerHTML = "<p style='color:var(--text-muted);font-style:italic;text-align:center;padding:12px'>Loading themes or no words found…</p>";
     shareSection.style.display = "none"; 
     progressWrap.style.display = "none";
-    timerEl.style.display = "none"; 
     quizLaunchWrap.style.display = "none";
-    clearInterval(timerInterval); 
     return;
   }
 
@@ -727,7 +627,6 @@ function displayWords() {
   revealHint.style.display = 'flex';
   updateRevealCounter(themeWords.length);
   updateCompletionState(themeWords.length);
-  startTimer();
 
   const grid = document.createElement('div');
   grid.className = 'word-cards-grid';
@@ -812,8 +711,8 @@ function updateCompletionState(total) {
       department: playerDept, 
       correct: total, 
       wrong: 0, 
-      time_spent: timerSeconds, 
-      quest_id: `VocabTheme_${selectedTheme}` 
+      time_spent: 0, 
+      quest_id: `Quest VocabTheme_${selectedTheme}` 
     });
   }
 }
@@ -1109,7 +1008,6 @@ async function generateWordsImage(themeWords, themeName){
 
 async function generateCompletionImage(themeWords, themeName){
   await document.fonts.ready;
-  const studyTime = formatTimer(timerSeconds);
   const streak = streakData.current;
   
   const W = 900, OUTER = 40, INNER = 36, GAP = 14, ROW_H = 90;
@@ -1139,7 +1037,7 @@ async function generateCompletionImage(themeWords, themeName){
   
   ctx.fillStyle = "#b6f5a0"; 
   ctx.font = "bold 25px 'Georgia',serif"; 
-  ctx.fillText(`⏱ Studied for ${studyTime}   🔥 ${streak}-day streak`, W/2, OUTER+154);
+  ctx.fillText(`📚 Theme Mastered  🔥 ${streak}-day streak`, W/2, OUTER+154);
   
   const colW = (W - OUTER*2 - INNER*2 - GAP) / 2;
   const gridTop = OUTER + HEADER_H;
@@ -1226,7 +1124,7 @@ async function shareCompletion(){
   if(!completionBtn.classList.contains("active")) return; 
   const themeWords = allWords.filter(w => w.theme === selectedTheme && w.word); 
   const img = await generateCompletionImage(themeWords, selectedTheme); 
-  const text = `🏆 I've conquered all ${themeWords.length} vocabulary words for the theme "${selectedTheme}"!\n⏱ Studied for ${formatTimer(timerSeconds)} · 🔥 ${streakData.current}-day streak\n\n🔗 https://${SHARE_LINK}\n\n_V for Vocabulary by Ms. Roshan Fathima, Department of English_`; 
+  const text = `🏆 I've conquered all ${themeWords.length} vocabulary words for the theme "${selectedTheme}"!\n🔥 ${streakData.current}-day streak\n\n🔗 https://${SHARE_LINK}\n\n_V for Vocabulary by Ms. Roshan Fathima, Department of English_`; 
   shareImageToWhatsApp(img, text); 
 }
 
@@ -1249,6 +1147,19 @@ function goToAdjacentTheme(dir){
 
 document.getElementById("nav-prev-fixed").addEventListener("click", () => goToAdjacentTheme("prev"));
 document.getElementById("nav-next-fixed").addEventListener("click", () => goToAdjacentTheme("next"));
+
+// Expose handlers to window because type="module" limits their scope
+window.closeQuiz = closeQuiz;
+window.launchQuiz = launchQuiz;
+window.masterCheck = masterCheck;
+window.toggleThemeList = toggleThemeList;
+window.speak = speak;
+window.flipCard = flipCard;
+window.fcAnswer = fcAnswer;
+window.mcqAnswer = mcqAnswer;
+window.checkFillIn = checkFillIn;
+window.shareWords = shareWords;
+window.shareCompletion = shareCompletion;
 </script>
 </body>
 </html>

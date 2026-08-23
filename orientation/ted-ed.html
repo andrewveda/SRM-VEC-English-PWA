@@ -508,6 +508,9 @@ const sb = supabase.createClient(
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoZXpzc29jenZwYmt0ZWZmY2d6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI4NTk1ODUsImV4cCI6MjA3ODQzNTU4NX0.2ZlqXnZxv0opkhynAT7OlK4S-xPygcc7ETUyTXRfGHE"
 );
 
+// New worker URL for logging quests
+const EDGE_URL = "https://yellow-lab-4999.andrewveda.workers.dev/functions/v1/logQuest";
+
 let playerName = '', playerDept = '';
 let completedQuestIds = new Set(); // "Quest Video N" strings confirmed done in Supabase, any device
 
@@ -522,8 +525,6 @@ function savePlayer(name, dept) {
   ['userDept','questPlayerDept'].forEach(k => localStorage.setItem(k, dept));
 }
 function isSignedIn() { return !!(playerName && playerDept); }
-
-const SAVE_ENDPOINT = "https://orange-term-57cf.andrewveda.workers.dev/save";
 
 /* ── MODES ──
    tier 1 = casual only, tier 2 = also appears in hard, tier 3 = boss-only.
@@ -1023,12 +1024,14 @@ async function submitScore(test, record, modeKey) {
     quest_id: test.questId,
     time_spent: record.timeTaken,
     correct: correctToSend,
+    wrong: record.total - record.score, // <-- ADDED WRONG COUNT HERE
     total: record.total,
     mode: modeKey
   };
 
   try {
-    const res = await fetch(SAVE_ENDPOINT, {
+    // UPDATED TO USE EDGE_URL
+    const res = await fetch(EDGE_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)

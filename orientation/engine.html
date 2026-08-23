@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="theme-color" content="#3b2f1e" />
+<title>Cloze Quest</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+
+<style>
+  :root{
+    --cream: #f4ecd8;
+    --cream-deep: #e8d9b5;
+    --paper: rgba(255, 255, 240, 0.94);
+    --tan: #d2b48c;
+    --tan-line: #e3d2ac;
+    --ink: #3b2f1e;
+    --ink-soft: #6b4f33;
+    --brown: #8b7355;
+    --brown-deep: #5b442a;
+    --gold: #b3892e;
+    --good: #1f7a34;
+    --bad: #b23a2e;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-left: env(safe-area-inset-left, 0px);
+    --safe-right: env(safe-area-inset-right, 0px);
+    --header-h: 0px;
+    --tray-h: 0px;
+    --tap: 44px;
+  }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    height: 100%;
+    overscroll-behavior: none;
+  }
+
+  body {
+    margin: 0;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: radial-gradient(ellipse at top, var(--cream) 0%, var(--cream-deep) 100%);
+    color: var(--ink);
+    touch-action: manipulation;
+    -webkit-text-size-adjust: 100%;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  input, select { -webkit-user-select: text; user-select: text; touch-action: manipulation; }
+
+  h1, h2, h3, .display {
+    font-family: 'Fraunces', Georgia, serif;
+    color: var(--brown-deep);
+  }
+
+  .screen { display: none; min-height: 100%; }
+  .screen.active { display: block; }
+
+  button { font-family: inherit; -webkit-appearance: none; appearance: none; }
+
+  /* Tap feedback micro-animation, shared by chips/blanks/buttons */
+  .tap-bounce { animation: tapBounce 0.22s ease; }
+  @keyframes tapBounce {
+    0%   { transform: scale(1); }
+    40%  { transform: scale(0.92); }
+    100% { transform: scale(1); }
+  }
+
+  /* =========================== ENTRY SCREEN =========================== */
+  #screen-entry {
+    padding: calc(3rem + var(--safe-top)) 1.25rem calc(2rem + var(--safe-bottom));
+    max-width: 480px;
+    margin: 0 auto;
+    text-align: center;
+  }
+  .org-name { font-size: 1.5rem; font-weight: 700; line-height: 1.25; margin: 0 0 0.15rem; }
+  .org-sub { font-size: 0.95rem; color: var(--ink-soft); font-style: italic; margin: 0 0 0.3rem; }
+  .dept-name { font-size: 1.05rem; color: var(--ink-soft); margin: 0 0 2rem; }
+
+  .field-label {
+    display: block;
+    text-align: left;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--ink-soft);
+    margin: 0 0 0.4rem;
+  }
+  .field-group { margin-bottom: 1.25rem; }
+
+  #nameInput, #deptSelect {
+    display: block;
+    width: 100%;
+    min-height: var(--tap);
+    padding: 0.85rem 1rem;
+    font-size: 1.05rem;
+    font-family: inherit;
+    border-radius: 12px;
+    border: 1.5px solid var(--tan);
+    background: #fffdf6;
+    color: var(--ink);
+  }
+  #nameInput:focus, #deptSelect:focus { outline: 2px solid var(--brown); outline-offset: 1px; }
+
+  .primary-btn {
+    display: block;
+    width: 100%;
+    min-height: 52px;
+    margin-top: 0.5rem;
+    padding: 0.9rem 1.5rem;
+    font-size: 1.05rem;
+    font-weight: 600;
+    background: var(--brown);
+    border: none;
+    border-radius: 14px;
+    color: #fff;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(91,68,42,0.25);
+  }
+  .primary-btn:active { background: var(--brown-deep); }
+  .primary-btn:disabled { opacity: 0.5; }
+
+  .error-text { color: var(--bad); font-size: 0.85rem; margin-top: 0.3rem; text-align: left; min-height: 1.1em; }
+
+  /* =========================== PICKER SCREEN =========================== */
+  #screen-picker {
+    padding: calc(1.75rem + var(--safe-top)) 1.1rem calc(2rem + var(--safe-bottom));
+    max-width: 560px;
+    margin: 0 auto;
+  }
+  .picker-header { text-align: center; margin-bottom: 1.5rem; }
+  .picker-header h2 { font-size: 1.35rem; margin: 0 0 0.25rem; }
+  .picker-header p { color: var(--ink-soft); font-size: 0.9rem; margin: 0; }
+
+  .quest-card {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: var(--paper);
+    border: 1.5px solid var(--tan);
+    border-radius: 16px;
+    padding: 1rem 1.1rem;
+    margin-bottom: 0.85rem;
+    cursor: pointer;
+    min-height: var(--tap);
+  }
+  .quest-card:active { background: var(--cream-deep); }
+  .quest-card .qc-title { font-family: 'Fraunces', serif; font-weight: 600; font-size: 1.1rem; color: var(--brown-deep); margin-bottom: 0.2rem; }
+  .quest-card .qc-sub { font-size: 0.88rem; color: var(--ink-soft); margin-bottom: 0.35rem; }
+  .quest-card .qc-meta { font-size: 0.78rem; color: var(--gold); font-weight: 600; }
+
+  .empty-state { text-align: center; color: var(--ink-soft); padding: 2rem 1rem; font-size: 0.95rem; }
+
+  /* =========================== QUIZ SCREEN =========================== */
+  #screen-quiz { height: 100%; }
+
+  .app-header {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 40;
+    background: var(--paper);
+    border-bottom: 1px solid var(--tan);
+    padding: calc(0.55rem + var(--safe-top)) calc(0.85rem + var(--safe-right)) 0.55rem calc(0.85rem + var(--safe-left));
+    backdrop-filter: blur(6px);
+  }
+  .header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: var(--ink-soft);
+  }
+  .quest-title-mini { font-size: 0.78rem; color: var(--ink-soft); text-align: center; margin-top: 0.15rem; opacity: 0.8; }
+
+  #gemsCounter.gem-pulse { animation: gemPulse 0.35s ease-in-out; }
+  @keyframes gemPulse { 0%,100%{transform:scale(1);} 50%{transform:scale(1.28);} }
+
+  .passage-scroll {
+    position: fixed;
+    top: var(--header-h);
+    bottom: var(--tray-h);
+    left: 0; right: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 1.1rem calc(1.1rem + var(--safe-right)) 1.5rem calc(1.1rem + var(--safe-left));
+    text-align: left;
+    line-height: 1.85;
+    font-size: 1.12rem;
+  }
+
+  .drop-zone {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: var(--tap);
+    min-height: 34px;
+    padding: 0.15rem 0.7rem;
+    margin: 0 0.15rem;
+    border: 1.5px dashed #a1886f;
+    border-radius: 8px;
+    background: #fffdf6;
+    color: var(--ink-soft);
+    font-family: 'Courier New', monospace;
+    font-size: 1.05rem;
+    cursor: pointer;
+    vertical-align: middle;
+  }
+  .drop-zone.filled {
+    border-style: solid;
+    border-color: transparent;
+    background: none;
+    color: var(--good);
+    font-family: 'Inter', sans-serif;
+    font-weight: 700;
+    padding: 0.15rem 0.2rem;
+    min-width: unset;
+    cursor: default;
+  }
+  .drop-zone.wrong { border-color: var(--bad); animation: shake 0.45s ease-in-out; }
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    25% { transform: translateX(-4px); }
+    75% { transform: translateX(4px); }
+  }
+
+  .answer-tray {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    z-index: 40;
+    background: var(--paper);
+    border-top: 1px solid var(--tan);
+    padding: 0.75rem calc(0.85rem + var(--safe-right)) calc(0.75rem + var(--safe-bottom)) calc(0.85rem + var(--safe-left));
+    backdrop-filter: blur(6px);
+  }
+  .tray-hint {
+    text-align: center;
+    font-size: 0.78rem;
+    color: var(--ink-soft);
+    margin-bottom: 0.5rem;
+  }
+  .tray-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: center;
+  }
+  .drag-item {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: var(--tap);
+    padding: 0.55rem 1rem;
+    font-size: 1rem;
+    font-weight: 500;
+    background: #f7e7c4;
+    border: 1.5px solid var(--tan);
+    border-radius: 12px;
+    cursor: pointer;
+    color: var(--ink);
+  }
+  .drag-item.selected { border-color: var(--brown); background: #f0dba5; box-shadow: 0 0 0 3px rgba(139,115,85,0.18); }
+  .drag-item.used { visibility: hidden; }
+
+  .next-btn {
+    display: block;
+    width: 100%;
+    min-height: var(--tap);
+    margin-top: 0.65rem;
+    padding: 0.75rem;
+    font-size: 1rem;
+    font-weight: 700;
+    background: var(--good);
+    border: none;
+    border-radius: 12px;
+    color: #fff;
+    cursor: pointer;
+  }
+
+  .gem-spark { position: fixed; pointer-events: none; font-size: 1.4rem; z-index: 50; animation: sparkle 0.9s ease-out forwards; }
+  @keyframes sparkle {
+    0% { transform: translate(0,0) scale(1); opacity: 1; }
+    100% { transform: translate(var(--rx,0), -90px) scale(1.5); opacity: 0; }
+  }
+
+  /* =========================== SCORE SCREEN =========================== */
+  #screen-score {
+    padding: calc(2.5rem + var(--safe-top)) 1.25rem calc(2rem + var(--safe-bottom));
+    max-width: 480px;
+    margin: 0 auto;
+    text-align: center;
+  }
+  .score-card {
+    background: var(--paper);
+    border: 1.5px solid var(--tan);
+    border-radius: 18px;
+    padding: 1.5rem 1.25rem;
+    margin-top: 1rem;
+  }
+  .score-card p { margin: 0.45rem 0; font-size: 1rem; }
+  .score-card .score-big { font-size: 1.6rem; font-weight: 700; color: var(--brown-deep); margin: 0.6rem 0; }
+
+  .secondary-btn {
+    display: block;
+    width: 100%;
+    min-height: var(--tap);
+    margin-top: 0.85rem;
+    padding: 0.8rem;
+    font-size: 1rem;
+    font-weight: 600;
+    border-radius: 12px;
+    cursor: pointer;
+    border: 1.5px solid var(--tan);
+    background: #fffdf6;
+    color: var(--ink);
+  }
+  .pdf-btn { background: var(--good); border-color: var(--good); color: #fff; }
+  .restart-btn { background: var(--tan); border-color: var(--tan); color: var(--ink); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .tap-bounce, .gem-pulse, .drop-zone.wrong, .gem-spark { animation: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ======================= SCREEN 1: NAME + DEPARTMENT ======================= -->
+<section id="screen-entry" class="screen active">
+  <h1 class="org-name" id="orgNameEl"></h1>
+  <p class="org-sub" id="orgSubEl"></p>
+  <p class="dept-name" id="deptNameEl"></p>
+
+  <div class="field-group">
+    <label class="field-label" for="nameInput">Your name</label>
+    <input type="text" id="nameInput" placeholder="Enter your name" autocomplete="name" />
+    <div class="error-text" id="nameError"></div>
+  </div>
+
+  <div class="field-group">
+    <label class="field-label" for="deptSelect">Department</label>
+    <select id="deptSelect">
+      <option value="">-- Select Department --</option>
+    </select>
+    <div class="error-text" id="deptError"></div>
+  </div>
+
+  <button class="primary-btn" id="continueBtn">Continue</button>
+</section>
+
+<!-- ======================= SCREEN 2: QUEST PICKER ======================= -->
+<section id="screen-picker" class="screen">
+  <div class="picker-header">
+    <h2>Choose a Quest</h2>
+    <p id="pickerSubtext">Tap a passage to begin</p>
+  </div>
+  <div id="questList"></div>
+</section>
+
+<!-- ======================= SCREEN 3: QUIZ ======================= -->
+<section id="screen-quiz" class="screen">
+  <div class="app-header" id="appHeader">
+    <div class="header-row">
+      <span id="timerEl">⏳ 0s</span>
+      <span id="gemsCounter">💎 0</span>
+      <span id="progressTracker">📍 1 / 1</span>
+    </div>
+    <div class="quest-title-mini" id="questTitleMini"></div>
+  </div>
+
+  <div class="passage-scroll" id="passageScroll"></div>
+
+  <div class="answer-tray" id="answerTray">
+    <div class="tray-hint">Tap a word, then tap a blank</div>
+    <div class="tray-options" id="trayOptions"></div>
+    <button class="next-btn" id="nextPageBtn" style="display:none;">Next page &rarr;</button>
+  </div>
+</section>
+
+<!-- ======================= SCREEN 4: SCORE ======================= -->
+<section id="screen-score" class="screen">
+  <h2>🎉 Quest Complete!</h2>
+  <div class="score-card" id="scoreCard"></div>
+  <button class="secondary-btn pdf-btn" id="downloadPdfBtn">📥 Download PDF Report</button>
+  <button class="secondary-btn restart-btn" id="restartBtn">Start Another Quest</button>
+</section>
+
+<script type="module">
+import { APP_CONFIG, QUESTS } from './cloze-passage.js';
+
+/* --------------------------------------------------------------------- */
+/* SUPABASE (lazy — only loaded if config looks real)                    */
+/* --------------------------------------------------------------------- */
+let supabase = null;
+async function getSupabase() {
+  if (supabase) return supabase;
+  try {
+    const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
+    supabase = createClient(APP_CONFIG.supabase.url, APP_CONFIG.supabase.anonKey);
+    return supabase;
+  } catch (e) {
+    console.warn('Supabase unavailable:', e);
+    return null;
+  }
+}
+
+/* --------------------------------------------------------------------- */
+/* HELPERS                                                               */
+/* --------------------------------------------------------------------- */
+function autoGenerateBlanks(passage, frequency) {
+  const words = passage.trim().split(/(\s+)/);
+  const answers = [];
+  let wordCount = 0;
+  const blanked = words.map(w => {
+    if (w.trim() && ++wordCount % frequency === 0) {
+      answers.push(w.trim().replace(/[.,!?;:"]+$/, ''));
+      return '___';
+    }
+    return w;
+  }).join('');
+  return { passage: blanked, answers };
+}
+
+function el(id) { return document.getElementById(id); }
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  el(id).classList.add('active');
+  window.scrollTo(0, 0);
+}
+function bounce(node) {
+  node.classList.remove('tap-bounce');
+  void node.offsetWidth;
+  node.classList.add('tap-bounce');
+}
+
+/* --------------------------------------------------------------------- */
+/* STATE                                                                 */
+/* --------------------------------------------------------------------- */
+let playerName = '';
+let playerDept = '';
+let activeQuest = null;
+
+let quizPages = [];
+let wrongPages = [];
+let current = 0;
+let correctCount = 0;
+let totalWrongGuesses = 0;
+let gemsCount = 0;
+let startTime;
+let timerInterval;
+let selectedChip = null;
+let totalQuestionsInQuiz = 0;
+
+/* --------------------------------------------------------------------- */
+/* SCREEN 1: ENTRY                                                       */
+/* --------------------------------------------------------------------- */
+el('orgNameEl').textContent = APP_CONFIG.orgName;
+el('orgSubEl').textContent = APP_CONFIG.orgSubtitle;
+el('deptNameEl').textContent = APP_CONFIG.deptName;
+
+const deptSelect = el('deptSelect');
+APP_CONFIG.departments.forEach(d => {
+  const opt = document.createElement('option');
+  opt.value = d; opt.textContent = d;
+  deptSelect.appendChild(opt);
+});
+
+(function autoFill() {
+  try {
+    const n = localStorage.getItem('cloze_playerName');
+    const d = localStorage.getItem('cloze_playerDept');
+    if (n) el('nameInput').value = n;
+    if (d) deptSelect.value = d;
+  } catch (e) {}
+})();
+
+el('continueBtn').addEventListener('click', () => {
+  const name = el('nameInput').value.trim();
+  const dept = deptSelect.value;
+  el('nameError').textContent = '';
+  el('deptError').textContent = '';
+
+  let ok = true;
+  if (!name) { el('nameError').textContent = 'Please enter your name.'; ok = false; }
+  if (!dept) { el('deptError').textContent = 'Please select a department.'; ok = false; }
+  if (!ok) return;
+
+  playerName = name;
+  playerDept = dept;
+  try {
+    localStorage.setItem('cloze_playerName', playerName);
+    localStorage.setItem('cloze_playerDept', playerDept);
+  } catch (e) {}
+
+  renderPicker();
+  showScreen('screen-picker');
+});
+
+/* --------------------------------------------------------------------- */
+/* SCREEN 2: QUEST PICKER                                                */
+/* --------------------------------------------------------------------- */
+function renderPicker() {
+  const list = el('questList');
+  list.innerHTML = '';
+
+  const visible = QUESTS
+    .filter(q => !q.deptList || q.deptList.includes(playerDept))
+    .slice()
+    .reverse(); // newest (last in array) first
+
+  if (visible.length === 0) {
+    list.innerHTML = `<div class="empty-state">No quests are available for ${playerDept} yet. Check back soon.</div>`;
+    return;
+  }
+
+  el('pickerSubtext').textContent = `${visible.length} quest${visible.length > 1 ? 's' : ''} available for ${playerDept}`;
+
+  visible.forEach(q => {
+    const card = document.createElement('button');
+    card.className = 'quest-card';
+    card.innerHTML = `
+      <div class="qc-title">${q.title}</div>
+      <div class="qc-sub">${q.subheading || ''}</div>
+      <div class="qc-meta">${q.date || ''}${q.author ? ' · ' + q.author : ''}</div>
+    `;
+    card.addEventListener('click', () => {
+      bounce(card);
+      activeQuest = q;
+      setTimeout(() => startQuiz(q), 120);
+    });
+    list.appendChild(card);
+  });
+}
+
+/* --------------------------------------------------------------------- */
+/* SCREEN 3: QUIZ                                                        */
+/* --------------------------------------------------------------------- */
+const passageScroll = el('passageScroll');
+const trayOptions = el('trayOptions');
+const nextPageBtn = el('nextPageBtn');
+const timerEl = el('timerEl');
+const gemsCounterEl = el('gemsCounter');
+const progressTracker = el('progressTracker');
+const appHeader = el('appHeader');
+const answerTray = el('answerTray');
+
+function syncLayoutVars() {
+  document.documentElement.style.setProperty('--header-h', appHeader.offsetHeight + 'px');
+  document.documentElement.style.setProperty('--tray-h', answerTray.offsetHeight + 'px');
+}
+window.addEventListener('resize', syncLayoutVars);
+window.addEventListener('orientationchange', () => setTimeout(syncLayoutVars, 150));
+
+function startQuiz(quest) {
+  const blanksPerPage = quest.blanksPerPage || APP_CONFIG.defaultBlanksPerPage;
+  const frequency = quest.blankFrequency || APP_CONFIG.defaultBlankFrequency;
+  const { passage, answers } = autoGenerateBlanks(quest.passage, frequency);
+
+  quizPages = [];
+  wrongPages = [];
+  const totalPages = Math.max(1, Math.ceil(answers.length / blanksPerPage));
+  for (let i = 0; i < totalPages; i++) {
+    quizPages.push({ passage, answers, pageIndex: i, blanksPerPage });
+  }
+
+  current = 0;
+  correctCount = 0;
+  totalWrongGuesses = 0;
+  gemsCount = 0;
+  totalQuestionsInQuiz = quizPages.length;
+  startTime = Date.now();
+
+  el('questTitleMini').textContent = quest.title;
+  gemsCounterEl.textContent = '💎 0';
+
+  showScreen('screen-quiz');
+  loadPage();
+  startTimer();
+  requestAnimationFrame(syncLayoutVars);
+}
+
+function updateProgress() {
+  progressTracker.textContent = `📍 ${current + 1} / ${totalQuestionsInQuiz}`;
+}
+
+function loadPage() {
+  if (current >= quizPages.length) return finishQuiz();
+
+  selectedChip = null;
+  const page = quizPages[current];
+  updateProgress();
+
+  trayOptions.innerHTML = '';
+  passageScroll.innerHTML = '';
+  nextPageBtn.style.display = 'none';
+
+  const s = page.pageIndex * page.blanksPerPage;
+  const e = s + page.blanksPerPage;
+  const answers = page.answers.slice(s, e);
+  const parts = page.passage.split('___').slice(s, e + 1);
+
+  const shuffled = [...answers].sort(() => Math.random() - 0.5);
+  shuffled.forEach(ans => {
+    const chip = document.createElement('div');
+    chip.className = 'drag-item';
+    chip.textContent = ans;
+    chip.addEventListener('click', () => selectChip(chip));
+    trayOptions.appendChild(chip);
+  });
+
+  if (s > 0) passageScroll.appendChild(document.createTextNode('… '));
+  parts.forEach((part, i) => {
+    passageScroll.appendChild(document.createTextNode(part));
+    if (i < answers.length) {
+      const btn = document.createElement('button');
+      btn.className = 'drop-zone';
+      btn.textContent = '___';
+      btn.dataset.answer = answers[i];
+      btn.addEventListener('click', () => placeChip(btn));
+      passageScroll.appendChild(btn);
+      passageScroll.appendChild(document.createTextNode(' '));
+    }
+  });
+  if (e < page.answers.length) passageScroll.appendChild(document.createTextNode(' …'));
+
+  requestAnimationFrame(syncLayoutVars);
+}
+
+function selectChip(chip) {
+  if (chip.classList.contains('used')) return;
+  if (selectedChip) selectedChip.classList.remove('selected');
+  selectedChip = chip;
+  chip.classList.add('selected');
+  bounce(chip);
+}
+
+function placeChip(dz) {
+  if (!selectedChip || dz.classList.contains('filled')) return;
+
+  const ans = selectedChip.textContent;
+  const correct = dz.dataset.answer;
+
+  if (ans === correct) {
+    correctCount++;
+    gemsCount++;
+    gemsCounterEl.textContent = `💎 ${gemsCount}`;
+    gemsCounterEl.classList.add('gem-pulse');
+    setTimeout(() => gemsCounterEl.classList.remove('gem-pulse'), 350);
+
+    sparkle(dz);
+    dz.textContent = ans;
+    dz.classList.add('filled');
+    dz.disabled = true;
+    selectedChip.classList.add('used');
+  } else {
+    totalWrongGuesses++;
+    gemsCount = Math.max(0, gemsCount - 1);
+    gemsCounterEl.textContent = `💎 ${gemsCount}`;
+    dz.classList.add('wrong');
+    setTimeout(() => dz.classList.remove('wrong'), 500);
+
+    const page = quizPages[current];
+    if (!wrongPages.includes(page)) {
+      wrongPages.push(page);
+      totalQuestionsInQuiz++;
+      updateProgress();
+    }
+  }
+
+  if (selectedChip) { selectedChip.classList.remove('selected'); selectedChip = null; }
+
+  if (!passageScroll.querySelector('.drop-zone:not(.filled)')) {
+    nextPageBtn.style.display = 'block';
+    requestAnimationFrame(syncLayoutVars);
+  }
+}
+
+function sparkle(target) {
+  const rect = target.getBoundingClientRect();
+  for (let i = 0; i < 6; i++) {
+    const s = document.createElement('div');
+    s.className = 'gem-spark';
+    s.textContent = ['💎','✨','⭐'][Math.floor(Math.random()*3)];
+    s.style.left = (rect.left + rect.width/2) + 'px';
+    s.style.top = (rect.top + rect.height/2) + 'px';
+    s.style.setProperty('--rx', ((Math.random()-0.5)*80) + 'px');
+    document.body.appendChild(s);
+    setTimeout(() => s.remove(), 900);
+  }
+}
+
+nextPageBtn.addEventListener('click', () => {
+  current++;
+  if (current >= quizPages.length && wrongPages.length > 0) {
+    quizPages.push(...wrongPages);
+    wrongPages = [];
+  }
+  loadPage();
+});
+
+function startTimer() {
+  clearInterval(timerInterval);
+  timerInterval = setInterval(() => {
+    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+    timerEl.textContent = `⏳ ${elapsed}s`;
+  }, 1000);
+}
+
+/* --------------------------------------------------------------------- */
+/* SCREEN 4: SCORE                                                       */
+/* --------------------------------------------------------------------- */
+async function finishQuiz() {
+  clearInterval(timerInterval);
+  const totalTime = Math.floor((Date.now() - startTime) / 1000);
+
+  const flawless = totalWrongGuesses === 0;
+  el('scoreCard').innerHTML = `
+    <p>👤 <strong>${playerName}</strong> (${playerDept})</p>
+    <p style="color:var(--ink-soft); font-size:0.9rem;">${activeQuest.title}</p>
+    <div class="score-big">${flawless ? '✅ Flawless run!' : `✅ ${correctCount} correct`}</div>
+    ${flawless ? '' : `<p>❌ Wrong attempts: ${totalWrongGuesses}</p>`}
+    <p>💎 Gems earned: ${gemsCount}</p>
+    <p>⏱️ Time: ${totalTime}s</p>
+  `;
+
+  showScreen('screen-score');
+
+  try {
+    const sb = await getSupabase();
+    if (sb) {
+      const { error } = await sb.from(APP_CONFIG.supabase.table).insert([{
+        student_name: playerName,
+        department: playerDept,
+        correct: correctCount,
+        wrong: totalWrongGuesses,
+        time_spent: totalTime,
+        quest_id: activeQuest.questId,
+      }]);
+      if (error) console.error('Supabase insert error:', error);
+    }
+  } catch (err) {
+    console.error('Error saving quest result:', err);
+  }
+
+  el('downloadPdfBtn').onclick = () => downloadPDF(totalTime);
+}
+
+function downloadPDF(totalTime) {
+  if (!window.jspdf || !window.jspdf.jsPDF) { alert('PDF library not loaded yet — try again in a moment.'); return; }
+  const doc = new window.jspdf.jsPDF({ unit: 'mm', format: 'a4' });
+  if (typeof doc.autoTable !== 'function') { alert('PDF table plugin not loaded.'); return; }
+
+  const pageHeight = doc.internal.pageSize.height;
+  const marginLeft = 20;
+  const usableWidth = 170;
+  const topMargin = 20;
+  const bottomSafe = 30;
+  const reportDate = new Date().toLocaleString();
+
+  doc.setFillColor(25, 25, 60);
+  doc.rect(0, 0, 210, 45, 'F');
+  doc.setTextColor(255,255,255);
+  doc.setFont('times','bold'); doc.setFontSize(16);
+  doc.text(APP_CONFIG.orgName, 105, 16, { align: 'center' });
+  doc.setFontSize(11); doc.setFont('times','italic');
+  doc.text(APP_CONFIG.orgSubtitle, 105, 23, { align: 'center' });
+  doc.setFontSize(13); doc.setFont('times','normal');
+  doc.text(APP_CONFIG.deptName, 105, 31, { align: 'center' });
+  doc.setFontSize(13); doc.setFont('times','bold'); doc.setTextColor(212,175,55);
+  doc.text(`${activeQuest.questId} — Performance Report`, 105, 39, { align: 'center' });
+
+  doc.setTextColor(0,0,0); doc.setFontSize(11);
+  doc.text('CANDIDATE INFORMATION', marginLeft, 55);
+  doc.autoTable({
+    startY: 58,
+    body: [
+      ['Student Name', playerName],
+      ['Department', playerDept],
+      ['Quest', activeQuest.title],
+      ['Quest ID', activeQuest.questId],
+      ['Completed On', reportDate],
+    ],
+    theme: 'plain',
+    styles: { fontSize: 10, font: 'times', cellPadding: 3 },
+    columnStyles: { 0: { fontStyle: 'bold', cellWidth: 60, textColor: [70,70,70] }, 1: { cellWidth: 120 } },
+    margin: { left: marginLeft, right: marginLeft },
+  });
+
+  let y = doc.lastAutoTable.finalY + 10;
+  if (y > pageHeight - bottomSafe) { doc.addPage(); y = topMargin; }
+  doc.setFont('times','bold'); doc.setFontSize(11);
+  doc.text('PERFORMANCE SUMMARY', marginLeft, y); y += 6;
+  doc.autoTable({
+    startY: y,
+    body: [
+      ['Total Pages', String(quizPages.length)],
+      ['Correct Answers (Total)', String(correctCount)],
+      ['Wrong Attempts (Total)', String(totalWrongGuesses)],
+      ['Gems Earned', String(gemsCount)],
+      ['Total Time', `${Math.floor(totalTime/60)}m ${totalTime%60}s`],
+    ],
+    theme: 'grid',
+    styles: { fontSize: 10, font: 'times', cellPadding: 3 },
+    margin: { left: marginLeft, right: marginLeft },
+  });
+  y = doc.lastAutoTable.finalY + 12;
+
+  if (y > pageHeight - bottomSafe) { doc.addPage(); y = topMargin; }
+  doc.setFont('times','bold'); doc.setFontSize(11);
+  doc.text('PASSAGE WITH ANSWER KEY', marginLeft, y); y += 8;
+
+  let filled = activeQuest.passage;
+  const { answers } = autoGenerateBlanks(activeQuest.passage, activeQuest.blankFrequency || APP_CONFIG.defaultBlankFrequency);
+  const blanked = autoGenerateBlanks(activeQuest.passage, activeQuest.blankFrequency || APP_CONFIG.defaultBlankFrequency).passage;
+  let withKeys = blanked;
+  answers.forEach(a => { withKeys = withKeys.replace('___', ` [${a}] `); });
+
+  doc.setFont('times','normal'); doc.setFontSize(10); doc.setLineHeightFactor(1.15);
+  const lines = doc.splitTextToSize(withKeys.trim(), usableWidth);
+  const lineHeight = doc.getFontSize() * 1.15;
+  const blockHeight = lines.length * lineHeight + 10;
+  if (y + blockHeight > pageHeight - bottomSafe) { doc.addPage(); y = topMargin; }
+  doc.setTextColor(0,0,0);
+  doc.text(lines, marginLeft, y);
+  y += lines.length * lineHeight + 6;
+
+  const totalPages = doc.getNumberOfPages();
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i);
+    doc.setFontSize(8); doc.setTextColor(128,128,128); doc.setFont('times','italic');
+    doc.text(`Page ${i} of ${totalPages}`, 105, pageHeight - 10, { align: 'center' });
+  }
+
+  const cleanName = playerName.replace(/[^a-zA-Z0-9]/g, '_');
+  const cleanQuest = activeQuest.questId.replace(/[^a-zA-Z0-9]/g, '_');
+  doc.save(`${cleanName}_${cleanQuest}_Report.pdf`);
+}
+
+el('restartBtn').addEventListener('click', () => {
+  activeQuest = null;
+  showScreen('screen-picker');
+  renderPicker();
+});
+</script>
+</body>
+</html>

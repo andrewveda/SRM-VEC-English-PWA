@@ -143,6 +143,7 @@
   .picker-header p { color: var(--ink-soft); font-size: 0.9rem; margin: 0; }
 
   .quest-card {
+    position: relative;
     display: block;
     width: 100%;
     text-align: left;
@@ -153,6 +154,18 @@
     margin-bottom: 0.85rem;
     cursor: pointer;
     min-height: var(--tap);
+  }
+  .quest-card.is-done { border-color: var(--good); }
+  .done-badge {
+    position: absolute;
+    top: 0.7rem;
+    right: 0.8rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #fff;
+    background: var(--good);
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
   }
   .quest-card:active { background: var(--cream-deep); }
   .quest-card .qc-title { font-family: 'Fraunces', serif; font-weight: 600; font-size: 1.1rem; color: var(--brown-deep); margin-bottom: 0.2rem; }
@@ -197,6 +210,21 @@
     text-align: left;
     line-height: 1.85;
     font-size: 1.12rem;
+  }
+
+  .review-note {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--gold);
+    margin-bottom: 0.9rem;
+  }
+  .review-item {
+    background: var(--paper);
+    border: 1px solid var(--tan-line);
+    border-radius: 12px;
+    padding: 0.75rem 0.9rem;
+    margin-bottom: 0.7rem;
+    line-height: 1.7;
   }
 
   .drop-zone {
@@ -380,7 +408,7 @@
   <div class="passage-scroll" id="passageScroll"></div>
 
   <div class="answer-tray" id="answerTray">
-    <div class="tray-hint">Tap a word, then tap a blank</div>
+    <div class="tray-hint" id="trayHint">Tap a word, then tap a blank</div>
     <div class="tray-options" id="trayOptions"></div>
     <button class="next-btn" id="nextPageBtn" style="display:none;">Next page &rarr;</button>
   </div>
@@ -449,8 +477,11 @@ let playerName = '';
 let playerDept = '';
 let activeQuest = null;
 
-let quizPages = [];
-let wrongPages = [];
+let quizPages = [];        // { type: 'normal', start, end } | { type: 'review', indices: [...] }
+let wrongIndices = new Set(); // global blank indices missed in the current round
+let fullAnswers = [];      // every answer in the passage, in order
+let fullParts = [];        // text segments between blanks (length = fullAnswers.length + 1)
+let blanksPerPage = 4;
 let current = 0;
 let correctCount = 0;
 let totalWrongGuesses = 0;
@@ -458,7 +489,6 @@ let gemsCount = 0;
 let startTime;
 let timerInterval;
 let selectedChip = null;
-let totalQuestionsInQuiz = 0;
 
 /* --------------------------------------------------------------------- */
 /* SCREEN 1: ENTRY                                                       */
@@ -508,6 +538,22 @@ el('continueBtn').addEventListener('click', () => {
 /* --------------------------------------------------------------------- */
 /* SCREEN 2: QUEST PICKER                                                */
 /* --------------------------------------------------------------------- */
+function completedStorageKey() {
+  return `cloze_completed_${playerName.trim().toLowerCase()}_${playerDept}`;
+}
+function getCompletedQuests() {
+  try {
+    return new Set(JSON.parse(localStorage.getItem(completedStorageKey()) || '[]'));
+  } catch (e) { return new Set(); }
+}
+function markQuestCompleted(questId) {
+  try {
+    const set = getCompletedQuests();
+    set.add(questId);
+    localStorage.setItem(completedStorageKey(), JSON.stringify(Array.from(set)));
+  } catch (e) {}
+}
+
 function renderPicker() {
   const list = el('questList');
   list.innerHTML = '';
@@ -524,13 +570,17 @@ function renderPicker() {
 
   el('pickerSubtext').textContent = `${visible.length} quest${visible.length > 1 ? 's' : ''} available for ${playerDept}`;
 
+  const completed = getCompletedQuests();
+
   visible.forEach(q => {
+    const isDone = completed.has(q.questId);
     const card = document.createElement('button');
-    card.className = 'quest-card';
+    card.className = 'quest-card' + (isDone ? ' is-done' : '');
     card.innerHTML = `
+      ${isDone ? '<div class="done-badge">✓ Completed</div>' : ''}
       <div class="qc-title">${q.title}</div>
       <div class="qc-sub">${q.subheading || ''}</div>
-      <div class="qc-meta">${q.date || ''}${q.author ? ' · ' + q.author : ''}</div>
+      <div class="qc-meta">${q.date || ''}${q.author ? ' · ' + q.author : ''}${isDone ? ' · Tap to retake' : ''}</div>
     `;
     card.addEventListener('click', () => {
       bounce(card);
@@ -561,22 +611,26 @@ window.addEventListener('resize', syncLayoutVars);
 window.addEventListener('orientationchange', () => setTimeout(syncLayoutVars, 150));
 
 function startQuiz(quest) {
-  const blanksPerPage = quest.blanksPerPage || APP_CONFIG.defaultBlanksPerPage;
+  blanksPerPage = quest.blanksPerPage || APP_CONFIG.defaultBlanksPerPage;
   const frequency = quest.blankFrequency || APP_CONFIG.defaultBlankFrequency;
   const { passage, answers } = autoGenerateBlanks(quest.passage, frequency);
 
+  fullAnswers = answers;
+  fullParts = passage.split('___');
+
   quizPages = [];
-  wrongPages = [];
-  const totalPages = Math.max(1, Math.ceil(answers.length / blanksPerPage));
+  wrongIndices = new Set();
+  const totalPages = Math.max(1, Math.ceil(fullAnswers.length / blanksPerPage));
   for (let i = 0; i < totalPages; i++) {
-    quizPages.push({ passage, answers, pageIndex: i, blanksPerPage });
+    const start = i * blanksPerPage;
+    const end = Math.min(start + blanksPerPage, fullAnswers.length);
+    quizPages.push({ type: 'normal', start, end });
   }
 
   current = 0;
   correctCount = 0;
   totalWrongGuesses = 0;
   gemsCount = 0;
-  totalQuestionsInQuiz = quizPages.length;
   startTime = Date.now();
 
   el('questTitleMini').textContent = quest.title;
@@ -589,7 +643,58 @@ function startQuiz(quest) {
 }
 
 function updateProgress() {
-  progressTracker.textContent = `📍 ${current + 1} / ${totalQuestionsInQuiz}`;
+  progressTracker.textContent = `📍 ${current + 1} / ${quizPages.length}`;
+}
+
+/* Trim a text block to its last/first N words, for compact review snippets */
+function trimWords(text, n, fromEnd) {
+  const words = text.trim().split(/\s+/).filter(Boolean);
+  if (words.length <= n) return words.join(' ');
+  return fromEnd ? words.slice(-n).join(' ') : words.slice(0, n).join(' ');
+}
+
+function makeDropZone(globalIndex) {
+  const btn = document.createElement('button');
+  btn.className = 'drop-zone';
+  btn.textContent = '___';
+  btn.dataset.answer = fullAnswers[globalIndex];
+  btn.dataset.globalIndex = String(globalIndex);
+  btn.addEventListener('click', () => placeChip(btn));
+  return btn;
+}
+
+/* Renders a contiguous slice of the original passage: text, blank, text, blank... */
+function renderNormalPage(page) {
+  const { start, end } = page;
+  if (start > 0) passageScroll.appendChild(document.createTextNode('… '));
+  for (let i = start; i < end; i++) {
+    passageScroll.appendChild(document.createTextNode(fullParts[i]));
+    passageScroll.appendChild(makeDropZone(i));
+    passageScroll.appendChild(document.createTextNode(' '));
+  }
+  passageScroll.appendChild(document.createTextNode(fullParts[end]));
+  if (end < fullAnswers.length) passageScroll.appendChild(document.createTextNode(' …'));
+  return Array.from({ length: end - start }, (_, k) => start + k);
+}
+
+/* Renders only the specific blanks the student missed, each with a short
+   surrounding snippet, instead of replaying the whole original page. */
+function renderReviewPage(page) {
+  const note = document.createElement('div');
+  note.className = 'review-note';
+  note.textContent = '🔁 Let\u2019s fix what you missed:';
+  passageScroll.appendChild(note);
+
+  page.indices.forEach(idx => {
+    const item = document.createElement('div');
+    item.className = 'review-item';
+    item.appendChild(document.createTextNode('… ' + trimWords(fullParts[idx], 10, true) + ' '));
+    item.appendChild(makeDropZone(idx));
+    item.appendChild(document.createTextNode(' ' + trimWords(fullParts[idx + 1], 10, false) + ' …'));
+    passageScroll.appendChild(item);
+  });
+
+  return page.indices.slice();
 }
 
 function loadPage() {
@@ -602,35 +707,20 @@ function loadPage() {
   trayOptions.innerHTML = '';
   passageScroll.innerHTML = '';
   nextPageBtn.style.display = 'none';
+  el('trayHint').textContent = page.type === 'review'
+    ? 'Tap a word, then tap the blank to fix it'
+    : 'Tap a word, then tap a blank';
 
-  const s = page.pageIndex * page.blanksPerPage;
-  const e = s + page.blanksPerPage;
-  const answers = page.answers.slice(s, e);
-  const parts = page.passage.split('___').slice(s, e + 1);
+  const indices = page.type === 'review' ? renderReviewPage(page) : renderNormalPage(page);
 
-  const shuffled = [...answers].sort(() => Math.random() - 0.5);
-  shuffled.forEach(ans => {
+  const shuffled = [...indices].sort(() => Math.random() - 0.5);
+  shuffled.forEach(idx => {
     const chip = document.createElement('div');
     chip.className = 'drag-item';
-    chip.textContent = ans;
+    chip.textContent = fullAnswers[idx];
     chip.addEventListener('click', () => selectChip(chip));
     trayOptions.appendChild(chip);
   });
-
-  if (s > 0) passageScroll.appendChild(document.createTextNode('… '));
-  parts.forEach((part, i) => {
-    passageScroll.appendChild(document.createTextNode(part));
-    if (i < answers.length) {
-      const btn = document.createElement('button');
-      btn.className = 'drop-zone';
-      btn.textContent = '___';
-      btn.dataset.answer = answers[i];
-      btn.addEventListener('click', () => placeChip(btn));
-      passageScroll.appendChild(btn);
-      passageScroll.appendChild(document.createTextNode(' '));
-    }
-  });
-  if (e < page.answers.length) passageScroll.appendChild(document.createTextNode(' …'));
 
   requestAnimationFrame(syncLayoutVars);
 }
@@ -668,12 +758,7 @@ function placeChip(dz) {
     dz.classList.add('wrong');
     setTimeout(() => dz.classList.remove('wrong'), 500);
 
-    const page = quizPages[current];
-    if (!wrongPages.includes(page)) {
-      wrongPages.push(page);
-      totalQuestionsInQuiz++;
-      updateProgress();
-    }
+    wrongIndices.add(Number(dz.dataset.globalIndex));
   }
 
   if (selectedChip) { selectedChip.classList.remove('selected'); selectedChip = null; }
@@ -700,9 +785,12 @@ function sparkle(target) {
 
 nextPageBtn.addEventListener('click', () => {
   current++;
-  if (current >= quizPages.length && wrongPages.length > 0) {
-    quizPages.push(...wrongPages);
-    wrongPages = [];
+  if (current >= quizPages.length && wrongIndices.size > 0) {
+    const missed = Array.from(wrongIndices).sort((a, b) => a - b);
+    wrongIndices = new Set();
+    for (let i = 0; i < missed.length; i += blanksPerPage) {
+      quizPages.push({ type: 'review', indices: missed.slice(i, i + blanksPerPage) });
+    }
   }
   loadPage();
 });
@@ -733,6 +821,7 @@ async function finishQuiz() {
   `;
 
   showScreen('screen-score');
+  markQuestCompleted(activeQuest.questId);
 
   try {
     const sb = await getSupabase();

@@ -607,5 +607,37 @@ const TESTS = [
       { at: 450, tier: 3, q: "Over time, what do the tools taught in cognitive behavioral therapy ultimately improve?", options: ["One's overall mental health", "Physical athletic performance", "Vocabulary size", "Mathematical speed"], correct: 0 },
       { at: 485, tier: 1, q: "What comforting concluding advice does the narrator give about your inner voice?", options: ["Try to silence it completely", "Remember to be kind—it's a partner you'll be talking to for many years", "Share every thought with a friend", "Ignore it whenever it feels negative"], correct: 1 }
     ]
-  }
+  },
+{
+  id: "vast-the-show-must-go-on", questId: "Quest Video 24", category: "Songs", difficulty: "Intermediate",
+  title: "Queen - The Show Must Go On (Lyrics)", youtubeId: "uKLMYZlbIb8", durationHint: 230,
+  description: "A lyric video by Vast for Queen's powerful anthem 'The Show Must Go On'.",
+  questions: [
+    { at: 0,   tier: 1, q: "What are we living _____?", options: ["for", "with", "on", "through"], correct: 0 },
+    { at: 7,   tier: 1, q: "_____ places", options: ["Empty", "Abandoned", "Forgotten", "Broken"], correct: 1 },
+    { at: 14,  tier: 2, q: "I guess we know the _____", options: ["answer", "score", "reason", "truth"], correct: 1 },
+    { at: 22,  tier: 2, q: "Does anybody know what we are _____ for?", options: ["waiting", "looking", "living", "fighting"], correct: 1 },
+    { at: 31,  tier: 1, q: "Another _____, another mindless crime.", options: ["villain", "hero", "soldier", "leader"], correct: 1 },
+    { at: 39,  tier: 2, q: "Behind the _____", options: ["stage", "curtain", "door", "scenes"], correct: 1 },
+    { at: 47,  tier: 2, q: "In the _____", options: ["pantomime", "theatre", "playhouse", "drama"], correct: 0 },
+    { at: 55,  tier: 3, q: "Does anybody want to take it _____?", options: ["again", "anymore", "further", "away"], correct: 1 },
+    { at: 65,  tier: 1, q: "The show must _____", options: ["begin", "continue", "go on", "end"], correct: 2 },
+    { at: 74,  tier: 2, q: "Inside my heart is _____", options: ["breaking", "crying", "aching", "falling"], correct: 0 },
+    { at: 82,  tier: 2, q: "My make-up may be _____", options: ["fading", "falling", "flaking", "running"], correct: 2 },
+    { at: 90,  tier: 1, q: "But my smile still stays _____", options: ["strong", "on", "bright", "there"], correct: 1 },
+    { at: 101, tier: 2, q: "Whatever happens, I'll leave it all to _____", options: ["fate", "chance", "destiny", "time"], correct: 1 },
+    { at: 110, tier: 2, q: "Another heartache, another failed _____", options: ["dream", "relationship", "romance", "attempt"], correct: 2 },
+    { at: 124, tier: 1, q: "I must be _____ now", options: ["stronger", "warmer", "wiser", "braver"], correct: 1 },
+    { at: 135, tier: 2, q: "I'll soon be turning _____ the corner now", options: ["around", "round", "past", "toward"], correct: 1 },
+    { at: 145, tier: 3, q: "Outside the dawn is _____", options: ["rising", "breaking", "coming", "shining"], correct: 1 },
+    { at: 154, tier: 3, q: "Inside in the dark I'm aching to be _____", options: ["heard", "free", "strong", "alive"], correct: 1 },
+    { at: 169, tier: 3, q: "My soul is painted like the wings of _____", options: ["birds", "angels", "butterflies", "fairies"], correct: 2 },
+    { at: 181, tier: 3, q: "Fairy tales of yesterday will grow but never _____", options: ["fade", "end", "die", "change"], correct: 2 },
+    { at: 190, tier: 2, q: "I can fly, my _____", options: ["friends", "people", "brothers", "lovers"], correct: 0 },
+    { at: 202, tier: 2, q: "I'll face it with a _____", options: ["smile", "grin", "laugh", "fight"], correct: 1 },
+    { at: 210, tier: 1, q: "I'm never giving _____", options: ["up", "in", "out", "away"], correct: 1 },
+    { at: 217, tier: 2, q: "I'll top the _____", options: ["stage", "bill", "show", "list"], correct: 1 },
+    { at: 224, tier: 3, q: "I have to find the _____ to carry on with the show.", options: ["strength", "courage", "will", "power"], correct: 2 }
+  ]
+}
 ];

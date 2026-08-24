@@ -71,7 +71,10 @@ export const QUESTS = [
     blankFrequency: null, // e.g. 10
 
     passage: `
-Paste your passage text here. Write naturally — the engine automatically
+Paste your passage Who am I without them? Who am I without Marvel and DC? Who am I without the people surrounding me? Who am I without these movies and series?
+
+Beginning with a line from Dead Poets Society, spoken by Robin Williams' character John Keating: “No matter what anyone tells you, words and ideas can change the world.”
+text here. Write naturally — the engine automatically
 picks words to blank out based on blankFrequency above, so you don't need
 to mark anything by hand. Keep paragraphs separated by a blank line, the
 same way this placeholder text is laid out, since the passage keeps its

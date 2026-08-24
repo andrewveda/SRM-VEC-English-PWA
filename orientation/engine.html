@@ -206,7 +206,15 @@
     left: 0; right: 0;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
     padding: 1.1rem calc(1.1rem + var(--safe-right)) 1.5rem calc(1.1rem + var(--safe-left));
+  }
+  .passage-inner {
+    width: 100%;
+    max-width: 640px;
+    margin: 0 auto;
     text-align: left;
     line-height: 1.85;
     font-size: 1.12rem;
@@ -405,7 +413,7 @@
     <div class="quest-title-mini" id="questTitleMini"></div>
   </div>
 
-  <div class="passage-scroll" id="passageScroll"></div>
+  <div class="passage-scroll" id="passageScroll"><div class="passage-inner" id="passageInner"></div></div>
 
   <div class="answer-tray" id="answerTray">
     <div class="tray-hint" id="trayHint">Tap a word, then tap a blank</div>
@@ -595,6 +603,7 @@ function renderPicker() {
 /* SCREEN 3: QUIZ                                                        */
 /* --------------------------------------------------------------------- */
 const passageScroll = el('passageScroll');
+const passageInner = el('passageInner');
 const trayOptions = el('trayOptions');
 const nextPageBtn = el('nextPageBtn');
 const timerEl = el('timerEl');
@@ -666,14 +675,14 @@ function makeDropZone(globalIndex) {
 /* Renders a contiguous slice of the original passage: text, blank, text, blank... */
 function renderNormalPage(page) {
   const { start, end } = page;
-  if (start > 0) passageScroll.appendChild(document.createTextNode('… '));
+  if (start > 0) passageInner.appendChild(document.createTextNode('… '));
   for (let i = start; i < end; i++) {
-    passageScroll.appendChild(document.createTextNode(fullParts[i]));
-    passageScroll.appendChild(makeDropZone(i));
-    passageScroll.appendChild(document.createTextNode(' '));
+    passageInner.appendChild(document.createTextNode(fullParts[i]));
+    passageInner.appendChild(makeDropZone(i));
+    passageInner.appendChild(document.createTextNode(' '));
   }
-  passageScroll.appendChild(document.createTextNode(fullParts[end]));
-  if (end < fullAnswers.length) passageScroll.appendChild(document.createTextNode(' …'));
+  passageInner.appendChild(document.createTextNode(fullParts[end]));
+  if (end < fullAnswers.length) passageInner.appendChild(document.createTextNode(' …'));
   return Array.from({ length: end - start }, (_, k) => start + k);
 }
 
@@ -683,7 +692,7 @@ function renderReviewPage(page) {
   const note = document.createElement('div');
   note.className = 'review-note';
   note.textContent = '🔁 Let\u2019s fix what you missed:';
-  passageScroll.appendChild(note);
+  passageInner.appendChild(note);
 
   page.indices.forEach(idx => {
     const item = document.createElement('div');
@@ -691,7 +700,7 @@ function renderReviewPage(page) {
     item.appendChild(document.createTextNode('… ' + trimWords(fullParts[idx], 10, true) + ' '));
     item.appendChild(makeDropZone(idx));
     item.appendChild(document.createTextNode(' ' + trimWords(fullParts[idx + 1], 10, false) + ' …'));
-    passageScroll.appendChild(item);
+    passageInner.appendChild(item);
   });
 
   return page.indices.slice();
@@ -705,7 +714,7 @@ function loadPage() {
   updateProgress();
 
   trayOptions.innerHTML = '';
-  passageScroll.innerHTML = '';
+  passageInner.innerHTML = '';
   nextPageBtn.style.display = 'none';
   el('trayHint').textContent = page.type === 'review'
     ? 'Tap a word, then tap the blank to fix it'

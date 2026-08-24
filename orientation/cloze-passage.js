@@ -77,7 +77,8 @@ And who am I without some of the beautifully written quotes from movies and by s
 
 “It’s not how well you play that matters, but when you stop. If you lose after winning, the loss will be remembered. But if you win after losing, that victory will be remembered in history, because history only remembers how you finished.” - Venky Atluri
 
-These are just a few quotes that popped into my mind while writing this post. There are countless other beautifully written lines that can change the way we perceive the world and even the way we perceive ourselves.
+These are just a few quotes that popped into my mind while writing this post. There are countless other beautifully written lines that can change the way we perceive the world and even the way we perceive ourselves. 
+Many of my friends think that Marvel, DC, and movies are simply entertainment, and that these are nothing more than fictional characters. To them, it's just a movie or a franchise. To me, it's years of memories, excitement, laughter, heartbreak, and the characters I grew up with. Yes, they are fictional. But the impact they have left on some of our lives never was.
 `
   }
 

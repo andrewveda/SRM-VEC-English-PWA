@@ -277,6 +277,17 @@
     border-top: 1px solid var(--tan);
     padding: 0.75rem calc(0.85rem + var(--safe-right)) calc(0.75rem + var(--safe-bottom)) calc(0.85rem + var(--safe-left));
     backdrop-filter: blur(6px);
+    transition: background 0.15s ease, border-color 0.15s ease;
+  }
+  .answer-tray.tray-done {
+    background: transparent;
+    border-top-color: transparent;
+    backdrop-filter: none;
+    padding-top: 0;
+  }
+  .answer-tray.tray-done .tray-hint,
+  .answer-tray.tray-done .tray-options {
+    display: none;
   }
   .tray-hint {
     text-align: center;
@@ -305,7 +316,7 @@
     color: var(--ink);
   }
   .drag-item.selected { border-color: var(--brown); background: #f0dba5; box-shadow: 0 0 0 3px rgba(139,115,85,0.18); }
-  .drag-item.used { visibility: hidden; }
+  .drag-item.used { display: none; } /* fully removed from layout, not just hidden, so no leftover gap */
 
   .next-btn {
     display: block;
@@ -321,6 +332,7 @@
     color: #fff;
     cursor: pointer;
   }
+  .answer-tray.tray-done .next-btn { margin-top: 0; }
 
   .gem-spark { position: fixed; pointer-events: none; font-size: 1.4rem; z-index: 50; animation: sparkle 0.9s ease-out forwards; }
   @keyframes sparkle {
@@ -745,6 +757,7 @@ function loadPage() {
   trayOptions.innerHTML = '';
   passageInner.innerHTML = '';
   nextPageBtn.style.display = 'none';
+  answerTray.classList.remove('tray-done');
   el('trayHint').textContent = page.type === 'review'
     ? 'Tap a word, then tap the blank to fix it'
     : 'Tap a word, then tap a blank';
@@ -801,7 +814,10 @@ function placeChip(dz) {
 
   if (selectedChip) { selectedChip.classList.remove('selected'); selectedChip = null; }
 
+  requestAnimationFrame(refitLayout);
+
   if (!passageScroll.querySelector('.drop-zone:not(.filled)')) {
+    answerTray.classList.add('tray-done');
     nextPageBtn.style.display = 'block';
     requestAnimationFrame(refitLayout);
   }

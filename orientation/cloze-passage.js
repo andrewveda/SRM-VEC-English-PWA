@@ -19,9 +19,9 @@
 
 export const APP_CONFIG = {
   // --- Branding shown on the name/department entry screen ---
-  orgName: "YOUR COLLEGE NAME HERE",
-  orgSubtitle: "(Autonomous)",
-  deptName: "Department of English",
+  orgName: "Stories and Essays",
+  orgSubtitle: "",
+  deptName: "",
 
   // --- Supabase (used to log completed attempts) ---
   supabase: {
@@ -32,8 +32,8 @@ export const APP_CONFIG = {
   },
 
   // --- Defaults every quest inherits unless it overrides them ---
-  defaultBlanksPerPage: 4, // bite-sized pages for mobile
-  defaultBlankFrequency: 12, // roughly every 12th word becomes a blank
+  defaultBlanksPerPage: 5, // bite-sized pages for mobile
+  defaultBlankFrequency: 9,
 
   // --- Departments offered on the entry screen (per-quest override allowed) ---
   departments: [

@@ -87,6 +87,10 @@
       s.book_list = bookQuests.map(q => BOOK_MAP[q.number]);
       s.books_completed = s.book_list.length;
 
+      // Quotes Integration
+      const quoteQuests = quests.filter(q => q.label.includes("quotes-quest"));
+      s.quotes_completed = quoteQuests.length;
+
       return s;
     });
     
@@ -220,7 +224,8 @@
 
       const metricLabel = ({
         total_score: "SCORE", stories_completed: "STORIES",
-        wordle_completed: "WORDLE", vocab_completed: "VOCAB", books_completed: "BOOKS"
+        wordle_completed: "WORDLE", vocab_completed: "VOCAB", books_completed: "BOOKS",
+        quotes_completed: "QUOTES"
       })[currentSort] || "";
 
       row.innerHTML = `
@@ -317,6 +322,7 @@
       { label: "Wordle", val: sum("wordle_completed"), icon: "🟩" },
       { label: "Vocab", val: sum("vocab_completed"), icon: "📚" },
       { label: "Books", val: sum("books_completed"), icon: "📖" },
+      { label: "Quotes", val: sum("quotes_completed"), icon: "💬" },
     ].sort((a, b) => b.val - a.val);
     const maxMix = Math.max(...mix.map(m => m.val), 1);
 
@@ -413,6 +419,7 @@
       { label: "Wordle", val: s.wordle_completed ?? 0, max: maxAcross("wordle_completed"), icon: "🟩" },
       { label: "Vocab", val: s.vocab_completed ?? 0, max: maxAcross("vocab_completed"), icon: "📚" },
       { label: "Books", val: s.books_completed ?? 0, max: maxAcross("books_completed"), icon: "📖" },
+      { label: "Quotes", val: s.quotes_completed ?? 0, max: maxAcross("quotes_completed"), icon: "💬" },
     ];
 
     content.innerHTML = `
@@ -555,7 +562,7 @@
           <div style="font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:rgba(201,168,76,0.6);">Time on Mission</div>
           <div style="font-size:18px;font-weight:800;color:#e8c97a;">${tH}h ${tM}m ${tS}s</div>
         </div>
-        <div style="display:flex;gap:7px;margin-bottom:20px;">
+        <div style="display:flex;gap:6px;margin-bottom:20px;flex-wrap:wrap;">
           ${[
             {label:"Quests", val: quests.length},
             {label:"Videos", val: videos.length},
@@ -564,8 +571,9 @@
             {label:"Wordle", val: studentObj.wordle_completed ?? 0},
             {label:"Vocab", val: studentObj.vocab_completed ?? 0},
             {label:"Books", val: studentObj.books_completed ?? 0},
+            {label:"Quotes", val: studentObj.quotes_completed ?? 0},
           ].map(a => `
-            <div style="flex:1; min-width:13%; background:${a.val > 0 ? "linear-gradient(135deg,rgba(201,168,76,0.25),rgba(201,168,76,0.12))" : "rgba(255,255,255,0.04)"};border:1px solid ${a.val > 0 ? "rgba(201,168,76,0.5)" : "rgba(255,255,255,0.08)"};border-radius:10px;padding:10px 2px;text-align:center;">
+            <div style="flex:1; min-width:11%; background:${a.val > 0 ? "linear-gradient(135deg,rgba(201,168,76,0.25),rgba(201,168,76,0.12))" : "rgba(255,255,255,0.04)"};border:1px solid ${a.val > 0 ? "rgba(201,168,76,0.5)" : "rgba(255,255,255,0.08)"};border-radius:10px;padding:10px 2px;text-align:center;">
               <div style="font-size:16px;font-weight:800;color:${a.val > 0 ? "#e8c97a" : "rgba(201,168,76,0.3)"};">${a.val}</div>
               <div style="font-size:7px;letter-spacing:0.10em;text-transform:uppercase;color:rgba(201,168,76,0.45);margin-top:3px;">${a.label}</div>
             </div>`).join("")}
@@ -738,19 +746,20 @@
     y += 2 * (cH + GAP) + 4;
 
     const aH = 78;
-    const cW4 = (CW - GAP * 3) / 4;
+    const cW5 = (CW - GAP * 4) / 5;
     [
       { label: "CRYPTIC", val: String(studentObj.cryptic_completed ?? 0), sub: "puzzles solved" },
       { label: "WORDLE", val: String(studentObj.wordle_completed ?? 0), sub: "puzzles solved" },
       { label: "VOCAB", val: String(studentObj.vocab_completed ?? 0), sub: "words mastered" },
       { label: "BOOKS", val: String(studentObj.books_completed ?? 0), sub: "insights read" },
+      { label: "QUOTES", val: String(studentObj.quotes_completed ?? 0), sub: "quotes logged" },
     ].forEach((ac, i) => {
-      const cx2 = M + i * (cW4 + GAP), mid = cx2 + cW4 / 2;
-      rr(cx2, y, cW4, aH, 7, CREAM_DARK, GOLD_LINE, 0.6);
-      fr(cx2 + 1, y + 1, cW4 - 2, 4, GOLD);
-      sf(30, "bold", INK); doc.text(ac.val, mid, y + 42, { align: "center" });
-      sf(8, "bold", GOLD_RICH); doc.text(ac.label, mid, y + 56, { align: "center" });
-      sf(7.5, "normal", INK_DIM); doc.text(ac.sub, mid, y + 68, { align: "center" });
+      const cx2 = M + i * (cW5 + GAP), mid = cx2 + cW5 / 2;
+      rr(cx2, y, cW5, aH, 7, CREAM_DARK, GOLD_LINE, 0.6);
+      fr(cx2 + 1, y + 1, cW5 - 2, 4, GOLD);
+      sf(26, "bold", INK); doc.text(ac.val, mid, y + 42, { align: "center" });
+      sf(7.5, "bold", GOLD_RICH); doc.text(ac.label, mid, y + 56, { align: "center" });
+      sf(7, "normal", INK_DIM); doc.text(ac.sub, mid, y + 68, { align: "center" });
     });
     y += aH + 14;
 
@@ -1012,6 +1021,7 @@
           <button class="sort-btn" data-sort="vocab_completed" onclick="sortData('vocab_completed')">Vocab <span class="sort-indicator"></span></button>
           <button class="sort-btn" data-sort="books_completed" onclick="sortData('books_completed')">Books <span class="sort-indicator"></span></button>
           <button class="sort-btn" data-sort="stories_completed" onclick="sortData('stories_completed')">Stories <span class="sort-indicator"></span></button>
+          <button class="sort-btn" data-sort="quotes_completed" onclick="sortData('quotes_completed')">Quotes <span class="sort-indicator"></span></button>
           <span class="count-pill" id="count-pill"></span>
         </div>
       </div>

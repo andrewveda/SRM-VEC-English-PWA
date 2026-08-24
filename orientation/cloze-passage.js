@@ -1,22 +1,3 @@
-/* =========================================================================
-   cloze-passage.js
-   -------------------------------------------------------------------------
-   This file is DATA ONLY. It holds every cloze quest available to the
-   engine, plus shared app config (branding, Supabase, default blank
-   settings). engine.html never needs to change when you add a new quest —
-   just append a new object to QUESTS below.
-
-   HOW TO ADD A NEW QUEST
-   -----------------------------------------------------------------------
-   1. Copy one of the objects in QUESTS.
-   2. Give it a unique questId (used for Supabase rows + PDF filenames).
-   3. Paste your passage text into `passage`.
-   4. Leave blanksPerPage / blankFrequency as null to use the app defaults,
-      or set numbers to override them for just this quest.
-   5. Save. Reload engine.html — the new quest appears automatically on
-      the picker screen, newest first.
-   ========================================================================= */
-
 export const APP_CONFIG = {
   // --- Branding shown on the name/department entry screen ---
   orgName: "Stories and Essays",
@@ -58,40 +39,12 @@ export const APP_CONFIG = {
 };
 
 export const QUESTS = [
-  {
-    questId: "QUEST-PLACEHOLDER-001",
-    title: "Blog Title Placeholder",
-    subheading: "Subheading placeholder — e.g. a series name or theme",
-    date: "DD Month YYYY",
-    author: "Author name placeholder",
-
-    // Leave null to inherit APP_CONFIG defaults, or override per quest:
-    deptList: null, // e.g. ["CSE-1", "CSE-2"] to restrict this quest
-    blanksPerPage: null, // e.g. 3
-    blankFrequency: null, // e.g. 10
-
-    passage: `
-Paste your passage Who am I without them? Who am I without Marvel and DC? Who am I without the people surrounding me? Who am I without these movies and series?
-
-Beginning with a line from Dead Poets Society, spoken by Robin Williams' character John Keating: “No matter what anyone tells you, words and ideas can change the world.”
-text here. Write naturally — the engine automatically
-picks words to blank out based on blankFrequency above, so you don't need
-to mark anything by hand. Keep paragraphs separated by a blank line, the
-same way this placeholder text is laid out, since the passage keeps its
-paragraph breaks when it's shown to students on the quiz screen.
-
-Add as many paragraphs as you like. When you're ready to publish a real
-quest, replace this whole passage string and update the title, subheading,
-date and author fields above it.
-`,
-  },
-
     {
-    questId: "QUEST-106",
+    questId: "QUEST Story 1",
     title: "The Stories That Shape Us",
     subheading: "On finding our identity through fiction, quotes, and the people around us",
     date: "24 August 2026",
-    author: "Andrew Veda",
+    author: "Barath Chand Pacha",
     deptList: null,
     blanksPerPage: null,
     blankFrequency: null,

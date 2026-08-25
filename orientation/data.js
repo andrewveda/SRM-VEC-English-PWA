@@ -4,7 +4,7 @@
    ══════════════════════════════════════════════════════════════ */
 const QuestDatabase = {
   "Zen_Old_Man": {
-    questID: "Zen 03",
+    questID: "Quest Story 1",
     title: "The Old Man's Horse",
     subtitle: "A Zen parable on judgment, fortune, and perspective.",
     conversation: [
@@ -24,7 +24,7 @@ const QuestDatabase = {
   },
 
   "Zen_Tea_Cup": {
-    questID: "Zen 04",
+    questID: "Quest Story 2",
     title: "The Overflowing Cup",
     subtitle: "A Zen story about emptiness, knowledge, and the mind.",
     conversation: [
@@ -44,7 +44,7 @@ const QuestDatabase = {
   },
 
   "Zen_Muddy_Water": {
-    questID: "Zen 05",
+    questID: "Quest Story 3",
     title: "The Muddy Road",
     subtitle: "A Zen story about attachment, resentment, and letting go.",
     conversation: [
@@ -64,7 +64,7 @@ const QuestDatabase = {
   },
 
   "Zen_Two_Arrows": {
-    questID: "Zen 06",
+    questID: "Quest Story 4",
     title: "The Two Arrows",
     subtitle: "A Buddhist teaching on pain, resistance, and suffering.",
     conversation: [
@@ -84,7 +84,7 @@ const QuestDatabase = {
   },
 
   "Zen_Broken_Statue": {
-    questID: "Zen 07",
+    questID: "Quest Story 5",
     title: "The Broken Statue",
     subtitle: "A Zen story about impermanence, attachment, and what we choose to protect.",
     conversation: [
@@ -104,7 +104,7 @@ const QuestDatabase = {
   },
 
   "Zen_Empty_Boat": {
-    questID: "Zen 08",
+    questID: "Quest Story 6",
     title: "The Empty Boat",
     subtitle: "A Zen story about anger, blame, and the stories we create.",
     conversation: [
@@ -124,7 +124,7 @@ const QuestDatabase = {
   },
 
   "Zen_Moon_In_Water": {
-    questID: "Zen 09",
+    questID: "Quest Story 7",
     title: "The Moon in the Water",
     subtitle: "A Zen story about grasping, illusion, and letting go.",
     conversation: [
@@ -144,7 +144,7 @@ const QuestDatabase = {
   },
 
   "Zen_The_Broken_Bowl": {
-    questID: "Zen 10",
+    questID: "Quest Story 8",
     title: "The Broken Bowl",
     subtitle: "A Zen story about impermanence, attachment, and gratitude.",
     conversation: [
@@ -164,7 +164,7 @@ const QuestDatabase = {
   },
 
   "Mind_Confirmation_Bias": {
-    questID: "Mind 01",
+    questID: "Quest Story 9",
     title: "The Evidence We Choose",
     subtitle: "A psychological story about confirmation bias.",
     conversation: [
@@ -184,7 +184,7 @@ const QuestDatabase = {
   },
 
   "Mind_Sunk_Cost": {
-    questID: "Mind 02",
+    questID: "Quest Story 10",
     title: "The Empty Seat",
     subtitle: "A psychological story about the sunk cost fallacy.",
     conversation: [
@@ -204,7 +204,7 @@ const QuestDatabase = {
   },
 
   "Mind_Dunning_Kruger": {
-    questID: "Mind 03",
+    questID: "Quest Story 11",
     title: "The Loudest Expert",
     subtitle: "A psychological story about confidence, competence, and the Dunning–Kruger effect.",
     conversation: [
@@ -224,7 +224,7 @@ const QuestDatabase = {
   },
 
   "Mind_Cognitive_Dissonance": {
-    questID: "Mind 04",
+    questID: "Quest Story 12",
     title: "The Honest Smoker",
     subtitle: "A psychological story about cognitive dissonance.",
     conversation: [
@@ -244,7 +244,7 @@ const QuestDatabase = {
   },
 
   "Mind_Choice_Paradox": {
-    questID: "Mind 05",
+    questID: "Quest Story 13",
     title: "The Hundred Doors",
     subtitle: "A psychological story about choice, freedom, and decision fatigue.",
     conversation: [
@@ -264,7 +264,7 @@ const QuestDatabase = {
   },
 
   "Mind_Projection": {
-    questID: "Mind 06",
+    questID: "Quest Story 14",
     title: "The Unanswered Message",
     subtitle: "A psychological story about projection, uncertainty, and the stories we invent.",
     conversation: [
@@ -284,7 +284,7 @@ const QuestDatabase = {
   },
 
   "Mind_Anchoring": {
-    questID: "Mind 07",
+    questID: "Quest Story 15",
     title: "The First Number",
     subtitle: "A psychological story about anchoring and the hidden power of first impressions.",
     conversation: [
@@ -304,7 +304,7 @@ const QuestDatabase = {
   },
 
   "Mind_Loss_Aversion": {
-    questID: "Mind 08",
+    questID: "Quest Story 16",
     title: "The Lost Coin",
     subtitle: "A psychological story about loss aversion and the weight of what we already have.",
     conversation: [
@@ -319,12 +319,12 @@ const QuestDatabase = {
       { speaker: 'teacher', emotion: '🔍', text: 'But the loss had already happened. Keeping the investment could not ___ it.', answer: 'reverse' },
       { speaker: 'scholar', emotion: '🌿', text: 'She began asking a different question: "If I did not already own this, would I choose to ___ it today?"', answer: 'buy' },
       { speaker: 'teacher', emotion: '💡', text: 'The question separated the future decision from the emotional weight of the ___ .', answer: 'past' },
-      { speaker: 'scholar', emotion: '✨', text: 'Mira finally understood: what we fear losing can become more valuable than what we could ___ .', answer: 'gain' }
+      { speaker: 'scholar', emotion: '✨', text: 'Mira finally understood that what we fear losing can become more valuable than what we could ___ .', answer: 'gain' }
     ]
   },
 
   "Mind_Attribution_Error": {
-    questID: "Mind 09",
+    questID: "Quest Story 17",
     title: "The Late Student",
     subtitle: "A psychological story about the fundamental attribution error.",
     conversation: [
@@ -344,7 +344,7 @@ const QuestDatabase = {
   },
 
   "Mind_Hedonic_Adaptation": {
-    questID: "Mind 10",
+    questID: "Quest Story 18",
     title: "The New House",
     subtitle: "A psychological story about hedonic adaptation and the fading thrill of possessions.",
     conversation: [
@@ -364,7 +364,7 @@ const QuestDatabase = {
   },
 
   "Mind_The_Town": {
-    questID: "Mind 11",
+    questID: "Quest Story 19",
     title: "The Town",
     subtitle: "A story about perception, projection, and the world we carry with us.",
     conversation: [

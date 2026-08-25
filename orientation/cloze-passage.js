@@ -40,7 +40,7 @@ export const APP_CONFIG = {
 
 export const QUESTS = [
     {
-    questId: "Quest Story 1",
+    questId: "Quest Story 20",
     title: "The Stories That Shape Us",
     subheading: "On finding our identity through fiction, quotes, and the people around us",
     date: "24 August 2026",
@@ -82,7 +82,7 @@ Many of my friends think that Marvel, DC, and movies are simply entertainment, a
 `
   },
     {
-    questId: "Quest Story 2",
+    questId: "Quest Story 21",
     title: "The Remarkable Rocket",
     subheading: "A psychological satire of narcissism",
     date: "24 August 2026",

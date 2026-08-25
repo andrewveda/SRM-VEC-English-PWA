@@ -128,7 +128,7 @@ const QuestDatabase = {
     title: "The Moon in the Water",
     subtitle: "A Zen story about grasping, illusion, and letting go.",
     conversation: [
-      { speaker: 'teacher', emotion: '🌕', text: 'One evening, a young monk saw the full moon shining beautifully in the temple pond.', answer: 'beautifully' },
+      { speaker: 'teacher', emotion: '🌕', text: 'One evening, a young monk saw the full moon shining ___ in the temple pond.', answer: 'beautifully' },
       { speaker: 'scholar', emotion: '🤔', text: 'He leaned over the water and thought, "How fortunate I am to have found such a perfect ___."', answer: 'reflection' },
       { speaker: 'teacher', emotion: '🌊', text: 'Wanting to hold the moon, he reached into the pond. His fingers disturbed the water, and the image began to ___.', answer: 'shatter' },
       { speaker: 'scholar', emotion: '😲', text: 'He quickly withdrew his hand, but the moon had already disappeared from the rippling ___.', answer: 'surface' },
@@ -153,7 +153,7 @@ const QuestDatabase = {
       { speaker: 'teacher', emotion: '😟', text: 'One morning, the bowl slipped from his hands and struck the floor. A long crack appeared across its ___.', answer: 'surface' },
       { speaker: 'scholar', emotion: '💔', text: 'The monk stared at it in silence. He was surprised by how deeply the small accident had ___ him.', answer: 'troubled' },
       { speaker: 'teacher', emotion: '🧘', text: 'His master noticed his distress. "Why are you grieving for a bowl that has already given you so much ___?"', answer: 'service' },
-      { speaker: 'scholar', emotion: '🤔', text: 'The monk replied, "Because I wanted it to remain as it was."', answer: 'unchanged' },
+      { speaker: 'scholar', emotion: '🤔', text: 'The monk replied, "Because I wanted it to remain ___."', answer: 'unchanged' },
       { speaker: 'teacher', emotion: '🍂', text: 'The master nodded. "Then you were not only caring for the bowl. You were asking the ___ to stop."', answer: 'world' },
       { speaker: 'scholar', emotion: '🌧️', text: 'The monk looked again at the crack. He realised that every meal he had eaten from the bowl had been a gift that could never be ___ again.', answer: 'repeated' },
       { speaker: 'teacher', emotion: '🌱', text: 'Instead of hiding the broken bowl, he repaired it and continued to use it with renewed ___.', answer: 'gratitude' },
@@ -188,7 +188,7 @@ const QuestDatabase = {
     title: "The Empty Seat",
     subtitle: "A psychological story about the sunk cost fallacy.",
     conversation: [
-      { speaker: 'teacher', emotion: '🎟️', text: 'Maya bought an expensive ticket to a three-hour play she had been looking forward to for weeks.', answer: 'expensive' },
+      { speaker: 'teacher', emotion: '🎟️', text: 'Maya bought an ___ ticket to a three-hour play she had been looking forward to for weeks.', answer: 'expensive' },
       { speaker: 'scholar', emotion: '😐', text: 'Twenty minutes into the performance, she realised she was miserable. The play was dull, and she wanted to ___ home.', answer: 'go' },
       { speaker: 'teacher', emotion: '🤔', text: 'Her friend whispered, "Then let us leave." Maya shook her head. "But I already ___ for these tickets."', answer: 'paid' },
       { speaker: 'scholar', emotion: '🎭', text: 'They stayed through the first act. During the interval, her friend asked, "Are you enjoying it now?" Maya ___ her head.', answer: 'shook' },
@@ -235,7 +235,7 @@ const QuestDatabase = {
       { speaker: 'teacher', emotion: '😶', text: 'Ravi fell silent. He realised he had been changing his ___ about smoking rather than changing his behaviour.', answer: 'beliefs' },
       { speaker: 'scholar', emotion: '⚖️', text: 'When our actions conflict with the person we believe ourselves to be, the mind experiences an uncomfortable inner ___.', answer: 'tension' },
       { speaker: 'teacher', emotion: '💭', text: 'We can resolve that tension in two ways: change what we do, or change the story we tell ourselves about what we ___.', answer: 'do' },
-      { speaker: 'scholar', emotion: '🔄', text: 'Ravi began noticing how often he invented explanations that allowed him to remain both a "health-conscious person" and a regular ___cheerful.', answer: 'smoker' }, // wait, text said smoker, let's keep exact
+      { speaker: 'scholar', emotion: '🔄', text: 'Ravi began noticing how often he invented explanations that allowed him to remain both a "health-conscious person" and a regular ___.', answer: 'smoker' },
       { speaker: 'teacher', emotion: '🪞', text: 'The uncomfortable part was not discovering that he had been inconsistent. It was discovering how easily he could ___ the inconsistency.', answer: 'rationalise' },
       { speaker: 'scholar', emotion: '🌱', text: 'He finally stopped asking, "How can I prove that I am the person I think I am?" and began asking, "What would that person actually ___?"', answer: 'do' },
       { speaker: 'teacher', emotion: '🧩', text: 'The question changed everything. Identity was no longer a story he could merely ___; it had to be reflected in his choices.', answer: 'tell' },
@@ -288,7 +288,7 @@ const QuestDatabase = {
     title: "The First Number",
     subtitle: "A psychological story about anchoring and the hidden power of first impressions.",
     conversation: [
-      { speaker: 'teacher', emotion: '🏷️', text: 'A shopkeeper placed an old vase in his window with a price tag of ₹10,000. A passer-by stopped to admire it.', answer: 'admire' },
+      { speaker: 'teacher', emotion: '🏷️', text: 'A shopkeeper placed an old vase in his window with a price tag of ₹10,000. A passer-by stopped to ___ it.', answer: 'admire' },
       { speaker: 'scholar', emotion: '🤔', text: 'The shopkeeper later offered the vase for ₹4,000. The buyer immediately thought, "That is an excellent ___."', answer: 'bargain' },
       { speaker: 'teacher', emotion: '🏺', text: 'The buyer did not know that the vase was worth only ₹1,500. Yet the first price had already become an ___ in his mind.', answer: 'anchor' },
       { speaker: 'scholar', emotion: '🧠', text: 'Because ₹10,000 was the first number he saw, every later price seemed cheap by ___ .', answer: 'comparison' },
@@ -339,7 +339,7 @@ const QuestDatabase = {
       { speaker: 'teacher', emotion: '🔍', text: 'The same action can therefore produce two different explanations depending on whether we are judging ___ or ourselves.', answer: 'others' },
       { speaker: 'scholar', emotion: '🌿', text: 'The teacher began practising a small pause before judging: "What do I know about this person, and what am I merely ___?"', answer: 'assuming' },
       { speaker: 'teacher', emotion: '💭', text: 'He discovered that behaviour is visible, but the causes behind behaviour are often ___ .', answer: 'hidden' },
-      { speaker: 'scholar', emotion: '✨', text: 'A single action may tell you what someone did. It rarely tells you who they ___ spectroscopic/etc -> are', answer: 'are' }
+      { speaker: 'scholar', emotion: '✨', text: 'A single action may tell you what someone did. It rarely tells you who they ___.', answer: 'are' }
     ]
   },
 
@@ -383,4 +383,3 @@ const QuestDatabase = {
     ]
   }
 };
-

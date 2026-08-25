@@ -473,6 +473,31 @@ function getCompletedQuests() {
   } catch(e) { return []; }
 }
 
+  // ── SERVER-SIDE COMPLETION LOOKUP ──────────────────────────────────
+async function fetchServerCompletedQuestIDs(name) {
+  if (!_supabaseClient || !name) return new Set();
+  try {
+    const { data, error } = await _supabaseClient
+      .from('report_card_view')
+      .select('quest_list')
+      .ilike('name', name);
+    if (error || !data) return new Set();
+    const ids = new Set();
+    data.forEach(row => {
+      const qList = row.quest_list || '';
+      qList.split(',').forEach(item => {
+        const t = item.trim().toLowerCase();
+        if (t) ids.add(t);
+      });
+    });
+    return ids;
+  } catch (e) {
+    return new Set();
+  }
+}
+
+
+      
 function markQuestCompleted(key) {
   try {
     let completed = getCompletedQuests();
@@ -489,11 +514,17 @@ function showDashboard() {
   if (progressBarWrap) progressBarWrap.style.display = "none";
   if (nameFormEl) nameFormEl.style.display = "none";
   if (quizContentEl) quizContentEl.style.display = "none";
-  
+
+  dashboardViewEl.style.display = "block";
+  window.history.replaceState({}, document.title, window.location.pathname);
+
+  renderQuestGrid(getCompletedQuests());
+  syncCompletionFromServer();
+}
+
+function renderQuestGrid(completedList) {
   const grid = document.getElementById("questGrid");
   grid.innerHTML = "";
-  const completedList = getCompletedQuests();
-
   const keys = Object.keys(db);
   keys.forEach((key, idx) => {
     const q = db[key];
@@ -516,9 +547,26 @@ function showDashboard() {
     `;
     grid.appendChild(card);
   });
+}
 
-  dashboardViewEl.style.display = "block";
-  window.history.replaceState({}, document.title, window.location.pathname);
+async function syncCompletionFromServer() {
+  let storedName = "";
+  try { storedName = localStorage.getItem('playerName') || ""; } catch(e) {}
+  if (!storedName) return;
+
+  const remoteSet = await fetchServerCompletedQuestIDs(storedName);
+  if (!remoteSet.size) return;
+
+  let changed = false;
+  Object.keys(db).forEach(key => {
+    const qid = (db[key].questID || '').trim().toLowerCase();
+    if (qid && remoteSet.has(qid)) {
+      const local = getCompletedQuests();
+      if (!local.includes(key)) { markQuestCompleted(key); changed = true; }
+    }
+  });
+
+  if (changed) renderQuestGrid(getCompletedQuests());
 }
 
 function selectQuestFromDash(key) {

@@ -98,6 +98,10 @@ body::before {
 .dash-title { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 2.4rem; font-weight: 300; color: var(--ink); margin-bottom: 0.3rem; }
 .dash-subtitle { font-family: 'Cormorant', Georgia, serif; font-style: italic; font-size: 1rem; color: var(--ink-light); }
 
+.identity-pill-btn { background: var(--paper); border: 1px solid var(--border); border-radius: 20px; padding: 0.35rem 0.9rem; font-family: 'DM Sans', sans-serif; font-size: 0.72rem; letter-spacing: 0.03em; color: var(--ink-mid); cursor: pointer; transition: all 0.2s ease; }
+.identity-pill-btn:hover { border-color: var(--rose-gold); color: var(--ink); }
+.identity-pill-switch { color: var(--rose-gold-dk); font-weight: 500; }
+
 .quest-grid { display: flex; flex-direction: column; gap: 1rem; }
 .quest-card {
   background: var(--white); border: 1px solid var(--border); border-radius: var(--radius);
@@ -118,7 +122,7 @@ body::before {
 .quest-arrow { font-size: 0.9rem; color: var(--ink-light); transition: transform 0.2s ease; }
 .quest-card:hover .quest-arrow { transform: translateX(3px); color: var(--rose-gold); }
 
-/* NAME FORM */
+/* NAME FORM (IDENTITY GATE) */
 #nameForm {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   min-height: 100vh; padding: 2rem 1.5rem;
@@ -239,9 +243,6 @@ body::before {
 @keyframes btnRise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 #nextPageBtn:hover { background: #2e2a26; transform: translateY(-2px); box-shadow: var(--shadow-lg); }
 
-#dashboardBtnNav { pointer-events: all; display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.65rem 1.5rem; font-size: 0.75rem; font-family: 'DM Sans', sans-serif; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; background: var(--white); border: 1px solid var(--border); border-radius: 50px; cursor: pointer; color: var(--ink-mid); transition: all 0.2s ease; box-shadow: var(--shadow-sm); margin: 0.5rem auto; }
-#dashboardBtnNav:hover { border-color: var(--rose-gold); color: var(--ink); }
-
 /* SCORE CARD */
 @keyframes cardReveal { from { opacity: 0; transform: translateY(20px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
 .score-wrapper { max-width: 520px; margin: 2rem auto 1rem; padding: 0 1rem; animation: cardReveal 0.7s var(--transition) forwards; }
@@ -313,16 +314,17 @@ body::before {
       <p class="dash-eyebrow">SRM Valliammai Engineering College</p>
       <h1 class="dash-title">The Story Quest Library</h1>
       <p class="dash-subtitle">Choose a philosophical or psychological conversation to explore.</p>
+      <div id="dashIdentityPill" style="margin-top:0.85rem;"></div>
     </div>
     <div class="quest-grid" id="questGrid"></div>
   </div>
 
-  <!-- NAME FORM VIEW -->
+  <!-- NAME FORM / IDENTITY GATE VIEW -->
   <div id="nameForm" style="display:none;">
     <div class="form-card">
-      <p class="form-eyebrow" id="formEyebrow">Story Quest</p>
-      <h1 class="form-title" id="formTitle">The Story Quest</h1>
-      <p class="form-subtitle">A conversation to complete.</p>
+      <p class="form-eyebrow" id="formEyebrow">Welcome</p>
+      <h1 class="form-title" id="formTitle">Before You Begin</h1>
+      <p class="form-subtitle">Tell us who you are so your progress is saved.</p>
       <div class="form-rule"></div>
 
       <label class="field-label" for="nameInput">Your Name</label>
@@ -350,8 +352,8 @@ body::before {
       </select>
 
       <div class="form-btn-group">
-        <button type="button" class="btn-secondary" id="backToDashBtn">← Back</button>
-        <button type="button" class="btn-primary" id="startQuizBtn">Begin Quest</button>
+        <button type="button" class="btn-secondary" id="backToDashBtn" style="display:none;">← Back</button>
+        <button type="button" class="btn-primary" id="startQuizBtn">Continue</button>
       </div>
     </div>
   </div>
@@ -374,9 +376,6 @@ body::before {
         <div>Saving your results…</div>
       </div>
       <div id="scoreCard"></div>
-      <div style="text-align:center; margin-top: 0.5rem;">
-        <button id="dashboardBtnNav">❖ All Quests Dashboard</button>
-      </div>
     </div>
   </div>
 
@@ -420,10 +419,11 @@ let currentLine = 0, correctCount = 0, totalWrongGuesses = 0, gemsCount = 0;
 let startTime, timerInterval;
 let playerName = "", playerDept = "";
 let selectedCard = null;
+let pendingDirectQuestKey = null; // set when identity gate must lead straight into a URL-linked quest
 
 let dashboardViewEl, nameFormEl, quizContentEl, chatAreaEl;
-let timerEl, gemsCounterEl, progressTracker, scoreCard, dashboardBtnNav;
-let nextPageBtn, quizContentInnerEl, nameInputEl, deptSelectEl, topStripEl, progressBarWrap, progressBarFill;
+let timerEl, gemsCounterEl, progressTracker, scoreCard;
+let nextPageBtn, nameInputEl, deptSelectEl, topStripEl, progressBarWrap, progressBarFill;
 
 window.addEventListener('DOMContentLoaded', () => {
   dashboardViewEl   = document.getElementById("dashboardView");
@@ -434,7 +434,6 @@ window.addEventListener('DOMContentLoaded', () => {
   gemsCounterEl     = document.getElementById("gemsCounter");
   progressTracker   = document.getElementById("progressTracker");
   scoreCard         = document.getElementById("scoreCard");
-  dashboardBtnNav   = document.getElementById("dashboardBtnNav");
   nextPageBtn       = document.getElementById("nextPageBtn");
   nameInputEl       = document.getElementById("nameInput");
   deptSelectEl      = document.getElementById("departmentSelect");
@@ -443,10 +442,9 @@ window.addEventListener('DOMContentLoaded', () => {
   progressBarFill   = document.getElementById("progressBarFill");
 
   document.getElementById("startQuizBtn").onclick = beginQuiz;
-  document.getElementById("backToDashBtn").onclick = showDashboard;
-
-  dashboardBtnNav.onclick = () => {
-    clearInterval(timerInterval);
+  document.getElementById("backToDashBtn").onclick = () => {
+    nameFormEl.style.display = "none";
+    pendingDirectQuestKey = null;
     showDashboard();
   };
 
@@ -455,13 +453,22 @@ window.addEventListener('DOMContentLoaded', () => {
     setTimeout(showNextLine, 100);
   };
 
-  autoFillFromStorage();
+  loadIdentity();
   resendPendingSubmissions();
 
-  if (!activeQuest || !questKey) {
-    showDashboard();
+  if (playerName && playerDept) {
+    // Identity already known — skip the gate entirely
+    if (activeQuest && questKey) {
+      initActiveQuest(questKey);
+      launchQuiz();
+    } else {
+      showDashboard();
+    }
   } else {
-    initActiveQuest(questKey);
+    // First-time visitor — capture identity before showing anything else
+    pendingDirectQuestKey = (activeQuest && questKey) ? questKey : null;
+    fillFormFromCurrentIdentity();
+    showIdentityGate(false);
   }
 
   window.addEventListener('resize', adjustPadding);
@@ -473,31 +480,6 @@ function getCompletedQuests() {
   } catch(e) { return []; }
 }
 
-  // ── SERVER-SIDE COMPLETION LOOKUP ──────────────────────────────────
-async function fetchServerCompletedQuestIDs(name) {
-  if (!_supabaseClient || !name) return new Set();
-  try {
-    const { data, error } = await _supabaseClient
-      .from('report_card_view')
-      .select('quest_list')
-      .ilike('name', name);
-    if (error || !data) return new Set();
-    const ids = new Set();
-    data.forEach(row => {
-      const qList = row.quest_list || '';
-      qList.split(',').forEach(item => {
-        const t = item.trim().toLowerCase();
-        if (t) ids.add(t);
-      });
-    });
-    return ids;
-  } catch (e) {
-    return new Set();
-  }
-}
-
-
-      
 function markQuestCompleted(key) {
   try {
     let completed = getCompletedQuests();
@@ -508,6 +490,35 @@ function markQuestCompleted(key) {
   } catch(e) {}
 }
 
+// ── IDENTITY ──────────────────────────────────────────────────────
+function loadIdentity() {
+  try {
+    playerName = localStorage.getItem('playerName') || "";
+    playerDept = localStorage.getItem('playerDept') || "";
+  } catch(e) { playerName = ""; playerDept = ""; }
+}
+
+function fillFormFromCurrentIdentity() {
+  if (nameInputEl) nameInputEl.value = playerName || "";
+  if (deptSelectEl) deptSelectEl.value = playerDept || "";
+}
+
+function showIdentityGate(showBack) {
+  dashboardViewEl.style.display = "none";
+  quizContentEl.style.display = "none";
+  if (topStripEl) topStripEl.style.display = "none";
+  if (progressBarWrap) progressBarWrap.style.display = "none";
+
+  document.getElementById('formEyebrow').textContent = "Welcome";
+  document.getElementById('formTitle').textContent = "Before You Begin";
+  document.querySelector('.form-subtitle').textContent = "Tell us who you are so your progress is saved.";
+  document.getElementById('backToDashBtn').style.display = showBack ? "" : "none";
+
+  nameInputEl.style.borderColor = ""; deptSelectEl.style.borderColor = "";
+  nameFormEl.style.display = "flex";
+}
+
+// ── DASHBOARD ─────────────────────────────────────────────────────
 function showDashboard() {
   clearInterval(timerInterval);
   if (topStripEl) topStripEl.style.display = "none";
@@ -518,6 +529,7 @@ function showDashboard() {
   dashboardViewEl.style.display = "block";
   window.history.replaceState({}, document.title, window.location.pathname);
 
+  renderIdentityPill();
   renderQuestGrid(getCompletedQuests());
   syncCompletionFromServer();
 }
@@ -549,12 +561,56 @@ function renderQuestGrid(completedList) {
   });
 }
 
-async function syncCompletionFromServer() {
-  let storedName = "";
-  try { storedName = localStorage.getItem('playerName') || ""; } catch(e) {}
-  if (!storedName) return;
+function renderIdentityPill() {
+  const el = document.getElementById('dashIdentityPill');
+  if (!el) return;
+  if (!playerName) { el.innerHTML = ""; return; }
+  el.innerHTML = `<button type="button" id="switchPlayerBtn" class="identity-pill-btn">${playerName}${playerDept ? ' · ' + playerDept : ''} &nbsp;·&nbsp; <span class="identity-pill-switch">Switch</span></button>`;
+  const btn = document.getElementById('switchPlayerBtn');
+  if (btn) btn.onclick = () => { fillFormFromCurrentIdentity(); showIdentityGate(true); };
+}
 
-  const remoteSet = await fetchServerCompletedQuestIDs(storedName);
+function selectQuestFromDash(key) {
+  questKey = key;
+  initActiveQuest(key);
+  dashboardViewEl.style.display = "none";
+  launchQuiz();
+}
+
+function initActiveQuest(key) {
+  activeQuest = db[key];
+  currentQuestID = activeQuest.questID;
+  conversation = activeQuest.conversation;
+  quizDataStore = [{ passage: conversation.map(l=>l.text).join(' '), answers: conversation.filter(l=>l.answer).map(l=>l.answer) }];
+  document.title = `${activeQuest.title} — SRM Valliammai Engineering College`;
+}
+
+// ── SERVER-SIDE COMPLETION SYNC ──────────────────────────────────
+async function fetchServerCompletedQuestIDs(name) {
+  if (!_supabaseClient || !name) return new Set();
+  try {
+    const { data, error } = await _supabaseClient
+      .from('report_card_view')
+      .select('quest_list')
+      .ilike('name', name);
+    if (error || !data) return new Set();
+    const ids = new Set();
+    data.forEach(row => {
+      const qList = row.quest_list || '';
+      qList.split(',').forEach(item => {
+        const t = item.trim().toLowerCase();
+        if (t) ids.add(t);
+      });
+    });
+    return ids;
+  } catch(e) {
+    return new Set();
+  }
+}
+
+async function syncCompletionFromServer() {
+  if (!playerName) return;
+  const remoteSet = await fetchServerCompletedQuestIDs(playerName);
   if (!remoteSet.size) return;
 
   let changed = false;
@@ -569,48 +625,7 @@ async function syncCompletionFromServer() {
   if (changed) renderQuestGrid(getCompletedQuests());
 }
 
-function selectQuestFromDash(key) {
-  questKey = key;
-  initActiveQuest(key);
-  dashboardViewEl.style.display = "none";
-  nameFormEl.style.display = "flex";
-}
-
-function initActiveQuest(key) {
-  activeQuest = db[key];
-  currentQuestID = activeQuest.questID;
-  conversation = activeQuest.conversation;
-  quizDataStore = [{ passage: conversation.map(l=>l.text).join(' '), answers: conversation.filter(l=>l.answer).map(l=>l.answer) }];
-
-  document.getElementById('formEyebrow').textContent = activeQuest.questID;
-  document.getElementById('formTitle').textContent = activeQuest.title;
-  document.querySelector('.form-subtitle').textContent = activeQuest.subtitle;
-  document.title = `${activeQuest.title} — SRM Valliammai Engineering College`;
-}
-
-function autoFillFromStorage() {
-  try {
-    const n = localStorage.getItem('playerName'), d = localStorage.getItem('playerDept');
-    if (n) nameInputEl.value = n;
-    if (d) deptSelectEl.value = d;
-  } catch(e) {}
-}
-
-async function resendPendingSubmissions() {
-  let pending = [];
-  try { pending = JSON.parse(localStorage.getItem('pendingQuestSubmissions') || "[]"); } catch(e) { return; }
-  if (!pending.length) return;
-  const still = [];
-  for (const entry of pending) {
-    const ok = await sendViaEdgeFunction(entry).catch(() => false);
-    if (!ok) still.push(entry);
-  }
-  try {
-    if (still.length) localStorage.setItem('pendingQuestSubmissions', JSON.stringify(still));
-    else localStorage.removeItem('pendingQuestSubmissions');
-  } catch(e) {}
-}
-
+// ── IDENTITY FORM SUBMIT ─────────────────────────────────────────
 function beginQuiz() {
   if (!nameInputEl.value.trim()) { nameInputEl.focus(); nameInputEl.style.borderColor = "var(--error)"; return; }
   if (!deptSelectEl.value) { deptSelectEl.style.borderColor = "var(--error)"; return; }
@@ -625,16 +640,29 @@ function beginQuiz() {
   setTimeout(() => {
     try {
       nameFormEl.style.display = "none";
-      quizContentEl.style.display = "block";
-      topStripEl.style.display = "block";
-      progressBarWrap.style.display = "block";
-      chatAreaEl = document.getElementById("chatArea");
-      scoreCard = document.getElementById("scoreCard");
-      dashboardBtnNav = document.getElementById("dashboardBtnNav");
-      nextPageBtn = document.getElementById("nextPageBtn");
-      startQuiz();
-    } catch(err) { console.error("Quiz start failed:", err); }
+      card.style.opacity = ""; card.style.transform = "";
+
+      if (pendingDirectQuestKey) {
+        const key = pendingDirectQuestKey;
+        pendingDirectQuestKey = null;
+        questKey = key;
+        initActiveQuest(key);
+        launchQuiz();
+      } else {
+        showDashboard();
+      }
+    } catch(err) { console.error("Continue failed:", err); }
   }, 300);
+}
+
+function launchQuiz() {
+  quizContentEl.style.display = "block";
+  topStripEl.style.display = "block";
+  progressBarWrap.style.display = "block";
+  chatAreaEl = document.getElementById("chatArea");
+  scoreCard = document.getElementById("scoreCard");
+  nextPageBtn = document.getElementById("nextPageBtn");
+  startQuiz();
 }
 
 function startQuiz() {
@@ -951,6 +979,21 @@ async function showScore() {
       rb.style.opacity = '1';
     };
   }, 60);
+}
+
+async function resendPendingSubmissions() {
+  let pending = [];
+  try { pending = JSON.parse(localStorage.getItem('pendingQuestSubmissions') || "[]"); } catch(e) { return; }
+  if (!pending.length) return;
+  const still = [];
+  for (const entry of pending) {
+    const ok = await sendViaEdgeFunction(entry).catch(() => false);
+    if (!ok) still.push(entry);
+  }
+  try {
+    if (still.length) localStorage.setItem('pendingQuestSubmissions', JSON.stringify(still));
+    else localStorage.removeItem('pendingQuestSubmissions');
+  } catch(e) {}
 }
 
 async function sendViaEdgeFunction(payload) {

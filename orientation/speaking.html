@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>The Story Quest — Live Reading</title>
+<title>The Story Quest — Library</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=DM+Sans:wght@300;400;500&family=Cormorant:ital,wght@1,300;1,400&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
@@ -21,6 +21,7 @@
   --rose-gold-lt: #d4a87a;
   --rose-gold-dk: #a07550;
   --sage:         #7a9b7a;
+  --sage-pale:    rgba(122,155,122,0.1);
   --amber:        #d49a3a;
   --error:        #c0604a;
   --shadow-sm:    0 1px 4px rgba(28,25,22,0.06);
@@ -29,13 +30,6 @@
   --radius:       14px;
   --radius-sm:    8px;
   --ease:         cubic-bezier(0.16,1,0.3,1);
-
-  --emo-wise:       #9b8b6e;
-  --emo-playful:    #c4956a;
-  --emo-thoughtful: #7a8fb5;
-  --emo-curious:    #7aa58b;
-  --emo-earnest:    #a07550;
-  --emo-hopeful:    #8fa07a;
 }
 
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -56,8 +50,30 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;bac
 
 .container{position:relative;z-index:1;width:100%;min-height:100vh}
 
-/* ══════ NAME FORM ══════ */
-#nameForm{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:2rem 1.5rem;animation:entryFade 0.9s var(--ease) forwards}
+/* ══════ DASHBOARD / DIRECTORY ══════ */
+#dashboardView{display:none;padding:3rem 1.5rem 5rem;max-width:720px;margin:0 auto;animation:entryFade 0.6s var(--ease) forwards}
+.dash-header{text-align:center;margin-bottom:2.5rem}
+.dash-eyebrow{font-size:0.68rem;font-weight:500;letter-spacing:0.18em;text-transform:uppercase;color:var(--rose-gold);margin-bottom:0.5rem}
+.dash-title{font-family:'Cormorant Garamond',serif;font-size:2.4rem;font-weight:300;color:var(--ink);margin-bottom:0.3rem}
+.dash-subtitle{font-family:'Cormorant',serif;font-style:italic;font-size:1rem;color:var(--ink-light)}
+.identity-pill-btn{background:var(--paper);border:1px solid var(--border);border-radius:20px;padding:0.35rem 0.9rem;font-family:'DM Sans',sans-serif;font-size:0.72rem;color:var(--ink-mid);cursor:pointer;transition:all 0.2s ease}
+.identity-pill-btn:hover{border-color:var(--rose-gold);color:var(--ink)}
+.identity-pill-switch{color:var(--rose-gold-dk);font-weight:500}
+
+.quest-grid{display:flex;flex-direction:column;gap:1rem}
+.quest-card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:1.4rem 1.8rem;display:flex;justify-content:space-between;align-items:center;cursor:pointer;transition:all 0.25s var(--ease);box-shadow:var(--shadow-sm)}
+.quest-card:hover{border-color:var(--rose-gold);transform:translateY(-2px);box-shadow:var(--shadow-md)}
+.quest-card-info{flex:1;padding-right:1rem}
+.quest-card-id{font-size:0.65rem;font-weight:500;letter-spacing:0.12em;text-transform:uppercase;color:var(--rose-gold);margin-bottom:0.25rem}
+.quest-card-title{font-family:'Cormorant Garamond',serif;font-size:1.35rem;font-weight:500;color:var(--ink);margin-bottom:0.2rem}
+.quest-card-sub{font-size:0.82rem;color:var(--ink-light)}
+.quest-card-action{display:flex;align-items:center;gap:0.75rem;flex-shrink:0}
+.badge-completed{background:var(--sage-pale);color:var(--sage);border:1px solid rgba(122,155,122,0.3);font-size:0.65rem;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;padding:0.25rem 0.65rem;border-radius:20px;display:inline-flex;align-items:center;gap:0.25rem}
+.quest-arrow{font-size:0.9rem;color:var(--ink-light);transition:transform 0.2s ease}
+.quest-card:hover .quest-arrow{transform:translateX(3px);color:var(--rose-gold)}
+
+/* ══════ IDENTITY GATE ══════ */
+#nameForm{display:none;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:2rem 1.5rem;animation:entryFade 0.9s var(--ease) forwards}
 @keyframes entryFade{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
 
 .form-card{background:var(--white);border:1px solid var(--border);border-radius:20px;padding:3.5rem 3rem 3rem;max-width:420px;width:100%;box-shadow:var(--shadow-lg);position:relative;overflow:hidden}
@@ -78,12 +94,14 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;bac
 .mic-dot.fail{background:var(--error)}
 @keyframes micPulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.3);opacity:0.7}}
 .mic-text{font-size:0.78rem;color:var(--ink-light);line-height:1.4}
-
 .no-speech{background:rgba(192,96,74,0.08);border:1px solid rgba(192,96,74,0.2);border-radius:var(--radius-sm);padding:0.8rem 1rem;font-size:0.8rem;color:var(--error);margin-top:1rem;line-height:1.5;display:none}
 
-#startBtn{width:100%;margin-top:2rem;padding:0.95rem;font-size:0.85rem;font-family:'DM Sans',sans-serif;font-weight:500;letter-spacing:0.12em;text-transform:uppercase;background:var(--ink);border:none;border-radius:var(--radius-sm);cursor:pointer;color:var(--white);transition:all 0.25s ease}
+.form-btn-group{display:flex;gap:0.75rem;margin-top:2rem}
+#startBtn{flex:1;padding:0.95rem;font-size:0.85rem;font-family:'DM Sans',sans-serif;font-weight:500;letter-spacing:0.12em;text-transform:uppercase;background:var(--ink);border:none;border-radius:var(--radius-sm);cursor:pointer;color:var(--white);transition:all 0.25s ease}
 #startBtn:hover{background:#2e2a26;transform:translateY(-1px);box-shadow:var(--shadow-md)}
 #startBtn:disabled{opacity:0.45;cursor:not-allowed;transform:none}
+#backToDashBtn{display:none;padding:0.95rem 1.2rem;font-size:0.82rem;font-family:'DM Sans',sans-serif;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;background:var(--paper);border:1px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;color:var(--ink-mid);transition:all 0.2s ease}
+#backToDashBtn:hover{border-color:var(--rose-gold);color:var(--ink)}
 
 /* ══════ CHAT ══════ */
 #quizContent{display:none}
@@ -95,20 +113,16 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;bac
 .bubble-row.right{flex-direction:row-reverse;padding-left:4rem}
 .bubble-row.past{opacity:0.55;transition:opacity 0.5s ease}
 
-.avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;margin-top:0.25rem;border:1px solid var(--border);box-shadow:var(--shadow-sm)}
+.avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;margin-top:0.25rem;border:1px solid var(--border);box-shadow:var(--shadow-sm);transition:transform 0.3s var(--ease)}
 .left .avatar{background:linear-gradient(135deg,#f7f0e8,#eedfc8)}
 .right .avatar{background:linear-gradient(135deg,#eef4ee,#ddeedd)}
 .bubble-col{display:flex;flex-direction:column;min-width:0;flex:1}
-.speaker-name{font-size:0.65rem;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;color:var(--ink-light);margin-bottom:0.28rem}
-.right .speaker-name{text-align:right}
 
-/* emotion + voice cue */
 .emotion-tag{display:inline-flex;align-items:center;gap:0.3rem;font-size:0.62rem;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;border-radius:20px;padding:0.2rem 0.65rem;margin-bottom:0.35rem;border:1px solid;width:fit-content}
 .right .emotion-tag{align-self:flex-end}
 .voice-cue{font-family:'Cormorant',serif;font-style:italic;font-size:0.78rem;color:var(--ink-light);margin-bottom:0.35rem;opacity:0.75;line-height:1.4}
 .right .voice-cue{text-align:right}
 
-/* TTS listen button */
 .listen-btn{display:inline-flex;align-items:center;gap:0.35rem;padding:0.22rem 0.7rem;font-size:0.65rem;font-family:'DM Sans',sans-serif;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;border:1px solid var(--border);border-radius:20px;cursor:pointer;background:var(--white);color:var(--ink-light);transition:all 0.2s ease;margin-bottom:0.45rem;width:fit-content}
 .listen-btn:hover{border-color:var(--rose-gold);color:var(--rose-gold-dk)}
 .listen-btn.speaking{border-color:var(--rose-gold);color:var(--rose-gold-dk);background:rgba(196,149,106,0.07);animation:listenPulse 1s ease-in-out infinite}
@@ -119,24 +133,19 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;bac
 .left .bubble{background:var(--white);border:1px solid var(--border);border-top-left-radius:4px;box-shadow:var(--shadow-sm)}
 .right .bubble{background:linear-gradient(135deg,#f2f8f2,#e8f2e8);border:1px solid rgba(122,155,122,0.2);border-top-right-radius:4px;box-shadow:var(--shadow-sm)}
 
-/* active line glow */
 .bubble-row.active-line .left .bubble,
 .bubble-row.active-line > .bubble-col > .bubble{box-shadow:0 0 0 2px var(--rose-gold-lt),var(--shadow-md) !important}
 .bubble-row.active-line.right .bubble-col .bubble{box-shadow:0 0 0 2px var(--sage),var(--shadow-md) !important}
 
-/* ── WORD STATES ── */
 .word{display:inline;transition:all 0.18s ease;border-radius:3px;padding:0 1px}
 .w-pending{}
 .w-heard{color:var(--rose-gold-dk);background:rgba(196,149,106,0.13);font-weight:600;animation:wordLight 0.3s var(--ease)}
 @keyframes wordLight{from{background:rgba(196,149,106,0.32);transform:scale(1.07)}to{background:rgba(196,149,106,0.13);transform:scale(1)}}
-.w-close{color:var(--amber);background:rgba(212,154,58,0.1);font-weight:500}    /* close enough */
+.w-close{color:var(--amber);background:rgba(212,154,58,0.1);font-weight:500}
 .w-missed{color:var(--error);text-decoration:underline wavy var(--error);text-underline-offset:3px;opacity:0.75}
 .w-done{color:var(--ink-light)}
-
-/* interim (unconfirmed) highlight — visually distinct from confirmed w-heard */
 .w-interim{color:var(--rose-gold-dk);background:rgba(196,149,106,0.07);font-weight:500;opacity:0.85;border-bottom:1px dashed var(--rose-gold-lt)}
 
-/* ── LINE FEEDBACK ── */
 .line-feedback{display:flex;flex-wrap:wrap;gap:0.4rem;align-items:center;margin-top:0.5rem;padding:0.5rem 0.8rem;background:var(--paper);border:1px solid var(--border-soft);border-radius:8px;animation:feedRise 0.35s var(--ease) forwards;opacity:0}
 @keyframes feedRise{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
 .fb-chip{display:inline-flex;align-items:center;gap:0.25rem;font-size:0.67rem;font-weight:500;letter-spacing:0.05em;border-radius:20px;padding:0.22rem 0.65rem;border:1px solid}
@@ -144,63 +153,19 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;bac
 .fb-chip.great{color:var(--rose-gold-dk);border-color:rgba(196,149,106,0.3);background:rgba(196,149,106,0.07)}
 .fb-chip.try-these{color:var(--amber);border-color:rgba(212,154,58,0.3);background:rgba(212,154,58,0.07)}
 .fb-chip.pace-fast{color:var(--error);border-color:rgba(192,96,74,0.25);background:rgba(192,96,74,0.06)}
+.fb-chip.tries-left{color:var(--ink-light);border-color:var(--border);background:var(--white)}
 
 .playback-row{display:flex;align-items:center;gap:0.5rem;margin-top:0.4rem}
 .play-chip{display:inline-flex;align-items:center;gap:0.35rem;padding:0.28rem 0.75rem;font-size:0.68rem;font-family:'DM Sans',sans-serif;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;border:1px solid var(--border);border-radius:20px;cursor:pointer;background:var(--white);color:var(--ink-light);transition:all 0.2s ease}
 .play-chip:hover{border-color:var(--rose-gold);color:var(--ink)}
 
-/* Auto-Advance & Nudge */
-.auto-next-wrap { width: 100%; height: 3px; background: var(--border-soft); border-radius: 2px; margin-top: 0.8rem; overflow: hidden; position: relative; }
-.auto-next-fill { height: 100%; background: var(--sage); width: 0%; transition: width 1.5s linear; }
-.nudge-text { font-size: 0.75rem; color: var(--ink-light); margin-top: 0.8rem; text-align: center; font-style: italic; }
+.auto-next-wrap{width:100%;height:3px;background:var(--border-soft);border-radius:2px;margin-top:0.8rem;overflow:hidden;position:relative}
+.auto-next-fill{height:100%;background:var(--sage);width:0%;transition:width 1.5s linear}
+.nudge-text{font-size:0.75rem;color:var(--ink-light);margin-top:0.8rem;text-align:center;font-style:italic}
 
 /* ══════ MIC PANEL ══════ */
 .mic-panel{position:fixed;bottom:0;left:0;right:0;z-index:60;background:linear-gradient(to top,rgba(250,250,249,0.98) 70%,transparent);padding:0.5rem 0 0}
 .mic-inner{max-width:660px;margin:0 auto;padding:0.5rem 1.5rem 1.5rem;display:flex;flex-direction:column;align-items:center;gap:0.6rem}
-
-/* WhatsApp-style streaming transcript */
-.transcript-strip{
-  width:100%;max-width:500px;
-  min-height:2.4rem;
-  background:rgba(255,255,255,0.97);
-  border:1px solid var(--border);
-  border-radius:18px;
-  padding:0.55rem 1.1rem 0.55rem 1.1rem;
-  font-family:'Cormorant Garamond',serif;
-  font-style:italic;font-size:1.05rem;
-  color:var(--ink-light);
-  text-align:left;
-  backdrop-filter:blur(12px);
-  box-shadow:var(--shadow-sm);
-  display:none;
-  white-space:pre-wrap;
-  word-break:break-word;
-  overflow:hidden;
-  max-height:5.5rem; /* ~3 lines before scrolling */
-  overflow-y:auto;
-  transition:border-color 0.2s, box-shadow 0.2s;
-  transition:all 0.15s ease;
-}
-.transcript-strip.live{
-  display:block;
-  border-color:var(--rose-gold);
-  color:var(--ink-mid);
-  box-shadow:0 0 0 3px rgba(196,149,106,0.08), var(--shadow-sm);
-}
-.transcript-strip.finishing{
-  border-color:var(--sage);
-  color:var(--ink-mid);
-}
-/* blinking cursor at end of interim text */
-.transcript-strip.live::after{
-  content:'|';
-  display:inline;
-  color:var(--rose-gold);
-  animation:tsCursor 0.8s step-end infinite;
-  margin-left:1px;
-  font-style:normal;
-}
-@keyframes tsCursor{0%,100%{opacity:1}50%{opacity:0}}
 
 .waveform{display:none;align-items:center;justify-content:center;gap:3px;height:20px}
 .waveform.active{display:flex}
@@ -236,7 +201,6 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;bac
 /* ══════ SCORE CARD ══════ */
 @keyframes cardReveal{from{opacity:0;transform:translateY(20px) scale(0.98)}to{opacity:1;transform:translateY(0) scale(1)}}
 .score-wrapper{max-width:520px;margin:2rem auto 1rem;padding:0 1rem;animation:cardReveal 0.7s var(--ease) forwards}
-
 .score-trophy-band{background:var(--ink);border-radius:20px 20px 0 0;padding:2.4rem 2.5rem 2.2rem;text-align:center;position:relative;overflow:hidden}
 .score-trophy-band::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 70% 80% at 50% -10%,rgba(196,149,106,0.22) 0%,transparent 65%);pointer-events:none}
 .score-status-pill{display:inline-flex;align-items:center;gap:0.4rem;font-size:0.65rem;font-weight:500;letter-spacing:0.2em;text-transform:uppercase;color:var(--rose-gold);background:rgba(196,149,106,0.12);border:1px solid rgba(196,149,106,0.25);border-radius:20px;padding:0.3rem 0.9rem;margin-bottom:1.1rem}
@@ -244,7 +208,6 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;bac
 @keyframes emojiFloat{from{opacity:0;transform:scale(0.6) translateY(10px)}to{opacity:1;transform:scale(1) translateY(0)}}
 .score-headline{font-family:'Cormorant Garamond',serif;font-size:2.8rem;font-weight:300;color:var(--white);line-height:1;margin-bottom:0.3rem}
 .score-tagline{font-family:'Cormorant',serif;font-style:italic;font-weight:300;font-size:1rem;color:rgba(255,255,255,0.4)}
-
 .score-stats-band{background:var(--white);border-left:1px solid var(--border);border-right:1px solid var(--border);padding:1.6rem 2rem}
 .score-name-row{display:flex;justify-content:space-between;align-items:baseline;padding-bottom:1rem;margin-bottom:1.2rem;border-bottom:1px solid var(--border-soft)}
 .score-player-name{font-family:'Cormorant Garamond',serif;font-size:1.35rem;font-weight:500;color:var(--ink)}
@@ -276,9 +239,6 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;bac
 .pdf-btn{display:inline-flex;align-items:center;gap:0.35rem;padding:0.5rem 1.1rem;font-size:0.7rem;font-family:'DM Sans',sans-serif;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;background:transparent;border:1px solid var(--border);border-radius:50px;cursor:pointer;color:var(--ink-light);transition:all 0.2s ease}
 .pdf-btn:hover{border-color:var(--rose-gold);color:var(--ink)}
 
-#restartBtn{display:none;padding:0.65rem 1.8rem;font-size:0.75rem;font-family:'DM Sans',sans-serif;font-weight:400;letter-spacing:0.1em;text-transform:uppercase;background:transparent;border:1px solid var(--border);border-radius:50px;cursor:pointer;color:var(--ink-light);transition:all 0.2s ease;margin:0.5rem auto}
-#restartBtn:hover{border-color:var(--rose-gold);color:var(--ink)}
-
 .spinner-wrap{display:none;text-align:center;padding:3rem 2rem;font-family:'Cormorant',serif;font-style:italic;font-size:1rem;color:var(--ink-light)}
 .spinner{width:28px;height:28px;border:1.5px solid var(--border);border-top-color:var(--rose-gold);border-radius:50%;animation:spin 0.9s linear infinite;margin:0 auto 0.8rem}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -293,11 +253,22 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;bac
 
 <div class="container">
 
-  <!-- NAME FORM -->
+  <!-- ══════ DASHBOARD / DIRECTORY ══════ -->
+  <div id="dashboardView">
+    <div class="dash-header">
+      <p class="dash-eyebrow">Live Reading · English</p>
+      <h1 class="dash-title">The Story Quest Library</h1>
+      <p class="dash-subtitle">Choose a conversation. Read it aloud — the words light up as you speak.</p>
+      <div id="dashIdentityPill" style="margin-top:0.85rem"></div>
+    </div>
+    <div class="quest-grid" id="questGrid"></div>
+  </div>
+
+  <!-- ══════ IDENTITY GATE ══════ -->
   <div id="nameForm">
     <div class="form-card">
-      <p class="form-eyebrow">Live Reading · English</p>
-      <h1 class="form-title">The Story Quest</h1>
+      <p class="form-eyebrow" id="formEyebrow">Live Reading · English</p>
+      <h1 class="form-title" id="formTitle">The Story Quest</h1>
       <p class="form-subtitle">Read aloud. The words will light up as you speak.</p>
       <div class="form-rule"></div>
 
@@ -322,11 +293,14 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;bac
         <div class="mic-text" id="micText">Checking microphone…</div>
       </div>
       <div class="no-speech" id="noSpeechBanner">⚠ Please use Google Chrome or Microsoft Edge for speech recognition.</div>
-      <button id="startBtn" disabled>Begin Reading</button>
+      <div class="form-btn-group">
+        <button type="button" id="backToDashBtn">← Back</button>
+        <button id="startBtn" disabled>Continue</button>
+      </div>
     </div>
   </div>
 
-  <!-- QUIZ -->
+  <!-- ══════ QUIZ ══════ -->
   <div id="quizContent">
     <div class="top-strip" id="topStrip">
       <div class="top-inner">
@@ -341,14 +315,13 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;bac
     <div style="max-width:680px;margin:0 auto;padding:0 0 3rem">
       <div class="spinner-wrap" id="savingSpinner"><div class="spinner"></div><div>Saving your results…</div></div>
       <div id="scoreCard"></div>
-      <div style="text-align:center;margin-top:0.5rem"><button id="restartBtn">↺ Begin Again</button></div>
+      <div style="text-align:center;margin-top:0.5rem"><button id="restartBtn" style="display:none;padding:0.65rem 1.8rem;font-size:0.75rem;font-family:'DM Sans',sans-serif;font-weight:400;letter-spacing:0.1em;text-transform:uppercase;background:transparent;border:1px solid var(--border);border-radius:50px;cursor:pointer;color:var(--ink-light)">↺ Library</button></div>
     </div>
   </div>
 
-  <!-- MIC PANEL -->
+  <!-- ══════ MIC PANEL ══════ -->
   <div class="mic-panel" id="micPanel" style="display:none">
     <div class="mic-inner">
-      <div class="transcript-strip" id="transcriptStrip"></div>
       <div class="waveform" id="waveform">
         <div class="wb"></div><div class="wb"></div><div class="wb"></div>
         <div class="wb"></div><div class="wb"></div><div class="wb"></div><div class="wb"></div>
@@ -365,75 +338,80 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;bac
 
 </div><!-- /container -->
 
-<script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script>
 (function(){
 'use strict';
 
-// ─── CONVERSATION DATA ──────────────────────────────────────────────────────
-const LINES = [
-  { speaker:'teacher', text:'Carpe diem. Seize the day before it slips away!',
-    emotion:'wise',       emo_label:'Wise',        emo_emoji:'🧘',
-    emo_color:'var(--emo-wise)',emo_bg:'rgba(155,139,110,0.08)',emo_border:'rgba(155,139,110,0.25)',
-    voice:'Speak slowly, with quiet authority.' },
+// ─── QUEST DIRECTORY ─────────────────────────────────────────────────────────
+// Add more quests here — the library and routing already support any number of them.
+const QUEST_DB = {
+  carpe_diem: {
+    questID: 'Quest 206R',
+    title: 'Carpe Diem — Seize the Day',
+    subtitle: 'A conversation on mindfulness, effort, and failing better.',
+    lines: [
+      { speaker:'teacher', text:'Carpe diem. Seize the day before it slips away!',
+        emo_label:'Wise', emo_emoji:'🧘',
+        emo_color:'#9b8b6e', emo_bg:'rgba(155,139,110,0.08)', emo_border:'rgba(155,139,110,0.25)',
+        voice:'Speak slowly, with quiet authority.' },
 
-  { speaker:'scholar', text:'I tried to seize the day today, but I almost missed the bus.',
-    emotion:'playful',    emo_label:'Playful',      emo_emoji:'😄',
-    emo_color:'var(--emo-playful)',emo_bg:'rgba(196,149,106,0.08)',emo_border:'rgba(196,149,106,0.25)',
-    voice:'Light and self-deprecating — make the class smile.' },
+      { speaker:'scholar', text:'I tried to seize the day today, but I almost missed the bus.',
+        emo_label:'Playful', emo_emoji:'😄',
+        emo_color:'#c4956a', emo_bg:'rgba(196,149,106,0.08)', emo_border:'rgba(196,149,106,0.25)',
+        voice:'Light and self-deprecating — make the class smile.' },
 
-  { speaker:'teacher', text:'Sometimes the bus we miss teaches us to slow down and spend time on introspection.',
-    emotion:'thoughtful', emo_label:'Thoughtful',   emo_emoji:'🤔',
-    emo_color:'var(--emo-thoughtful)',emo_bg:'rgba(122,143,181,0.08)',emo_border:'rgba(122,143,181,0.25)',
-    voice:'Pause on "slow down". Let the idea breathe.' },
+      { speaker:'teacher', text:'Sometimes the bus we miss teaches us to slow down and spend time on introspection.',
+        emo_label:'Thoughtful', emo_emoji:'🤔',
+        emo_color:'#7a8fb5', emo_bg:'rgba(122,143,181,0.08)', emo_border:'rgba(122,143,181,0.25)',
+        voice:'Pause on "slow down". Let the idea breathe.' },
 
-  { speaker:'scholar', text:'But life is always busy. There is always something to do.',
-    emotion:'earnest',    emo_label:'Earnest',       emo_emoji:'💬',
-    emo_color:'var(--emo-earnest)',emo_bg:'rgba(160,117,80,0.08)',emo_border:'rgba(160,117,80,0.25)',
-    voice:'A little frustrated — but honest.' },
+      { speaker:'scholar', text:'But life is always busy. There is always something to do.',
+        emo_label:'Earnest', emo_emoji:'😕',
+        emo_color:'#a07550', emo_bg:'rgba(160,117,80,0.08)', emo_border:'rgba(160,117,80,0.25)',
+        voice:'A little frustrated — but honest.' },
 
-  { speaker:'teacher', text:'The mind becomes busy when it tries to hold everything.',
-    emotion:'wise',       emo_label:'Wise',          emo_emoji:'🧘',
-    emo_color:'var(--emo-wise)',emo_bg:'rgba(155,139,110,0.08)',emo_border:'rgba(155,139,110,0.25)',
-    voice:'Calm. Almost a whisper on "everything".' },
+      { speaker:'teacher', text:'The mind becomes busy when it tries to hold everything.',
+        emo_label:'Wise', emo_emoji:'🧘',
+        emo_color:'#9b8b6e', emo_bg:'rgba(155,139,110,0.08)', emo_border:'rgba(155,139,110,0.25)',
+        voice:'Calm. Almost a whisper on "everything".' },
 
-  { speaker:'scholar', text:'So what should I do when there are too many tasks?',
-    emotion:'curious',    emo_label:'Curious',       emo_emoji:'❓',
-    emo_color:'var(--emo-curious)',emo_bg:'rgba(122,165,139,0.08)',emo_border:'rgba(122,165,139,0.25)',
-    voice:'Lean in — genuinely puzzled.' },
+      { speaker:'scholar', text:'So what should I do when there are too many tasks?',
+        emo_label:'Curious', emo_emoji:'❓',
+        emo_color:'#7aa58b', emo_bg:'rgba(122,165,139,0.08)', emo_border:'rgba(122,165,139,0.25)',
+        voice:'Lean in — genuinely puzzled.' },
 
-  { speaker:'teacher', text:'Pick one task and take one step at a time. Baby steps!',
-    emotion:'hopeful',    emo_label:'Hopeful',       emo_emoji:'🌱',
-    emo_color:'var(--emo-hopeful)',emo_bg:'rgba(143,160,122,0.08)',emo_border:'rgba(143,160,122,0.25)',
-    voice:'Warm and encouraging. Smile on "baby steps".' },
+      { speaker:'teacher', text:'Pick one task and take one step at a time. Baby steps!',
+        emo_label:'Hopeful', emo_emoji:'🌱',
+        emo_color:'#8fa07a', emo_bg:'rgba(143,160,122,0.08)', emo_border:'rgba(143,160,122,0.25)',
+        voice:'Warm and encouraging. Smile on "baby steps".' },
 
-  { speaker:'scholar', text:'And if I fail while trying, what should I do?',
-    emotion:'earnest',    emo_label:'Earnest',       emo_emoji:'💬',
-    emo_color:'var(--emo-earnest)',emo_bg:'rgba(160,117,80,0.08)',emo_border:'rgba(160,117,80,0.25)',
-    voice:'Vulnerable. Let the question hang in the air.' },
+      { speaker:'scholar', text:'And if I fail while trying, what should I do?',
+        emo_label:'Vulnerable', emo_emoji:'😟',
+        emo_color:'#a07550', emo_bg:'rgba(160,117,80,0.08)', emo_border:'rgba(160,117,80,0.25)',
+        voice:'Vulnerable. Let the question hang in the air.' },
 
-  { speaker:'teacher', text:'Remember what Beckett said! Ever tried. Ever failed. No matter. Try again. Fail again. Fail better.',
-    emotion:'wise',       emo_label:'Dramatic',      emo_emoji:'🎭',
-    emo_color:'var(--emo-wise)',emo_bg:'rgba(155,139,110,0.08)',emo_border:'rgba(155,139,110,0.25)',
-    voice:'Each short sentence is its own beat. Punch every full stop.' },
+      { speaker:'teacher', text:'Remember what Beckett said! Ever tried. Ever failed. No matter. Try again. Fail again. Fail better.',
+        emo_label:'Dramatic', emo_emoji:'🎭',
+        emo_color:'#9b8b6e', emo_bg:'rgba(155,139,110,0.08)', emo_border:'rgba(155,139,110,0.25)',
+        voice:'Each short sentence is its own beat. Punch every full stop.' },
 
-  { speaker:'scholar', text:'Then the important thing is to do the classic reframing and focus on trying.',
-    emotion:'hopeful',    emo_label:'Hopeful',       emo_emoji:'🌱',
-    emo_color:'var(--emo-hopeful)',emo_bg:'rgba(143,160,122,0.08)',emo_border:'rgba(143,160,122,0.25)',
-    voice:'A realisation dawning — growing confidence.' },
+      { speaker:'scholar', text:'Then the important thing is to do the classic reframing and focus on trying.',
+        emo_label:'Hopeful', emo_emoji:'🌱',
+        emo_color:'#8fa07a', emo_bg:'rgba(143,160,122,0.08)', emo_border:'rgba(143,160,122,0.25)',
+        voice:'A realisation dawning — growing confidence.' },
 
-  { speaker:'teacher', text:'Absolutely! We should celebrate effort! I personally celebrate failure!',
-    emotion:'playful',    emo_label:'Joyful',        emo_emoji:'🎉',
-    emo_color:'var(--emo-playful)',emo_bg:'rgba(196,149,106,0.08)',emo_border:'rgba(196,149,106,0.25)',
-    voice:'Enthusiastic! Almost joyful — surprise the room.' },
+      { speaker:'teacher', text:'Absolutely! We should celebrate effort! I personally celebrate failure!',
+        emo_label:'Joyful', emo_emoji:'🎉',
+        emo_color:'#c4956a', emo_bg:'rgba(196,149,106,0.08)', emo_border:'rgba(196,149,106,0.25)',
+        voice:'Enthusiastic! Almost joyful — surprise the room.' },
 
-  { speaker:'scholar', text:'Like Edison, I am also going to set a record of failing at least a thousand times!',
-    emotion:'playful',    emo_label:'Triumphant',    emo_emoji:'✊',
-    emo_color:'var(--emo-playful)',emo_bg:'rgba(196,149,106,0.08)',emo_border:'rgba(196,149,106,0.25)',
-    voice:'Bold and funny. Land on "thousand" like a punchline.' },
-];
-
-const QUEST_ID = 'Quest 206R';
+      { speaker:'scholar', text:'Like Edison, I am also going to set a record of failing at least a thousand times!',
+        emo_label:'Triumphant', emo_emoji:'✊',
+        emo_color:'#c4956a', emo_bg:'rgba(196,149,106,0.08)', emo_border:'rgba(196,149,106,0.25)',
+        voice:'Bold and funny. Land on "thousand" like a punchline.' },
+    ]
+  }
+};
 
 // ─── ESL-FRIENDLY MATCHING CONFIG ───────────────────────────────────────────
 const HEARD_EDIT_DIST  = 2;
@@ -441,9 +419,12 @@ const CLOSE_EDIT_DIST  = 3;
 const SYLLABLE_PREFIX  = 4;
 const CLEAN_THRESHOLD  = 0.8;
 const FAST_RATIO       = 0.45;
+const MIN_TRIES_FOR_SKIP = 3;
 
 // ─── STATE ──────────────────────────────────────────────────────────────────
 let playerName='', playerDept='';
+let activeQuestKey=null, LINES=[], QUEST_ID='';
+let pendingDirectQuestKey=null;
 let currentLine=0;
 let totalHeard=0, totalClose=0, totalMissed=0, totalWords=0;
 let lineResults=[];
@@ -454,8 +435,8 @@ let speechSupported = !!(window.SpeechRecognition||window.webkitSpeechRecognitio
 
 // per-line
 let lineTokens=[], heardSet=new Set(), closeSet=new Set(), lastHeardIdx=-1;
-// interim-only highlight tracking (visual only, never scored)
 let interimHighlightSet=new Set();
+let lineAttempts=0;
 
 // speech recognition ratchet & timer
 let _finalBuffer        = '';
@@ -464,38 +445,119 @@ let _interimTimer       = null;
 let _silenceTimer       = null;
 let _restartCount       = 0;
 let _firstResultSeen    = false;
-// FIX: track whether we're waiting for onend after a requested stop, so we
-// don't score before Chrome delivers its last final result.
 let _pendingFinalize     = false;
 let _stopRequested       = false;
 let _finalizeSafetyTimer = null;
 
 // DOM refs
-let $nameForm,$quizContent,$nameInput,$deptSelect,$startBtn;
+let $dashboardView,$nameForm,$quizContent,$nameInput,$deptSelect,$startBtn,$backToDashBtn;
 let $micDot,$micText,$noSpeech;
 let $chatArea,$topStrip,$progWrap,$progFill;
 let $timerPill,$scorePill,$linePill;
-let $micPanel,$micBtn,$transcriptStrip,$waveform;
+let $micPanel,$micBtn,$waveform;
 let $rereadBtn,$skipBtn,$nextBtn,$linePrompt;
 let $savingSpinner,$scoreCard,$restartBtn;
+let $questGrid,$dashIdentityPill;
 
-// ─── SUPABASE ────────────────────────────────────────────────────────────────
-async function saveResult(payload){
-  for(let a=1;a<=3;a++){
-    try{
-      const ctrl=new AbortController();
-      setTimeout(()=>ctrl.abort(),5000);
-      const r=await fetch("https://yellow-lab-4999.andrewveda.workers.dev/functions/v1/logQuest",{
-        method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify(payload),signal:ctrl.signal
-      });
-      if(!r.ok) throw new Error();
-      const d=await r.json();
-      if(d.success) return true;
-    }catch(e){}
-    if(a<3) await new Promise(r=>setTimeout(r,1500));
+function $(id){return document.getElementById(id.replace('#',''))}
+
+// ─── DIRECTORY / COMPLETION ──────────────────────────────────────────────────
+function getCompletedQuests(){
+  try{ return JSON.parse(localStorage.getItem('completedQuests')||'[]'); }catch(_){ return []; }
+}
+function markQuestCompleted(key){
+  try{
+    const c=getCompletedQuests();
+    if(!c.includes(key)){ c.push(key); localStorage.setItem('completedQuests',JSON.stringify(c)); }
+  }catch(_){}
+}
+
+function loadIdentity(){
+  try{
+    playerName=localStorage.getItem('playerName')||'';
+    playerDept=localStorage.getItem('playerDept')||'';
+  }catch(_){ playerName=''; playerDept=''; }
+}
+function fillFormFromIdentity(){
+  if($nameInput) $nameInput.value=playerName||'';
+  if($deptSelect) $deptSelect.value=playerDept||'';
+}
+
+function showDashboard(){
+  clearInterval(timerInterval);
+  $topStrip.style.display='none';
+  $progWrap.style.display='none';
+  $nameForm.style.display='none';
+  $quizContent.style.display='none';
+  $micPanel.style.display='none';
+  window.speechSynthesis?.cancel();
+  window.history.replaceState({},document.title,window.location.pathname);
+  $dashboardView.style.display='block';
+  renderIdentityPill();
+  renderQuestGrid();
+}
+
+function renderIdentityPill(){
+  if(!playerName){ $dashIdentityPill.innerHTML=''; return; }
+  $dashIdentityPill.innerHTML=`<button type="button" id="switchPlayerBtn" class="identity-pill-btn">${escapeHtml(playerName)}${playerDept?' · '+escapeHtml(playerDept):''} &nbsp;·&nbsp; <span class="identity-pill-switch">Switch</span></button>`;
+  const btn=$('switchPlayerBtn');
+  if(btn) btn.onclick=()=>{ fillFormFromIdentity(); showIdentityGate(true,null); };
+}
+
+function renderQuestGrid(){
+  const completed=getCompletedQuests();
+  $questGrid.innerHTML='';
+  Object.keys(QUEST_DB).forEach(key=>{
+    const q=QUEST_DB[key];
+    const isDone=completed.includes(key);
+    const card=document.createElement('div');
+    card.className='quest-card';
+    card.onclick=()=>selectQuest(key);
+    card.innerHTML=`
+      <div class="quest-card-info">
+        <div class="quest-card-id">${escapeHtml(q.questID)}</div>
+        <div class="quest-card-title">${escapeHtml(q.title)}</div>
+        <div class="quest-card-sub">${escapeHtml(q.subtitle)}</div>
+      </div>
+      <div class="quest-card-action">
+        ${isDone?'<span class="badge-completed">✓ Completed</span>':''}
+        <span class="quest-arrow">➔</span>
+      </div>`;
+    $questGrid.appendChild(card);
+  });
+}
+
+function escapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function selectQuest(key){
+  if(!playerName || !playerDept){
+    pendingDirectQuestKey=key;
+    fillFormFromIdentity();
+    showIdentityGate(true,key);
+    return;
   }
-  return false;
+  loadQuest(key);
+  $dashboardView.style.display='none';
+  launchQuiz();
+}
+
+function loadQuest(key){
+  activeQuestKey=key;
+  const q=QUEST_DB[key];
+  QUEST_ID=q.questID;
+  LINES=q.lines;
+  document.title=`${q.title} — The Story Quest`;
+}
+
+function showIdentityGate(showBack, directKey){
+  $dashboardView.style.display='none';
+  $quizContent.style.display='none';
+  $topStrip.style.display='none';
+  $progWrap.style.display='none';
+  pendingDirectQuestKey = (typeof directKey!=='undefined') ? directKey : pendingDirectQuestKey;
+  $backToDashBtn.style.display= showBack ? '' : 'none';
+  $nameInput.style.borderColor=$deptSelect.style.borderColor='';
+  $nameForm.style.display='flex';
 }
 
 // ─── MIC INIT ────────────────────────────────────────────────────────────────
@@ -537,7 +599,7 @@ function speakLine(text, btn){
   window.speechSynthesis.speak(utt);
 }
 
-// ─── START ───────────────────────────────────────────────────────────────────
+// ─── IDENTITY FORM SUBMIT ─────────────────────────────────────────────────────
 function beginQuiz(){
   if(!$nameInput.value.trim()){$nameInput.focus();$nameInput.style.borderColor='var(--error)';return;}
   if(!$deptSelect.value){$deptSelect.style.borderColor='var(--error)';return;}
@@ -549,12 +611,23 @@ function beginQuiz(){
   card.style.opacity='0'; card.style.transform='scale(0.97) translateY(8px)';
   setTimeout(()=>{
     $nameForm.style.display='none';
-    $quizContent.style.display='block';
-    $topStrip.style.display='block';
-    $progWrap.style.display='block';
-    $micPanel.style.display='block';
-    startQuiz();
+    card.style.opacity=''; card.style.transform='';
+    if(pendingDirectQuestKey){
+      const key=pendingDirectQuestKey; pendingDirectQuestKey=null;
+      loadQuest(key);
+      launchQuiz();
+    } else {
+      showDashboard();
+    }
   },300);
+}
+
+function launchQuiz(){
+  $quizContent.style.display='block';
+  $topStrip.style.display='block';
+  $progWrap.style.display='block';
+  $micPanel.style.display='block';
+  startQuiz();
 }
 
 function startQuiz(){
@@ -582,14 +655,10 @@ function showCurrentLine(){
 
   const av=document.createElement('div');
   av.className='avatar';
-  av.textContent=L.speaker==='teacher'?'🧘':'📚';
+  av.textContent=L.emo_emoji; // avatar mirrors the line's mood
 
   const col=document.createElement('div');
   col.className='bubble-col';
-
-  const nm=document.createElement('div');
-  nm.className='speaker-name';
-  nm.textContent=L.speaker==='teacher'?'Teacher':'Scholar';
 
   const et=document.createElement('div');
   et.className='emotion-tag';
@@ -622,17 +691,18 @@ function showCurrentLine(){
     }
   });
 
-  col.appendChild(nm); col.appendChild(et); col.appendChild(vc);
+  col.appendChild(et); col.appendChild(vc);
   col.appendChild(lb); col.appendChild(bub);
   row.appendChild(av); row.appendChild(col);
   $chatArea.appendChild(row);
   setTimeout(()=>row.scrollIntoView({behavior:'smooth',block:'center'}),80);
 
   heardSet.clear(); closeSet.clear(); lastHeardIdx=-1; interimHighlightSet.clear();
+  lineAttempts=0;
   setPrompt('ready');
   $rereadBtn.style.display='none';
   $nextBtn.style.display='none';
-  $skipBtn.style.display='inline-flex';
+  $skipBtn.style.display='none'; // skip unlocks after MIN_TRIES_FOR_SKIP attempts
 }
 
 function tokenize(text){
@@ -654,42 +724,25 @@ function buildRecognition(){
   r.onresult=e=>{
     _restartCount=0; _firstResultSeen=true;
 
-    // ─── SILENCE TIMER ───
-    // FIX: was 1.5s, too aggressive for a reading exercise with intentional
-    // dramatic pauses ("pause on slow down", "punch every full stop").
-    // Bumped to 2.6s so natural pauses don't trigger a premature stop.
     clearTimeout(_silenceTimer);
     _silenceTimer = setTimeout(() => {
-      if (isListening) {
-        if(window._dbg) window._dbg('SILENCE', '2.6s silence detected — auto-stopping', 'tag-event');
-        stopListening(true);
-      }
+      if (isListening) stopListening(true);
     }, 2600);
 
-    let interimText='';
     let hasFinal=false;
 
     for(let i=e.resultIndex;i<e.results.length;i++){
       if(e.results[i].isFinal){
         hasFinal=true;
-        // FIX: previously joined ALL maxAlternatives transcripts together
-        // ("introspection introspection in the inspection introduction...")
-        // which corrupted the sequential word matcher. Use only the top
-        // (most confident) alternative — that's what alternatives are for.
         processAndLock(e.results[i][0].transcript);
         _finalBuffer=(_finalBuffer+' '+e.results[i][0].transcript).trim();
-      } else {
-        interimText+=e.results[i][0].transcript;
       }
     }
 
-    const displayText=(_finalBuffer+(interimText?' '+interimText:'')).trim();
-    if(displayText){
-      $transcriptStrip.textContent=displayText;
-      $transcriptStrip.classList.add('live');
-      $transcriptStrip.scrollTop=$transcriptStrip.scrollHeight;
+    let interimText='';
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      if(!e.results[i].isFinal) interimText+=e.results[i][0].transcript;
     }
-
     if(interimText && !hasFinal){
       clearTimeout(_interimTimer);
       _interimTimer=setTimeout(()=>processInterim(interimText), 80);
@@ -704,10 +757,6 @@ function buildRecognition(){
   };
 
   r.onend=()=>{
-    // FIX: this is where we now actually finalize the score, instead of
-    // doing it synchronously inside stopListening(). onend fires only after
-    // Chrome has truly finished delivering results (including any last
-    // final result queued right before stop()).
     if(_stopRequested){
       _stopRequested=false;
       clearTimeout(_finalizeSafetyTimer);
@@ -720,8 +769,6 @@ function buildRecognition(){
     }
     if(!isListening) return;
     _restartCount++;
-    if(window._dbg) window._dbg('SR', `onend fired. _restartCount=${_restartCount}`, 'tag-event');
-
     if(_restartCount>=4 && !_firstResultSeen){
       setPrompt('error-mic'); stopListening(false); return;
     }
@@ -744,7 +791,6 @@ function processAndLock(transcript){
         if(!heardSet.has(j)&&!closeSet.has(j)){
           if(res==='heard') heardSet.add(j); else closeSet.add(j);
         }
-        // a confirmed final result always overrides an interim guess
         interimHighlightSet.delete(j);
         setWordClass(j, res==='heard'?'w-heard':'w-close');
         if(j>lastHeardIdx) lastHeardIdx=j;
@@ -756,16 +802,10 @@ function processAndLock(transcript){
 }
 
 function processInterim(transcript){
-  // FIX: interim results are no longer written into heardSet/closeSet
-  // (the sets that scoring reads). They only get a distinct, dashed
-  // "unconfirmed" highlight (w-interim) so the reader still gets live
-  // feedback, but a word only counts toward the score once a *final*
-  // result confirms it via processAndLock().
   const spoken=normalise(transcript);
   const wordToks=lineTokens.filter(t=>t.type==='word');
   let searchFrom=_confirmedIdx+1;
 
-  // clear previous interim-only highlights that are ahead of the confirmed cursor
   interimHighlightSet.forEach(j=>{
     if(!heardSet.has(j) && !closeSet.has(j)){
       setWordClass(j,'w-pending');
@@ -793,13 +833,13 @@ function startListening(){
   const lb=document.querySelector(`#row-${currentLine} .listen-btn`);
   if(lb){lb.textContent='▶ Listen first';lb.classList.remove('speaking');}
 
+  lineAttempts++;
   isListening=true; lineStartTime=Date.now();
-  _finalBuffer=''; _confirmedIdx=-1; 
+  _finalBuffer=''; _confirmedIdx=-1;
   clearTimeout(_interimTimer); clearTimeout(_silenceTimer); clearTimeout(_finalizeSafetyTimer);
   _restartCount=0; _firstResultSeen=false; _pendingFinalize=false; _stopRequested=false;
   $micBtn.className='mic-btn listening'; $micBtn.textContent='⏹';
   $waveform.classList.add('active');
-  $transcriptStrip.textContent=''; $transcriptStrip.classList.add('live');
   setPrompt('listening');
   $rereadBtn.style.display='none'; $nextBtn.style.display='none';
 
@@ -808,11 +848,6 @@ function startListening(){
   startAudioRec();
 }
 
-// FIX: stopListening() now REQUESTS a stop and waits for the recognizer's
-// onend event before finalizing the score. Previously it called
-// finalizeCurrentLine() synchronously right after recognition.stop(),
-// which could run before Chrome delivered a queued final result — causing
-// words visibly highlighted on screen to not be counted in the score.
 function stopListening(finalize=true){
   if(!isListening && !recognition) { return; }
   isListening=false;
@@ -820,7 +855,6 @@ function stopListening(finalize=true){
   clearTimeout(_interimTimer);
 
   if(!recognition){
-    // nothing to wait for
     completeStopUI();
     stopAudioRec(finalize);
     if(finalize) finalizeCurrentLine();
@@ -828,16 +862,12 @@ function stopListening(finalize=true){
   }
 
   if(finalize){
-    // show a brief "finishing up" state while we wait for the last result
     _pendingFinalize=true;
     _stopRequested=true;
     $micBtn.className='mic-btn finishing'; $micBtn.textContent='…';
-    $transcriptStrip.classList.remove('live');
-    $transcriptStrip.classList.add('finishing');
     setPrompt('finishing');
     stopAudioRec(true);
 
-    // Safety net: if onend never fires (rare), don't leave the UI stuck.
     clearTimeout(_finalizeSafetyTimer);
     _finalizeSafetyTimer=setTimeout(()=>{
       if(_pendingFinalize){
@@ -861,8 +891,6 @@ function stopListening(finalize=true){
 function completeStopUI(){
   $micBtn.className='mic-btn idle'; $micBtn.textContent='🎙';
   $waveform.classList.remove('active');
-  $transcriptStrip.classList.remove('live'); $transcriptStrip.classList.remove('finishing');
-  $transcriptStrip.textContent='';
   recognition=null;
 }
 
@@ -937,17 +965,14 @@ function finalizeCurrentLine(){
   showLineFeedback(heard, close, total, missedWords, pace);
   updateHUD();
 
-  // ─── AUTO-ADVANCE LOGIC ───
   const pctScore = total > 0 ? Math.round(((heard + close) / total) * 100) : 0;
 
   if (pctScore >= 60) {
-    // Hide buttons, prepare to advance
     $rereadBtn.style.display = 'none';
     $skipBtn.style.display = 'none';
     $nextBtn.style.display = 'none';
     setPrompt('Moving to next line...');
 
-    // Inject countdown bar
     const col = document.querySelector(`#row-${currentLine} .bubble-col`);
     if(col) {
       const barWrap = document.createElement('div');
@@ -956,24 +981,19 @@ function finalizeCurrentLine(){
       barFill.className = 'auto-next-fill';
       barWrap.appendChild(barFill);
       col.appendChild(barWrap);
-      
       requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          barFill.style.width = '100%';
-        });
+        requestAnimationFrame(() => { barFill.style.width = '100%'; });
       });
     }
-
     setTimeout(() => { advanceLine(); }, 1500);
 
   } else {
-    // Under 60% — manual retry or skip
     $rereadBtn.style.display = 'inline-flex';
     $nextBtn.style.display = 'none';
-    $skipBtn.style.display = 'inline-flex';
-    setPrompt('You can do it! Try again or skip.');
+    // skip only unlocks once the reader has genuinely tried a few times
+    $skipBtn.style.display = (lineAttempts >= MIN_TRIES_FOR_SKIP) ? 'inline-flex' : 'none';
+    setPrompt(lineAttempts >= MIN_TRIES_FOR_SKIP ? 'You can do it! Try again or skip.' : 'You can do it! Try again.');
 
-    // Inject gentle nudge
     const col = document.querySelector(`#row-${currentLine} .bubble-col`);
     if(col) {
        const nudge = document.createElement('div');
@@ -991,11 +1011,10 @@ function showLineFeedback(heard, close, total, missed, pace){
 
   const pctRaw = (total > 0) ? ((heard + close) / total) : 0;
   const pctScore = Math.round(pctRaw * 100);
-  
+
   const fb=document.createElement('div');
   fb.className='line-feedback';
 
-  // Numerical score chip
   let scoreClass = pctScore === 100 ? 'perfect' : pctRaw >= CLEAN_THRESHOLD ? 'great' : 'try-these';
   fb.innerHTML += `<span class="fb-chip ${scoreClass}">✦ ${pctScore}%</span>`;
 
@@ -1008,6 +1027,11 @@ function showLineFeedback(heard, close, total, missed, pace){
   }
 
   if(pace==='fast') fb.innerHTML+=`<span class="fb-chip pace-fast">⚡ Slow down a little</span>`;
+
+  if(pctScore<60 && lineAttempts<MIN_TRIES_FOR_SKIP){
+    const left=MIN_TRIES_FOR_SKIP-lineAttempts;
+    fb.innerHTML+=`<span class="fb-chip tries-left">${left} more ${left===1?'try':'tries'} to unlock skip</span>`;
+  }
 
   col.appendChild(fb);
 
@@ -1050,11 +1074,12 @@ function rereadLine(){
   heardSet.clear(); closeSet.clear(); lastHeardIdx=-1; _confirmedIdx=-1; interimHighlightSet.clear();
   clearTimeout(_interimTimer); clearTimeout(_silenceTimer);
   $rereadBtn.style.display='none'; $nextBtn.style.display='none';
-  $skipBtn.style.display='inline-flex';
+  $skipBtn.style.display='none';
   startListening();
 }
 
 function skipLine(){
+  if(lineAttempts < MIN_TRIES_FOR_SKIP) return; // guarded, but double-check
   if(isListening) stopListening(false);
   lineTokens.forEach((t,i)=>{
     if(t.type==='word'){
@@ -1073,7 +1098,7 @@ function skipLine(){
 const IS_MOBILE = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
 function startAudioRec(){
-  if(IS_MOBILE) return; 
+  if(IS_MOBILE) return;
   lineAudioChunks=[];
   navigator.mediaDevices.getUserMedia({audio:true}).then(stream=>{
     mediaRecorder=new MediaRecorder(stream);
@@ -1122,6 +1147,24 @@ function setPrompt(state){
 }
 
 // ─── FINISH ───────────────────────────────────────────────────────────────────
+async function saveResult(payload){
+  for(let a=1;a<=3;a++){
+    try{
+      const ctrl=new AbortController();
+      setTimeout(()=>ctrl.abort(),5000);
+      const r=await fetch("https://yellow-lab-4999.andrewveda.workers.dev/functions/v1/logQuest",{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify(payload),signal:ctrl.signal
+      });
+      if(!r.ok) throw new Error();
+      const d=await r.json();
+      if(d.success) return true;
+    }catch(e){}
+    if(a<3) await new Promise(r=>setTimeout(r,1500));
+  }
+  return false;
+}
+
 async function finishQuiz(){
   clearInterval(timerInterval);
   isListening=false; try{recognition?.stop();}catch(_){}
@@ -1131,6 +1174,8 @@ async function finishQuiz(){
   $linePill.textContent='✦ Done';
   $chatArea.innerHTML='';
   $savingSpinner.style.display='block';
+
+  if(activeQuestKey) markQuestCompleted(activeQuestKey);
 
   const totalTime=Math.floor((Date.now()-startTime)/1000);
   const combined=totalHeard+totalClose;
@@ -1154,21 +1199,27 @@ async function finishQuiz(){
     const pct=r.total>0?Math.round((r.heard+r.close)/r.total*100):0;
     const paceHTML=r.pace==='fast'?'<span class="td-fast">⚡ Slow down</span>':'<span class="td-ok">✓ Good</span>';
     const missHTML=r.missed.length?`<span class="td-try">${r.missed.slice(0,3).join(', ')}${r.missed.length>3?'…':''}</span>`:'<span class="td-ok">—</span>';
-    return `<tr><td>${L.speaker==='teacher'?'🧘':'📚'} ${r.index+1}</td><td>${pct}%</td><td>${paceHTML}</td><td>${missHTML}</td></tr>`;
+    return `<tr><td>${L.emo_emoji} ${r.index+1}</td><td>${pct}%</td><td>${paceHTML}</td><td>${missHTML}</td></tr>`;
   }).join('');
+
+  // Find the next uncompleted (or just next) quest in the library
+  const keys=Object.keys(QUEST_DB);
+  const curIdx=keys.indexOf(activeQuestKey);
+  const nextKey = keys.length>1 ? keys[(curIdx+1)%keys.length] : null;
+  const nextQuest = nextKey ? QUEST_DB[nextKey] : null;
 
   $scoreCard.innerHTML=`
   <div class="score-wrapper">
     <div class="score-trophy-band">
-      <div class="score-status-pill">✦ ${QUEST_ID} · Reading Complete</div>
+      <div class="score-status-pill">✦ ${escapeHtml(QUEST_ID)} · Reading Complete</div>
       <span class="score-emoji">${trophy}</span>
       <h2 class="score-headline">${accuracy}%</h2>
       <p class="score-tagline">${flawless?'Every single word — flawless.':accuracy>=80?'A confident reading performance.':'Keep practising — you\'re getting there.'}</p>
     </div>
     <div class="score-stats-band">
       <div class="score-name-row">
-        <span class="score-player-name">${playerName}</span>
-        <span class="score-player-dept">${playerDept}</span>
+        <span class="score-player-name">${escapeHtml(playerName)}</span>
+        <span class="score-player-dept">${escapeHtml(playerDept)}</span>
       </div>
       <div class="score-grid">
         <div class="score-cell"><span class="score-cell-val v-good">${totalHeard}</span><span class="score-cell-label">Heard clearly</span></div>
@@ -1183,22 +1234,27 @@ async function finishQuiz(){
     </div>
     <div class="score-next-band">
       <p class="score-next-eyebrow">Continue your journey</p>
-      <a href="https://andrewveda.github.io/SRM-VEC-English-PWA/cloze/conversation2" class="next-btn">
-        <div class="next-text"><span class="next-pre">Up next</span><span class="next-title">Story 2 — The Next Conversation</span></div>
+      <button id="nextQuestBtn" class="next-btn" style="width:100%">
+        <div class="next-text"><span class="next-pre">${nextQuest?'Up next':'Explore more'}</span><span class="next-title">${nextQuest?escapeHtml(nextQuest.title):'Back to the Library'}</span></div>
         <div class="next-arrow">→</div>
-      </a>
+      </button>
     </div>
     <div class="score-footer-band">
       <div>${saved?'<p class="save-ok">✓ Results saved</p>':'<p class="save-fail">⚠ Could not reach server</p>'}</div>
-      <button class="pdf-btn" onclick="downloadPDF()">↓ Download Report</button>
+      <button class="pdf-btn" id="downloadPdfBtn">↓ Download Report</button>
     </div>
   </div>`;
+
+  const nqBtn=$('nextQuestBtn');
+  if(nqBtn) nqBtn.onclick=()=>{ if(nextKey) selectQuest(nextKey); else showDashboard(); };
+  const pdfBtn=$('downloadPdfBtn');
+  if(pdfBtn) pdfBtn.onclick=downloadPDF;
 
   $restartBtn.style.display='inline-block';
 }
 
 // ─── PDF ──────────────────────────────────────────────────────────────────────
-window.downloadPDF=function(){
+function downloadPDF(){
   const {jsPDF}=window.jspdf;
   const doc=new jsPDF({unit:'mm',format:'a4'});
   const ph=doc.internal.pageSize.height, mL=20;
@@ -1235,7 +1291,7 @@ window.downloadPDF=function(){
   doc.setFontSize(8);doc.setTextColor(128,128,128);doc.setFont('times','italic');
   doc.text('System-generated report',105,ph-10,{align:'center'});
   doc.save(`${playerName.replace(/[^a-zA-Z0-9]/g,'_')}_${QUEST_ID.replace(/[^a-zA-Z0-9]/g,'_')}_Report.pdf`);
-};
+}
 
 // ─── CONFETTI ─────────────────────────────────────────────────────────────────
 function launchConfetti(){
@@ -1254,22 +1310,22 @@ function launchConfetti(){
 
 // ─── DOM READY ────────────────────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded',()=>{
-  $nameForm=$('#nameForm');$quizContent=$('#quizContent');
-  $nameInput=$('#nameInput');$deptSelect=$('#deptSelect');$startBtn=$('#startBtn');
-  $micDot=$('#micDot');$micText=$('#micText');$noSpeech=$('#noSpeechBanner');
-  $chatArea=$('#chatArea');$topStrip=$('#topStrip');$progWrap=$('#progWrap');$progFill=$('#progFill');
-  $timerPill=$('#timerPill');$scorePill=$('#scorePill');$linePill=$('#linePill');
-  $micPanel=$('#micPanel');$micBtn=$('#micBtn');
-  $transcriptStrip=$('#transcriptStrip');$waveform=$('#waveform');
-  $rereadBtn=$('#rereadBtn');$skipBtn=$('#skipBtn');$nextBtn=$('#nextBtn');$linePrompt=$('#linePrompt');
-  $savingSpinner=$('#savingSpinner');$scoreCard=$('#scoreCard');$restartBtn=$('#restartBtn');
-
-  function $(id){return document.getElementById(id.replace('#',''))}
+  $dashboardView=$('dashboardView');
+  $nameForm=$('nameForm');$quizContent=$('quizContent');
+  $nameInput=$('nameInput');$deptSelect=$('deptSelect');$startBtn=$('startBtn');$backToDashBtn=$('backToDashBtn');
+  $micDot=$('micDot');$micText=$('micText');$noSpeech=$('noSpeechBanner');
+  $chatArea=$('chatArea');$topStrip=$('topStrip');$progWrap=$('progWrap');$progFill=$('progFill');
+  $timerPill=$('timerPill');$scorePill=$('scorePill');$linePill=$('linePill');
+  $micPanel=$('micPanel');$micBtn=$('micBtn');$waveform=$('waveform');
+  $rereadBtn=$('rereadBtn');$skipBtn=$('skipBtn');$nextBtn=$('nextBtn');$linePrompt=$('linePrompt');
+  $savingSpinner=$('savingSpinner');$scoreCard=$('scoreCard');$restartBtn=$('restartBtn');
+  $questGrid=$('questGrid');$dashIdentityPill=$('dashIdentityPill');
 
   $startBtn.onclick=beginQuiz;
+  $backToDashBtn.onclick=()=>{ pendingDirectQuestKey=null; $nameForm.style.display='none'; showDashboard(); };
 
   $micBtn.onclick=()=>{
-    if(_pendingFinalize) return; // ignore taps while finishing up
+    if(_pendingFinalize) return;
     if(isListening) stopListening(true);
     else if(currentLine<LINES.length) startListening();
   };
@@ -1277,23 +1333,25 @@ window.addEventListener('DOMContentLoaded',()=>{
   $rereadBtn.onclick=rereadLine;
   $skipBtn.onclick=skipLine;
   $nextBtn.onclick=advanceLine;
+  $restartBtn.onclick=showDashboard;
 
-  $restartBtn.onclick=()=>{
-    clearInterval(timerInterval); isListening=false;
-    try{recognition?.stop();}catch(_){} window.speechSynthesis?.cancel();
-    $quizContent.style.display='none'; $topStrip.style.display='none';
-    $progWrap.style.display='none'; $micPanel.style.display='none';
-    $progFill.style.width='0%'; $nameForm.style.display='flex';
-    $nameInput.value=''; $deptSelect.value='';
-    const card=$nameForm.querySelector('.form-card');
-    card.style.transition='none';card.style.opacity='1';card.style.transform='';
-    $restartBtn.style.display='none'; $chatArea.innerHTML='';
-  };
+  loadIdentity();
 
-  try{
-    const n=localStorage.getItem('playerName'),d=localStorage.getItem('playerDept');
-    if(n)$nameInput.value=n; if(d)$deptSelect.value=d;
-  }catch(_){}
+  const urlParams=new URLSearchParams(window.location.search);
+  const questParam=urlParams.get('quest');
+
+  if(playerName && playerDept){
+    if(questParam && QUEST_DB[questParam]){
+      loadQuest(questParam);
+      launchQuiz();
+    } else {
+      showDashboard();
+    }
+  } else {
+    pendingDirectQuestKey = (questParam && QUEST_DB[questParam]) ? questParam : null;
+    fillFormFromIdentity();
+    showIdentityGate(false);
+  }
 
   window.speechSynthesis?.getVoices();
   window.speechSynthesis?.addEventListener('voiceschanged',()=>window.speechSynthesis.getVoices());
@@ -1315,232 +1373,5 @@ document.addEventListener('click',function(e){
 });
 </script>
 
-<!-- ── DEBUG CONSOLE OVERLAY ──────────────────────────────────────────────── -->
-<style>
-#dbgToggle{
-  position:fixed;bottom:5.5rem;right:1rem;z-index:9999;
-  width:32px;height:32px;border-radius:50%;
-  background:rgba(28,25,22,0.18);border:1px solid rgba(28,25,22,0.12);
-  font-size:0.75rem;cursor:pointer;display:flex;align-items:center;justify-content:center;
-  color:rgba(28,25,22,0.4);transition:all 0.2s ease;
-  font-family:monospace;line-height:1;
-}
-#dbgToggle:hover{background:rgba(28,25,22,0.35);color:#fff;}
-#dbgToggle.active{background:#1c1916;color:#c4956a;border-color:#c4956a;}
-
-#dbgPanel{
-  display:none;
-  position:fixed;bottom:0;left:0;right:0;z-index:9998;
-  height:52vh;
-  background:rgba(14,12,10,0.97);
-  border-top:1px solid #c4956a;
-  font-family:'Courier New',monospace;
-  font-size:11px;
-  overflow:hidden;
-  flex-direction:column;
-}
-#dbgPanel.open{display:flex;}
-
-#dbgHeader{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:6px 12px;border-bottom:1px solid #333;flex-shrink:0;
-}
-#dbgTitle{color:#c4956a;font-size:10px;font-weight:bold;letter-spacing:0.1em;text-transform:uppercase;}
-#dbgBtns{display:flex;gap:8px;}
-.dbg-hdr-btn{
-  padding:2px 8px;font-size:9px;border:1px solid #444;border-radius:3px;
-  background:transparent;color:#888;cursor:pointer;font-family:monospace;
-}
-.dbg-hdr-btn:hover{border-color:#c4956a;color:#c4956a;}
-
-#dbgLog{
-  flex:1;overflow-y:auto;padding:6px 10px;
-  display:flex;flex-direction:column;gap:2px;
-}
-.dl{display:flex;gap:8px;align-items:baseline;line-height:1.5;}
-.dl-time{color:#555;font-size:10px;flex-shrink:0;min-width:52px;}
-.dl-tag {font-size:10px;font-weight:bold;padding:0 4px;border-radius:2px;flex-shrink:0;min-width:54px;text-align:center;}
-.dl-msg {color:#ccc;word-break:break-all;}
-.tag-info  {background:#1a3a5c;color:#5ab4ff;}
-.tag-interim{background:#2a2210;color:#f0b429;}
-.tag-final  {background:#102a10;color:#5ecb5e;}
-.tag-error  {background:#3a0f0f;color:#ff6b6b;}
-.tag-event  {background:#1a1a2e;color:#9b8dff;}
-.tag-strip  {background:#1a1a1a;color:#888;}
-
-#dbgInfo{
-  padding:6px 12px;border-top:1px solid #222;flex-shrink:0;
-  font-size:10px;color:#555;display:flex;gap:16px;flex-wrap:wrap;
-}
-#dbgInfo span{color:#888;}
-</style>
-
-<button id="dbgToggle" title="Debug console">🐛</button>
-<div id="dbgPanel">
-  <div id="dbgHeader">
-    <div id="dbgTitle">🎙 Speech Debug Console</div>
-    <div id="dbgBtns">
-      <button class="dbg-hdr-btn" id="dbgClear">Clear</button>
-      <button class="dbg-hdr-btn" id="dbgCopy">Copy log</button>
-    </div>
-  </div>
-  <div id="dbgLog"></div>
-  <div id="dbgInfo">
-    SR supported: <span id="di-sr">—</span>
-    &nbsp;|&nbsp; Mic: <span id="di-mic">—</span>
-    &nbsp;|&nbsp; UA: <span id="di-ua">—</span>
-    &nbsp;|&nbsp; Events: <span id="di-count">0</span>
-  </div>
-</div>
-
-<script>
-(function(){
-  const $toggle  = document.getElementById('dbgToggle');
-  const $panel   = document.getElementById('dbgPanel');
-  const $log     = document.getElementById('dbgLog');
-  const $clear   = document.getElementById('dbgClear');
-  const $copy    = document.getElementById('dbgCopy');
-  const $diSR    = document.getElementById('di-sr');
-  const $diMic   = document.getElementById('di-mic');
-  const $diUA    = document.getElementById('di-ua');
-  const $diCount = document.getElementById('di-count');
-
-  let logLines = [];
-  let eventCount = 0;
-  let panelOpen = false;
-  const t0 = Date.now();
-
-  function ts(){ return '+' + ((Date.now()-t0)/1000).toFixed(2)+'s'; }
-
-  function dbg(tag, msg, cls){
-    eventCount++;
-    $diCount.textContent = eventCount;
-    const text = '['+ts()+'] ['+tag+'] ' + msg;
-    logLines.push(text);
-
-    const row = document.createElement('div');
-    row.className = 'dl';
-    row.innerHTML =
-      '<span class="dl-time">'+ts()+'</span>'+
-      '<span class="dl-tag '+cls+'">'+tag+'</span>'+
-      '<span class="dl-msg">'+escHtml(msg)+'</span>';
-    $log.appendChild(row);
-    $log.scrollTop = $log.scrollHeight;
-
-    console.log(text);
-  }
-
-  function escHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-
-  $toggle.onclick = () => {
-    panelOpen = !panelOpen;
-    $panel.classList.toggle('open', panelOpen);
-    $toggle.classList.toggle('active', panelOpen);
-    const mp = document.getElementById('micPanel');
-    if(mp) mp.style.bottom = panelOpen ? '52vh' : '0';
-  };
-
-  $clear.onclick = () => { $log.innerHTML=''; logLines=[]; eventCount=0; $diCount.textContent='0'; };
-  $copy.onclick  = () => { navigator.clipboard?.writeText(logLines.join('\n')).then(()=>{ $copy.textContent='Copied!'; setTimeout(()=>$copy.textContent='Copy log',1500); }); };
-
-  const hasSR = !!(window.SpeechRecognition||window.webkitSpeechRecognition);
-  $diSR.textContent = hasSR ? '✓ yes' : '✗ NO';
-  $diSR.style.color = hasSR ? '#5ecb5e' : '#ff6b6b';
-  $diUA.textContent = navigator.userAgent.replace(/\s*\(.*?\)\s*/g,' ').substring(0,60);
-
-  navigator.mediaDevices?.getUserMedia({audio:true}).then(s=>{
-    $diMic.textContent='✓ granted'; $diMic.style.color='#5ecb5e';
-    s.getTracks().forEach(t=>t.stop());
-    dbg('MIC','Permission granted','tag-info');
-  }).catch(e=>{
-    $diMic.textContent='✗ '+e.name; $diMic.style.color='#ff6b6b';
-    dbg('MIC','DENIED: '+e.message,'tag-error');
-  });
-
-  window._dbg = dbg;
-
-  dbg('INIT','Patching SR synchronously','tag-event');
-
-  const OrigSR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if(!OrigSR){ dbg('SR','Not supported on this device','tag-error'); } 
-  else {
-    function PatchedSR(){
-      const r = new OrigSR();
-
-      const origStart = r.start.bind(r);
-      r.start = function(){
-        dbg('SR',`start() called [lang=${r.lang}, cont=${r.continuous}, int=${r.interimResults}]`,'tag-event');
-        try{ origStart(); } catch(e){ dbg('SR','start() threw: '+e.message,'tag-error'); throw e; }
-      };
-
-      const origStop = r.stop.bind(r);
-      r.stop = function(){
-        dbg('SR','stop() called','tag-event');
-        try{ origStop(); } catch(e){}
-      };
-
-      let _onresult=null, _onerror=null, _onend=null, _onstart=null;
-
-      Object.defineProperty(r,'onstart',{
-        set(fn){ _onstart=fn; r.addEventListener('start',()=>{ dbg('SR','onstart fired','tag-event'); }); },
-        get(){ return _onstart; }
-      });
-
-      Object.defineProperty(r,'onresult',{
-        set(fn){
-          _onresult=fn;
-          r.addEventListener('result',e=>{
-            for(let i=e.resultIndex;i<e.results.length;i++){
-              const res=e.results[i];
-              const best=res[0].transcript;
-              const conf=(res[0].confidence*100).toFixed(0)+'%';
-              if(res.isFinal){ dbg('FINAL', '"'+best+'" conf='+conf, 'tag-final'); } 
-              else { dbg('INTERIM','"'+best+'"','tag-interim'); }
-            }
-            fn && fn(e);
-          });
-        },
-        get(){ return _onresult; }
-      });
-
-      Object.defineProperty(r,'onerror',{
-        set(fn){
-          _onerror=fn;
-          r.addEventListener('error',e=>{
-            dbg('ERROR','error='+e.error+' msg='+(e.message||'—'),'tag-error');
-            fn && fn(e);
-          });
-        },
-        get(){ return _onerror; }
-      });
-
-      Object.defineProperty(r,'onend',{
-        set(fn){
-          _onend=fn;
-          r.addEventListener('end',()=>{
-            fn && fn();
-          });
-        },
-        get(){ return _onend; }
-      });
-
-      return r;
-    }
-
-    if(window.SpeechRecognition)       window.SpeechRecognition       = PatchedSR;
-    if(window.webkitSpeechRecognition) window.webkitSpeechRecognition = PatchedSR;
-    dbg('INIT','SR constructor patched — ready','tag-info');
-  }
-
-  const strip = document.getElementById('transcriptStrip');
-  if(strip){
-    new MutationObserver(()=>{
-      if(strip.textContent.trim())
-        dbg('STRIP', strip.textContent.trim().substring(0,80), 'tag-strip');
-    }).observe(strip, {childList:true, characterData:true, subtree:true});
-  }
-
-})();
-</script>
 </body>
 </html>

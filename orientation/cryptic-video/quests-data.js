@@ -37,5 +37,5 @@ options: [
 ],
 correct: 3 }
     ]
-  },
+  }
 ];

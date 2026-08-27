@@ -274,7 +274,7 @@ html.light .dot.nearby { background: rgba(138,98,0,0.42); }
 }
 .chess-p-heuristic span { font-weight: 700; color: var(--gold); letter-spacing: 0.1em; }
 
-/* Thinking prompts — the provided questions students must use */
+/* Thinking prompts */
 .prompts-section { margin-bottom: 16px; }
 .prompts-label {
   font-size: 0.6rem; letter-spacing: 0.2em; text-transform: uppercase;
@@ -329,31 +329,20 @@ html.light .dot.nearby { background: rgba(138,98,0,0.42); }
 .quality-select:focus { outline: none; border-color: var(--gold); color: var(--gold); }
 html.light .quality-select { background: transparent; }
 
-.prompt-textarea {
+.prompt-textarea, .versionb-textarea {
   width: 100%; background: var(--input-bg);
-  border: 1px solid var(--input-border); border-bottom: none;
+  border: 1px solid var(--input-border);
   color: var(--paper); font-family: 'Courier Prime', monospace;
   font-size: 0.82rem; line-height: 1.55; padding: 10px 12px;
   resize: none; min-height: 62px;
   transition: border-color 0.2s, background 0.2s;
 }
-.prompt-textarea:focus { outline: none; border-color: var(--input-focus); background: rgba(201,168,76,0.07); }
-.prompt-textarea::placeholder { color: var(--text-faint); font-style: italic; }
-html.light .prompt-textarea { color: var(--paper); }
-html.light .prompt-textarea::placeholder { color: var(--text-faint); }
-
-.versionb-textarea {
-  width: 100%; background: var(--input-bg);
-  border: 1px solid var(--input-border); border-top: none; border-bottom: none;
-  color: var(--paper); font-family: 'Courier Prime', monospace;
-  font-size: 0.82rem; line-height: 1.55; padding: 10px 12px;
-  resize: none; min-height: 62px;
-  transition: border-color 0.2s, background 0.2s;
-}
-.versionb-textarea:focus { outline: none; border-color: var(--input-focus); background: rgba(201,168,76,0.07); }
-.versionb-textarea::placeholder { color: var(--text-faint); font-style: italic; }
-html.light .versionb-textarea { color: var(--paper); }
-html.light .versionb-textarea::placeholder { color: var(--text-faint); }
+.prompt-textarea { border-bottom: none; }
+.versionb-textarea { border-top: none; border-bottom: none; }
+.prompt-textarea:focus, .versionb-textarea:focus { outline: none; border-color: var(--input-focus); background: rgba(201,168,76,0.07); }
+.prompt-textarea::placeholder, .versionb-textarea::placeholder { color: var(--text-faint); font-style: italic; }
+html.light .prompt-textarea, html.light .versionb-textarea { color: var(--paper); }
+html.light .prompt-textarea::placeholder, html.light .versionb-textarea::placeholder { color: var(--text-faint); }
 
 .intent-textarea {
   width: 100%; background: var(--input-bg);
@@ -389,21 +378,11 @@ html.light .versionb-textarea::placeholder { color: var(--text-faint); }
 }
 .add-prompt-btn:hover { color: var(--gold); border-color: var(--gold); }
 
-/* Save bar */
+/* Save bar (Auto-save) */
 .save-bar {
-  display: flex; align-items: center; justify-content: space-between;
+  display: flex; align-items: center; justify-content: flex-end;
   gap: 10px; margin-bottom: 6px;
 }
-.save-btn {
-  background: var(--gold); color: var(--ink);
-  border: none; font-family: 'Courier Prime', monospace;
-  font-size: 0.72rem; font-weight: 700;
-  letter-spacing: 0.15em; text-transform: uppercase;
-  padding: 9px 18px; cursor: pointer;
-  transition: opacity 0.2s, transform 0.15s;
-  flex-shrink: 0;
-}
-.save-btn:active { opacity: 0.8; transform: scale(0.97); }
 .save-status {
   font-size: 0.62rem; letter-spacing: 0.12em; text-transform: uppercase;
   color: var(--text-faint); transition: color 0.3s;
@@ -881,7 +860,7 @@ const LENSES = [
 const TOTAL = LENSES.length + 2; // hero + 15 lenses + finale
 const track = document.getElementById('track');
 
-/* ── STORAGE HELPERS ── */
+/* ── STORAGE & AUTO-SAVE HELPERS ── */
 function saveKey(lensName, field, idx) {
   return `gow-${lensName}-${field}-${idx}`;
 }
@@ -889,6 +868,44 @@ function load(key) { return localStorage.getItem(key) || ''; }
 function save(key, val) { localStorage.setItem(key, val); }
 function hasWork(lensName) {
   return !!(load(`gow-${lensName}-versionA-0`) || load(`gow-${lensName}-analysis`));
+}
+
+let autoSaveTimers = {};
+function triggerAutoSave(lensName) {
+  setStatus(lensName, 'saving...');
+  clearTimeout(autoSaveTimers[lensName]);
+  autoSaveTimers[lensName] = setTimeout(function() {
+    saveLens(lensName);
+  }, 500); // Debounce to save half a second after typing stops
+}
+
+function setStatus(lensName, state) {
+  const el = document.getElementById('status-' + lensName);
+  if (!el) return;
+  if (state === 'saved') {
+    el.textContent = '✓ saved';
+    el.classList.add('saved');
+  } else {
+    el.textContent = state;
+    el.classList.remove('saved');
+  }
+}
+
+function saveLens(lensName) {
+  const container = document.getElementById('entries-' + lensName);
+  if (container) {
+    container.querySelectorAll('.prompt-entry').forEach(function(entry) {
+      const idx = entry.getAttribute('data-idx');
+      entry.querySelectorAll('[data-field]').forEach(function(el) {
+        save(saveKey(lensName, el.getAttribute('data-field'), idx), el.value);
+      });
+    });
+  }
+  const aEl = document.querySelector('.analysis-textarea[data-lens="' + lensName + '"]');
+  if (aEl) save('gow-' + lensName + '-analysis', aEl.value);
+  
+  setStatus(lensName, 'saved');
+  updateDotWork();
 }
 
 /* ── BUILD SLIDES ── */
@@ -967,16 +984,6 @@ makeSlide(`
   });
 })();
 
-/* ── ENTRY MANAGEMENT (declared before slide build loop) ── */
-function saveKey(lensName, field, idx) {
-  return `gow-${lensName}-${field}-${idx}`;
-}
-function load(key) { return localStorage.getItem(key) || ''; }
-function save(key, val) { localStorage.setItem(key, val); }
-function hasWork(lensName) {
-  return !!(load(`gow-${lensName}-versionA-0`) || load(`gow-${lensName}-analysis`));
-}
-
 var entryCounts = {};
 LENSES.forEach(function(l) { entryCounts[l.name] = 0; });
 
@@ -1024,9 +1031,10 @@ function addEntry(lensName, color, forceIdx, focus) {
   if (kVal) div.querySelector('[data-field="keep"]').value = kVal;
   if (wVal) div.querySelector('[data-field="why"]').value = wVal;
 
+  /* Trigger auto-save on input or selection change */
   div.querySelectorAll('textarea, select').forEach(function(el) {
-    el.addEventListener('input',  function() { setStatus(lensName, 'unsaved'); });
-    el.addEventListener('change', function() { setStatus(lensName, 'unsaved'); });
+    el.addEventListener('input',  function() { triggerAutoSave(lensName); });
+    el.addEventListener('change', function() { triggerAutoSave(lensName); });
   });
 
   if (focus !== false && forceIdx === undefined) {
@@ -1037,29 +1045,6 @@ function addEntry(lensName, color, forceIdx, focus) {
 function buildEntries(lensName, color) {
   const count = entryCount(lensName);
   for (var i = 0; i < count; i++) addEntry(lensName, color, i, false);
-}
-
-function saveLens(lensName) {
-  const container = document.getElementById('entries-' + lensName);
-  if (container) {
-    container.querySelectorAll('.prompt-entry').forEach(function(entry) {
-      const idx = entry.getAttribute('data-idx');
-      entry.querySelectorAll('[data-field]').forEach(function(el) {
-        save(saveKey(lensName, el.getAttribute('data-field'), idx), el.value);
-      });
-    });
-  }
-  const aEl = document.querySelector('.analysis-textarea[data-lens="' + lensName + '"]');
-  if (aEl) save('gow-' + lensName + '-analysis', aEl.value);
-  setStatus(lensName, 'saved');
-  updateDotWork();
-}
-
-function setStatus(lensName, state) {
-  const el = document.getElementById('status-' + lensName);
-  if (!el) return;
-  el.textContent = state === 'saved' ? '\u2713 saved' : 'unsaved';
-  el.classList.toggle('saved', state === 'saved');
 }
 
 /* SLIDES 1–15: LENSES */
@@ -1097,8 +1082,7 @@ LENSES.forEach(function(lens, li) {
         rows="5"></textarea>
 
       <div class="save-bar" style="margin-top:8px;">
-        <span class="save-status" id="status-${lens.name}">unsaved</span>
-        <button class="save-btn" data-lens="${lens.name}">Save ↓</button>
+        <span class="save-status" id="status-${lens.name}"></span>
       </div>
     </div>
   `;
@@ -1108,20 +1092,20 @@ LENSES.forEach(function(lens, li) {
 
   /* Build initial prompt entries */
   buildEntries(lens.name, lens.color);
+  
+  /* Set initial save status message */
+  if (hasWork(lens.name)) {
+      setStatus(lens.name, 'saved');
+  }
 
   /* Wire add-prompt button */
   inner.querySelector('.add-prompt-btn').addEventListener('click', function() {
     addEntry(lens.name, lens.color);
   });
 
-  /* Wire save button */
-  inner.querySelector('.save-btn').addEventListener('click', function() {
-    saveLens(lens.name);
-  });
-
-  /* Wire analysis autosave hint */
+  /* Wire analysis auto-save */
   inner.querySelector('.analysis-textarea').addEventListener('input', function() {
-    setStatus(lens.name, 'unsaved');
+    triggerAutoSave(lens.name);
   });
 
   /* Restore analysis */

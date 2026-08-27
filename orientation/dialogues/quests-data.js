@@ -101,53 +101,53 @@ const TESTS = [
   },
   {
     id: "ent_trail_2", questId: "Quest Video Cinema 2", category: "Entertainment - Trailers", difficulty: "Short",
-    title: "Pawn Sacrifice | Official Trailer", youtubeId: "xF3fMJamH_s", durationHint: 147,
-    description: "Tobey Maguire stars as Bobby Fischer in the gripping true story of the 1972 World Chess Championship.",
+    title: "Pawn Sacrifice Trailer (2015)", youtubeId: "htFP3Lm8vSQ", durationHint: 193,
+    description: "Tobey Maguire stars as Bobby Fischer in the gripping true story of the 1972 World Chess Championship against Boris Spassky.",
     questions: [
       { 
         at: 0, tier: 1, 
-        q: "Which country is Bobby Fischer's rival, Boris Spassky, representing in the trailer?", 
-        options: ["A. The United States", "B. Great Britain", "C. The Soviet Union", "D. Germany"], 
+        q: "In the trailer, Bobby Fischer demands at least how many feet between himself and the audience?", 
+        options: ["A. 10 feet", "B. 20 feet", "C. 5 feet", "D. 50 feet"], 
         correct: 2 
       }
     ]
   },
   {
     id: "ent_trail_3", questId: "Quest Video Cinema 3", category: "Entertainment - Trailers", difficulty: "Short",
-    title: "Queen of Katwe | Official Trailer", youtubeId: "z4l3-_yub5A", durationHint: 148,
+    title: "Queen of Katwe Official Trailer", youtubeId: "SsK9Y9_WnDk", durationHint: 205,
     description: "The inspiring true story of a young girl from rural Uganda whose world changes when she is introduced to the game of chess.",
     questions: [
       { 
         at: 0, tier: 1, 
-        q: "According to the trailer, what can chess help the children of Katwe do?", 
-        options: ["A. Win money for their village", "B. Learn to plan, focus, and see a life beyond their current struggles", "C. Travel to the United States immediately", "D. Become famous actors"], 
-        correct: 1 
-      }
-    ]
-  },
-  {
-    id: "ent_trail_4", questId: "Quest Video Cinema 4", category: "Entertainment - Trailers", difficulty: "Short",
-    title: "Searching for Bobby Fischer | Trailer", youtubeId: "FztEwJ9nL-A", durationHint: 122,
-    description: "The classic 1993 film about a young chess prodigy whose father is determined to see him become a champion.",
-    questions: [
-      { 
-        at: 0, tier: 1, 
-        q: "What does the young boy in the movie refuse to do that causes conflict with his instructor?", 
-        options: ["A. Learn how the Knight moves", "B. Play chess in the park with hustlers", "C. Play aggressively to crush his opponents", "D. Use a chess clock"], 
+        q: "What metaphor does the coach use to explain the importance of having a plan to the children?", 
+        options: ["A. 'You must attack like a lion.'", "B. 'You must hide behind your pawns.'", "C. 'Use your minds. If you fall to pieces, when will you all find safety?'", "D. 'Sacrifice the small ones for the big ones.'"], 
         correct: 2 
       }
     ]
   },
   {
-    id: "ent_trail_5", questId: "Quest Video Cinema 5", category: "Entertainment - Trailers", difficulty: "Short",
-    title: "Magnus | Official Documentary Trailer", youtubeId: "f0Q09oE2oGk", durationHint: 121,
-    description: "A look into the mind of Magnus Carlsen, the highest-rated chess player in the history of the game.",
+    id: "ent_trail_4", questId: "Quest Video Cinema 4", category: "Entertainment - Trailers", difficulty: "Short",
+    title: "Searching for Bobby Fischer - Trailer", youtubeId: "hOTc4D0uQNk", durationHint: 147,
+    description: "The classic 1993 film about a young chess prodigy whose father is determined to see him become a champion.",
     questions: [
       { 
         at: 0, tier: 1, 
-        q: "Magnus Carlsen is often referred to as the 'Mozart' of what?", 
-        options: ["A. Mathematics", "B. Chess", "C. Music", "D. Memory"], 
+        q: "What phrase does the chess instructor repeatedly tell the young boy regarding his opponents?", 
+        options: ["A. 'You must respect them.'", "B. 'You have to have contempt for your opponents. You have to hate them.'", "C. 'You must study their openings.'", "D. 'You must play faster than them.'"], 
         correct: 1 
+      }
+    ]
+  },
+  {
+    id: "ent_trail_5", questId: "Quest Video Cinema 5", category: "Entertainment - Trailers", difficulty: "Short",
+    title: "Magnus Official Trailer 1 (2016)", youtubeId: "YhrUFssohM4", durationHint: 130,
+    description: "A documentary looking into the mind of Magnus Carlsen, the highest-rated chess player in the history of the game.",
+    questions: [
+      { 
+        at: 0, tier: 1, 
+        q: "During a blindfolded exhibition shown in the trailer, how many tables is Magnus Carlsen playing against simultaneously?", 
+        options: ["A. Only 1 table", "B. 3 tables", "C. 5 tables", "D. He is shown calling out moves for Table 8, 9, and 10."], 
+        correct: 3 
       }
     ]
   },
@@ -155,27 +155,27 @@ const TESTS = [
   // ═══ ENTERTAINMENT - CLIPS ═══
   {
     id: "ent_clip_1", questId: "Quest Video Cinema 6", category: "Entertainment - Clips", difficulty: "Short",
-    title: "The Queen's Gambit: Beth vs. Borgov Final Match", youtubeId: "81z3wWv0Niw", durationHint: 334,
-    description: "The tense, climactic final game from the hit series. Watch the intense calculation and drama.",
+    title: "Wizard's Chess - Harry Potter And The Philosopher's Stone", youtubeId: "NSz34P9rWjM", durationHint: 288,
+    description: "The iconic, magical, and highly destructive game of giant chess from the first Harry Potter film.",
     questions: [
       { 
         at: 0, tier: 1, 
-        q: "During the match, what happens that pauses the game temporarily?", 
-        options: ["A. Beth resigns", "B. Borgov asks for an adjournment", "C. The power goes out", "D. A piece is broken"], 
-        correct: 1 
+        q: "Which piece does Ron Weasley ride and play as during the giant chess match?", 
+        options: ["A. A Bishop", "B. A Rook", "C. A Knight", "D. The King"], 
+        correct: 2 
       }
     ]
   },
   {
     id: "ent_clip_2", questId: "Quest Video Cinema 7", category: "Entertainment - Clips", difficulty: "Short",
-    title: "Harry Potter and the Sorcerer's Stone - Wizard's Chess", youtubeId: "XQx9n49Gk5s", durationHint: 257,
-    description: "The iconic, magical, and highly destructive game of giant chess from the first Harry Potter film.",
+    title: "\"Why, hello Beth\" scene || The Queen's Gambit", youtubeId: "Yfa3PZCYk9g", durationHint: 149,
+    description: "A tense dialogue and quick chess montage between Beth Harmon and Benny Watts at the U.S. Championship.",
     questions: [
       { 
         at: 0, tier: 1, 
-        q: "Which character plays the role of the Knight and sacrifices himself so they can win the game?", 
-        options: ["A. Harry Potter", "B. Hermione Granger", "C. Ron Weasley", "D. Neville Longbottom"], 
-        correct: 2 
+        q: "When Benny asks Beth if she's going to see the places they play in the Soviet Union, how does she respond?", 
+        options: ["A. 'I don't care about the Russians.'", "B. 'I'm planning on it.'", "C. 'I doubt I'll qualify.'", "D. 'I already have my tickets.'"], 
+        correct: 1 
       }
     ]
   }

@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SRM VEC - The Grandmaster of Words</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Jost:wght@300;400;500;600&display=swap');
+
+        :root {
+            --board-dark: #0a0b0e;
+            --board-light: #12141a;
+            --panel: rgba(18, 20, 26, 0.75);
+            --panel-bright: rgba(28, 31, 40, 0.9);
+            --ivory: #f4f0e6;
+            --dim-ivory: #a3a098;
+            --gold: #c2a36d;
+            --gold-bright: #e6c88a;
+            --gold-dim: rgba(194, 163, 109, 0.25);
+            --accent-red: #8c2a2a;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            min-height: 100dvh;
+            background: var(--board-dark);
+        }
+
+        body {
+            font-family: 'Jost', sans-serif;
+            color: var(--ivory);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* ===== Chessboard Backdrop ===== */
+        .chess-bg {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            background-color: var(--board-dark);
+            background-image: 
+                linear-gradient(45deg, var(--board-light) 25%, transparent 25%, transparent 75%, var(--board-light) 75%, var(--board-light)),
+                linear-gradient(45deg, var(--board-light) 25%, transparent 25%, transparent 75%, var(--board-light) 75%, var(--board-light));
+            background-size: 80px 80px;
+            background-position: 0 0, 40px 40px;
+            opacity: 0.4;
+        }
+
+        .vignette {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            background: radial-gradient(circle at 50% 30%, transparent 20%, var(--board-dark) 100%);
+            pointer-events: none;
+        }
+
+        .container {
+            z-index: 1;
+            width: 90%;
+            max-width: 480px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 6vh 0 10vh;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 2vh;
+            position: relative;
+        }
+
+        .kicker {
+            font-size: clamp(0.65rem, 2vw, 0.75rem);
+            font-weight: 500;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            color: var(--dim-ivory);
+            margin-bottom: 12px;
+        }
+
+        h1 {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: clamp(2.2rem, 8vw, 3rem);
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            margin: 0;
+            line-height: 1.1;
+            color: var(--ivory);
+        }
+
+        h1 span {
+            display: block;
+            font-style: italic;
+            color: var(--gold-bright);
+            font-size: clamp(1.6rem, 6vw, 2.2rem);
+        }
+
+        .divider {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            margin: 3vh 0;
+        }
+        
+        .divider .line {
+            width: 60px;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--gold-dim));
+        }
+        
+        .divider .line.right { 
+            background: linear-gradient(90deg, var(--gold-dim), transparent); 
+        }
+        
+        .divider .piece {
+            font-size: 1.2rem;
+            color: var(--gold-bright);
+            line-height: 1;
+        }
+
+        /* ===== The Invitation / Manifesto ===== */
+        .manifesto {
+            background: var(--panel);
+            border: 1px solid var(--gold-dim);
+            padding: 2.5vh 1.8rem;
+            margin-bottom: 4vh;
+            position: relative;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            text-align: center;
+        }
+
+        .manifesto::before, .manifesto::after {
+            content: '';
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            border: 1px solid var(--gold);
+        }
+        .manifesto::before { top: 4px; left: 4px; border-right: none; border-bottom: none; }
+        .manifesto::after { bottom: 4px; right: 4px; border-left: none; border-top: none; }
+
+        .manifesto p {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.1rem;
+            line-height: 1.6;
+            color: var(--ivory);
+            margin: 0 0 15px 0;
+        }
+
+        .manifesto p.highlight {
+            font-style: italic;
+            color: var(--gold-bright);
+            font-size: 1.25rem;
+        }
+
+        .manifesto .list-text {
+            font-family: 'Jost', sans-serif;
+            font-size: 0.85rem;
+            font-weight: 300;
+            color: var(--dim-ivory);
+            letter-spacing: 0.5px;
+            margin-bottom: 20px;
+            line-height: 1.7;
+        }
+
+        .manifesto .challenge-title {
+            font-family: 'Jost', sans-serif;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            color: var(--gold);
+            margin: 25px 0 10px;
+            display: block;
+        }
+
+        /* ===== Hero: The First Move ===== */
+        .hero-quest {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            margin: 0 0 3vh;
+            padding: 3.5vh 1.4rem;
+            text-align: center;
+            text-decoration: none;
+            background: linear-gradient(145deg, rgba(28, 31, 40, 0.9), rgba(10, 11, 14, 0.95));
+            border: 1px solid var(--gold-bright);
+            box-shadow: 
+                0 0 0 1px rgba(230, 200, 138, 0.1),
+                0 10px 40px rgba(194, 163, 109, 0.15),
+                inset 0 0 20px rgba(194, 163, 109, 0.05);
+            transition: all 0.4s ease;
+        }
+
+        .hero-quest:hover {
+            box-shadow: 
+                0 0 0 1px rgba(230, 200, 138, 0.3),
+                0 15px 50px rgba(194, 163, 109, 0.25),
+                inset 0 0 30px rgba(194, 163, 109, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .hero-quest .hero-icon {
+            font-size: 1.8rem;
+            color: var(--gold-bright);
+            margin-bottom: 4px;
+            filter: drop-shadow(0 0 8px rgba(230, 200, 138, 0.6));
+        }
+
+        .hero-quest .hero-tag {
+            font-size: 0.65rem;
+            font-weight: 600;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: var(--gold-bright);
+        }
+
+        .hero-quest .hero-title {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: clamp(1.6rem, 6vw, 2rem);
+            font-weight: 600;
+            color: var(--ivory);
+            letter-spacing: 0.5px;
+        }
+
+        .hero-quest .hero-sub {
+            font-size: 0.75rem;
+            font-weight: 400;
+            letter-spacing: 1px;
+            color: var(--dim-ivory);
+            font-style: italic;
+        }
+
+        /* ===== Move List (Link Grid) ===== */
+        .link-grid {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5vh;
+            width: 100%;
+            padding-left: 24px;
+        }
+        
+        .link-grid::before {
+            content: '';
+            position: absolute;
+            top: 10px;
+            bottom: 10px;
+            left: 5px;
+            width: 1px;
+            background: linear-gradient(180deg, transparent, var(--gold-dim) 15%, var(--gold-dim) 85%, transparent);
+        }
+
+        .btn {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            width: 100%;
+            padding: 2vh 1.2rem;
+            background: var(--panel);
+            border: 1px solid var(--gold-dim);
+            color: var(--ivory);
+            text-decoration: none;
+            font-size: clamp(0.85rem, 3.5vw, 1rem);
+            font-weight: 400;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            transition: all 0.3s ease;
+        }
+
+        .btn .btn-sub {
+            font-size: 0.65rem;
+            font-weight: 300;
+            letter-spacing: 0.6px;
+            color: var(--dim-ivory);
+            text-transform: none;
+            margin-top: 4px;
+        }
+
+        .btn::after {
+            content: '';
+            position: absolute;
+            left: -22px;
+            top: 50%;
+            transform: translateY(-50%) rotate(45deg);
+            width: 6px;
+            height: 6px;
+            background: var(--board-dark);
+            border: 1px solid var(--gold);
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover, .btn:active {
+            background: var(--panel-bright);
+            border-color: var(--gold-bright);
+            transform: translateX(4px);
+        }
+
+        .btn:hover::after {
+            background: var(--gold-bright);
+            box-shadow: 0 0 8px var(--gold);
+        }
+
+        .btn.featured {
+            background: linear-gradient(135deg, rgba(194,163,109,0.1), rgba(28,31,40,0.8));
+            border-left: 2px solid var(--gold);
+        }
+        
+        .btn.featured::after {
+            background: var(--gold);
+            width: 8px;
+            height: 8px;
+        }
+
+        .btn.featured .tag {
+            position: absolute;
+            top: 6px;
+            right: 14px;
+            font-size: 0.55rem;
+            font-weight: 600;
+            letter-spacing: 1.5px;
+            color: var(--gold-bright);
+        }
+
+        .btn.day-nav {
+            background: transparent;
+            border: 1px dashed rgba(163, 160, 152, 0.2);
+            color: var(--dim-ivory);
+            font-size: 0.8rem;
+        }
+
+        .btn.day-nav::after {
+            border-color: var(--dim-ivory);
+            width: 4px;
+            height: 4px;
+        }
+
+        .notice {
+            width: 100%;
+            margin-top: 4vh;
+            padding: 2vh 1.5rem;
+            background: rgba(194, 163, 109, 0.05);
+            border-top: 1px solid var(--gold-dim);
+            border-bottom: 1px solid var(--gold-dim);
+            text-align: center;
+        }
+
+        .notice p {
+            margin: 0;
+            font-size: clamp(0.75rem, 3vw, 0.85rem);
+            font-weight: 300;
+            line-height: 1.6;
+            color: var(--dim-ivory);
+            letter-spacing: 0.3px;
+        }
+
+        .notice strong {
+            color: var(--gold-bright);
+            font-weight: 500;
+            letter-spacing: 0.5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="chess-bg"></div>
+    <div class="vignette"></div>
+
+    <div class="container">
+        <header>
+            <div class="kicker">SRM Valliammai Engineering College</div>
+            <h1>The Grandmaster<br><span>of Words</span></h1>
+            <div class="divider">
+                <span class="line"></span>
+                <span class="piece">♔</span>
+                <span class="line right"></span>
+            </div>
+        </header>
+
+        <div class="manifesto">
+            <p class="highlight">"Words are your chess pieces."</p>
+            <p>A grandmaster does not simply move pieces; they play with possibilities. You can use the same words as everyone else and still create something completely different.</p>
+            <p>A great communicator doesn't always use more words. They know which word to play, when to play it, and what move might come next. They experiment. They rephrase. They take risks.</p>
+            
+            <span class="challenge-title">Your Challenge</span>
+            <div class="list-text">
+                Today, you are going to introduce yourself. But don't think of it as writing a paragraph. Think of it as playing a position on the board.<br><br>
+                Look at your words the way a grandmaster looks at a chessboard. Don't accept the first move automatically. There is no single perfect way to introduce yourself. There is only the challenge of finding your move.
+            </div>
+        </div>
+
+        <a href="https://andrewveda.com/SRM-VEC-English-PWA/orientation/introduction" target="_blank" rel="noopener noreferrer" class="hero-quest">
+            <span class="hero-icon">♟️</span>
+            <span class="hero-tag">Your First Move</span>
+            <span class="hero-title">Self Introduction</span>
+            <span class="hero-sub">"Could I have said that differently?"<br>That's where the real game begins.</span>
+        </a>
+
+        <div class="link-grid">
+            <a href="https://andrewveda.com/verve/CEFR/modal" target="_blank" rel="noopener noreferrer" class="btn">
+                Warm Up Quest
+            </a>
+            <a href="https://andrewveda.com/SRM-VEC-English-PWA/orientation/dialogues/directory" target="_blank" rel="noopener noreferrer" class="btn featured">
+                <span class="tag">Main Quest &middot; Easy</span>
+                Philosophical Conversations
+            </a>
+            <a href="https://andrewveda.com/SRM-VEC-English-PWA/orientation/stories" target="_blank" rel="noopener noreferrer" class="btn featured">
+                <span class="tag">Main Quest &middot; Advanced</span>
+                The Remarkable Rocket
+            </a>
+            <a href="https://andrewveda.com/cryptic/instruction" target="_blank" rel="noopener noreferrer" class="btn">
+                Today's Fun Quest
+                <span class="btn-sub">Cryptic Puzzles &mdash; Train Your Creative-Critical Thinking</span>
+            </a>
+            <a href="https://andrewveda.com/SRM-VEC-English-PWA/orientation/ted-ed" target="_blank" rel="noopener noreferrer" class="btn">
+                Ted-Ed &amp; Songs
+            </a>
+            <a href="https://andrewveda.com/verve/buttons/jigsaw_orientation" target="_blank" rel="noopener noreferrer" class="btn">
+                Jigsaw Quotes
+            </a>
+            <a href="https://andrewveda.com/SRM-VEC-English-PWA/buttons/bookinsights" target="_blank" rel="noopener noreferrer" class="btn">
+                Book Insights
+            </a>
+            <a href="https://andrewveda.com/SRM-VEC-English-PWA/buttons/vocab" target="_blank" rel="noopener noreferrer" class="btn">
+                Vocabulary
+            </a>
+            <a href="https://andrewveda.com/SRM-VEC-English-PWA/orientation/3" target="_blank" rel="noopener noreferrer" class="btn day-nav">
+                Day Three Past Moves
+            </a>
+            <a href="https://andrewveda.com/SRM-VEC-English-PWA/orientation/2" target="_blank" rel="noopener noreferrer" class="btn day-nav">
+                Day Two Past Moves
+            </a>
+            <a href="https://andrewveda.com/SRM-VEC-English-PWA/orientation/1" target="_blank" rel="noopener noreferrer" class="btn day-nav">
+                Day One Past Moves
+            </a>
+        </div>
+    </div>
+
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4513226cdae34746b4dedf0b4dfa099e1781791509496" integrity="sha512-ZE9pZaUXND66v380QUtch/5sE9tPFh2zg45pR2PB0CVkCtOREv2AJKkSidISWkysEuQ0EH8faUU5du78bx87UQ==" data-cf-beacon='{"version":"2024.11.0","token":"14ed74a8395a4caaabc04f8e17f83022","r":1}' crossorigin="anonymous"></script>
+</body>
+</html>

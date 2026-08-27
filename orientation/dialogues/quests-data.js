@@ -83,5 +83,100 @@ const TESTS = [
         correct: 1 
       }
     ]
+  },
+
+  // ═══ ENTERTAINMENT - TRAILERS ═══
+  {
+    id: "ent_trail_1", questId: "Quest Video Cinema 1", category: "Entertainment - Trailers", difficulty: "Short",
+    title: "The Queen's Gambit | Official Trailer", youtubeId: "oZn3qSgmLqI", durationHint: 153,
+    description: "The thrilling trailer for the hit limited series about a chess prodigy's rise to the top.",
+    questions: [
+      { 
+        at: 0, tier: 1, 
+        q: "What is the name of the main character in The Queen's Gambit?", 
+        options: ["A. Judit Polgar", "B. Beth Harmon", "C. Vera Menchik", "D. Anya Taylor-Joy"], 
+        correct: 1 
+      }
+    ]
+  },
+  {
+    id: "ent_trail_2", questId: "Quest Video Cinema 2", category: "Entertainment - Trailers", difficulty: "Short",
+    title: "Pawn Sacrifice | Official Trailer", youtubeId: "xF3fMJamH_s", durationHint: 147,
+    description: "Tobey Maguire stars as Bobby Fischer in the gripping true story of the 1972 World Chess Championship.",
+    questions: [
+      { 
+        at: 0, tier: 1, 
+        q: "Which country is Bobby Fischer's rival, Boris Spassky, representing in the trailer?", 
+        options: ["A. The United States", "B. Great Britain", "C. The Soviet Union", "D. Germany"], 
+        correct: 2 
+      }
+    ]
+  },
+  {
+    id: "ent_trail_3", questId: "Quest Video Cinema 3", category: "Entertainment - Trailers", difficulty: "Short",
+    title: "Queen of Katwe | Official Trailer", youtubeId: "z4l3-_yub5A", durationHint: 148,
+    description: "The inspiring true story of a young girl from rural Uganda whose world changes when she is introduced to the game of chess.",
+    questions: [
+      { 
+        at: 0, tier: 1, 
+        q: "According to the trailer, what can chess help the children of Katwe do?", 
+        options: ["A. Win money for their village", "B. Learn to plan, focus, and see a life beyond their current struggles", "C. Travel to the United States immediately", "D. Become famous actors"], 
+        correct: 1 
+      }
+    ]
+  },
+  {
+    id: "ent_trail_4", questId: "Quest Video Cinema 4", category: "Entertainment - Trailers", difficulty: "Short",
+    title: "Searching for Bobby Fischer | Trailer", youtubeId: "FztEwJ9nL-A", durationHint: 122,
+    description: "The classic 1993 film about a young chess prodigy whose father is determined to see him become a champion.",
+    questions: [
+      { 
+        at: 0, tier: 1, 
+        q: "What does the young boy in the movie refuse to do that causes conflict with his instructor?", 
+        options: ["A. Learn how the Knight moves", "B. Play chess in the park with hustlers", "C. Play aggressively to crush his opponents", "D. Use a chess clock"], 
+        correct: 2 
+      }
+    ]
+  },
+  {
+    id: "ent_trail_5", questId: "Quest Video Cinema 5", category: "Entertainment - Trailers", difficulty: "Short",
+    title: "Magnus | Official Documentary Trailer", youtubeId: "f0Q09oE2oGk", durationHint: 121,
+    description: "A look into the mind of Magnus Carlsen, the highest-rated chess player in the history of the game.",
+    questions: [
+      { 
+        at: 0, tier: 1, 
+        q: "Magnus Carlsen is often referred to as the 'Mozart' of what?", 
+        options: ["A. Mathematics", "B. Chess", "C. Music", "D. Memory"], 
+        correct: 1 
+      }
+    ]
+  },
+
+  // ═══ ENTERTAINMENT - CLIPS ═══
+  {
+    id: "ent_clip_1", questId: "Quest Video Cinema 6", category: "Entertainment - Clips", difficulty: "Short",
+    title: "The Queen's Gambit: Beth vs. Borgov Final Match", youtubeId: "81z3wWv0Niw", durationHint: 334,
+    description: "The tense, climactic final game from the hit series. Watch the intense calculation and drama.",
+    questions: [
+      { 
+        at: 0, tier: 1, 
+        q: "During the match, what happens that pauses the game temporarily?", 
+        options: ["A. Beth resigns", "B. Borgov asks for an adjournment", "C. The power goes out", "D. A piece is broken"], 
+        correct: 1 
+      }
+    ]
+  },
+  {
+    id: "ent_clip_2", questId: "Quest Video Cinema 7", category: "Entertainment - Clips", difficulty: "Short",
+    title: "Harry Potter and the Sorcerer's Stone - Wizard's Chess", youtubeId: "XQx9n49Gk5s", durationHint: 257,
+    description: "The iconic, magical, and highly destructive game of giant chess from the first Harry Potter film.",
+    questions: [
+      { 
+        at: 0, tier: 1, 
+        q: "Which character plays the role of the Knight and sacrifices himself so they can win the game?", 
+        options: ["A. Harry Potter", "B. Hermione Granger", "C. Ron Weasley", "D. Neville Longbottom"], 
+        correct: 2 
+      }
+    ]
   }
 ];

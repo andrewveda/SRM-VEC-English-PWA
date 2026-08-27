@@ -1,0 +1,2200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>The Self-Introduction Quest — Library</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=DM+Sans:wght@300;400;500&family=Cormorant:ital,wght@1,300;1,400&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+<style>
+:root {
+  --white:        #ffffff;
+  --off-white:    #fafaf9;
+  --paper:        #f7f5f2;
+  --border:       #e8e3dc;
+  --border-soft:  #f0ece6;
+  --ink:          #1c1916;
+  --ink-mid:      #4a4540;
+  --ink-light:    #9a9188;
+  --rose-gold:    #c4956a;
+  --rose-gold-lt: #d4a87a;
+  --rose-gold-dk: #a07550;
+  --sage:         #7a9b7a;
+  --sage-pale:    rgba(122,155,122,0.1);
+  --amber:        #d49a3a;
+  --error:        #c0604a;
+  --shadow-sm:    0 1px 4px rgba(28,25,22,0.06);
+  --shadow-md:    0 4px 24px rgba(28,25,22,0.08);
+  --shadow-lg:    0 12px 48px rgba(28,25,22,0.1);
+  --radius:       14px;
+  --radius-sm:    8px;
+  --ease:         cubic-bezier(0.16,1,0.3,1);
+}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'DM Sans',sans-serif;background:var(--off-white);color:var(--ink);min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;background-image:radial-gradient(ellipse 80% 50% at 10% 0%,rgba(196,149,106,0.06) 0%,transparent 60%),radial-gradient(ellipse 60% 40% at 90% 100%,rgba(196,149,106,0.04) 0%,transparent 55%)}
+
+/* PROGRESS */
+.prog-wrap{position:fixed;top:0;left:0;right:0;height:2px;background:var(--border-soft);z-index:100;display:none}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--rose-gold-dk),var(--rose-gold),var(--rose-gold-lt));transition:width 0.6s var(--ease)}
+
+/* TOP STRIP */
+.top-strip{position:fixed;top:0;left:0;right:0;z-index:50;background:rgba(255,255,255,0.92);border-bottom:1px solid var(--border-soft);backdrop-filter:blur(20px);padding:0.6rem 1.5rem;display:none}
+.top-inner{max-width:680px;margin:0 auto;display:flex;justify-content:space-between;align-items:center}
+.stat-pill{display:flex;align-items:center;gap:0.35rem;font-size:0.78rem;font-weight:500;letter-spacing:0.04em;color:var(--ink-mid);background:var(--paper);border:1px solid var(--border);border-radius:20px;padding:0.28rem 0.75rem}
+.stat-pill.pulse{animation:pillPulse 0.35s ease}
+@keyframes pillPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+
+.container{position:relative;z-index:1;width:100%;min-height:100vh}
+
+/* ══════ DASHBOARD / DIRECTORY ══════ */
+#dashboardView{display:none;padding:3rem 1.5rem 5rem;max-width:720px;margin:0 auto;animation:entryFade 0.6s var(--ease) forwards}
+.dash-header{text-align:center;margin-bottom:2.5rem}
+.dash-eyebrow{font-size:0.68rem;font-weight:500;letter-spacing:0.18em;text-transform:uppercase;color:var(--rose-gold);margin-bottom:0.5rem}
+.dash-title{font-family:'Cormorant Garamond',serif;font-size:2.4rem;font-weight:300;color:var(--ink);margin-bottom:0.3rem}
+.dash-subtitle{font-family:'Cormorant',serif;font-style:italic;font-size:1rem;color:var(--ink-light)}
+.identity-pill-btn{background:var(--paper);border:1px solid var(--border);border-radius:20px;padding:0.35rem 0.9rem;font-family:'DM Sans',sans-serif;font-size:0.72rem;color:var(--ink-mid);cursor:pointer;transition:all 0.2s ease}
+.identity-pill-btn:hover{border-color:var(--rose-gold);color:var(--ink)}
+.identity-pill-switch{color:var(--rose-gold-dk);font-weight:500}
+
+.quest-grid{display:flex;flex-direction:column;gap:1rem}
+.quest-card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:1.4rem 1.8rem;display:flex;justify-content:space-between;align-items:center;cursor:pointer;transition:all 0.25s var(--ease);box-shadow:var(--shadow-sm)}
+.quest-card:hover{border-color:var(--rose-gold);transform:translateY(-2px);box-shadow:var(--shadow-md)}
+.quest-card-info{flex:1;padding-right:1rem}
+.quest-card-id{font-size:0.65rem;font-weight:500;letter-spacing:0.12em;text-transform:uppercase;color:var(--rose-gold);margin-bottom:0.25rem}
+.quest-card-title{font-family:'Cormorant Garamond',serif;font-size:1.35rem;font-weight:500;color:var(--ink);margin-bottom:0.2rem}
+.quest-card-sub{font-size:0.82rem;color:var(--ink-light)}
+.quest-card-action{display:flex;align-items:center;gap:0.75rem;flex-shrink:0}
+.badge-completed{background:var(--sage-pale);color:var(--sage);border:1px solid rgba(122,155,122,0.3);font-size:0.65rem;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;padding:0.25rem 0.65rem;border-radius:20px;display:inline-flex;align-items:center;gap:0.25rem}
+.quest-arrow{font-size:0.9rem;color:var(--ink-light);transition:transform 0.2s ease}
+.quest-card:hover .quest-arrow{transform:translateX(3px);color:var(--rose-gold)}
+
+/* ══════ IDENTITY GATE ══════ */
+#nameForm{display:none;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:2rem 1.5rem;animation:entryFade 0.9s var(--ease) forwards}
+@keyframes entryFade{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+
+.form-card{background:var(--white);border:1px solid var(--border);border-radius:20px;padding:3.5rem 3rem 3rem;max-width:420px;width:100%;box-shadow:var(--shadow-lg);position:relative;overflow:hidden}
+.form-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent 5%,var(--rose-gold) 40%,var(--rose-gold-lt) 60%,transparent 95%);opacity:0.7}
+.form-eyebrow{font-size:0.68rem;font-weight:500;letter-spacing:0.18em;text-transform:uppercase;color:var(--rose-gold);text-align:center;margin-bottom:0.75rem}
+.form-title{font-family:'Cormorant Garamond',serif;font-size:2.4rem;font-weight:300;text-align:center;line-height:1.15;margin-bottom:0.3rem}
+.form-subtitle{font-family:'Cormorant',serif;font-style:italic;font-size:1rem;font-weight:300;color:var(--ink-light);text-align:center;margin-bottom:2.5rem}
+.form-rule{width:40px;height:1px;background:linear-gradient(90deg,transparent,var(--rose-gold),transparent);margin:0 auto 2rem}
+.field-label{display:block;font-size:0.7rem;font-weight:500;letter-spacing:0.12em;text-transform:uppercase;color:var(--ink-light);margin-bottom:0.5rem;margin-top:1.2rem}
+.field-label:first-of-type{margin-top:0}
+#nameInput,#deptSelect{display:block;width:100%;padding:0.8rem 1rem;font-size:0.95rem;font-family:'DM Sans',sans-serif;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--off-white);color:var(--ink);transition:all 0.2s ease;outline:none;-webkit-appearance:none;appearance:none}
+#deptSelect{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='7' viewBox='0 0 12 7'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%239a9188' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 1rem center;padding-right:2.5rem}
+#nameInput:focus,#deptSelect:focus{border-color:var(--rose-gold);background:var(--white);box-shadow:0 0 0 3px rgba(196,149,106,0.1)}
+
+.mic-check{margin-top:1.5rem;padding:0.9rem 1rem;background:var(--paper);border:1px solid var(--border-soft);border-radius:var(--radius-sm);display:flex;align-items:center;gap:0.75rem}
+.mic-dot{width:10px;height:10px;border-radius:50%;background:var(--border);flex-shrink:0;transition:background 0.3s}
+.mic-dot.ok{background:var(--sage);animation:micPulse 1.5s ease-in-out infinite}
+.mic-dot.fail{background:var(--error)}
+@keyframes micPulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.3);opacity:0.7}}
+.mic-text{font-size:0.78rem;color:var(--ink-light);line-height:1.4}
+.no-speech{background:rgba(192,96,74,0.08);border:1px solid rgba(192,96,74,0.2);border-radius:var(--radius-sm);padding:0.8rem 1rem;font-size:0.8rem;color:var(--error);margin-top:1rem;line-height:1.5;display:none}
+
+.form-btn-group{display:flex;gap:0.75rem;margin-top:2rem}
+#startBtn{flex:1;padding:0.95rem;font-size:0.85rem;font-family:'DM Sans',sans-serif;font-weight:500;letter-spacing:0.12em;text-transform:uppercase;background:var(--ink);border:none;border-radius:var(--radius-sm);cursor:pointer;color:var(--white);transition:all 0.25s ease}
+#startBtn:hover{background:#2e2a26;transform:translateY(-1px);box-shadow:var(--shadow-md)}
+#startBtn:disabled{opacity:0.45;cursor:not-allowed;transform:none}
+#backToDashBtn{display:none;padding:0.95rem 1.2rem;font-size:0.82rem;font-family:'DM Sans',sans-serif;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;background:var(--paper);border:1px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;color:var(--ink-mid);transition:all 0.2s ease}
+#backToDashBtn:hover{border-color:var(--rose-gold);color:var(--ink)}
+
+/* ══════ CHAT ══════ */
+#quizContent{display:none}
+.chat-area{padding:5.5rem 1.5rem 14rem;display:flex;flex-direction:column;gap:0;max-width:660px;margin:0 auto}
+
+.bubble-row{display:flex;align-items:flex-start;gap:0.75rem;width:100%;opacity:0;transform:translateY(14px);animation:bubbleReveal 0.5s var(--ease) forwards;padding:0.5rem 0}
+@keyframes bubbleReveal{to{opacity:1;transform:translateY(0)}}
+.bubble-row.left{flex-direction:row;padding-right:4rem}
+.bubble-row.right{flex-direction:row-reverse;padding-left:4rem}
+.bubble-row.past{opacity:0.55;transition:opacity 0.5s ease}
+
+.avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;margin-top:0.25rem;border:1px solid var(--border);box-shadow:var(--shadow-sm);transition:transform 0.3s var(--ease)}
+.left .avatar{background:linear-gradient(135deg,#f7f0e8,#eedfc8)}
+.right .avatar{background:linear-gradient(135deg,#eef4ee,#ddeedd)}
+.bubble-col{display:flex;flex-direction:column;min-width:0;flex:1}
+
+.emotion-tag{display:inline-flex;align-items:center;gap:0.3rem;font-size:0.62rem;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;border-radius:20px;padding:0.2rem 0.65rem;margin-bottom:0.35rem;border:1px solid;width:fit-content}
+.right .emotion-tag{align-self:flex-end}
+.voice-cue{font-family:'Cormorant',serif;font-style:italic;font-size:0.78rem;color:var(--ink-light);margin-bottom:0.35rem;opacity:0.75;line-height:1.4}
+.right .voice-cue{text-align:right}
+
+.listen-btn{display:inline-flex;align-items:center;gap:0.35rem;padding:0.22rem 0.7rem;font-size:0.65rem;font-family:'DM Sans',sans-serif;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;border:1px solid var(--border);border-radius:20px;cursor:pointer;background:var(--white);color:var(--ink-light);transition:all 0.2s ease;margin-bottom:0.45rem;width:fit-content}
+.listen-btn:hover{border-color:var(--rose-gold);color:var(--rose-gold-dk)}
+.listen-btn.speaking{border-color:var(--rose-gold);color:var(--rose-gold-dk);background:rgba(196,149,106,0.07);animation:listenPulse 1s ease-in-out infinite}
+@keyframes listenPulse{0%,100%{opacity:1}50%{opacity:0.6}}
+.right .listen-btn{align-self:flex-end}
+
+.bubble{padding:0.9rem 1.15rem;border-radius:16px;font-family:'Cormorant Garamond',serif;font-size:1.2rem;font-weight:400;line-height:1.9;color:var(--ink);position:relative;word-break:break-word}
+.left .bubble{background:var(--white);border:1px solid var(--border);border-top-left-radius:4px;box-shadow:var(--shadow-sm)}
+.right .bubble{background:linear-gradient(135deg,#f2f8f2,#e8f2e8);border:1px solid rgba(122,155,122,0.2);border-top-right-radius:4px;box-shadow:var(--shadow-sm)}
+
+.bubble-row.active-line .left .bubble,
+.bubble-row.active-line > .bubble-col > .bubble{box-shadow:0 0 0 2px var(--rose-gold-lt),var(--shadow-md) !important}
+.bubble-row.active-line.right .bubble-col .bubble{box-shadow:0 0 0 2px var(--sage),var(--shadow-md) !important}
+
+.word{display:inline;transition:all 0.18s ease;border-radius:3px;padding:0 1px}
+.w-pending{}
+.w-heard{color:var(--rose-gold-dk);background:rgba(196,149,106,0.13);font-weight:600;animation:wordLight 0.3s var(--ease)}
+@keyframes wordLight{from{background:rgba(196,149,106,0.32);transform:scale(1.07)}to{background:rgba(196,149,106,0.13);transform:scale(1)}}
+.w-close{color:var(--amber);background:rgba(212,154,58,0.1);font-weight:500}
+.w-missed{color:var(--error);text-decoration:underline wavy var(--error);text-underline-offset:3px;opacity:0.75}
+.w-done{color:var(--ink-light)}
+.w-interim{color:var(--rose-gold-dk);background:rgba(196,149,106,0.07);font-weight:500;opacity:0.85;border-bottom:1px dashed var(--rose-gold-lt)}
+
+.line-feedback{display:flex;flex-wrap:wrap;gap:0.4rem;align-items:center;margin-top:0.5rem;padding:0.5rem 0.8rem;background:var(--paper);border:1px solid var(--border-soft);border-radius:8px;animation:feedRise 0.35s var(--ease) forwards;opacity:0}
+@keyframes feedRise{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+.fb-chip{display:inline-flex;align-items:center;gap:0.25rem;font-size:0.67rem;font-weight:500;letter-spacing:0.05em;border-radius:20px;padding:0.22rem 0.65rem;border:1px solid}
+.fb-chip.perfect{color:var(--sage);border-color:rgba(122,155,122,0.3);background:rgba(122,155,122,0.07)}
+.fb-chip.great{color:var(--rose-gold-dk);border-color:rgba(196,149,106,0.3);background:rgba(196,149,106,0.07)}
+.fb-chip.try-these{color:var(--amber);border-color:rgba(212,154,58,0.3);background:rgba(212,154,58,0.07)}
+.fb-chip.pace-fast{color:var(--error);border-color:rgba(192,96,74,0.25);background:rgba(192,96,74,0.06)}
+.fb-chip.tries-left{color:var(--ink-light);border-color:var(--border);background:var(--white)}
+
+.playback-row{display:flex;align-items:center;gap:0.5rem;margin-top:0.4rem}
+.play-chip{display:inline-flex;align-items:center;gap:0.35rem;padding:0.28rem 0.75rem;font-size:0.68rem;font-family:'DM Sans',sans-serif;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;border:1px solid var(--border);border-radius:20px;cursor:pointer;background:var(--white);color:var(--ink-light);transition:all 0.2s ease}
+.play-chip:hover{border-color:var(--rose-gold);color:var(--ink)}
+
+.auto-next-wrap{width:100%;height:3px;background:var(--border-soft);border-radius:2px;margin-top:0.8rem;overflow:hidden;position:relative}
+.auto-next-fill{height:100%;background:var(--sage);width:0%;transition:width 1.5s linear}
+.nudge-text{font-size:0.75rem;color:var(--ink-light);margin-top:0.8rem;text-align:center;font-style:italic}
+
+/* ══════ MIC PANEL ══════ */
+.mic-panel{position:fixed;bottom:0;left:0;right:0;z-index:60;background:linear-gradient(to top,rgba(250,250,249,0.98) 70%,transparent);padding:0.5rem 0 0}
+.mic-inner{max-width:660px;margin:0 auto;padding:0.5rem 1.5rem 1.5rem;display:flex;flex-direction:column;align-items:center;gap:0.6rem}
+
+.waveform{display:none;align-items:center;justify-content:center;gap:3px;height:20px}
+.waveform.active{display:flex}
+.wb{width:3px;border-radius:2px;background:var(--rose-gold);animation:wBounce 0.6s ease-in-out infinite alternate;transform-origin:bottom}
+.wb:nth-child(1){animation-delay:0s;   height:5px}
+.wb:nth-child(2){animation-delay:.07s; height:10px}
+.wb:nth-child(3){animation-delay:.14s; height:16px}
+.wb:nth-child(4){animation-delay:.21s; height:20px}
+.wb:nth-child(5){animation-delay:.14s; height:16px}
+.wb:nth-child(6){animation-delay:.07s; height:10px}
+.wb:nth-child(7){animation-delay:0s;   height:5px}
+@keyframes wBounce{from{transform:scaleY(0.25)}to{transform:scaleY(1.2)}}
+
+.mic-btn-row{display:flex;gap:0.7rem;align-items:center}
+.mic-btn{width:60px;height:60px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1.4rem;transition:all 0.2s var(--ease);box-shadow:var(--shadow-md);flex-shrink:0}
+.mic-btn.idle{background:var(--ink);color:var(--white)}
+.mic-btn.idle:hover{background:#2e2a26;transform:scale(1.05)}
+.mic-btn.listening{background:var(--rose-gold);color:var(--white);animation:micRing 1.5s ease-in-out infinite}
+.mic-btn.finishing{background:var(--sage);color:var(--white);cursor:wait;opacity:0.8}
+@keyframes micRing{0%{box-shadow:0 0 0 0 rgba(196,149,106,0.5),var(--shadow-md)}70%{box-shadow:0 0 0 16px rgba(196,149,106,0),var(--shadow-md)}100%{box-shadow:0 0 0 0 rgba(196,149,106,0),var(--shadow-md)}}
+
+.action-btn{padding:0.5rem 1.2rem;font-size:0.7rem;font-family:'DM Sans',sans-serif;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;border-radius:50px;border:1px solid;cursor:pointer;background:var(--white);transition:all 0.2s ease;box-shadow:var(--shadow-sm)}
+.action-btn:disabled{opacity:0.3;cursor:not-allowed}
+.btn-reread{border-color:var(--amber);color:var(--amber)}
+.btn-reread:hover{background:rgba(212,154,58,0.07)}
+.btn-skip{border-color:var(--border);color:var(--ink-light)}
+.btn-skip:hover{border-color:var(--rose-gold);color:var(--ink)}
+.btn-next{border-color:var(--sage);color:var(--sage)}
+.btn-next:hover{background:rgba(122,155,122,0.07)}
+
+.line-prompt{font-family:'DM Sans',sans-serif;font-size:0.68rem;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;color:var(--ink-light);text-align:center}
+
+/* ══════ SCORE CARD ══════ */
+@keyframes cardReveal{from{opacity:0;transform:translateY(20px) scale(0.98)}to{opacity:1;transform:translateY(0) scale(1)}}
+.score-wrapper{max-width:520px;margin:2rem auto 1rem;padding:0 1rem;animation:cardReveal 0.7s var(--ease) forwards}
+.score-trophy-band{background:var(--ink);border-radius:20px 20px 0 0;padding:2.4rem 2.5rem 2.2rem;text-align:center;position:relative;overflow:hidden}
+.score-trophy-band::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 70% 80% at 50% -10%,rgba(196,149,106,0.22) 0%,transparent 65%);pointer-events:none}
+.score-status-pill{display:inline-flex;align-items:center;gap:0.4rem;font-size:0.65rem;font-weight:500;letter-spacing:0.2em;text-transform:uppercase;color:var(--rose-gold);background:rgba(196,149,106,0.12);border:1px solid rgba(196,149,106,0.25);border-radius:20px;padding:0.3rem 0.9rem;margin-bottom:1.1rem}
+.score-emoji{font-size:3.2rem;line-height:1;margin-bottom:0.7rem;display:block;filter:drop-shadow(0 0 20px rgba(196,149,106,0.4));animation:emojiFloat 0.6s var(--ease) 0.2s both}
+@keyframes emojiFloat{from{opacity:0;transform:scale(0.6) translateY(10px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.score-headline{font-family:'Cormorant Garamond',serif;font-size:2.8rem;font-weight:300;color:var(--white);line-height:1;margin-bottom:0.3rem}
+.score-tagline{font-family:'Cormorant',serif;font-style:italic;font-weight:300;font-size:1rem;color:rgba(255,255,255,0.4)}
+.score-stats-band{background:var(--white);border-left:1px solid var(--border);border-right:1px solid var(--border);padding:1.6rem 2rem}
+.score-name-row{display:flex;justify-content:space-between;align-items:baseline;padding-bottom:1rem;margin-bottom:1.2rem;border-bottom:1px solid var(--border-soft)}
+.score-player-name{font-family:'Cormorant Garamond',serif;font-size:1.35rem;font-weight:500;color:var(--ink)}
+.score-player-dept{font-size:0.7rem;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-light)}
+.score-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.75rem}
+.score-cell{background:var(--paper);border:1px solid var(--border-soft);border-radius:10px;padding:0.85rem 0.7rem;text-align:center}
+.score-cell-val{font-family:'Cormorant Garamond',serif;font-size:1.55rem;font-weight:500;line-height:1;margin-bottom:0.25rem;display:block}
+.v-good{color:var(--sage)}.v-amber{color:var(--amber)}.v-time{color:var(--rose-gold-dk)}
+.score-cell-label{font-size:0.6rem;font-weight:500;letter-spacing:0.12em;text-transform:uppercase;color:var(--ink-light)}
+
+.detail-table{margin-top:1.1rem;width:100%;border-collapse:collapse;font-family:'DM Sans',sans-serif;font-size:0.77rem}
+.detail-table th{font-size:0.58rem;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;color:var(--ink-light);padding:0.28rem 0.5rem;text-align:left;border-bottom:1px solid var(--border-soft)}
+.detail-table td{padding:0.42rem 0.5rem;border-bottom:1px solid var(--border-soft);color:var(--ink-mid);vertical-align:middle}
+.td-ok{color:var(--sage)}.td-try{color:var(--amber);font-size:0.7rem}.td-fast{color:var(--error);font-size:0.7rem}
+
+.score-next-band{background:var(--ink);border-left:1px solid rgba(255,255,255,0.04);border-right:1px solid rgba(255,255,255,0.04);padding:1.5rem 1.8rem 1.8rem;position:relative;overflow:hidden}
+.score-next-band::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 120% at 50% 100%,rgba(196,149,106,0.15) 0%,transparent 65%);pointer-events:none}
+.score-next-eyebrow{font-size:0.62rem;font-weight:500;letter-spacing:0.2em;text-transform:uppercase;color:rgba(255,255,255,0.3);text-align:center;margin-bottom:0.9rem}
+.next-btn{display:flex;align-items:center;justify-content:space-between;width:100%;padding:1.2rem 1.2rem 1.2rem 1.6rem;background:linear-gradient(135deg,#c4956a 0%,#d4a87a 50%,#c4956a 100%);border:none;border-radius:14px;cursor:pointer;text-decoration:none;transition:all 0.3s var(--ease);box-shadow:0 6px 28px rgba(196,149,106,0.5)}
+.next-btn:hover{transform:translateY(-3px);box-shadow:0 12px 40px rgba(196,149,106,0.6)}
+.next-text{display:flex;flex-direction:column;gap:0.15rem;align-items:flex-start;flex:1}
+.next-pre{font-size:0.62rem;font-weight:500;letter-spacing:0.18em;text-transform:uppercase;color:rgba(28,25,22,0.5)}
+.next-title{font-family:'Cormorant Garamond',serif;font-size:1.35rem;font-weight:500;color:var(--ink);line-height:1.2}
+.next-arrow{width:46px;height:46px;background:rgba(28,25,22,0.12);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0;color:var(--ink);transition:transform 0.25s var(--ease)}
+.next-btn:hover .next-arrow{transform:translateX(5px)}
+
+.score-footer-band{background:var(--paper);border:1px solid var(--border);border-top:none;border-radius:0 0 20px 20px;padding:1.1rem 1.8rem;display:flex;align-items:center;justify-content:space-between;gap:1rem}
+.save-ok{font-size:0.75rem;color:var(--sage)}.save-fail{font-size:0.75rem;color:var(--error)}
+.pdf-btn{display:inline-flex;align-items:center;gap:0.35rem;padding:0.5rem 1.1rem;font-size:0.7rem;font-family:'DM Sans',sans-serif;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;background:transparent;border:1px solid var(--border);border-radius:50px;cursor:pointer;color:var(--ink-light);transition:all 0.2s ease}
+.pdf-btn:hover{border-color:var(--rose-gold);color:var(--ink)}
+
+.spinner-wrap{display:none;text-align:center;padding:3rem 2rem;font-family:'Cormorant',serif;font-style:italic;font-size:1rem;color:var(--ink-light)}
+.spinner{width:28px;height:28px;border:1.5px solid var(--border);border-top-color:var(--rose-gold);border-radius:50%;animation:spin 0.9s linear infinite;margin:0 auto 0.8rem}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+@keyframes confettiFall{0%{transform:translateY(-20px) rotate(0deg);opacity:1}100%{transform:translateY(110vh) rotate(540deg);opacity:0}}
+.confetti-piece{position:fixed;border-radius:1px;pointer-events:none;z-index:300;animation:confettiFall linear forwards}
+</style>
+</head>
+<body>
+
+<div class="prog-wrap" id="progWrap"><div class="prog-fill" id="progFill" style="width:0%"></div></div>
+
+<div class="container">
+
+  <!-- ══════ DASHBOARD / DIRECTORY ══════ -->
+  <div id="dashboardView">
+    <div class="dash-header">
+      <p class="dash-eyebrow">Live Reading · English</p>
+      <h1 class="dash-title">The Self-Introduction Quest</h1>
+      <p class="dash-subtitle">Choose your practice. Read it aloud — the words light up as you speak.</p>
+      <div id="dashIdentityPill" style="margin-top:0.85rem"></div>
+    </div>
+    <div class="quest-grid" id="questGrid"></div>
+  </div>
+
+  <!-- ══════ IDENTITY GATE ══════ -->
+  <div id="nameForm">
+    <div class="form-card">
+      <p class="form-eyebrow" id="formEyebrow">Live Reading · English</p>
+      <h1 class="form-title" id="formTitle">The Self-Introduction Quest</h1>
+      <p class="form-subtitle">Read aloud. The words will light up as you speak.</p>
+      <div class="form-rule"></div>
+
+      <label class="field-label" for="nameInput">Your Name</label>
+      <input type="text" id="nameInput" placeholder="Enter your name" autocomplete="name"/>
+
+      <label class="field-label" for="deptSelect">Department</label>
+      <select id="deptSelect">
+        <option value="">— Select —</option>
+        <option>Agri and Civil</option><option>Cyber Security</option>
+        <option>CSE-1</option><option>CSE-2</option><option>CSE-3</option>
+        <option>Mechanical Engineering</option>
+        <option>ECE-1</option><option>ECE-2</option><option>ECE-3</option>
+        <option>AI DS-1</option><option>AI DS-2</option>
+        <option>EEE</option><option>EIE</option>
+        <option>Medical Electronics</option>
+        <option>IT-1</option><option>IT-2</option>
+      </select>
+
+      <div class="mic-check">
+        <div class="mic-dot" id="micDot"></div>
+        <div class="mic-text" id="micText">Checking microphone…</div>
+      </div>
+      <div class="no-speech" id="noSpeechBanner">⚠ Please use Google Chrome or Microsoft Edge for speech recognition.</div>
+      <div class="form-btn-group">
+        <button type="button" id="backToDashBtn">← Back</button>
+        <button id="startBtn" disabled>Continue</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════ QUIZ ══════ -->
+  <div id="quizContent">
+    <div class="top-strip" id="topStrip">
+      <div class="top-inner">
+        <div class="stat-pill" id="timerPill">⏳ 0s</div>
+        <div class="stat-pill" id="scorePill">✦ —</div>
+        <div class="stat-pill" id="linePill">Line 1 / 12</div>
+      </div>
+    </div>
+
+    <div class="chat-area" id="chatArea"></div>
+
+    <div style="max-width:680px;margin:0 auto;padding:0 0 3rem">
+      <div class="spinner-wrap" id="savingSpinner"><div class="spinner"></div><div>Saving your results…</div></div>
+      <div id="scoreCard"></div>
+      <div style="text-align:center;margin-top:0.5rem"><button id="restartBtn" style="display:none;padding:0.65rem 1.8rem;font-size:0.75rem;font-family:'DM Sans',sans-serif;font-weight:400;letter-spacing:0.1em;text-transform:uppercase;background:transparent;border:1px solid var(--border);border-radius:50px;cursor:pointer;color:var(--ink-light)">↺ Library</button></div>
+    </div>
+  </div>
+
+  <!-- ══════ MIC PANEL ══════ -->
+  <div class="mic-panel" id="micPanel" style="display:none">
+    <div class="mic-inner">
+      <div class="waveform" id="waveform">
+        <div class="wb"></div><div class="wb"></div><div class="wb"></div>
+        <div class="wb"></div><div class="wb"></div><div class="wb"></div><div class="wb"></div>
+      </div>
+      <div class="mic-btn-row">
+        <button class="action-btn btn-reread" id="rereadBtn" style="display:none">↺ Try again</button>
+        <button class="mic-btn idle" id="micBtn">🎙</button>
+        <button class="action-btn btn-skip" id="skipBtn" style="display:none">Skip →</button>
+        <button class="action-btn btn-next" id="nextBtn" style="display:none">Next line →</button>
+      </div>
+      <div class="line-prompt" id="linePrompt">Tap the mic to start reading</div>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<script>
+(function(){
+'use strict';
+
+// ─── QUEST DIRECTORY ─────────────────────────────────────────────────────────
+// Add more quests here — the library and routing already support any number of them.
+const QUEST_DB = {
+  carpe_diem: {
+    questID: 'Quest 206R',
+    title: 'Carpe Diem — Seize the Day',
+    subtitle: 'A conversation on mindfulness, effort, and failing better.',
+    lines: [
+      { speaker:'teacher', text:'Carpe diem. Seize the day before it slips away!',
+        emo_label:'Wise', emo_emoji:'🧘',
+        emo_color:'#9b8b6e', emo_bg:'rgba(155,139,110,0.08)', emo_border:'rgba(155,139,110,0.25)',
+        voice:'Speak slowly, with quiet authority.' },
+
+      { speaker:'scholar', text:'I tried to seize the day today, but I almost missed the bus.',
+        emo_label:'Playful', emo_emoji:'😄',
+        emo_color:'#c4956a', emo_bg:'rgba(196,149,106,0.08)', emo_border:'rgba(196,149,106,0.25)',
+        voice:'Light and self-deprecating — make the class smile.' },
+
+      { speaker:'teacher', text:'Sometimes the bus we miss teaches us to slow down and spend time on introspection.',
+        emo_label:'Thoughtful', emo_emoji:'🤔',
+        emo_color:'#7a8fb5', emo_bg:'rgba(122,143,181,0.08)', emo_border:'rgba(122,143,181,0.25)',
+        voice:'Pause on "slow down". Let the idea breathe.' },
+
+      { speaker:'scholar', text:'But life is always busy. There is always something to do.',
+        emo_label:'Earnest', emo_emoji:'😕',
+        emo_color:'#a07550', emo_bg:'rgba(160,117,80,0.08)', emo_border:'rgba(160,117,80,0.25)',
+        voice:'A little frustrated — but honest.' },
+
+      { speaker:'teacher', text:'The mind becomes busy when it tries to hold everything.',
+        emo_label:'Wise', emo_emoji:'🧘',
+        emo_color:'#9b8b6e', emo_bg:'rgba(155,139,110,0.08)', emo_border:'rgba(155,139,110,0.25)',
+        voice:'Calm. Almost a whisper on "everything".' },
+
+      { speaker:'scholar', text:'So what should I do when there are too many tasks?',
+        emo_label:'Curious', emo_emoji:'❓',
+        emo_color:'#7aa58b', emo_bg:'rgba(122,165,139,0.08)', emo_border:'rgba(122,165,139,0.25)',
+        voice:'Lean in — genuinely puzzled.' },
+
+      { speaker:'teacher', text:'Pick one task and take one step at a time. Baby steps!',
+        emo_label:'Hopeful', emo_emoji:'🌱',
+        emo_color:'#8fa07a', emo_bg:'rgba(143,160,122,0.08)', emo_border:'rgba(143,160,122,0.25)',
+        voice:'Warm and encouraging. Smile on "baby steps".' },
+
+      { speaker:'scholar', text:'And if I fail while trying, what should I do?',
+        emo_label:'Vulnerable', emo_emoji:'😟',
+        emo_color:'#a07550', emo_bg:'rgba(160,117,80,0.08)', emo_border:'rgba(160,117,80,0.25)',
+        voice:'Vulnerable. Let the question hang in the air.' },
+
+      { speaker:'teacher', text:'Remember what Beckett said! Ever tried. Ever failed. No matter. Try again. Fail again. Fail better.',
+        emo_label:'Dramatic', emo_emoji:'🎭',
+        emo_color:'#9b8b6e', emo_bg:'rgba(155,139,110,0.08)', emo_border:'rgba(155,139,110,0.25)',
+        voice:'Each short sentence is its own beat. Punch every full stop.' },
+
+      { speaker:'scholar', text:'Then the important thing is to do the classic reframing and focus on trying.',
+        emo_label:'Hopeful', emo_emoji:'🌱',
+        emo_color:'#8fa07a', emo_bg:'rgba(143,160,122,0.08)', emo_border:'rgba(143,160,122,0.25)',
+        voice:'A realisation dawning — growing confidence.' },
+
+      { speaker:'teacher', text:'Absolutely! We should celebrate effort! I personally celebrate failure!',
+        emo_label:'Joyful', emo_emoji:'🎉',
+        emo_color:'#c4956a', emo_bg:'rgba(196,149,106,0.08)', emo_border:'rgba(196,149,106,0.25)',
+        voice:'Enthusiastic! Almost joyful — surprise the room.' },
+
+      { speaker:'scholar', text:'Like Edison, I am also going to set a record of failing at least a thousand times!',
+        emo_label:'Triumphant', emo_emoji:'✊',
+        emo_color:'#c4956a', emo_bg:'rgba(196,149,106,0.08)', emo_border:'rgba(196,149,106,0.25)',
+        voice:'Bold and funny. Land on "thousand" like a punchline.' },
+    ]
+  },
+
+  potter_sherlock: {
+    questID: 'Quest 301',
+    title: 'Potterhead Meets Sherlocked',
+    subtitle: 'Two new classmates size each other up — one wand, one magnifying glass.',
+    lines: [
+      { speaker:'teacher', text:"Hi! I'm Meera — Ravenclaw for life, obviously. Which house are you?",
+        emo_label:'Excited', emo_emoji:'🪄', emo_color:'#c4956a', emo_bg:'rgba(196,149,106,0.08)', emo_border:'rgba(196,149,106,0.25)',
+        voice:'Bright and eager — a little proud of the house reveal.' },
+      { speaker:'scholar', text:"Houses are for wizards, Meera. I'm Kabir, and Sherlock Holmes is basically my whole personality.",
+        emo_label:'Dry Wit', emo_emoji:'🔍', emo_color:'#7a8fb5', emo_bg:'rgba(122,143,181,0.08)', emo_border:'rgba(122,143,181,0.25)',
+        voice:'Deadpan and self-assured.' },
+      { speaker:'teacher', text:"No wand, no spells — just deduction? Doesn't that get lonely without a Great Hall?",
+        emo_label:'Curious', emo_emoji:'🤔', emo_color:'#7aa58b', emo_bg:'rgba(122,165,139,0.08)', emo_border:'rgba(122,165,139,0.25)',
+        voice:'Genuinely puzzled, a bit teasing.' },
+      { speaker:'scholar', text:"Elementary. I don't need magic when logic already solves the mystery.",
+        emo_label:'Smug', emo_emoji:'😏', emo_color:'#a07550', emo_bg:'rgba(160,117,80,0.08)', emo_border:'rgba(160,117,80,0.25)',
+        voice:'Confident smirk — land on "logic".' },
+      { speaker:'teacher', text:"Fair point, detective. Something tells me this semester's going to be interesting.",
+        emo_label:'Warm', emo_emoji:'😄', emo_color:'#8fa07a', emo_bg:'rgba(143,160,122,0.08)', emo_border:'rgba(143,160,122,0.25)',
+        voice:'Friendly, a little amused.' },
+    ]
+  },
+
+  marvel_batman: {
+    questID: 'Quest 302',
+    title: 'Iron Man Fan Meets the Bat',
+    subtitle: 'A genius billionaire stan runs into someone with a strict no-superpowers policy.',
+    lines: [
+      { speaker:'teacher', text:"I'm Dev — team Iron Man, always. Genius, billionaire, no cape needed.",
+        emo_label:'Proud', emo_emoji:'🤖', emo_color:'#c4956a', emo_bg:'rgba(196,149,106,0.08)', emo_border:'rgba(196,149,106,0.25)',
+        voice:'Chest out, a little cocky.' },
+      { speaker:'scholar', text:"I'm Naina. Batman doesn't need superpowers either — just a plan for everything.",
+        emo_label:'Serious', emo_emoji:'🦇', emo_color:'#7a8fb5', emo_bg:'rgba(122,143,181,0.08)', emo_border:'rgba(122,143,181,0.25)',
+        voice:'Flat and composed, almost brooding.' },
+      { speaker:'teacher', text:"Bold words from someone without a flying suit.",
+        emo_label:'Playful', emo_emoji:'😏', emo_color:'#c4956a', emo_bg:'rgba(196,149,106,0.08)', emo_border:'rgba(196,149,106,0.25)',
+        voice:'Light challenge, raised eyebrow.' },
+      { speaker:'scholar', text:"I don't fly, Dev. I just make sure I'm never caught without a strategy.",
+        emo_label:'Calm', emo_emoji:'🌙', emo_color:'#9b8b6e', emo_bg:'rgba(155,139,110,0.08)', emo_border:'rgba(155,139,110,0.25)',
+        voice:'Steady, unbothered.' },
+      { speaker:'teacher', text:"Okay, Naina, I respect that. Let's just hope neither of us needs a Batcave for this class.",
+        emo_label:'Impressed', emo_emoji:'😄', emo_color:'#8fa07a', emo_bg:'rgba(143,160,122,0.08)', emo_border:'rgba(143,160,122,0.25)',
+        voice:'Grinning, a little won-over.' },
+    ]
+  },
+
+  starwars_startrek: {
+    questID: 'Quest 303',
+    title: 'The Force Meets Logic',
+    subtitle: 'One believes in the Force, the other believes in Spock. Group project incoming.',
+    lines: [
+      { speaker:'teacher', text:"I'm Aarav — may the Force be with you. Or against you, depending on how this project goes.",
+        emo_label:'Excited', emo_emoji:'⚔️', emo_color:'#c4956a', emo_bg:'rgba(196,149,106,0.08)', emo_border:'rgba(196,149,106,0.25)',
+        voice:'Playful, a bit dramatic on "against you".' },
+      { speaker:'scholar', text:"I'm Sana. I prefer logic over the Force. Live long and prosper, Aarav.",
+        emo_label:'Analytical', emo_emoji:'🖖', emo_color:'#7a8fb5', emo_bg:'rgba(122,143,181,0.08)', emo_border:'rgba(122,143,181,0.25)',
+        voice:'Measured and calm.' },
+      { speaker:'teacher', text:"Logic is fine, but does it help you move things with your mind?",
+        emo_label:'Teasing', emo_emoji:'😄', emo_color:'#c4956a', emo_bg:'rgba(196,149,106,0.08)', emo_border:'rgba(196,149,106,0.25)',
+        voice:'Cheeky, expecting a comeback.' },
+      { speaker:'scholar', text:"No, but it helps me finish assignments on time — which the Force apparently doesn't.",
+        emo_label:'Dry Wit', emo_emoji:'🤓', emo_color:'#7aa58b', emo_bg:'rgba(122,165,139,0.08)', emo_border:'rgba(122,165,139,0.25)',
+        voice:'Deadpan, quick timing.' },
+      { speaker:'teacher', text:"Fair enough. Truce — for the sake of this semester.",
+        emo_label:'Laughing', emo_emoji:'😂', emo_color:'#8fa07a', emo_bg:'rgba(143,160,122,0.08)', emo_border:'rgba(143,160,122,0.25)',
+        voice:'Genuine laugh, hand raised in surrender.' },
+    ]
+  },
+
+  percy_lotr: {
+    questID: 'Quest 304',
+    title: 'Demigod Meets the Fellowship',
+    subtitle: 'One claims a godly parent, the other just wants a good breakfast and loyal friends.',
+    lines: [
+      { speaker:'teacher', text:"I'm Ishaan — son of Poseidon, or at least that's what I tell people. You?",
+        emo_label:'Proud', emo_emoji:'🌊', emo_color:'#c4956a', emo_bg:'rgba(196,149,106,0.08)', emo_border:'rgba(196,149,106,0.25)',
+        voice:'Boastful but self-aware, half-joking.' },
+      { speaker:'scholar', text:"I'm Ritu. No godly parents for me, just a very long walk to Mordor whenever deadlines pile up.",
+        emo_label:'Wistful', emo_emoji:'💍', emo_color:'#9b8b6e', emo_bg:'rgba(155,139,110,0.08)', emo_border:'rgba(155,139,110,0.25)',
+        voice:'Sighing, a little theatrical.' },
+      { speaker:'teacher', text:"Sounds rough. At least demigods get magic swords.",
+        emo_label:'Amused', emo_emoji:'😄', emo_color:'#c4956a', emo_bg:'rgba(196,149,106,0.08)', emo_border:'rgba(196,149,106,0.25)',
+        voice:'Light, a bit smug.' },
+      { speaker:'scholar', text:"And hobbits get loyalty and really good breakfasts. I'll take my odds.",
+        emo_label:'Dramatic', emo_emoji:'🗡️', emo_color:'#a07550', emo_bg:'rgba(160,117,80,0.08)', emo_border:'rgba(160,117,80,0.25)',
+        voice:'Mock-serious, savouring the word "breakfasts".' },
+      { speaker:'teacher', text:"Can't argue with that, Ritu. Nice to meet a fellow traveler.",
+        emo_label:'Warm', emo_emoji:'🙂', emo_color:'#8fa07a', emo_bg:'rgba(143,160,122,0.08)', emo_border:'rgba(143,160,122,0.25)',
+        voice:'Sincere, settling into friendliness.' },
+    ]
+  },
+
+  naruto_onepiece: {
+    questID: 'Quest 305',
+    title: 'Ninja Way Meets Pirate King',
+    subtitle: 'Two anime loyalists compare their paths to becoming legends.',
+    lines: [
+      { speaker:'teacher', text:"I'm Kabir — believe it! Naruto's my whole vibe, dattebayo.",
+        emo_label:'Determined', emo_emoji:'🍥', emo_color:'#c4956a', emo_bg:'rgba(196,149,106,0.08)', emo_border:'rgba(196,149,106,0.25)',
+        voice:'Loud and enthusiastic — full energy on "dattebayo".' },
+      { speaker:'scholar', text:"I'm Zara, and I'm sailing straight for the title of Pirate King. Or Queen.",
+        emo_label:'Adventurous', emo_emoji:'🏴‍☠️', emo_color:'#7aa58b', emo_bg:'rgba(122,165,139,0.08)', emo_border:'rgba(122,165,139,0.25)',
+        voice:'Bold and free-spirited.' },
+      { speaker:'teacher', text:"No ninja way, huh? Just... open ocean and vibes?",
+        emo_label:'Curious', emo_emoji:'🤔', emo_color:'#7a8fb5', emo_bg:'rgba(122,143,181,0.08)', emo_border:'rgba(122,143,181,0.25)',
+        voice:'Genuinely intrigued.' },
+      { speaker:'scholar', text:"Exactly. My crew's my strength — same as your Leaf Village, really.",
+        emo_label:'Confident', emo_emoji:'😎', emo_color:'#a07550', emo_bg:'rgba(160,117,80,0.08)', emo_border:'rgba(160,117,80,0.25)',
+        voice:'Grinning, self-assured.' },
+      { speaker:'teacher', text:"Okay, Zara, I see the resemblance. Nakama and dattebayo — basically twins.",
+        emo_label:'Delighted', emo_emoji:'😄', emo_color:'#8fa07a', emo_bg:'rgba(143,160,122,0.08)', emo_border:'rgba(143,160,122,0.25)',
+        voice:'Warm laugh of recognition.' },
+    ]
+  },
+
+  got_who: {
+    questID: 'Quest 306',
+    title: 'Winter Meets the TARDIS',
+    subtitle: 'One is bracing for winter, the other just time-travels around the deadline.',
+    lines: [
+      { speaker:'teacher', text:"I'm Vihaan. Winter is coming, and so is our first assignment.",
+        emo_label:'Dramatic', emo_emoji:'🐉', emo_color:'#9b8b6e', emo_bg:'rgba(155,139,110,0.08)', emo_border:'rgba(155,139,110,0.25)',
+        voice:'Grave and ominous, half-joking.' },
+      { speaker:'scholar', text:"I'm Priya — I don't do winter. I do time travel. I'll just pop back before the deadline.",
+        emo_label:'Whimsical', emo_emoji:'⏳', emo_color:'#7a8fb5', emo_bg:'rgba(122,143,181,0.08)', emo_border:'rgba(122,143,181,0.25)',
+        voice:'Bouncy, delighted by her own logic.' },
+      { speaker:'teacher', text:"That sounds like cheating.",
+        emo_label:'Skeptical', emo_emoji:'🤨', emo_color:'#a07550', emo_bg:'rgba(160,117,80,0.08)', emo_border:'rgba(160,117,80,0.25)',
+        voice:'Dry, one eyebrow raised.' },
+      { speaker:'scholar', text:"It's called 'wibbly-wobbly, timey-wimey' problem solving.",
+        emo_label:'Playful', emo_emoji:'😜', emo_color:'#c4956a', emo_bg:'rgba(196,149,106,0.08)', emo_border:'rgba(196,149,106,0.25)',
+        voice:'Sing-song, clearly enjoying herself.' },
+      { speaker:'teacher', text:"Fine. Just don't rewrite history before our presentation, Priya.",
+        emo_label:'Amused', emo_emoji:'🙂', emo_color:'#8fa07a', emo_bg:'rgba(143,160,122,0.08)', emo_border:'rgba(143,160,122,0.25)',
+        voice:'Warm, giving in with a smile.' },
+    ]
+  },
+
+  swiftie_army: {
+    questID: 'Quest 307',
+    title: 'Swiftie Meets the Army',
+    subtitle: 'Two fandoms, one shared talent for turning every feeling into a playlist.',
+    lines: [
+      { speaker:'teacher', text:"I'm Anaya — certified Swiftie. I've got an era for every mood.",
+        emo_label:'Excited', emo_emoji:'💜', emo_color:'#c4956a', emo_bg:'rgba(196,149,106,0.08)', emo_border:'rgba(196,149,106,0.25)',
+        voice:'Bright and proud.' },
+      { speaker:'scholar', text:"I'm Dhruv — Army, forever and always. BTS has a song for that too, actually.",
+        emo_label:'Excited', emo_emoji:'💜', emo_color:'#7aa58b', emo_bg:'rgba(122,165,139,0.08)', emo_border:'rgba(122,165,139,0.25)',
+        voice:'Matching energy, quick and eager.' },
+      { speaker:'teacher', text:"Bold claim. Taylor's got thirteen years of lyrics for every feeling.",
+        emo_label:'Teasing', emo_emoji:'😏', emo_color:'#a07550', emo_bg:'rgba(160,117,80,0.08)', emo_border:'rgba(160,117,80,0.25)',
+        voice:'Playful one-upmanship.' },
+      { speaker:'scholar', text:"And BTS has seven members who'll back me up on that.",
+        emo_label:'Playful', emo_emoji:'😄', emo_color:'#7a8fb5', emo_bg:'rgba(122,143,181,0.08)', emo_border:'rgba(122,143,181,0.25)',
+        voice:'Confident, counting on fingers.' },
+      { speaker:'teacher', text:"Deal — as long as we agree both fandoms are studying playlists, not syllabuses.",
+        emo_label:'Laughing', emo_emoji:'😂', emo_color:'#8fa07a', emo_bg:'rgba(143,160,122,0.08)', emo_border:'rgba(143,160,122,0.25)',
+        voice:'Genuine shared laughter.' },
+    ]
+  },
+
+  friends_office: {
+    questID: 'Quest 308',
+    title: 'Central Perk Meets Dunder Mifflin',
+    subtitle: 'Two sitcom loyalists discover they are both allergic to focusing during finals week.',
+    lines: [
+      { speaker:'teacher', text:"I'm Kiara. I could probably recite every episode of Friends by heart.",
+        emo_label:'Nostalgic', emo_emoji:'☕', emo_color:'#9b8b6e', emo_bg:'rgba(155,139,110,0.08)', emo_border:'rgba(155,139,110,0.25)',
+        voice:'Fond, a little dreamy.' },
+      { speaker:'scholar', text:"I'm Rohan. I'm more of a 'that's what she said' kind of person — The Office all the way.",
+        emo_label:'Deadpan', emo_emoji:'📎', emo_color:'#7a8fb5', emo_bg:'rgba(122,143,181,0.08)', emo_border:'rgba(122,143,181,0.25)',
+        voice:'Flat delivery, straight face.' },
+      { speaker:'teacher', text:"So we're both allergic to focus during finals week, basically.",
+        emo_label:'Amused', emo_emoji:'😄', emo_color:'#c4956a', emo_bg:'rgba(196,149,106,0.08)', emo_border:'rgba(196,149,106,0.25)',
+        voice:'Light, self-aware laugh.' },
+      { speaker:'scholar', text:"Basically. Though I promise not to prank you like Jim pranks Dwight.",
+        emo_label:'Smirking', emo_emoji:'😏', emo_color:'#a07550', emo_bg:'rgba(160,117,80,0.08)', emo_border:'rgba(160,117,80,0.25)',
+        voice:'Mischievous undertone.' },
+      { speaker:'teacher', text:"No promises on my end, Rohan. We'll see how the semester goes.",
+        emo_label:'Warm', emo_emoji:'🙂', emo_color:'#8fa07a', emo_bg:'rgba(143,160,122,0.08)', emo_border:'rgba(143,160,122,0.25)',
+        voice:'Friendly, mock-threatening.' },
+    ]
+  },
+
+  spiderman_wonderwoman: {
+    questID: 'Quest 309',
+    title: 'Web-Slinger Meets the Amazon',
+    subtitle: 'One brings one-liners, the other brings an invisible jet. Both bring good hearts.',
+    lines: [
+      { speaker:'teacher', text:"I'm Aditya — friendly neighborhood Spider-Man fan, right here, right now.",
+        emo_label:'Enthusiastic', emo_emoji:'🕸️', emo_color:'#c4956a', emo_bg:'rgba(196,149,106,0.08)', emo_border:'rgba(196,149,106,0.25)',
+        voice:'Chipper, quick and eager.' },
+      { speaker:'scholar', text:"I'm Meher. I prefer my heroes with an invisible jet and a lasso of truth.",
+        emo_label:'Confident', emo_emoji:'⭐', emo_color:'#7aa58b', emo_bg:'rgba(122,165,139,0.08)', emo_border:'rgba(122,165,139,0.25)',
+        voice:'Poised, quietly self-assured.' },
+      { speaker:'teacher', text:"An invisible jet beats web-slinging, not gonna lie.",
+        emo_label:'Impressed', emo_emoji:'😮', emo_color:'#7a8fb5', emo_bg:'rgba(122,143,181,0.08)', emo_border:'rgba(122,143,181,0.25)',
+        voice:'Genuinely won over.' },
+      { speaker:'scholar', text:"It does. But I hear your guy's pretty good at one-liners too.",
+        emo_label:'Kind', emo_emoji:'😊', emo_color:'#8fa07a', emo_bg:'rgba(143,160,122,0.08)', emo_border:'rgba(143,160,122,0.25)',
+        voice:'Warm, giving credit generously.' },
+      { speaker:'teacher', text:"With great power comes great... nice to meet you, Meher.",
+        emo_label:'Grinning', emo_emoji:'😄', emo_color:'#c4956a', emo_bg:'rgba(196,149,106,0.08)', emo_border:'rgba(196,149,106,0.25)',
+        voice:'Trails off on the famous line, then recovers with a grin.' },
+    ]
+  },
+
+  hungergames_starwars: {
+    questID: 'Quest 310',
+    title: 'The Odds Meet the Force',
+    subtitle: 'One is fighting the odds, the other is fighting for a parking spot near the Death Star.',
+    lines: [
+      { speaker:'teacher', text:"I'm Simran — and the odds are officially in my favor for finding my classroom on time today.",
+        emo_label:'Determined', emo_emoji:'🏹', emo_color:'#a07550', emo_bg:'rgba(160,117,80,0.08)', emo_border:'rgba(160,117,80,0.25)',
+        voice:'Mock-serious, chin up.' },
+      { speaker:'scholar', text:"I'm Yusuf. May the Force help you find it, because clearly the odds didn't.",
+        emo_label:'Amused', emo_emoji:'🚀', emo_color:'#7a8fb5', emo_bg:'rgba(122,143,181,0.08)', emo_border:'rgba(122,143,181,0.25)',
+        voice:'Dry tease, straight face.' },
+      { speaker:'teacher', text:"At least I don't need a lightsaber to survive the cafeteria line.",
+        emo_label:'Playful', emo_emoji:'😏', emo_color:'#c4956a', emo_bg:'rgba(196,149,106,0.08)', emo_border:'rgba(196,149,106,0.25)',
+        voice:'Smug comeback.' },
+      { speaker:'scholar', text:"Fair. Some days that line is more dangerous than the arena.",
+        emo_label:'Laughing', emo_emoji:'😂', emo_color:'#7aa58b', emo_bg:'rgba(122,165,139,0.08)', emo_border:'rgba(122,165,139,0.25)',
+        voice:'Genuine laugh, conceding the point.' },
+      { speaker:'teacher', text:"Nice to meet you, Yusuf. Something tells me we're going to get along.",
+        emo_label:'Grinning', emo_emoji:'🙂', emo_color:'#8fa07a', emo_bg:'rgba(143,160,122,0.08)', emo_border:'rgba(143,160,122,0.25)',
+        voice:'Warm and settled, friendly close.' },
+    ]
+  },
+
+  self_introduction: {
+    questID: 'Quest 401',
+    title: 'Twelve Ways to Say It — Self-Introduction',
+    subtitle: 'Twelve classmates, twelve voices — the same self-introduction, told twelve different ways per topic.',
+    lines: [
+      { speaker:'teacher', text:'Good morning, everyone.',
+        emo_label:'Confident', emo_emoji:'🎯',
+        emo_color:'#c4956a', emo_bg:'rgba(196,149,106,0.08)', emo_border:'rgba(196,149,106,0.25)',
+        voice:'Simple and clear — a steady opening tone.' },
+      { speaker:'scholar', text:'Hi, everyone — it\'s really nice to meet you all.',
+        emo_label:'Gentle', emo_emoji:'🌸',
+        emo_color:'#b56a8f', emo_bg:'rgba(181,106,143,0.08)', emo_border:'rgba(181,106,143,0.25)',
+        voice:'Warm smile in the voice on ‘really nice’.' },
+      { speaker:'teacher', text:'Greetings to each one of you.',
+        emo_label:'Steady', emo_emoji:'🔧',
+        emo_color:'#7a8fb5', emo_bg:'rgba(122,143,181,0.08)', emo_border:'rgba(122,143,181,0.25)',
+        voice:'Formal and composed.' },
+      { speaker:'scholar', text:'A very good morning to all of you.',
+        emo_label:'Curious', emo_emoji:'💡',
+        emo_color:'#7aa58b', emo_bg:'rgba(122,165,139,0.08)', emo_border:'rgba(122,165,139,0.25)',
+        voice:'Bright and welcoming, stress ‘very’.' },
+      { speaker:'teacher', text:'Hello, everyone. I hope you are all doing well today.',
+        emo_label:'Energetic', emo_emoji:'⚡',
+        emo_color:'#d4a83a', emo_bg:'rgba(212,168,58,0.08)', emo_border:'rgba(212,168,58,0.25)',
+        voice:'Friendly, genuine well-wishing on ‘doing well’.' },
+      { speaker:'scholar', text:'Wishing everyone a wonderful morning.',
+        emo_label:'Thoughtful', emo_emoji:'📖',
+        emo_color:'#9b8b6e', emo_bg:'rgba(155,139,110,0.08)', emo_border:'rgba(155,139,110,0.25)',
+        voice:'Soft and gracious, let ‘wonderful’ land gently.' },
+      { speaker:'teacher', text:'Hi there — it\'s a pleasure to meet everyone.',
+        emo_label:'Warm', emo_emoji:'😄',
+        emo_color:'#a07550', emo_bg:'rgba(160,117,80,0.08)', emo_border:'rgba(160,117,80,0.25)',
+        voice:'Casual and upbeat energy.' },
+      { speaker:'scholar', text:'Good morning! Glad to be here with all of you.',
+        emo_label:'Calm', emo_emoji:'🌿',
+        emo_color:'#8fa07a', emo_bg:'rgba(143,160,122,0.08)', emo_border:'rgba(143,160,122,0.25)',
+        voice:'Cheerful, light emphasis on ‘Glad’.' },
+      { speaker:'teacher', text:'Hello, everyone. Happy to be starting this journey together.',
+        emo_label:'Eager', emo_emoji:'🎮',
+        emo_color:'#6a8fc4', emo_bg:'rgba(106,143,196,0.08)', emo_border:'rgba(106,143,196,0.25)',
+        voice:'Enthusiastic, stress ‘Happy’ and ‘together’.' },
+      { speaker:'scholar', text:'Hey, everyone — it\'s lovely to finally meet you.',
+        emo_label:'Expressive', emo_emoji:'✨',
+        emo_color:'#c46a95', emo_bg:'rgba(196,106,149,0.08)', emo_border:'rgba(196,106,149,0.25)',
+        voice:'Relaxed and friendly, stretch ‘lovely’ a touch.' },
+      { speaker:'teacher', text:'Excited as I am, let me start with a simple good morning to all of you.',
+        emo_label:'Spirited', emo_emoji:'🏅',
+        emo_color:'#7ac4a5', emo_bg:'rgba(122,196,165,0.08)', emo_border:'rgba(122,196,165,0.25)',
+        voice:'Playful build-up before the simple greeting.' },
+      { speaker:'scholar', text:'Hello, everyone. May we have a wonderful time together this year.',
+        emo_label:'Reflective', emo_emoji:'✍️',
+        emo_color:'#b58f7a', emo_bg:'rgba(181,143,122,0.08)', emo_border:'rgba(181,143,122,0.25)',
+        voice:'Sincere and hopeful, slow down on ‘wonderful time’.' },
+      { speaker:'teacher', text:'I went to Greenfield Matriculation Higher Secondary School in Chennai.',
+        emo_label:'Confident', emo_emoji:'🎯',
+        emo_color:'#c4956a', emo_bg:'rgba(196,149,106,0.08)', emo_border:'rgba(196,149,106,0.25)',
+        voice:'Clear and unhurried — enunciate the school name.' },
+      { speaker:'scholar', text:'My schooling was at Sunrise Public School in Madurai.',
+        emo_label:'Gentle', emo_emoji:'🌸',
+        emo_color:'#b56a8f', emo_bg:'rgba(181,106,143,0.08)', emo_border:'rgba(181,106,143,0.25)',
+        voice:'Straightforward tone, place city name last, said plainly.' },
+      { speaker:'teacher', text:'It was at Royal Oak Higher Secondary School in Coimbatore that I completed my secondary education.',
+        emo_label:'Steady', emo_emoji:'🔧',
+        emo_color:'#7a8fb5', emo_bg:'rgba(122,143,181,0.08)', emo_border:'rgba(122,143,181,0.25)',
+        voice:'Slight pause before ‘that I completed’, let the structure land.' },
+      { speaker:'scholar', text:'Silver Oak Higher Secondary School in Tiruchirappalli is where I studied.',
+        emo_label:'Curious', emo_emoji:'💡',
+        emo_color:'#7aa58b', emo_bg:'rgba(122,165,139,0.08)', emo_border:'rgba(122,165,139,0.25)',
+        voice:'Let the school name lead — plain and confident.' },
+      { speaker:'teacher', text:'Starlight Higher Secondary School in Salem is where I finished school.',
+        emo_label:'Energetic', emo_emoji:'⚡',
+        emo_color:'#d4a83a', emo_bg:'rgba(212,168,58,0.08)', emo_border:'rgba(212,168,58,0.25)',
+        voice:'Even pace, no rush on the place name.' },
+      { speaker:'scholar', text:'For my schooling, I attended Bluebell Matriculation School in Erode.',
+        emo_label:'Thoughtful', emo_emoji:'📖',
+        emo_color:'#9b8b6e', emo_bg:'rgba(155,139,110,0.08)', emo_border:'rgba(155,139,110,0.25)',
+        voice:'Matter-of-fact, small pause after ‘schooling’.' },
+      { speaker:'teacher', text:'Crescent Valley Higher Secondary School in Vellore was my school.',
+        emo_label:'Warm', emo_emoji:'😄',
+        emo_color:'#a07550', emo_bg:'rgba(160,117,80,0.08)', emo_border:'rgba(160,117,80,0.25)',
+        voice:'Simple statement, steady delivery.' },
+      { speaker:'scholar', text:'I did my schooling at Maple Grove Higher Secondary School, which is in Thanjavur.',
+        emo_label:'Calm', emo_emoji:'🌿',
+        emo_color:'#8fa07a', emo_bg:'rgba(143,160,122,0.08)', emo_border:'rgba(143,160,122,0.25)',
+        voice:'Slight pause before ‘which is in Thanjavur’.' },
+      { speaker:'teacher', text:'New Horizon Matriculation School in Kanchipuram — that is where I studied.',
+        emo_label:'Eager', emo_emoji:'🎮',
+        emo_color:'#6a8fc4', emo_bg:'rgba(106,143,196,0.08)', emo_border:'rgba(106,143,196,0.25)',
+        voice:'Confident, let the school name carry weight before the reveal.' },
+      { speaker:'scholar', text:'Before college, I completed my secondary education at Lotus Valley Higher Secondary School in Chennai.',
+        emo_label:'Expressive', emo_emoji:'✨',
+        emo_color:'#c46a95', emo_bg:'rgba(196,106,149,0.08)', emo_border:'rgba(196,106,149,0.25)',
+        voice:'Composed, ‘Before college’ sets the timeline clearly.' },
+      { speaker:'teacher', text:'School, for me, meant Eastwood Higher Secondary School in Hosur.',
+        emo_label:'Spirited', emo_emoji:'🏅',
+        emo_color:'#7ac4a5', emo_bg:'rgba(122,196,165,0.08)', emo_border:'rgba(122,196,165,0.25)',
+        voice:'A little reflective — ‘for me’ adds a personal touch.' },
+      { speaker:'scholar', text:'I studied at Springdale Higher Secondary School, over in Puducherry.',
+        emo_label:'Reflective', emo_emoji:'✍️',
+        emo_color:'#b58f7a', emo_bg:'rgba(181,143,122,0.08)', emo_border:'rgba(181,143,122,0.25)',
+        voice:'Calm and clear, small pause before the city name.' },
+      { speaker:'teacher', text:'I\'ve been interested in computers and technology since my school days.',
+        emo_label:'Confident', emo_emoji:'🎯',
+        emo_color:'#c4956a', emo_bg:'rgba(196,149,106,0.08)', emo_border:'rgba(196,149,106,0.25)',
+        voice:'Genuine interest in the voice on ‘technology’.' },
+      { speaker:'scholar', text:'How electronic devices work has always made me curious.',
+        emo_label:'Gentle', emo_emoji:'🌸',
+        emo_color:'#b56a8f', emo_bg:'rgba(181,106,143,0.08)', emo_border:'rgba(181,106,143,0.25)',
+        voice:'Curious and reflective — let the question-like structure breathe.' },
+      { speaker:'teacher', text:'Ever since I was a child, automobiles and machines have fascinated me.',
+        emo_label:'Steady', emo_emoji:'🔧',
+        emo_color:'#7a8fb5', emo_bg:'rgba(122,143,181,0.08)', emo_border:'rgba(122,143,181,0.25)',
+        voice:'Nostalgic warmth on ‘Ever since I was a child’.' },
+      { speaker:'scholar', text:'Computers, websites and mobile applications — these are what I find myself drawn to.',
+        emo_label:'Curious', emo_emoji:'💡',
+        emo_color:'#7aa58b', emo_bg:'rgba(122,165,139,0.08)', emo_border:'rgba(122,165,139,0.25)',
+        voice:'Confident list delivery, light emphasis on each item.' },
+      { speaker:'teacher', text:'Buildings, bridges and architecture caught my attention from a young age.',
+        emo_label:'Energetic', emo_emoji:'⚡',
+        emo_color:'#d4a83a', emo_bg:'rgba(212,168,58,0.08)', emo_border:'rgba(212,168,58,0.25)',
+        voice:'Wistful, as though recalling something formative.' },
+      { speaker:'scholar', text:'What interests me most is artificial intelligence and how it is changing our lives.',
+        emo_label:'Thoughtful', emo_emoji:'📖',
+        emo_color:'#9b8b6e', emo_bg:'rgba(155,139,110,0.08)', emo_border:'rgba(155,139,110,0.25)',
+        voice:'Thoughtful pause before ‘artificial intelligence’.' },
+      { speaker:'teacher', text:'Electricity and electrical appliances — I\'ve found them interesting since school.',
+        emo_label:'Warm', emo_emoji:'😄',
+        emo_color:'#a07550', emo_bg:'rgba(160,117,80,0.08)', emo_border:'rgba(160,117,80,0.25)',
+        voice:'Steady and sincere.' },
+      { speaker:'scholar', text:'Biology and the human body fascinated me even as a schoolgirl.',
+        emo_label:'Calm', emo_emoji:'🌿',
+        emo_color:'#8fa07a', emo_bg:'rgba(143,160,122,0.08)', emo_border:'rgba(143,160,122,0.25)',
+        voice:'Gentle nostalgia on ‘schoolgirl’.' },
+      { speaker:'teacher', text:'For several years now, gaming, computers and programming have held my interest.',
+        emo_label:'Eager', emo_emoji:'🎮',
+        emo_color:'#6a8fc4', emo_bg:'rgba(106,143,196,0.08)', emo_border:'rgba(106,143,196,0.25)',
+        voice:'Energetic, quicken slightly on the list of interests.' },
+      { speaker:'scholar', text:'Communication, photography and digital media are areas I have long been drawn to.',
+        emo_label:'Expressive', emo_emoji:'✨',
+        emo_color:'#c46a95', emo_bg:'rgba(196,106,149,0.08)', emo_border:'rgba(196,106,149,0.25)',
+        voice:'Warm and considered.' },
+      { speaker:'teacher', text:'Sports, fitness and mechanical systems have always caught my attention.',
+        emo_label:'Spirited', emo_emoji:'🏅',
+        emo_color:'#7ac4a5', emo_bg:'rgba(122,196,165,0.08)', emo_border:'rgba(122,196,165,0.25)',
+        voice:'Even and grounded delivery.' },
+      { speaker:'scholar', text:'Languages, technology and creative writing — I have loved all three for many years.',
+        emo_label:'Reflective', emo_emoji:'✍️',
+        emo_color:'#b58f7a', emo_bg:'rgba(181,143,122,0.08)', emo_border:'rgba(181,143,122,0.25)',
+        voice:'Reflective, savour each of the three interests.' },
+      { speaker:'teacher', text:'My favourite subject is mathematics, because solving problems and finding different paths to an answer excites me.',
+        emo_label:'Confident', emo_emoji:'🎯',
+        emo_color:'#c4956a', emo_bg:'rgba(196,149,106,0.08)', emo_border:'rgba(196,149,106,0.25)',
+        voice:'Enthusiasm rising toward ‘excites me’.' },
+      { speaker:'scholar', text:'Physics is my favourite subject; I like uncovering the science behind everyday things.',
+        emo_label:'Gentle', emo_emoji:'🌸',
+        emo_color:'#b56a8f', emo_bg:'rgba(181,106,143,0.08)', emo_border:'rgba(181,106,143,0.25)',
+        voice:'Bright curiosity in the voice.' },
+      { speaker:'teacher', text:'Forces, motion and machines fascinate me, which is why physics is the subject I enjoy most.',
+        emo_label:'Steady', emo_emoji:'🔧',
+        emo_color:'#7a8fb5', emo_bg:'rgba(122,143,181,0.08)', emo_border:'rgba(122,143,181,0.25)',
+        voice:'Passionate emphasis on ‘fascinate’.' },
+      { speaker:'scholar', text:'Since I enjoy creating things and seeing my ideas come alive on screen, computer science is my favourite subject.',
+        emo_label:'Curious', emo_emoji:'💡',
+        emo_color:'#7aa58b', emo_bg:'rgba(122,165,139,0.08)', emo_border:'rgba(122,165,139,0.25)',
+        voice:'Excitement building toward ‘come alive’.' },
+      { speaker:'teacher', text:'Learning about different places, landscapes and people is what draws me to geography.',
+        emo_label:'Energetic', emo_emoji:'⚡',
+        emo_color:'#d4a83a', emo_bg:'rgba(212,168,58,0.08)', emo_border:'rgba(212,168,58,0.25)',
+        voice:'Warm interest, unhurried.' },
+      { speaker:'scholar', text:'I particularly enjoy mathematics — it lets me use logic and take on challenging problems.',
+        emo_label:'Thoughtful', emo_emoji:'📖',
+        emo_color:'#9b8b6e', emo_bg:'rgba(155,139,110,0.08)', emo_border:'rgba(155,139,110,0.25)',
+        voice:'Confident, proud tone on ‘logic’.' },
+      { speaker:'teacher', text:'Chemistry is the subject I enjoy most, mainly because materials and reactions interest me.',
+        emo_label:'Warm', emo_emoji:'😄',
+        emo_color:'#a07550', emo_bg:'rgba(160,117,80,0.08)', emo_border:'rgba(160,117,80,0.25)',
+        voice:'Matter-of-fact enthusiasm.' },
+      { speaker:'scholar', text:'How living organisms function fascinates me, so biology is my favourite subject.',
+        emo_label:'Calm', emo_emoji:'🌿',
+        emo_color:'#8fa07a', emo_bg:'rgba(143,160,122,0.08)', emo_border:'rgba(143,160,122,0.25)',
+        voice:'Fascinated tone on ‘function’.' },
+      { speaker:'teacher', text:'Learning new words and expressing my ideas — that is what makes English my favourite subject.',
+        emo_label:'Eager', emo_emoji:'🎮',
+        emo_color:'#6a8fc4', emo_bg:'rgba(106,143,196,0.08)', emo_border:'rgba(106,143,196,0.25)',
+        voice:'Cheerful, light stress on ‘favourite subject’.' },
+      { speaker:'scholar', text:'I enjoy English the most, since reading stories and putting ideas into words comes naturally to me.',
+        emo_label:'Expressive', emo_emoji:'✨',
+        emo_color:'#c46a95', emo_bg:'rgba(196,106,149,0.08)', emo_border:'rgba(196,106,149,0.25)',
+        voice:'Easy and natural delivery.' },
+      { speaker:'teacher', text:'Fitness and different sports are what make Physical Education my favourite subject.',
+        emo_label:'Spirited', emo_emoji:'🏅',
+        emo_color:'#7ac4a5', emo_bg:'rgba(122,196,165,0.08)', emo_border:'rgba(122,196,165,0.25)',
+        voice:'Upbeat energy throughout.' },
+      { speaker:'scholar', text:'People, cultures and important events — that is why social science appeals to me the most.',
+        emo_label:'Reflective', emo_emoji:'✍️',
+        emo_color:'#b58f7a', emo_bg:'rgba(181,143,122,0.08)', emo_border:'rgba(181,143,122,0.25)',
+        voice:'Warm appreciation on ‘appeals to me’.' },
+      { speaker:'teacher', text:'My favourite hobby is playing chess, especially online with my friends.',
+        emo_label:'Confident', emo_emoji:'🎯',
+        emo_color:'#c4956a', emo_bg:'rgba(196,149,106,0.08)', emo_border:'rgba(196,149,106,0.25)',
+        voice:'Relaxed, a small smile on ‘online with my friends’.' },
+      { speaker:'scholar', text:'Drawing is what I turn to in my free time, mostly pencil sketches of people and places.',
+        emo_label:'Gentle', emo_emoji:'🌸',
+        emo_color:'#b56a8f', emo_bg:'rgba(181,106,143,0.08)', emo_border:'rgba(181,106,143,0.25)',
+        voice:'Soft and personal tone.' },
+      { speaker:'teacher', text:'Cycling with my friends on weekends is one of my favourite hobbies.',
+        emo_label:'Steady', emo_emoji:'🔧',
+        emo_color:'#7a8fb5', emo_bg:'rgba(122,143,181,0.08)', emo_border:'rgba(122,143,181,0.25)',
+        voice:'Easy weekend energy.' },
+      { speaker:'scholar', text:'Taking pictures of nature and interesting places — photography is a hobby I truly enjoy.',
+        emo_label:'Curious', emo_emoji:'💡',
+        emo_color:'#7aa58b', emo_bg:'rgba(122,165,139,0.08)', emo_border:'rgba(122,165,139,0.25)',
+        voice:'Delight in the voice on ‘nature’.' },
+      { speaker:'teacher', text:'Whenever I get the chance, I enjoy playing cricket with my friends.',
+        emo_label:'Energetic', emo_emoji:'⚡',
+        emo_color:'#d4a83a', emo_bg:'rgba(212,168,58,0.08)', emo_border:'rgba(212,168,58,0.25)',
+        voice:'Casual, friendly enthusiasm.' },
+      { speaker:'scholar', text:'Short stories and detective novels keep me hooked; reading is my favourite hobby.',
+        emo_label:'Thoughtful', emo_emoji:'📖',
+        emo_color:'#9b8b6e', emo_bg:'rgba(155,139,110,0.08)', emo_border:'rgba(155,139,110,0.25)',
+        voice:'Content and settled tone.' },
+      { speaker:'teacher', text:'In my free time, I like experimenting with simple dishes at home.',
+        emo_label:'Warm', emo_emoji:'😄',
+        emo_color:'#a07550', emo_bg:'rgba(160,117,80,0.08)', emo_border:'rgba(160,117,80,0.25)',
+        voice:'Playful, a hint of pride on ‘experimenting’.' },
+      { speaker:'scholar', text:'Gardening and taking care of plants at home is something I really enjoy.',
+        emo_label:'Calm', emo_emoji:'🌿',
+        emo_color:'#8fa07a', emo_bg:'rgba(143,160,122,0.08)', emo_border:'rgba(143,160,122,0.25)',
+        voice:'Gentle and caring tone.' },
+      { speaker:'teacher', text:'Strategy and racing games are my thing; gaming is my favourite hobby.',
+        emo_label:'Eager', emo_emoji:'🎮',
+        emo_color:'#6a8fc4', emo_bg:'rgba(106,143,196,0.08)', emo_border:'rgba(106,143,196,0.25)',
+        voice:'Excited, quicken slightly on game names.' },
+      { speaker:'scholar', text:'Making short videos and editing them on my phone is how I spend my free time.',
+        emo_label:'Expressive', emo_emoji:'✨',
+        emo_color:'#c46a95', emo_bg:'rgba(196,106,149,0.08)', emo_border:'rgba(196,106,149,0.25)',
+        voice:'Light and modern, casual delivery.' },
+      { speaker:'teacher', text:'Badminton with my cousins and friends is a hobby I look forward to.',
+        emo_label:'Spirited', emo_emoji:'🏅',
+        emo_color:'#7ac4a5', emo_bg:'rgba(122,196,165,0.08)', emo_border:'rgba(122,196,165,0.25)',
+        voice:'Warm, family-oriented tone.' },
+      { speaker:'scholar', text:'Two hobbies I truly enjoy are writing short stories and keeping a personal journal.',
+        emo_label:'Reflective', emo_emoji:'✍️',
+        emo_color:'#b58f7a', emo_bg:'rgba(181,143,122,0.08)', emo_border:'rgba(181,143,122,0.25)',
+        voice:'Quiet contentment, softer volume.' },
+      { speaker:'teacher', text:'I mostly listen to Tamil film songs, with a little English pop mixed in.',
+        emo_label:'Confident', emo_emoji:'🎯',
+        emo_color:'#c4956a', emo_bg:'rgba(196,149,106,0.08)', emo_border:'rgba(196,149,106,0.25)',
+        voice:'Easy-going, natural pace.' },
+      { speaker:'scholar', text:'Melody songs, especially in Tamil and Hindi, are what I enjoy most.',
+        emo_label:'Gentle', emo_emoji:'🌸',
+        emo_color:'#b56a8f', emo_bg:'rgba(181,106,143,0.08)', emo_border:'rgba(181,106,143,0.25)',
+        voice:'Soft melody in the voice itself.' },
+      { speaker:'teacher', text:'Tamil film songs and rock music make up most of my playlist.',
+        emo_label:'Steady', emo_emoji:'🔧',
+        emo_color:'#7a8fb5', emo_bg:'rgba(122,143,181,0.08)', emo_border:'rgba(122,143,181,0.25)',
+        voice:'Confident and casual.' },
+      { speaker:'scholar', text:'Depending on my mood, I switch between English pop and Tamil songs.',
+        emo_label:'Curious', emo_emoji:'💡',
+        emo_color:'#7aa58b', emo_bg:'rgba(122,165,139,0.08)', emo_border:'rgba(122,165,139,0.25)',
+        voice:'Light shift in tone between the two genres.' },
+      { speaker:'teacher', text:'Tamil film music, particularly songs with meaningful lyrics, is what I enjoy.',
+        emo_label:'Energetic', emo_emoji:'⚡',
+        emo_color:'#d4a83a', emo_bg:'rgba(212,168,58,0.08)', emo_border:'rgba(212,168,58,0.25)',
+        voice:'Sincere appreciation on ‘meaningful lyrics’.' },
+      { speaker:'scholar', text:'When I am studying, soft and instrumental music is what I prefer.',
+        emo_label:'Thoughtful', emo_emoji:'📖',
+        emo_color:'#9b8b6e', emo_bg:'rgba(155,139,110,0.08)', emo_border:'rgba(155,139,110,0.25)',
+        voice:'Calm and settled — mirror the music itself.' },
+      { speaker:'teacher', text:'A mixture of Tamil, Hindi and English songs is usually what I am listening to.',
+        emo_label:'Warm', emo_emoji:'😄',
+        emo_color:'#a07550', emo_bg:'rgba(160,117,80,0.08)', emo_border:'rgba(160,117,80,0.25)',
+        voice:'Relaxed, conversational listing.' },
+      { speaker:'scholar', text:'Classical music alongside modern Tamil songs — that is my usual playlist.',
+        emo_label:'Calm', emo_emoji:'🌿',
+        emo_color:'#8fa07a', emo_bg:'rgba(143,160,122,0.08)', emo_border:'rgba(143,160,122,0.25)',
+        voice:'Balanced tone across both genres.' },
+      { speaker:'teacher', text:'English pop, electronic music and Tamil film music are my favourite genres.',
+        emo_label:'Eager', emo_emoji:'🎮',
+        emo_color:'#6a8fc4', emo_bg:'rgba(106,143,196,0.08)', emo_border:'rgba(106,143,196,0.25)',
+        voice:'A touch of energy on ‘electronic music’.' },
+      { speaker:'scholar', text:'Tamil melodies, Hindi songs and the occasional English pop track fill my playlist.',
+        emo_label:'Expressive', emo_emoji:'✨',
+        emo_color:'#c46a95', emo_bg:'rgba(196,106,149,0.08)', emo_border:'rgba(196,106,149,0.25)',
+        voice:'Warm and easy.' },
+      { speaker:'teacher', text:'Especially while exercising, I like listening to energetic music.',
+        emo_label:'Spirited', emo_emoji:'🏅',
+        emo_color:'#7ac4a5', emo_bg:'rgba(122,196,165,0.08)', emo_border:'rgba(122,196,165,0.25)',
+        voice:'Upbeat, matching the workout energy.' },
+      { speaker:'scholar', text:'From Tamil film songs to English pop and indie music, my taste is fairly wide.',
+        emo_label:'Reflective', emo_emoji:'✍️',
+        emo_color:'#b58f7a', emo_bg:'rgba(181,143,122,0.08)', emo_border:'rgba(181,143,122,0.25)',
+        voice:'Open and appreciative, no rush across the list.' },
+      { speaker:'teacher', text:'I enjoy science-fiction movies and series, and Spider-Man is my favourite character because he is intelligent, funny and relatable.',
+        emo_label:'Confident', emo_emoji:'🎯',
+        emo_color:'#c4956a', emo_bg:'rgba(196,149,106,0.08)', emo_border:'rgba(196,149,106,0.25)',
+        voice:'Excited shift from genre to character, land on ‘relatable’.' },
+      { speaker:'scholar', text:'Comedy movies and mystery series are what I watch most, and Hermione Granger is my favourite character for her intelligence and hard work.',
+        emo_label:'Gentle', emo_emoji:'🌸',
+        emo_color:'#b56a8f', emo_bg:'rgba(181,106,143,0.08)', emo_border:'rgba(181,106,143,0.25)',
+        voice:'Admiring tone on ‘intelligence and hard work’.' },
+      { speaker:'teacher', text:'Action movies and sports dramas hold my attention, while Rocky Balboa stands out to me for his sheer determination.',
+        emo_label:'Steady', emo_emoji:'🔧',
+        emo_color:'#7a8fb5', emo_bg:'rgba(122,143,181,0.08)', emo_border:'rgba(122,143,181,0.25)',
+        voice:'Firm respect on ‘sheer determination’.' },
+      { speaker:'scholar', text:'Fantasy movies and series are my favourites, and among characters, Harry Potter wins me over with his bravery and loyalty.',
+        emo_label:'Curious', emo_emoji:'💡',
+        emo_color:'#7aa58b', emo_bg:'rgba(122,165,139,0.08)', emo_border:'rgba(122,165,139,0.25)',
+        voice:'Warmth rising on ‘bravery and loyalty’.' },
+      { speaker:'teacher', text:'Comedy movies and cricket-related shows are my go-to, and Mr Bean makes me laugh without needing to say much at all.',
+        emo_label:'Energetic', emo_emoji:'⚡',
+        emo_color:'#d4a83a', emo_bg:'rgba(212,168,58,0.08)', emo_border:'rgba(212,168,58,0.25)',
+        voice:'Playful, smile through the Mr Bean line.' },
+      { speaker:'scholar', text:'Mystery movies and series are what I follow, and Sherlock Holmes fascinates me for his sharp observation and reasoning.',
+        emo_label:'Thoughtful', emo_emoji:'📖',
+        emo_color:'#9b8b6e', emo_bg:'rgba(155,139,110,0.08)', emo_border:'rgba(155,139,110,0.25)',
+        voice:'Intrigued tone, slow down on ‘reasoning’.' },
+      { speaker:'teacher', text:'Comedy and adventure movies are what I enjoy, and Iron Man appeals to me for combining intelligence, humour and creativity.',
+        emo_label:'Warm', emo_emoji:'😄',
+        emo_color:'#a07550', emo_bg:'rgba(160,117,80,0.08)', emo_border:'rgba(160,117,80,0.25)',
+        voice:'Bright energy on ‘humour and creativity’.' },
+      { speaker:'scholar', text:'Medical dramas and animated movies are my usual watch, and Mulan inspires me with her courage and determination.',
+        emo_label:'Calm', emo_emoji:'🌿',
+        emo_color:'#8fa07a', emo_bg:'rgba(143,160,122,0.08)', emo_border:'rgba(143,160,122,0.25)',
+        voice:'Inspired tone on ‘courage and determination’.' },
+      { speaker:'teacher', text:'Superhero movies and animated series are what I follow, with Batman standing out for his intelligence and preparation.',
+        emo_label:'Eager', emo_emoji:'🎮',
+        emo_color:'#6a8fc4', emo_bg:'rgba(106,143,196,0.08)', emo_border:'rgba(106,143,196,0.25)',
+        voice:'Steady confidence on ‘preparation’.' },
+      { speaker:'scholar', text:'Romantic comedies and fantasy series are what I love, and Anne Shirley is my favourite for being imaginative, talkative and optimistic.',
+        emo_label:'Expressive', emo_emoji:'✨',
+        emo_color:'#c46a95', emo_bg:'rgba(196,106,149,0.08)', emo_border:'rgba(196,106,149,0.25)',
+        voice:'Delighted, let ‘optimistic’ land warmly.' },
+      { speaker:'teacher', text:'Sports movies and adventure series keep me entertained, and Naruto never fails to inspire me with his refusal to give up.',
+        emo_label:'Spirited', emo_emoji:'🏅',
+        emo_color:'#7ac4a5', emo_bg:'rgba(122,196,165,0.08)', emo_border:'rgba(122,196,165,0.25)',
+        voice:'Determined tone matching Naruto’s spirit.' },
+      { speaker:'scholar', text:'Drama and mystery series are what I watch, and Katniss Everdeen is my favourite for her courage and independence.',
+        emo_label:'Reflective', emo_emoji:'✍️',
+        emo_color:'#b58f7a', emo_bg:'rgba(181,143,122,0.08)', emo_border:'rgba(181,143,122,0.25)',
+        voice:'Quiet admiration on ‘independence’.' },
+      { speaker:'teacher', text:'Improving my programming skills and speaking English more confidently — that is my short-term goal.',
+        emo_label:'Confident', emo_emoji:'🎯',
+        emo_color:'#c4956a', emo_bg:'rgba(196,149,106,0.08)', emo_border:'rgba(196,149,106,0.25)',
+        voice:'Determined, clear priorities voiced evenly.' },
+      { speaker:'scholar', text:'Over the next few months, I want to grow more comfortable with my engineering subjects and sharpen my communication skills.',
+        emo_label:'Gentle', emo_emoji:'🌸',
+        emo_color:'#b56a8f', emo_bg:'rgba(181,106,143,0.08)', emo_border:'rgba(181,106,143,0.25)',
+        voice:'Hopeful and steady.' },
+      { speaker:'teacher', text:'Understanding the basics of mechanical engineering and becoming a better public speaker are what I am aiming for right now.',
+        emo_label:'Steady', emo_emoji:'🔧',
+        emo_color:'#7a8fb5', emo_bg:'rgba(122,143,181,0.08)', emo_border:'rgba(122,143,181,0.25)',
+        voice:'Focused, practical tone.' },
+      { speaker:'scholar', text:'In the short term, learning Python and Java while improving my English communication is what I hope to achieve.',
+        emo_label:'Curious', emo_emoji:'💡',
+        emo_color:'#7aa58b', emo_bg:'rgba(122,165,139,0.08)', emo_border:'rgba(122,165,139,0.25)',
+        voice:'Optimistic, list the two goals clearly.' },
+      { speaker:'teacher', text:'For now, deepening my technical knowledge and becoming more fluent in English are my priorities.',
+        emo_label:'Energetic', emo_emoji:'⚡',
+        emo_color:'#d4a83a', emo_bg:'rgba(212,168,58,0.08)', emo_border:'rgba(212,168,58,0.25)',
+        voice:'Sincere and grounded.' },
+      { speaker:'scholar', text:'Right now, I am focused on learning the fundamentals of programming and data science.',
+        emo_label:'Thoughtful', emo_emoji:'📖',
+        emo_color:'#9b8b6e', emo_bg:'rgba(155,139,110,0.08)', emo_border:'rgba(155,139,110,0.25)',
+        voice:'Present-focused, calm delivery.' },
+      { speaker:'teacher', text:'Strengthening my knowledge of electrical engineering and taking part in technical activities — that is my short-term goal.',
+        emo_label:'Warm', emo_emoji:'😄',
+        emo_color:'#a07550', emo_bg:'rgba(160,117,80,0.08)', emo_border:'rgba(160,117,80,0.25)',
+        voice:'Committed tone on ‘strengthen’.' },
+      { speaker:'scholar', text:'Understanding the basic concepts of biotechnology and improving my presentation skills are what I am working towards.',
+        emo_label:'Calm', emo_emoji:'🌿',
+        emo_color:'#8fa07a', emo_bg:'rgba(143,160,122,0.08)', emo_border:'rgba(143,160,122,0.25)',
+        voice:'Earnest and clear.' },
+      { speaker:'teacher', text:'My immediate goal is twofold: improve my coding skills and speak English more confidently.',
+        emo_label:'Eager', emo_emoji:'🎮',
+        emo_color:'#6a8fc4', emo_bg:'rgba(106,143,196,0.08)', emo_border:'rgba(106,143,196,0.25)',
+        voice:'Confident, evenly split emphasis on both goals.' },
+      { speaker:'scholar', text:'Becoming more confident when speaking in front of a group, alongside sharpening my technical skills, is what I hope to achieve soon.',
+        emo_label:'Expressive', emo_emoji:'✨',
+        emo_color:'#c46a95', emo_bg:'rgba(196,106,149,0.08)', emo_border:'rgba(196,106,149,0.25)',
+        voice:'Aspirational but grounded tone.' },
+      { speaker:'teacher', text:'Maintaining a good academic record while becoming more disciplined in my daily routine is my short-term goal.',
+        emo_label:'Spirited', emo_emoji:'🏅',
+        emo_color:'#7ac4a5', emo_bg:'rgba(122,196,165,0.08)', emo_border:'rgba(122,196,165,0.25)',
+        voice:'Disciplined, steady pace.' },
+      { speaker:'scholar', text:'At this stage, building my vocabulary and becoming a confident English speaker matter most to me.',
+        emo_label:'Reflective', emo_emoji:'✍️',
+        emo_color:'#b58f7a', emo_bg:'rgba(181,143,122,0.08)', emo_border:'rgba(181,143,122,0.25)',
+        voice:'Quiet determination.' },
+      { speaker:'teacher', text:'Becoming a software engineer and building technology that genuinely helps people — that is my long-term goal.',
+        emo_label:'Confident', emo_emoji:'🎯',
+        emo_color:'#c4956a', emo_bg:'rgba(196,149,106,0.08)', emo_border:'rgba(196,149,106,0.25)',
+        voice:'Aspirational, warmth on ‘genuinely helps people’.' },
+      { speaker:'scholar', text:'A successful career in the electronics industry is what I hope to build for myself.',
+        emo_label:'Gentle', emo_emoji:'🌸',
+        emo_color:'#b56a8f', emo_bg:'rgba(181,106,143,0.08)', emo_border:'rgba(181,106,143,0.25)',
+        voice:'Hopeful and forward-looking.' },
+      { speaker:'teacher', text:'Eventually, designing innovative machines and making a name for myself in the automotive industry is what I aspire to.',
+        emo_label:'Steady', emo_emoji:'🔧',
+        emo_color:'#7a8fb5', emo_bg:'rgba(122,143,181,0.08)', emo_border:'rgba(122,143,181,0.25)',
+        voice:'Ambitious, proud tone on ‘name for myself’.' },
+      { speaker:'scholar', text:'My ambition is to grow into a skilled IT professional and, one day, develop a software product of my own.',
+        emo_label:'Curious', emo_emoji:'💡',
+        emo_color:'#7aa58b', emo_bg:'rgba(122,165,139,0.08)', emo_border:'rgba(122,165,139,0.25)',
+        voice:'Dreamy but confident.' },
+      { speaker:'teacher', text:'Contributing to the construction of safe, sustainable buildings as a civil engineer is where I see myself in the long run.',
+        emo_label:'Energetic', emo_emoji:'⚡',
+        emo_color:'#d4a83a', emo_bg:'rgba(212,168,58,0.08)', emo_border:'rgba(212,168,58,0.25)',
+        voice:'Purposeful, steady on ‘safe, sustainable’.' },
+      { speaker:'scholar', text:'Using technology to solve real-world problems as a data scientist is my long-term ambition.',
+        emo_label:'Thoughtful', emo_emoji:'📖',
+        emo_color:'#9b8b6e', emo_bg:'rgba(155,139,110,0.08)', emo_border:'rgba(155,139,110,0.25)',
+        voice:'Confident vision, clear delivery.' },
+      { speaker:'teacher', text:'Working in the renewable-energy sector as an electrical engineer is what I hope for in the future.',
+        emo_label:'Warm', emo_emoji:'😄',
+        emo_color:'#a07550', emo_bg:'rgba(160,117,80,0.08)', emo_border:'rgba(160,117,80,0.25)',
+        voice:'Hopeful tone on ‘renewable-energy’.' },
+      { speaker:'scholar', text:'Contributing to biotechnology research that can genuinely improve people\'s lives — that is my aim.',
+        emo_label:'Calm', emo_emoji:'🌿',
+        emo_color:'#8fa07a', emo_bg:'rgba(143,160,122,0.08)', emo_border:'rgba(143,160,122,0.25)',
+        voice:'Sincere, slow down on ‘improve people\'s lives’.' },
+      { speaker:'teacher', text:'Eventually, I would like to start a technology company of my own, built around software I have developed myself.',
+        emo_label:'Eager', emo_emoji:'🎮',
+        emo_color:'#6a8fc4', emo_bg:'rgba(106,143,196,0.08)', emo_border:'rgba(106,143,196,0.25)',
+        voice:'Bold and self-assured.' },
+      { speaker:'scholar', text:'A successful career in communication technology and media is what my long-term goal looks like.',
+        emo_label:'Expressive', emo_emoji:'✨',
+        emo_color:'#c46a95', emo_bg:'rgba(196,106,149,0.08)', emo_border:'rgba(196,106,149,0.25)',
+        voice:'Clear and composed.' },
+      { speaker:'teacher', text:'Designing high-performance machines as a mechanical engineer is what I hope to be doing in the future.',
+        emo_label:'Spirited', emo_emoji:'🏅',
+        emo_color:'#7ac4a5', emo_bg:'rgba(122,196,165,0.08)', emo_border:'rgba(122,196,165,0.25)',
+        voice:'Steady ambition.' },
+      { speaker:'scholar', text:'Working in technology while continuing to nurture my creative side — that is the long-term goal I have set for myself.',
+        emo_label:'Reflective', emo_emoji:'✍️',
+        emo_color:'#b58f7a', emo_bg:'rgba(181,143,122,0.08)', emo_border:'rgba(181,143,122,0.25)',
+        voice:'Reflective, balance both halves of the sentence evenly.' },
+      { speaker:'teacher', text:'Remembering patterns very quickly is one special skill I have.',
+        emo_label:'Confident', emo_emoji:'🎯',
+        emo_color:'#c4956a', emo_bg:'rgba(196,149,106,0.08)', emo_border:'rgba(196,149,106,0.25)',
+        voice:'Confident, matter-of-fact.' },
+      { speaker:'scholar', text:'Drawing from memory is something I think I am genuinely good at.',
+        emo_label:'Gentle', emo_emoji:'🌸',
+        emo_color:'#b56a8f', emo_bg:'rgba(181,106,143,0.08)', emo_border:'rgba(181,106,143,0.25)',
+        voice:'Quietly proud tone.' },
+      { speaker:'teacher', text:'If I had to name one skill, it would be fixing things that others have given up on.',
+        emo_label:'Steady', emo_emoji:'🔧',
+        emo_color:'#7a8fb5', emo_bg:'rgba(122,143,181,0.08)', emo_border:'rgba(122,143,181,0.25)',
+        voice:'Wry confidence on ‘given up on’.' },
+      { speaker:'scholar', text:'Noticing small details — that is a skill I am particularly proud of.',
+        emo_label:'Curious', emo_emoji:'💡',
+        emo_color:'#7aa58b', emo_bg:'rgba(122,165,139,0.08)', emo_border:'rgba(122,165,139,0.25)',
+        voice:'Proud, deliberate pace.' },
+      { speaker:'teacher', text:'Staying calm under pressure is, I believe, one of my strengths.',
+        emo_label:'Energetic', emo_emoji:'⚡',
+        emo_color:'#d4a83a', emo_bg:'rgba(212,168,58,0.08)', emo_border:'rgba(212,168,58,0.25)',
+        voice:'Calm self-assurance.' },
+      { speaker:'scholar', text:'Remembering people\'s names easily is a special ability I have.',
+        emo_label:'Thoughtful', emo_emoji:'📖',
+        emo_color:'#9b8b6e', emo_bg:'rgba(155,139,110,0.08)', emo_border:'rgba(155,139,110,0.25)',
+        voice:'Easy confidence, light emphasis on ‘easily’.' },
+      { speaker:'teacher', text:'Cooking without following a recipe exactly is the one skill I would happily highlight.',
+        emo_label:'Warm', emo_emoji:'😄',
+        emo_color:'#a07550', emo_bg:'rgba(160,117,80,0.08)', emo_border:'rgba(160,117,80,0.25)',
+        voice:'Playful pride.' },
+      { speaker:'scholar', text:'Taking care of plants is something I am particularly good at.',
+        emo_label:'Calm', emo_emoji:'🌿',
+        emo_color:'#8fa07a', emo_bg:'rgba(143,160,122,0.08)', emo_border:'rgba(143,160,122,0.25)',
+        voice:'Gentle confidence.' },
+      { speaker:'teacher', text:'Picking up new games very quickly — that, I would say, is my special skill.',
+        emo_label:'Eager', emo_emoji:'🎮',
+        emo_color:'#6a8fc4', emo_bg:'rgba(106,143,196,0.08)', emo_border:'rgba(106,143,196,0.25)',
+        voice:'Casual confidence, quick delivery.' },
+      { speaker:'scholar', text:'Storytelling is a skill I have developed over the years.',
+        emo_label:'Expressive', emo_emoji:'✨',
+        emo_color:'#c46a95', emo_bg:'rgba(196,106,149,0.08)', emo_border:'rgba(196,106,149,0.25)',
+        voice:'Warm self-awareness.' },
+      { speaker:'teacher', text:'Motivating people, I would say, is one of my strengths.',
+        emo_label:'Spirited', emo_emoji:'🏅',
+        emo_color:'#7ac4a5', emo_bg:'rgba(122,196,165,0.08)', emo_border:'rgba(122,196,165,0.25)',
+        voice:'Steady, encouraging tone even here.' },
+      { speaker:'scholar', text:'Writing quickly is a skill I feel quite confident about.',
+        emo_label:'Reflective', emo_emoji:'✍️',
+        emo_color:'#b58f7a', emo_bg:'rgba(181,143,122,0.08)', emo_border:'rgba(181,143,122,0.25)',
+        voice:'Quiet confidence.' },
+      { speaker:'teacher', text:'Chess and puzzles trained this ability in me — I often remember positions and patterns after seeing them only a few times.',
+        emo_label:'Confident', emo_emoji:'🎯',
+        emo_color:'#c4956a', emo_bg:'rgba(196,149,106,0.08)', emo_border:'rgba(196,149,106,0.25)',
+        voice:'Reflective narrative tone, unhurried.' },
+      { speaker:'scholar', text:'A short look at a person or place is usually enough for me to reproduce many of the details in a sketch later.',
+        emo_label:'Gentle', emo_emoji:'🌸',
+        emo_color:'#b56a8f', emo_bg:'rgba(181,106,143,0.08)', emo_border:'rgba(181,106,143,0.25)',
+        voice:'Descriptive, paint the picture slowly.' },
+      { speaker:'teacher', text:'Whenever something at home stops working, I try to understand the problem myself before asking anyone for help.',
+        emo_label:'Steady', emo_emoji:'🔧',
+        emo_color:'#7a8fb5', emo_bg:'rgba(122,143,181,0.08)', emo_border:'rgba(122,143,181,0.25)',
+        voice:'Practical, matter-of-fact problem-solving tone.' },
+      { speaker:'scholar', text:'Changes in photographs, designs or surroundings that others miss are usually the first things I notice.',
+        emo_label:'Curious', emo_emoji:'💡',
+        emo_color:'#7aa58b', emo_bg:'rgba(122,165,139,0.08)', emo_border:'rgba(122,165,139,0.25)',
+        voice:'Observational, slight pride on ‘first things I notice’.' },
+      { speaker:'teacher', text:'Even when the people around me grow nervous during a match, I tend to stay calm and think through my next move.',
+        emo_label:'Energetic', emo_emoji:'⚡',
+        emo_color:'#d4a83a', emo_bg:'rgba(212,168,58,0.08)', emo_border:'rgba(212,168,58,0.25)',
+        voice:'Composed even while describing pressure.' },
+      { speaker:'scholar', text:'A name, once I hear it, tends to stick with me — which makes it easier to connect with new people.',
+        emo_label:'Thoughtful', emo_emoji:'📖',
+        emo_color:'#9b8b6e', emo_bg:'rgba(155,139,110,0.08)', emo_border:'rgba(155,139,110,0.25)',
+        voice:'Warm, personal connection tone.' },
+      { speaker:'teacher', text:'I look at whatever ingredients are available at home and build a dish by adjusting quantities and flavours as I go.',
+        emo_label:'Warm', emo_emoji:'😄',
+        emo_color:'#a07550', emo_bg:'rgba(160,117,80,0.08)', emo_border:'rgba(160,117,80,0.25)',
+        voice:'Casual improvisational energy.' },
+      { speaker:'scholar', text:'A plant\'s leaves and growth tell me quite a lot — whether it needs more sunlight, water, or a different type of soil.',
+        emo_label:'Calm', emo_emoji:'🌿',
+        emo_color:'#8fa07a', emo_bg:'rgba(143,160,122,0.08)', emo_border:'rgba(143,160,122,0.25)',
+        voice:'Gentle, caretaker\'s tone.' },
+      { speaker:'teacher', text:'After playing a new game just a few times, I can usually work out its rules and strategies on my own.',
+        emo_label:'Eager', emo_emoji:'🎮',
+        emo_color:'#6a8fc4', emo_bg:'rgba(106,143,196,0.08)', emo_border:'rgba(106,143,196,0.25)',
+        voice:'Quick confident pace, mirroring fast learning.' },
+      { speaker:'scholar', text:'Give me something interesting that just happened, and I can usually turn it into an entertaining story with a bit of added detail and drama.',
+        emo_label:'Expressive', emo_emoji:'✨',
+        emo_color:'#c46a95', emo_bg:'rgba(196,106,149,0.08)', emo_border:'rgba(196,106,149,0.25)',
+        voice:'Animated storytelling energy building through the sentence.' },
+      { speaker:'teacher', text:'When my friends feel like giving up during a tough task, I am usually the one pushing them to try just once more.',
+        emo_label:'Spirited', emo_emoji:'🏅',
+        emo_color:'#7ac4a5', emo_bg:'rgba(122,196,165,0.08)', emo_border:'rgba(122,196,165,0.25)',
+        voice:'Encouraging and warm.' },
+      { speaker:'scholar', text:'Once an idea for a story comes to me, I can usually get a first draft down quickly, without worrying too much about perfecting it.',
+        emo_label:'Reflective', emo_emoji:'✍️',
+        emo_color:'#b58f7a', emo_bg:'rgba(181,143,122,0.08)', emo_border:'rgba(181,143,122,0.25)',
+        voice:'Creative flow, unhurried on ‘quickly’.' },
+      { speaker:'teacher', text:'Thank you for listening, and I hope to get to know everyone better.',
+        emo_label:'Confident', emo_emoji:'🎯',
+        emo_color:'#c4956a', emo_bg:'rgba(196,149,106,0.08)', emo_border:'rgba(196,149,106,0.25)',
+        voice:'Warm and sincere close.' },
+      { speaker:'scholar', text:'It was nice introducing myself to all of you — thank you.',
+        emo_label:'Gentle', emo_emoji:'🌸',
+        emo_color:'#b56a8f', emo_bg:'rgba(181,106,143,0.08)', emo_border:'rgba(181,106,143,0.25)',
+        voice:'Gracious, gentle smile in the voice.' },
+      { speaker:'teacher', text:'Thank you, everyone. I look forward to learning alongside you.',
+        emo_label:'Steady', emo_emoji:'🔧',
+        emo_color:'#7a8fb5', emo_bg:'rgba(122,143,181,0.08)', emo_border:'rgba(122,143,181,0.25)',
+        voice:'Composed, forward-looking tone.' },
+      { speaker:'scholar', text:'For this opportunity to introduce myself, I sincerely thank you.',
+        emo_label:'Curious', emo_emoji:'💡',
+        emo_color:'#7aa58b', emo_bg:'rgba(122,165,139,0.08)', emo_border:'rgba(122,165,139,0.25)',
+        voice:'Sincere gratitude, slow down on ‘sincerely’.' },
+      { speaker:'teacher', text:'Thank you, everyone — I look forward to getting to know you all.',
+        emo_label:'Energetic', emo_emoji:'⚡',
+        emo_color:'#d4a83a', emo_bg:'rgba(212,168,58,0.08)', emo_border:'rgba(212,168,58,0.25)',
+        voice:'Warm, genuine closing.' },
+      { speaker:'scholar', text:'I hope we get to know each other better over time. Thank you for listening.',
+        emo_label:'Thoughtful', emo_emoji:'📖',
+        emo_color:'#9b8b6e', emo_bg:'rgba(155,139,110,0.08)', emo_border:'rgba(155,139,110,0.25)',
+        voice:'Hopeful, soft landing on ‘better’.' },
+      { speaker:'teacher', text:'Thank you, everyone. Happy to be here with all of you.',
+        emo_label:'Warm', emo_emoji:'😄',
+        emo_color:'#a07550', emo_bg:'rgba(160,117,80,0.08)', emo_border:'rgba(160,117,80,0.25)',
+        voice:'Content and warm.' },
+      { speaker:'scholar', text:'Learning from everyone here is something I truly look forward to — thank you for listening.',
+        emo_label:'Calm', emo_emoji:'🌿',
+        emo_color:'#8fa07a', emo_bg:'rgba(143,160,122,0.08)', emo_border:'rgba(143,160,122,0.25)',
+        voice:'Earnest anticipation.' },
+      { speaker:'teacher', text:'Thank you, everyone. Here\'s to learning and growing together over the next few years.',
+        emo_label:'Eager', emo_emoji:'🎮',
+        emo_color:'#6a8fc4', emo_bg:'rgba(106,143,196,0.08)', emo_border:'rgba(106,143,196,0.25)',
+        voice:'Upbeat, forward-looking close.' },
+      { speaker:'scholar', text:'Glad to have introduced myself to all of you — thank you for listening.',
+        emo_label:'Expressive', emo_emoji:'✨',
+        emo_color:'#c46a95', emo_bg:'rgba(196,106,149,0.08)', emo_border:'rgba(196,106,149,0.25)',
+        voice:'Warm satisfaction.' },
+      { speaker:'teacher', text:'Many interesting experiences lie ahead of us, I hope. Thank you, everyone.',
+        emo_label:'Spirited', emo_emoji:'🏅',
+        emo_color:'#7ac4a5', emo_bg:'rgba(122,196,165,0.08)', emo_border:'rgba(122,196,165,0.25)',
+        voice:'Hopeful and bright.' },
+      { speaker:'scholar', text:'Thank you for listening — here is to knowing one another a little better.',
+        emo_label:'Reflective', emo_emoji:'✍️',
+        emo_color:'#b58f7a', emo_bg:'rgba(181,143,122,0.08)', emo_border:'rgba(181,143,122,0.25)',
+        voice:'Gentle and sincere, soft final note.' }
+    ]
+  }
+};
+
+// ─── ESL-FRIENDLY MATCHING CONFIG ───────────────────────────────────────────
+const HEARD_EDIT_DIST  = 2;
+const CLOSE_EDIT_DIST  = 3;
+const SYLLABLE_PREFIX  = 4;
+const CLEAN_THRESHOLD  = 0.8;
+const FAST_RATIO       = 0.45;
+const MIN_TRIES_FOR_SKIP = 3;
+
+// ─── STATE ──────────────────────────────────────────────────────────────────
+let playerName='', playerDept='';
+let activeQuestKey=null, LINES=[], QUEST_ID='';
+let pendingDirectQuestKey=null;
+let currentLine=0;
+let totalHeard=0, totalClose=0, totalMissed=0, totalWords=0;
+let lineResults=[];
+let startTime=null, timerInterval=null;
+let recognition=null, isListening=false;
+let lineStartTime=null, mediaRecorder=null, recordedBlobs={}, lineAudioChunks=[];
+let speechSupported = !!(window.SpeechRecognition||window.webkitSpeechRecognition);
+
+// per-line
+let lineTokens=[], heardSet=new Set(), closeSet=new Set(), lastHeardIdx=-1;
+let interimHighlightSet=new Set();
+let lineAttempts=0;
+
+// speech recognition ratchet & timer
+let _finalBuffer        = '';
+let _confirmedIdx       = -1;
+let _interimTimer       = null;
+let _silenceTimer       = null;
+let _restartCount       = 0;
+let _firstResultSeen    = false;
+let _pendingFinalize     = false;
+let _stopRequested       = false;
+let _finalizeSafetyTimer = null;
+
+// DOM refs
+let $dashboardView,$nameForm,$quizContent,$nameInput,$deptSelect,$startBtn,$backToDashBtn;
+let $micDot,$micText,$noSpeech;
+let $chatArea,$topStrip,$progWrap,$progFill;
+let $timerPill,$scorePill,$linePill;
+let $micPanel,$micBtn,$waveform;
+let $rereadBtn,$skipBtn,$nextBtn,$linePrompt;
+let $savingSpinner,$scoreCard,$restartBtn;
+let $questGrid,$dashIdentityPill;
+
+function $(id){return document.getElementById(id.replace('#',''))}
+
+// ─── DIRECTORY / COMPLETION ──────────────────────────────────────────────────
+function getCompletedQuests(){
+  try{ return JSON.parse(localStorage.getItem('completedQuests')||'[]'); }catch(_){ return []; }
+}
+function markQuestCompleted(key){
+  try{
+    const c=getCompletedQuests();
+    if(!c.includes(key)){ c.push(key); localStorage.setItem('completedQuests',JSON.stringify(c)); }
+  }catch(_){}
+}
+
+function loadIdentity(){
+  try{
+    playerName=localStorage.getItem('playerName')||'';
+    playerDept=localStorage.getItem('playerDept')||'';
+  }catch(_){ playerName=''; playerDept=''; }
+}
+function fillFormFromIdentity(){
+  if($nameInput) $nameInput.value=playerName||'';
+  if($deptSelect) $deptSelect.value=playerDept||'';
+}
+
+function showDashboard(){
+  clearInterval(timerInterval);
+  $topStrip.style.display='none';
+  $progWrap.style.display='none';
+  $nameForm.style.display='none';
+  $quizContent.style.display='none';
+  $micPanel.style.display='none';
+  window.speechSynthesis?.cancel();
+  window.history.replaceState({},document.title,window.location.pathname);
+  $dashboardView.style.display='block';
+  renderIdentityPill();
+  renderQuestGrid();
+}
+
+function renderIdentityPill(){
+  if(!playerName){ $dashIdentityPill.innerHTML=''; return; }
+  $dashIdentityPill.innerHTML=`<button type="button" id="switchPlayerBtn" class="identity-pill-btn">${escapeHtml(playerName)}${playerDept?' · '+escapeHtml(playerDept):''} &nbsp;·&nbsp; <span class="identity-pill-switch">Switch</span></button>`;
+  const btn=$('switchPlayerBtn');
+  if(btn) btn.onclick=()=>{ fillFormFromIdentity(); showIdentityGate(true,null); };
+}
+
+function renderQuestGrid(){
+  const completed=getCompletedQuests();
+  $questGrid.innerHTML='';
+  Object.keys(QUEST_DB).forEach(key=>{
+    const q=QUEST_DB[key];
+    const isDone=completed.includes(key);
+    const card=document.createElement('div');
+    card.className='quest-card';
+    card.onclick=()=>selectQuest(key);
+    card.innerHTML=`
+      <div class="quest-card-info">
+        <div class="quest-card-id">${escapeHtml(q.questID)}</div>
+        <div class="quest-card-title">${escapeHtml(q.title)}</div>
+        <div class="quest-card-sub">${escapeHtml(q.subtitle)}</div>
+      </div>
+      <div class="quest-card-action">
+        ${isDone?'<span class="badge-completed">✓ Completed</span>':''}
+        <span class="quest-arrow">➔</span>
+      </div>`;
+    $questGrid.appendChild(card);
+  });
+}
+
+function escapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function selectQuest(key){
+  if(!playerName || !playerDept){
+    pendingDirectQuestKey=key;
+    fillFormFromIdentity();
+    showIdentityGate(true,key);
+    return;
+  }
+  loadQuest(key);
+  $dashboardView.style.display='none';
+  launchQuiz();
+}
+
+function loadQuest(key){
+  activeQuestKey=key;
+  const q=QUEST_DB[key];
+  QUEST_ID=q.questID;
+  LINES=q.lines;
+  document.title=`${q.title} — The Self-Introduction Quest`;
+}
+
+function showIdentityGate(showBack, directKey){
+  $dashboardView.style.display='none';
+  $quizContent.style.display='none';
+  $topStrip.style.display='none';
+  $progWrap.style.display='none';
+  pendingDirectQuestKey = (typeof directKey!=='undefined') ? directKey : pendingDirectQuestKey;
+  $backToDashBtn.style.display= showBack ? '' : 'none';
+  $nameInput.style.borderColor=$deptSelect.style.borderColor='';
+  $nameForm.style.display='flex';
+}
+
+// ─── MIC INIT ────────────────────────────────────────────────────────────────
+async function initMic(){
+  if(!speechSupported){
+    $noSpeech.style.display='block';
+    $micDot.className='mic-dot fail';
+    $micText.textContent='Speech recognition not available in this browser.';
+    $startBtn.disabled=true; return;
+  }
+  try{
+    const s=await navigator.mediaDevices.getUserMedia({audio:true});
+    s.getTracks().forEach(t=>t.stop());
+    $micDot.className='mic-dot ok';
+    $micText.textContent='Microphone ready — you\'re good to go.';
+    $startBtn.disabled=false;
+  }catch(e){
+    $micDot.className='mic-dot fail';
+    $micText.textContent='Microphone access denied. Please allow it in browser settings.';
+    $startBtn.disabled=true;
+  }
+}
+
+// ─── TTS (model reading) ─────────────────────────────────────────────────────
+let ttsActive=false;
+function speakLine(text, btn){
+  if(!window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  if(ttsActive){ ttsActive=false; if(btn){btn.textContent='▶ Listen first';btn.classList.remove('speaking');} return; }
+  ttsActive=true;
+  const utt=new SpeechSynthesisUtterance(text);
+  utt.rate=0.88; utt.pitch=1.05; utt.lang='en-US';
+  const voices=window.speechSynthesis.getVoices();
+  const pref=voices.find(v=>v.name.includes('Google US English')||v.name.includes('Samantha')||v.name.includes('Karen'));
+  if(pref) utt.voice=pref;
+  utt.onend=()=>{ ttsActive=false; if(btn){btn.textContent='▶ Listen first';btn.classList.remove('speaking');} };
+  utt.onerror=()=>{ ttsActive=false; if(btn){btn.textContent='▶ Listen first';btn.classList.remove('speaking');} };
+  if(btn){btn.textContent='■ Stop';btn.classList.add('speaking');}
+  window.speechSynthesis.speak(utt);
+}
+
+// ─── IDENTITY FORM SUBMIT ─────────────────────────────────────────────────────
+function beginQuiz(){
+  if(!$nameInput.value.trim()){$nameInput.focus();$nameInput.style.borderColor='var(--error)';return;}
+  if(!$deptSelect.value){$deptSelect.style.borderColor='var(--error)';return;}
+  $nameInput.style.borderColor=$deptSelect.style.borderColor='';
+  playerName=$nameInput.value.trim(); playerDept=$deptSelect.value;
+  try{localStorage.setItem('playerName',playerName);localStorage.setItem('playerDept',playerDept);}catch(_){}
+  const card=$nameForm.querySelector('.form-card');
+  card.style.transition='opacity 0.3s ease, transform 0.3s ease';
+  card.style.opacity='0'; card.style.transform='scale(0.97) translateY(8px)';
+  setTimeout(()=>{
+    $nameForm.style.display='none';
+    card.style.opacity=''; card.style.transform='';
+    if(pendingDirectQuestKey){
+      const key=pendingDirectQuestKey; pendingDirectQuestKey=null;
+      loadQuest(key);
+      launchQuiz();
+    } else {
+      showDashboard();
+    }
+  },300);
+}
+
+function launchQuiz(){
+  $quizContent.style.display='block';
+  $topStrip.style.display='block';
+  $progWrap.style.display='block';
+  $micPanel.style.display='block';
+  startQuiz();
+}
+
+function startQuiz(){
+  currentLine=0; totalHeard=0; totalClose=0; totalMissed=0; totalWords=0;
+  lineResults=[]; recordedBlobs={};
+  $chatArea.innerHTML=''; $scoreCard.innerHTML='';
+  $restartBtn.style.display='none';
+  $savingSpinner.style.display='none';
+  $progFill.style.width='0%';
+  startTime=Date.now();
+  startTimer();
+  showCurrentLine();
+}
+
+// ─── RENDER LINE ─────────────────────────────────────────────────────────────
+function showCurrentLine(){
+  if(currentLine>=LINES.length){finishQuiz();return;}
+  updateHUD();
+  const L=LINES[currentLine];
+  const side=L.speaker==='teacher'?'left':'right';
+
+  const row=document.createElement('div');
+  row.className=`bubble-row ${side} active-line`;
+  row.id=`row-${currentLine}`;
+
+  const av=document.createElement('div');
+  av.className='avatar';
+  av.textContent=L.emo_emoji; // avatar mirrors the line's mood
+
+  const col=document.createElement('div');
+  col.className='bubble-col';
+
+  const et=document.createElement('div');
+  et.className='emotion-tag';
+  et.style.cssText=`color:${L.emo_color};background:${L.emo_bg};border-color:${L.emo_border}`;
+  et.textContent=`${L.emo_emoji} ${L.emo_label}`;
+
+  const vc=document.createElement('div');
+  vc.className='voice-cue';
+  vc.textContent=`"${L.voice}"`;
+
+  const lb=document.createElement('button');
+  lb.className='listen-btn';
+  lb.textContent='▶ Listen first';
+  lb.onclick=()=>speakLine(L.text,lb);
+
+  const bub=document.createElement('div');
+  bub.className='bubble';
+  bub.id=`bub-${currentLine}`;
+  lineTokens=tokenize(L.text);
+  totalWords+=lineTokens.filter(t=>t.type==='word').length;
+  lineTokens.forEach((tok,i)=>{
+    if(tok.type==='word'){
+      const sp=document.createElement('span');
+      sp.className='word w-pending';
+      sp.id=`w-${currentLine}-${i}`;
+      sp.textContent=tok.text;
+      bub.appendChild(sp);
+    } else {
+      bub.appendChild(document.createTextNode(tok.text));
+    }
+  });
+
+  col.appendChild(et); col.appendChild(vc);
+  col.appendChild(lb); col.appendChild(bub);
+  row.appendChild(av); row.appendChild(col);
+  $chatArea.appendChild(row);
+  setTimeout(()=>row.scrollIntoView({behavior:'smooth',block:'center'}),80);
+
+  heardSet.clear(); closeSet.clear(); lastHeardIdx=-1; interimHighlightSet.clear();
+  lineAttempts=0;
+  setPrompt('ready');
+  $rereadBtn.style.display='none';
+  $nextBtn.style.display='none';
+  $skipBtn.style.display='none'; // skip unlocks after MIN_TRIES_FOR_SKIP attempts
+}
+
+function tokenize(text){
+  const tokens=[];
+  const re=/([A-Za-z']+)|([^A-Za-z']+)/g; let m;
+  while((m=re.exec(text))!==null){
+    if(m[1]) tokens.push({type:'word',text:m[1],clean:m[1].toLowerCase().replace(/[^a-z]/g,'')});
+    else     tokens.push({type:'punct',text:m[2]});
+  }
+  return tokens;
+}
+
+// ─── SPEECH RECOGNITION ──────────────────────────────────────────────────────
+function buildRecognition(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  const r=new SR();
+  r.lang='en-US'; r.continuous=true; r.interimResults=true; r.maxAlternatives=5;
+
+  r.onresult=e=>{
+    _restartCount=0; _firstResultSeen=true;
+
+    clearTimeout(_silenceTimer);
+    _silenceTimer = setTimeout(() => {
+      if (isListening) stopListening(true);
+    }, 2600);
+
+    let hasFinal=false;
+
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      if(e.results[i].isFinal){
+        hasFinal=true;
+        processAndLock(e.results[i][0].transcript);
+        _finalBuffer=(_finalBuffer+' '+e.results[i][0].transcript).trim();
+      }
+    }
+
+    let interimText='';
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      if(!e.results[i].isFinal) interimText+=e.results[i][0].transcript;
+    }
+    if(interimText && !hasFinal){
+      clearTimeout(_interimTimer);
+      _interimTimer=setTimeout(()=>processInterim(interimText), 80);
+    }
+  };
+
+  r.onerror=e=>{
+    if(e.error==='no-speech') return;
+    if(e.error==='not-allowed'||e.error==='service-not-allowed'){
+      setPrompt('error-perm'); stopListening(false); return;
+    }
+  };
+
+  r.onend=()=>{
+    if(_stopRequested){
+      _stopRequested=false;
+      clearTimeout(_finalizeSafetyTimer);
+      if(_pendingFinalize){
+        _pendingFinalize=false;
+        completeStopUI();
+        finalizeCurrentLine();
+      }
+      return;
+    }
+    if(!isListening) return;
+    _restartCount++;
+    if(_restartCount>=4 && !_firstResultSeen){
+      setPrompt('error-mic'); stopListening(false); return;
+    }
+    try{ r.start(); }catch(_){}
+  };
+
+  return r;
+}
+
+function processAndLock(transcript){
+  clearTimeout(_interimTimer);
+  const spoken=normalise(transcript);
+  const wordToks=lineTokens.filter(t=>t.type==='word');
+  let searchFrom=_confirmedIdx+1;
+
+  for(const sp of spoken){
+    for(let j=searchFrom;j<wordToks.length;j++){
+      const res=matchWord(sp,wordToks[j].clean);
+      if(res==='heard'||res==='close'){
+        if(!heardSet.has(j)&&!closeSet.has(j)){
+          if(res==='heard') heardSet.add(j); else closeSet.add(j);
+        }
+        interimHighlightSet.delete(j);
+        setWordClass(j, res==='heard'?'w-heard':'w-close');
+        if(j>lastHeardIdx) lastHeardIdx=j;
+        if(j>_confirmedIdx) _confirmedIdx=j;
+        searchFrom=j+1; break;
+      }
+    }
+  }
+}
+
+function processInterim(transcript){
+  const spoken=normalise(transcript);
+  const wordToks=lineTokens.filter(t=>t.type==='word');
+  let searchFrom=_confirmedIdx+1;
+
+  interimHighlightSet.forEach(j=>{
+    if(!heardSet.has(j) && !closeSet.has(j)){
+      setWordClass(j,'w-pending');
+    }
+  });
+  interimHighlightSet.clear();
+
+  for(const sp of spoken){
+    for(let j=searchFrom;j<wordToks.length;j++){
+      if(heardSet.has(j)||closeSet.has(j)){ continue; }
+      const res=matchWord(sp,wordToks[j].clean);
+      if(res==='heard'||res==='close'){
+        interimHighlightSet.add(j);
+        setWordClass(j,'w-interim');
+        if(j>lastHeardIdx) lastHeardIdx=j;
+        searchFrom=j+1; break;
+      }
+    }
+  }
+}
+
+function startListening(){
+  if(isListening) return;
+  if(ttsActive){ window.speechSynthesis.cancel(); ttsActive=false; }
+  const lb=document.querySelector(`#row-${currentLine} .listen-btn`);
+  if(lb){lb.textContent='▶ Listen first';lb.classList.remove('speaking');}
+
+  lineAttempts++;
+  isListening=true; lineStartTime=Date.now();
+  _finalBuffer=''; _confirmedIdx=-1;
+  clearTimeout(_interimTimer); clearTimeout(_silenceTimer); clearTimeout(_finalizeSafetyTimer);
+  _restartCount=0; _firstResultSeen=false; _pendingFinalize=false; _stopRequested=false;
+  $micBtn.className='mic-btn listening'; $micBtn.textContent='⏹';
+  $waveform.classList.add('active');
+  setPrompt('listening');
+  $rereadBtn.style.display='none'; $nextBtn.style.display='none';
+
+  recognition=buildRecognition();
+  try{recognition.start();}catch(_){}
+  startAudioRec();
+}
+
+function stopListening(finalize=true){
+  if(!isListening && !recognition) { return; }
+  isListening=false;
+  clearTimeout(_silenceTimer);
+  clearTimeout(_interimTimer);
+
+  if(!recognition){
+    completeStopUI();
+    stopAudioRec(finalize);
+    if(finalize) finalizeCurrentLine();
+    return;
+  }
+
+  if(finalize){
+    _pendingFinalize=true;
+    _stopRequested=true;
+    $micBtn.className='mic-btn finishing'; $micBtn.textContent='…';
+    setPrompt('finishing');
+    stopAudioRec(true);
+
+    clearTimeout(_finalizeSafetyTimer);
+    _finalizeSafetyTimer=setTimeout(()=>{
+      if(_pendingFinalize){
+        _pendingFinalize=false;
+        _stopRequested=false;
+        completeStopUI();
+        finalizeCurrentLine();
+      }
+    }, 1200);
+
+    try{ recognition.stop(); }catch(_){ }
+  } else {
+    _stopRequested=false; _pendingFinalize=false;
+    completeStopUI();
+    try{ recognition.stop(); }catch(_){}
+    recognition=null;
+    stopAudioRec(false);
+  }
+}
+
+function completeStopUI(){
+  $micBtn.className='mic-btn idle'; $micBtn.textContent='🎙';
+  $waveform.classList.remove('active');
+  recognition=null;
+}
+
+function normalise(transcript){
+  return transcript.toLowerCase().replace(/[^a-z\s]/g,'').split(/\s+/).filter(Boolean);
+}
+
+function matchWord(spoken, expected){
+  if(!spoken||!expected) return 'miss';
+  if(spoken===expected) return 'heard';
+  if(expected.length>=SYLLABLE_PREFIX && spoken.startsWith(expected.slice(0,SYLLABLE_PREFIX))) return 'heard';
+  if(spoken.length>=SYLLABLE_PREFIX && expected.startsWith(spoken.slice(0,SYLLABLE_PREFIX))) return 'heard';
+  const ed=editDist(spoken,expected);
+  if(ed<=HEARD_EDIT_DIST) return 'heard';
+  if(ed<=CLOSE_EDIT_DIST) return 'close';
+  const subs=[['th','d'],['th','t'],['v','b'],['v','w'],['w','v'],['z','s'],['s','z'],['r','l'],['l','r']];
+  let norm_sp=spoken, norm_ex=expected;
+  for(const [a,b] of subs){ norm_sp=norm_sp.replaceAll(a,b); norm_ex=norm_ex.replaceAll(a,b); }
+  if(norm_sp===norm_ex) return 'heard';
+  if(editDist(norm_sp,norm_ex)<=HEARD_EDIT_DIST) return 'heard';
+  return 'miss';
+}
+
+function editDist(a,b){
+  const m=a.length,n=b.length;
+  const dp=Array.from({length:m+1},(_,i)=>Array.from({length:n+1},(_,j)=>i===0?j:j===0?i:0));
+  for(let i=1;i<=m;i++) for(let j=1;j<=n;j++)
+    dp[i][j]=a[i-1]===b[j-1]?dp[i-1][j-1]:1+Math.min(dp[i-1][j],dp[i][j-1],dp[i-1][j-1]);
+  return dp[m][n];
+}
+
+function setWordClass(wordIdx, cls){
+  let wi=0;
+  for(let i=0;i<lineTokens.length;i++){
+    if(lineTokens[i].type!=='word'){continue;}
+    if(wi===wordIdx){
+      const el=document.getElementById(`w-${currentLine}-${i}`);
+      if(el) el.className='word '+cls;
+      return;
+    }
+    wi++;
+  }
+}
+
+// ─── FINALIZE LINE ────────────────────────────────────────────────────────────
+function finalizeCurrentLine(){
+  const duration=(Date.now()-lineStartTime)/1000;
+  const wordToks=lineTokens.filter(t=>t.type==='word');
+  const total=wordToks.length;
+  let heard=0, close=0, missedWords=[];
+
+  wordToks.forEach((tok,wi)=>{
+    if(heardSet.has(wi)){
+      heard++;
+      setWordClass(wi,'w-done');
+    } else if(closeSet.has(wi)){
+      close++;
+    } else {
+      missedWords.push(tok.text);
+      setWordClass(wi,'w-missed');
+    }
+  });
+
+  totalHeard  += heard;
+  totalClose  += close;
+  totalMissed += missedWords.length;
+
+  const expectedSec=total*0.5;
+  const pace=duration < expectedSec*FAST_RATIO ? 'fast' : 'ok';
+
+  lineResults.push({index:currentLine, heard, close, total, missed:missedWords, pace, duration});
+  showLineFeedback(heard, close, total, missedWords, pace);
+  updateHUD();
+
+  const pctScore = total > 0 ? Math.round(((heard + close) / total) * 100) : 0;
+
+  if (pctScore >= 60) {
+    $rereadBtn.style.display = 'none';
+    $skipBtn.style.display = 'none';
+    $nextBtn.style.display = 'none';
+    setPrompt('Moving to next line...');
+
+    const col = document.querySelector(`#row-${currentLine} .bubble-col`);
+    if(col) {
+      const barWrap = document.createElement('div');
+      barWrap.className = 'auto-next-wrap';
+      const barFill = document.createElement('div');
+      barFill.className = 'auto-next-fill';
+      barWrap.appendChild(barFill);
+      col.appendChild(barWrap);
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => { barFill.style.width = '100%'; });
+      });
+    }
+    setTimeout(() => { advanceLine(); }, 1500);
+
+  } else {
+    $rereadBtn.style.display = 'inline-flex';
+    $nextBtn.style.display = 'none';
+    // skip only unlocks once the reader has genuinely tried a few times
+    $skipBtn.style.display = (lineAttempts >= MIN_TRIES_FOR_SKIP) ? 'inline-flex' : 'none';
+    setPrompt(lineAttempts >= MIN_TRIES_FOR_SKIP ? 'You can do it! Try again or skip.' : 'You can do it! Try again.');
+
+    const col = document.querySelector(`#row-${currentLine} .bubble-col`);
+    if(col) {
+       const nudge = document.createElement('div');
+       nudge.className = 'nudge-text';
+       nudge.textContent = 'Take a deep breath and try that one again.';
+       col.appendChild(nudge);
+    }
+  }
+}
+
+function showLineFeedback(heard, close, total, missed, pace){
+  const col=document.querySelector(`#row-${currentLine} .bubble-col`);
+  if(!col) return;
+  col.querySelectorAll('.line-feedback,.playback-row').forEach(el=>el.remove());
+
+  const pctRaw = (total > 0) ? ((heard + close) / total) : 0;
+  const pctScore = Math.round(pctRaw * 100);
+
+  const fb=document.createElement('div');
+  fb.className='line-feedback';
+
+  let scoreClass = pctScore === 100 ? 'perfect' : pctRaw >= CLEAN_THRESHOLD ? 'great' : 'try-these';
+  fb.innerHTML += `<span class="fb-chip ${scoreClass}">✦ ${pctScore}%</span>`;
+
+  if(heard===total){
+    fb.innerHTML+=`<span class="fb-chip perfect">✓ Every word heard!</span>`;
+  } else if(pctRaw>=CLEAN_THRESHOLD){
+    fb.innerHTML+=`<span class="fb-chip great">Great reading</span>`;
+  } else if(missed.length>0){
+    fb.innerHTML+=`<span class="fb-chip try-these">Try these: ${missed.slice(0,4).join(', ')}${missed.length>4?'…':''}</span>`;
+  }
+
+  if(pace==='fast') fb.innerHTML+=`<span class="fb-chip pace-fast">⚡ Slow down a little</span>`;
+
+  if(pctScore<60 && lineAttempts<MIN_TRIES_FOR_SKIP){
+    const left=MIN_TRIES_FOR_SKIP-lineAttempts;
+    fb.innerHTML+=`<span class="fb-chip tries-left">${left} more ${left===1?'try':'tries'} to unlock skip</span>`;
+  }
+
+  col.appendChild(fb);
+
+  if(recordedBlobs[currentLine]){
+    const pr=document.createElement('div');
+    pr.className='playback-row';
+    const pb=document.createElement('button');
+    pb.className='play-chip'; pb.textContent='▶ Hear yourself';
+    pb.onclick=()=>playback(currentLine);
+    pr.appendChild(pb); col.appendChild(pr);
+  }
+}
+
+// ─── ADVANCE / RE-READ / SKIP ─────────────────────────────────────────────────
+function advanceLine(){
+  window.speechSynthesis?.cancel();
+  const prev=document.getElementById(`row-${currentLine}`);
+  if(prev){prev.classList.remove('active-line');prev.classList.add('past');}
+  currentLine++;
+  $progFill.style.width=(currentLine/LINES.length*100)+'%';
+  $rereadBtn.style.display='none'; $skipBtn.style.display='none'; $nextBtn.style.display='none';
+  updateHUD();
+  if(currentLine>=LINES.length){finishQuiz();return;}
+  setTimeout(showCurrentLine,280);
+}
+
+function rereadLine(){
+  const bub=document.getElementById(`bub-${currentLine}`);
+  if(bub) bub.querySelectorAll('.word').forEach(s=>s.className='word w-pending');
+  const last=lineResults[lineResults.length-1];
+  if(last){
+    totalHeard  -= last.heard;
+    totalClose  -= last.close;
+    totalMissed -= last.missed.length;
+    lineResults.pop();
+  }
+  const col=document.querySelector(`#row-${currentLine} .bubble-col`);
+  if(col) col.querySelectorAll('.line-feedback,.playback-row,.auto-next-wrap,.nudge-text').forEach(el=>el.remove());
+  heardSet.clear(); closeSet.clear(); lastHeardIdx=-1; _confirmedIdx=-1; interimHighlightSet.clear();
+  clearTimeout(_interimTimer); clearTimeout(_silenceTimer);
+  $rereadBtn.style.display='none'; $nextBtn.style.display='none';
+  $skipBtn.style.display='none';
+  startListening();
+}
+
+function skipLine(){
+  if(lineAttempts < MIN_TRIES_FOR_SKIP) return; // guarded, but double-check
+  if(isListening) stopListening(false);
+
+  // undo the last finalized attempt's contribution before recording the skip,
+  // so this line is only ever counted once in the running totals
+  const last=lineResults[lineResults.length-1];
+  if(last && last.index===currentLine){
+    totalHeard  -= last.heard;
+    totalClose  -= last.close;
+    totalMissed -= last.missed.length;
+    lineResults.pop();
+  }
+
+  lineTokens.forEach((t,i)=>{
+    if(t.type==='word'){
+      const el=document.getElementById(`w-${currentLine}-${i}`);
+      if(el) el.className='word w-missed';
+    }
+  });
+  const wt=lineTokens.filter(t=>t.type==='word');
+  totalMissed+=wt.length; // totalWords for this line was already counted once, in showCurrentLine
+  lineResults.push({index:currentLine,heard:0,close:0,total:wt.length,missed:wt.map(t=>t.text),pace:'ok',duration:0});
+  advanceLine();
+}
+
+// ─── AUDIO RECORDING ─────────────────────────────────────────────────────────
+const IS_MOBILE = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+function startAudioRec(){
+  if(IS_MOBILE) return;
+  lineAudioChunks=[];
+  navigator.mediaDevices.getUserMedia({audio:true}).then(stream=>{
+    mediaRecorder=new MediaRecorder(stream);
+    mediaRecorder.ondataavailable=e=>{if(e.data.size>0)lineAudioChunks.push(e.data);};
+    mediaRecorder.start(100);
+  }).catch(()=>{});
+}
+function stopAudioRec(save){
+  if(!mediaRecorder||mediaRecorder.state==='inactive') return;
+  mediaRecorder.onstop=()=>{
+    if(save&&lineAudioChunks.length) recordedBlobs[currentLine]=new Blob(lineAudioChunks,{type:'audio/webm'});
+    mediaRecorder.stream.getTracks().forEach(t=>t.stop());
+    mediaRecorder=null;
+  };
+  try{mediaRecorder.stop();}catch(_){}
+}
+function playback(idx){
+  const blob=recordedBlobs[idx]; if(!blob) return;
+  const url=URL.createObjectURL(blob);
+  const a=new Audio(url); a.play();
+  a.onended=()=>URL.revokeObjectURL(url);
+}
+
+// ─── HUD ──────────────────────────────────────────────────────────────────────
+function updateHUD(){
+  const elapsed=startTime?Math.floor((Date.now()-startTime)/1000):0;
+  const m=Math.floor(elapsed/60),s=elapsed%60;
+  $timerPill.textContent=m>0?`⏳ ${m}m ${s}s`:`⏳ ${elapsed}s`;
+  const pct=totalWords>0?Math.round((totalHeard+totalClose)/totalWords*100):0;
+  $scorePill.textContent=totalWords>0?`✦ ${pct}%`:'✦ —';
+  $linePill.textContent=`Line ${Math.min(currentLine+1,LINES.length)} / ${LINES.length}`;
+}
+function startTimer(){ clearInterval(timerInterval); timerInterval=setInterval(updateHUD,1000); }
+
+function setPrompt(state){
+  const P={
+    ready:      'Tap 🎙 to read — or ▶ listen first',
+    listening:  'Speaking… tap ⏹ when you\'re done',
+    finishing:  'Finishing up — one moment…',
+    done:       'Nice! Tap → next, or ↺ try again',
+    'error-mic': '⚠ Mic not responding — reload the page and try again',
+    'error-perm':'⚠ Microphone blocked — check browser permissions',
+  };
+  $linePrompt.textContent=P[state]||state;
+  $linePrompt.style.color = state.startsWith('error') ? 'var(--error)' : '';
+}
+
+// ─── FINISH ───────────────────────────────────────────────────────────────────
+async function saveResult(payload){
+  for(let a=1;a<=3;a++){
+    try{
+      const ctrl=new AbortController();
+      setTimeout(()=>ctrl.abort(),5000);
+      const r=await fetch("https://yellow-lab-4999.andrewveda.workers.dev/functions/v1/logQuest",{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify(payload),signal:ctrl.signal
+      });
+      if(!r.ok) throw new Error();
+      const d=await r.json();
+      if(d.success) return true;
+    }catch(e){}
+    if(a<3) await new Promise(r=>setTimeout(r,1500));
+  }
+  return false;
+}
+
+async function finishQuiz(){
+  clearInterval(timerInterval);
+  isListening=false; try{recognition?.stop();}catch(_){}
+  window.speechSynthesis?.cancel();
+  $micPanel.style.display='none';
+  $progFill.style.width='100%';
+  $linePill.textContent='✦ Done';
+  $chatArea.innerHTML='';
+  $savingSpinner.style.display='block';
+
+  if(activeQuestKey) markQuestCompleted(activeQuestKey);
+
+  const totalTime=Math.floor((Date.now()-startTime)/1000);
+  const combined=totalHeard+totalClose;
+  const accuracy=totalWords>0?Math.round(combined/totalWords*100):0;
+
+  const saved=await saveResult({
+    student_name:playerName, department:playerDept,
+    correct:totalHeard, wrong:totalMissed,
+    time_spent:totalTime, quest_id:QUEST_ID, accuracy_percent:accuracy
+  });
+  $savingSpinner.style.display='none';
+  launchConfetti();
+
+  const mins=Math.floor(totalTime/60),secs=totalTime%60;
+  const timeStr=mins>0?`${mins}m ${secs}s`:`${secs}s`;
+  const flawless=totalMissed===0;
+  const trophy=flawless?'🏆':accuracy>=80?'🌟':accuracy>=60?'📖':'🌱';
+
+  const rowsHTML=lineResults.map(r=>{
+    const L=LINES[r.index]; if(!L) return '';
+    const pct=r.total>0?Math.round((r.heard+r.close)/r.total*100):0;
+    const paceHTML=r.pace==='fast'?'<span class="td-fast">⚡ Slow down</span>':'<span class="td-ok">✓ Good</span>';
+    const missHTML=r.missed.length?`<span class="td-try">${r.missed.slice(0,3).join(', ')}${r.missed.length>3?'…':''}</span>`:'<span class="td-ok">—</span>';
+    return `<tr><td>${L.emo_emoji} ${r.index+1}</td><td>${pct}%</td><td>${paceHTML}</td><td>${missHTML}</td></tr>`;
+  }).join('');
+
+  // Find the next uncompleted (or just next) quest in the library
+  const keys=Object.keys(QUEST_DB);
+  const curIdx=keys.indexOf(activeQuestKey);
+  const nextKey = keys.length>1 ? keys[(curIdx+1)%keys.length] : null;
+  const nextQuest = nextKey ? QUEST_DB[nextKey] : null;
+
+  $scoreCard.innerHTML=`
+  <div class="score-wrapper">
+    <div class="score-trophy-band">
+      <div class="score-status-pill">✦ ${escapeHtml(QUEST_ID)} · Reading Complete</div>
+      <span class="score-emoji">${trophy}</span>
+      <h2 class="score-headline">${accuracy}%</h2>
+      <p class="score-tagline">${flawless?'Every single word — flawless.':accuracy>=80?'A confident reading performance.':'Keep practising — you\'re getting there.'}</p>
+    </div>
+    <div class="score-stats-band">
+      <div class="score-name-row">
+        <span class="score-player-name">${escapeHtml(playerName)}</span>
+        <span class="score-player-dept">${escapeHtml(playerDept)}</span>
+      </div>
+      <div class="score-grid">
+        <div class="score-cell"><span class="score-cell-val v-good">${totalHeard}</span><span class="score-cell-label">Heard clearly</span></div>
+        <div class="score-cell"><span class="score-cell-val v-amber">${totalClose}</span><span class="score-cell-label">Close enough</span></div>
+        <div class="score-cell"><span class="score-cell-val v-time">⏱ ${timeStr}</span><span class="score-cell-label">Time taken</span></div>
+      </div>
+      <table class="detail-table" style="margin-top:1.1rem">
+        <thead><tr><th>Line</th><th>Accuracy</th><th>Pace</th><th>Try these words</th></tr></thead>
+        <tbody>${rowsHTML}</tbody>
+      </table>
+      ${flawless?`<div style="margin-top:1rem;padding:0.6rem 1rem;background:rgba(122,155,122,0.08);border:1px solid rgba(122,155,122,0.2);border-radius:8px;display:flex;align-items:center;justify-content:center;gap:0.5rem;font-size:0.7rem;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;color:var(--sage)">✦ Flawless — every word heard</div>`:''}
+    </div>
+    <div class="score-next-band">
+      <p class="score-next-eyebrow">Continue your journey</p>
+      <button id="nextQuestBtn" class="next-btn" style="width:100%">
+        <div class="next-text"><span class="next-pre">${nextQuest?'Up next':'Explore more'}</span><span class="next-title">${nextQuest?escapeHtml(nextQuest.title):'Back to the Library'}</span></div>
+        <div class="next-arrow">→</div>
+      </button>
+    </div>
+    <div class="score-footer-band">
+      <div>${saved?'<p class="save-ok">✓ Results saved</p>':'<p class="save-fail">⚠ Could not reach server</p>'}</div>
+      <button class="pdf-btn" id="downloadPdfBtn">↓ Download Report</button>
+    </div>
+  </div>`;
+
+  const nqBtn=$('nextQuestBtn');
+  if(nqBtn) nqBtn.onclick=()=>{ if(nextKey) selectQuest(nextKey); else showDashboard(); };
+  const pdfBtn=$('downloadPdfBtn');
+  if(pdfBtn) pdfBtn.onclick=downloadPDF;
+
+  $restartBtn.style.display='inline-block';
+}
+
+// ─── PDF ──────────────────────────────────────────────────────────────────────
+function downloadPDF(){
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({unit:'mm',format:'a4'});
+  const ph=doc.internal.pageSize.height, mL=20;
+  const totalTime=Math.floor((Date.now()-startTime)/1000);
+  const accuracy=totalWords>0?Math.round((totalHeard+totalClose)/totalWords*100):0;
+  const date=new Date().toLocaleString('en-IN',{timeZone:'Asia/Kolkata'});
+
+  doc.setFillColor(25,25,60);doc.rect(0,0,210,45,'F');
+  doc.setTextColor(255,255,255);doc.setFont('times','bold');doc.setFontSize(18);
+  doc.text('SRM VALLIAMMAI ENGINEERING COLLEGE',105,16,{align:'center'});
+  doc.setFontSize(12);doc.setFont('times','italic');doc.text('(Autonomous)',105,23,{align:'center'});
+  doc.setFontSize(15);doc.setFont('times','normal');doc.text('Department of English',105,31,{align:'center'});
+  doc.setFontSize(14);doc.setFont('times','bold');doc.setTextColor(212,175,55);
+  doc.text(`${QUEST_ID} — Live Reading Report`,105,39,{align:'center'});
+
+  doc.setTextColor(0,0,0);doc.setFontSize(11);doc.setFont('times','bold');doc.text('CANDIDATE INFORMATION',mL,55);
+  doc.autoTable({startY:58,body:[['Student Name',playerName],['Department',playerDept],['Quest ID',QUEST_ID],['Completed On',date]],theme:'plain',styles:{fontSize:10,font:'times',cellPadding:3},columnStyles:{0:{fontStyle:'bold',cellWidth:60,textColor:[70,70,70]},1:{cellWidth:120}},margin:{left:mL,right:mL}});
+
+  let y=doc.lastAutoTable.finalY+10;
+  doc.setFont('times','bold');doc.text('PERFORMANCE SUMMARY',mL,y);y+=3;
+  doc.autoTable({startY:y+3,body:[['Total Words',totalWords.toString()],['Heard Clearly',totalHeard.toString()],['Close Attempts',totalClose.toString()],['Missed',totalMissed.toString()],['Accuracy',accuracy+'%'],['Time',`${Math.floor(totalTime/60)}m ${totalTime%60}s`]],theme:'grid',styles:{fontSize:10,font:'times',cellPadding:3},margin:{left:mL,right:mL}});
+
+  y=doc.lastAutoTable.finalY+12;
+  if(y>ph-30){doc.addPage();y=20;}
+  doc.setFont('times','bold');doc.text('LINE-BY-LINE ANALYSIS',mL,y);
+  const tb=lineResults.map(r=>{
+    const L=LINES[r.index];
+    const pct=r.total>0?Math.round((r.heard+r.close)/r.total*100):0;
+    return [(r.index+1).toString(),L?L.text.substring(0,45)+'…':'—',pct+'%',r.pace==='fast'?'Too fast':'Good',r.missed.join(', ')||'—'];
+  });
+  doc.autoTable({startY:y+4,head:[['#','Line (excerpt)','Accuracy','Pace','Try these words']],body:tb,theme:'striped',styles:{fontSize:9,font:'times',cellPadding:2.5},margin:{left:mL,right:mL}});
+
+  doc.setDrawColor(184,134,11);doc.setLineWidth(0.5);doc.line(mL,ph-17,190,ph-17);
+  doc.setFontSize(8);doc.setTextColor(128,128,128);doc.setFont('times','italic');
+  doc.text('System-generated report',105,ph-10,{align:'center'});
+  doc.save(`${playerName.replace(/[^a-zA-Z0-9]/g,'_')}_${QUEST_ID.replace(/[^a-zA-Z0-9]/g,'_')}_Report.pdf`);
+}
+
+// ─── CONFETTI ─────────────────────────────────────────────────────────────────
+function launchConfetti(){
+  const colors=['#c4956a','#d4a87a','#a07550','#e8e3dc','#7a9b7a','#1c1916'];
+  for(let i=0;i<60;i++){
+    const c=document.createElement('div');
+    c.className='confetti-piece';
+    c.style.left=Math.random()*100+'vw';c.style.top='-20px';
+    c.style.background=colors[Math.floor(Math.random()*colors.length)];
+    const sz=5+Math.random()*7;c.style.width=sz+'px';c.style.height=sz+'px';
+    c.style.animationDuration=(2+Math.random()*2.5)+'s';
+    c.style.animationDelay=(Math.random()*1.2)+'s';
+    document.body.appendChild(c);setTimeout(()=>c.remove(),5000);
+  }
+}
+
+// ─── DOM READY ────────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded',()=>{
+  $dashboardView=$('dashboardView');
+  $nameForm=$('nameForm');$quizContent=$('quizContent');
+  $nameInput=$('nameInput');$deptSelect=$('deptSelect');$startBtn=$('startBtn');$backToDashBtn=$('backToDashBtn');
+  $micDot=$('micDot');$micText=$('micText');$noSpeech=$('noSpeechBanner');
+  $chatArea=$('chatArea');$topStrip=$('topStrip');$progWrap=$('progWrap');$progFill=$('progFill');
+  $timerPill=$('timerPill');$scorePill=$('scorePill');$linePill=$('linePill');
+  $micPanel=$('micPanel');$micBtn=$('micBtn');$waveform=$('waveform');
+  $rereadBtn=$('rereadBtn');$skipBtn=$('skipBtn');$nextBtn=$('nextBtn');$linePrompt=$('linePrompt');
+  $savingSpinner=$('savingSpinner');$scoreCard=$('scoreCard');$restartBtn=$('restartBtn');
+  $questGrid=$('questGrid');$dashIdentityPill=$('dashIdentityPill');
+
+  $startBtn.onclick=beginQuiz;
+  $backToDashBtn.onclick=()=>{ pendingDirectQuestKey=null; $nameForm.style.display='none'; showDashboard(); };
+
+  $micBtn.onclick=()=>{
+    if(_pendingFinalize) return;
+    if(isListening) stopListening(true);
+    else if(currentLine<LINES.length) startListening();
+  };
+
+  $rereadBtn.onclick=rereadLine;
+  $skipBtn.onclick=skipLine;
+  $nextBtn.onclick=advanceLine;
+  $restartBtn.onclick=showDashboard;
+
+  loadIdentity();
+
+  const urlParams=new URLSearchParams(window.location.search);
+  const questParam=urlParams.get('quest');
+
+  if(playerName && playerDept){
+    if(questParam && QUEST_DB[questParam]){
+      loadQuest(questParam);
+      launchQuiz();
+    } else {
+      showDashboard();
+    }
+  } else {
+    pendingDirectQuestKey = (questParam && QUEST_DB[questParam]) ? questParam : null;
+    fillFormFromIdentity();
+    showIdentityGate(false);
+  }
+
+  window.speechSynthesis?.getVoices();
+  window.speechSynthesis?.addEventListener('voiceschanged',()=>window.speechSynthesis.getVoices());
+
+  initMic();
+});
+
+})();
+</script>
+
+<script>
+document.addEventListener('click',function(e){
+  const t=e.target.closest('a');if(!t)return;
+  const url=t.href;
+  const internal=[window.location.origin,'andrewveda.github.io'];
+  if(internal.some(d=>url.includes(d))&&(matchMedia('(display-mode: standalone)').matches||matchMedia('(display-mode: fullscreen)').matches)){
+    e.preventDefault();location.href=url;
+  }else{t.setAttribute('target','_blank');}
+});
+</script>
+
+</body>
+</html>

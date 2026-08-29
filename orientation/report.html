@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Mission: Veni, Vidi, Vici! — Analytics Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=DM+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<style>
+  :root {
+    --cream: #faf7f2; --cream-dark: #f2ece0; --cream-mid: #ede5d5;
+    --surface: #ffffff;
+    --gold: #c9a84c; --gold-light: #e8c97a; --gold-deep: #a07a28;
+    --gold-dim: rgba(201, 168, 76, 0.12); --gold-border: rgba(201, 168, 76, 0.35);
+    --rank-gold: #c9a84c; --rank-silver: #9ca3af; --rank-bronze: #b87333;
+    --text-primary: #1a1714; --text-secondary: #7a6a52; --text-dim: #b0a090;
+    --border-soft: rgba(0, 0, 0, 0.07); --border-mid: rgba(0, 0, 0, 0.12);
+    --success: #15803D; --danger: #B91C1C;
+    --accent-blue: #4a7ba6; --accent-blue-dim: rgba(74,123,166,0.14);
+    --accent-rose: #b5586f; --accent-rose-dim: rgba(181,88,111,0.14);
+    --accent-teal: #3f8f7a; --accent-teal-dim: rgba(63,143,122,0.14);
+    --accent-violet: #7c6aa6; --accent-violet-dim: rgba(124,106,166,0.14);
+    --radius-sm: 10px; --radius-md: 14px; --radius-lg: 20px;
+  }
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'DM Sans', system-ui, sans-serif;
+    background: var(--cream); color: var(--text-primary);
+    min-height: 100vh; padding: 20px 12px 56px;
+    background-image: radial-gradient(circle at 70% 5%, rgba(201,168,76,0.10) 0%, transparent 45%),
+      radial-gradient(circle at 10% 95%, rgba(201,168,76,0.08) 0%, transparent 40%);
+  }
+  .dashboard-frame {
+    max-width: 1280px; margin: 0 auto; border-radius: var(--radius-lg);
+    background: var(--surface); border: 1px solid var(--gold-border);
+    box-shadow: 0 1px 0 0 rgba(255,255,255,0.9) inset, 0 24px 60px rgba(0,0,0,0.09), 0 4px 16px rgba(201,168,76,0.12);
+    overflow: hidden;
+  }
+  .header { padding: 26px 28px 18px; border-bottom: 1px solid var(--border-soft); background: linear-gradient(160deg, var(--surface) 55%, var(--cream-dark) 100%); }
+  .header-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; margin-bottom: 14px; }
+  .title-block { display: flex; flex-direction: column; gap: 3px; }
+  .mission-title { font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--text-dim); font-weight: 600; }
+  .title { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 36px; font-weight: 700; letter-spacing: 0.03em; color: var(--gold-deep); line-height: 1.05; }
+  .subtitle { font-size: 12.5px; color: var(--text-secondary); margin-top: 3px; }
+  .header-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .live-dot { display: inline-flex; align-items: center; gap: 7px; padding: 8px 16px; border-radius: 999px; background: var(--gold-dim); border: 1px solid var(--gold-border); font-size: 12px; font-weight: 700; color: var(--gold-deep); letter-spacing: 0.04em; white-space: nowrap; }
+  .badge-dot { width: 7px; height: 7px; border-radius: 999px; background: var(--gold); animation: pulse-dot 2s ease-in-out infinite; }
+  @keyframes pulse-dot { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(0.7); } }
+  select#departmentSelect {
+    padding: 9px 14px; border-radius: 999px; border: 1px solid var(--gold-border);
+    background: var(--surface); color: var(--text-primary); font-family: 'DM Sans', sans-serif;
+    font-size: 12.5px; font-weight: 600; cursor: pointer; outline: none;
+  }
+  .back-link {
+    display: inline-flex; align-items: center; gap: 6px; padding: 9px 16px; border-radius: 999px;
+    border: 1px solid var(--gold-border); background: var(--gold-dim); color: var(--gold-deep);
+    font-size: 12px; font-weight: 700; letter-spacing: 0.03em; text-decoration: none; white-space: nowrap;
+  }
+
+  #loader { display: none; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 80px 20px; color: var(--text-secondary); font-size: 13px; letter-spacing: 0.05em; }
+  .spinner { width: 34px; height: 34px; border-radius: 50%; border: 3px solid var(--gold-border); border-top-color: var(--gold); animation: spin 0.9s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #error { padding: 16px 28px; color: var(--danger); font-size: 13px; font-weight: 600; }
+
+  .dash { padding: 24px 28px 8px; }
+  .section-label { display: flex; align-items: baseline; gap: 10px; margin: 30px 0 14px; }
+  .section-label h2 { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 22px; font-weight: 700; color: var(--text-primary); }
+  .section-label span { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-dim); }
+  .section-label::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, var(--border-mid), transparent); }
+  .section-label:first-of-type { margin-top: 4px; }
+
+  /* KPI strip */
+  .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .kpi-card { background: var(--cream); border: 1px solid var(--border-soft); border-radius: var(--radius-sm); padding: 16px 14px; position: relative; overflow: hidden; }
+  .kpi-card::before { content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 3px; background: linear-gradient(90deg, var(--gold), var(--gold-light)); }
+  .kpi-icon { font-size: 17px; margin-bottom: 8px; opacity: 0.9; }
+  .kpi-val { font-size: 27px; font-weight: 800; color: var(--gold-deep); line-height: 1.1; font-variant-numeric: tabular-nums; }
+  .kpi-label { font-size: 10.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-primary); margin-top: 5px; }
+  .kpi-sub { font-size: 10.5px; color: var(--text-dim); margin-top: 2px; }
+
+  /* Panels / charts */
+  .panel-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .panel-grid.thirds { grid-template-columns: 1fr 1fr 1fr; }
+  .panel {
+    background: var(--surface); border: 1px solid var(--border-soft); border-radius: var(--radius-md);
+    padding: 18px 18px 14px; box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+  }
+  .panel.full { grid-column: 1 / -1; }
+  .panel-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; flex-wrap: wrap; gap: 6px; }
+  .panel-head h3 { font-size: 14.5px; font-weight: 700; color: var(--text-primary); }
+  .panel-sub { font-size: 11px; color: var(--text-dim); }
+  .chart-wrap { position: relative; width: 100%; }
+  .chart-wrap.h280 { height: 280px; }
+  .chart-wrap.h320 { height: 320px; }
+  .chart-wrap.h360 { height: 360px; }
+  .chart-wrap.h420 { height: 420px; }
+
+  /* Heatmap */
+  .heatmap-scroll { overflow-x: auto; padding-bottom: 6px; }
+  .heatmap-grid { display: grid; grid-auto-flow: column; grid-template-rows: repeat(7, 14px); gap: 3px; width: max-content; }
+  .heat-cell { width: 14px; height: 14px; border-radius: 3px; background: var(--cream-mid); }
+  .heatmap-legend { display: flex; align-items: center; gap: 6px; margin-top: 10px; font-size: 10.5px; color: var(--text-dim); }
+  .heatmap-legend .heat-cell { width: 11px; height: 11px; }
+  .heat-month-labels { display: flex; gap: 3px; font-size: 10px; color: var(--text-dim); margin-bottom: 4px; width: max-content; }
+
+  /* Standings table */
+  .std-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  .std-table th { text-align: left; font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-dim); padding: 8px 10px; border-bottom: 1px solid var(--border-mid); }
+  .std-table td { padding: 10px 10px; border-bottom: 1px solid var(--border-soft); }
+  .std-table tr:last-child td { border-bottom: none; }
+  .std-name { font-weight: 700; color: var(--text-primary); }
+  .std-bar-track { width: 100%; height: 7px; border-radius: 999px; background: var(--cream-mid); overflow: hidden; }
+  .std-bar-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--gold), var(--gold-light)); }
+
+  .empty-state { padding: 60px 20px; text-align: center; color: var(--text-dim); font-size: 13px; }
+
+  footer.note { text-align: center; padding: 26px 20px 6px; font-size: 11px; color: var(--text-dim); letter-spacing: 0.04em; }
+
+  @media (max-width: 980px) {
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+    .panel-grid, .panel-grid.thirds { grid-template-columns: 1fr; }
+    .title { font-size: 27px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="dashboard-frame">
+  <div class="header">
+    <div class="header-top">
+      <div class="title-block">
+        <div class="mission-title">SRM Valliammai Engineering College · Department of English</div>
+        <div class="title">Mission Analytics</div>
+        <div class="subtitle">Veni, Vidi, Vici! · Performance analytics for the pre-orientation programme</div>
+      </div>
+      <div class="header-right">
+        <select id="departmentSelect" onchange="applyDepartmentFilter(this.value)">
+          <option value="ALL">All Departments</option>
+        </select>
+        <div class="live-dot"><span class="badge-dot"></span><span id="last-test-info">Loading mission log…</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="loader"><div class="spinner"></div><div>Pulling mission telemetry…</div></div>
+  <div id="error"></div>
+
+  <div class="dash" id="dash" style="display:none;">
+
+    <div class="section-label"><h2>Program Snapshot</h2><span id="students-count-label"></span></div>
+    <div class="kpi-grid" id="kpi-grid"></div>
+
+    <div class="section-label"><h2>Score &amp; Accuracy</h2><span>distribution across all students</span></div>
+    <div class="panel-grid">
+      <div class="panel">
+        <div class="panel-head"><h3>Score Distribution</h3><span class="panel-sub">students per score band</span></div>
+        <div class="chart-wrap h280"><canvas id="chartScoreDist"></canvas></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h3>Accuracy Bands</h3><span class="panel-sub">hit-rate distribution</span></div>
+        <div class="chart-wrap h280"><canvas id="chartAccuracyDist"></canvas></div>
+      </div>
+    </div>
+
+    <div class="section-label"><h2>Department Performance</h2><span>comparative standing</span></div>
+    <div class="panel panel-full-wrap">
+      <div class="panel-head"><h3>Average Score &amp; Accuracy by Department</h3><span class="panel-sub">bars = avg score (left axis) · line = avg accuracy % (right axis)</span></div>
+      <div class="chart-wrap h360"><canvas id="chartDeptPerf"></canvas></div>
+    </div>
+
+    <div class="panel-grid" style="margin-top:16px;">
+      <div class="panel">
+        <div class="panel-head"><h3>Department Activity Profile</h3><span class="panel-sub">avg completions per student</span></div>
+        <div class="chart-wrap h360"><canvas id="chartDeptRadar"></canvas></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h3>Activity Mix</h3><span class="panel-sub">share of total completions</span></div>
+        <div class="chart-wrap h360"><canvas id="chartActivityMix"></canvas></div>
+      </div>
+    </div>
+
+    <div class="section-label"><h2>Engagement Over Time</h2><span>mission-day activity trend</span></div>
+    <div class="panel">
+      <div class="panel-head"><h3>Daily Activity &amp; Active Students</h3><span class="panel-sub">bars = completions logged · line = unique students active</span></div>
+      <div class="chart-wrap h320"><canvas id="chartTimeline"></canvas></div>
+    </div>
+
+    <div class="section-label"><h2>Consistency</h2><span>who's showing up, and how they earn it</span></div>
+    <div class="panel">
+      <div class="panel-head"><h3>Engagement Heatmap</h3><span class="panel-sub">activity intensity per mission day, all students combined</span></div>
+      <div class="heatmap-scroll">
+        <div id="heatMonthLabels" class="heat-month-labels"></div>
+        <div class="heatmap-grid" id="heatmapGrid"></div>
+      </div>
+      <div class="heatmap-legend">
+        <span>Less</span>
+        <div class="heat-cell" data-lvl="0"></div>
+        <div class="heat-cell" data-lvl="1"></div>
+        <div class="heat-cell" data-lvl="2"></div>
+        <div class="heat-cell" data-lvl="3"></div>
+        <div class="heat-cell" data-lvl="4"></div>
+        <span>More</span>
+      </div>
+    </div>
+
+    <div class="section-label"><h2>Top Performers</h2><span>leaderboard &amp; reading list</span></div>
+    <div class="panel-grid">
+      <div class="panel">
+        <div class="panel-head"><h3>Top 10 by Score</h3><span class="panel-sub">mission points</span></div>
+        <div class="chart-wrap h360"><canvas id="chartTop10"></canvas></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h3>Most-Read Books</h3><span class="panel-sub">insight books completed across all students</span></div>
+        <div class="chart-wrap h360"><canvas id="chartBooks"></canvas></div>
+      </div>
+    </div>
+
+    <div class="section-label"><h2>Correlations</h2><span>where effort meets outcome</span></div>
+    <div class="panel-grid">
+      <div class="panel">
+        <div class="panel-head"><h3>Accuracy vs. Attempts</h3><span class="panel-sub">each point = one student</span></div>
+        <div class="chart-wrap h320"><canvas id="chartScatterAcc"></canvas></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h3>Time Invested vs. Score</h3><span class="panel-sub">each point = one student</span></div>
+        <div class="chart-wrap h320"><canvas id="chartScatterTime"></canvas></div>
+      </div>
+    </div>
+
+    <div class="section-label"><h2>Department Standings</h2><span>full breakdown</span></div>
+    <div class="panel">
+      <table class="std-table">
+        <thead><tr>
+          <th>Department</th><th>Students</th><th>Avg Score</th><th>Avg Accuracy</th><th>Avg Active Days</th><th style="min-width:140px;">Relative Score</th>
+        </tr></thead>
+        <tbody id="std-table-body"></tbody>
+      </table>
+    </div>
+
+  </div>
+
+  <footer class="note">Mission: Veni, Vidi, Vici! · Analytics Dashboard · generated for the pre-orientation programme review</footer>
+</div>
+
+<script type="module">
+  import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+  const supabase = createClient(
+    "https://yellow-lab-4999.andrewveda.workers.dev",
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoZXpzc29jenZwYmt0ZWZmY2d6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI4NTk1ODUsImV4cCI6MjA3ODQzNTU4NX0.2ZlqXnZxv0opkhynAT7OlK4S-xPygcc7ETUyTXRfGHE"
+  );
+
+  let reportData = [];
+  let filteredData = [];
+  const charts = {};
+
+  const BOOK_MAP = {
+      222: "Lateral Thinking Pt 1", 234: "Lateral Thinking Pt 2",
+      240: "Thinking, Fast & Slow Pt 1", 242: "Thinking, Fast & Slow Pt 2", 243: "Thinking, Fast & Slow Pt 3",
+      253: "The Willpower Instinct",
+      255: "The Chimp Paradox Pt 1", 256: "The Chimp Paradox Pt 2",
+      223: "Grit Pt 1", 235: "Grit Pt 2",
+      230: "Can't Hurt Me",
+      254: "Peak",
+      225: "Atomic Habits",
+      229: "The Mountain Is You",
+      241: "The Subtle Art",
+      233: "Unbreakable",
+      244: "Courage to Be Disliked Pt 1", 245: "Courage to Be Disliked Pt 2", 246: "Courage to Be Disliked Pt 3", 247: "Courage to Be Disliked Pt 4", 248: "Courage to Be Disliked Pt 5", 250: "Courage to Be Disliked Pt 6",
+      226: "Win Friends & Influence People",
+      227: "The Daily Stoic",
+      265: "Start with Why Pt 1", 266: "Start with Why Pt 2",
+      257: "Checklist Manifesto Pt 1", 258: "Checklist Manifesto Pt 2",
+      231: "Man's Search For Meaning Pt 1", 238: "Man's Search For Meaning Pt 2",
+      236: "Illusions",
+      237: "Fountainhead / Atlas Shrugged",
+      267: "Sapiens Pt 1", 268: "Sapiens Pt 2",
+      239: "Politics & the English Language",
+      252: "Steal Like an Artist",
+      269: "Unpublished David Ogilvy Pt 1", 270: "Unpublished David Ogilvy Pt 2",
+      224: "Psychology of Money Pt 1", 249: "Psychology of Money Pt 2",
+      232: "7 Habits of Highly Effective People",
+      259: "Bold Pt 1", 260: "Bold Pt 2",
+      261: "Zero to One Pt 1", 262: "Zero to One Pt 2",
+      263: "Adapt Pt 1", 264: "Adapt Pt 2"
+  };
+
+  const START_DATE = new Date("2025-08-25");
+  function mapToDate(number) { const d = new Date(START_DATE); d.setDate(d.getDate() + (number - 1)); return d; }
+
+  function parseItems(rawList) {
+    if (!rawList || rawList === "NULL") return [];
+    return rawList.split(",").map(i => i.trim()).filter(Boolean).map(item => {
+      const [type, num] = item.split(" ");
+      return { type, number: Number(num), label: item };
+    });
+  }
+  function parseVocabDates(rawList) {
+    if (!rawList || rawList === "NULL") return [];
+    return rawList.split(",").map(i => i.trim()).filter(Boolean).map(item => {
+      const m = item.match(/VocabDate_(\d{4}-\d{2}-\d{2})/);
+      return m ? new Date(m[1] + "T00:00:00") : null;
+    }).filter(Boolean);
+  }
+  function formatTimeCompact(seconds) {
+    seconds = Math.round(seconds || 0);
+    const h = Math.floor(seconds / 3600), m = Math.floor((seconds % 3600) / 60);
+    if (h > 0) return `${h}h ${m}m`;
+    return `${m}m`;
+  }
+  function formatDate(dateStr) {
+    if (!dateStr) return "N/A";
+    return new Date(dateStr).toLocaleString('en-IN', {
+      timeZone: 'Asia/Kolkata', day: '2-digit', month: 'short', year: 'numeric',
+      hour: '2-digit', minute: '2-digit', hour12: true
+    });
+  }
+  function esc(str) { return String(str ?? ""); }
+
+  // ── PALETTE FOR CHART.JS ──
+  const PAL = {
+    gold: "#c9a84c", goldLight: "#e8c97a", goldDeep: "#a07a28",
+    blue: "#4a7ba6", rose: "#b5586f", teal: "#3f8f7a", violet: "#7c6aa6",
+    ink: "#1a1714", inkMid: "#7a6a52", inkDim: "#b0a090", gridLine: "rgba(0,0,0,0.06)",
+  };
+  const SERIES_COLORS = [PAL.gold, PAL.blue, PAL.rose, PAL.teal, PAL.violet, PAL.goldDeep, "#c97a4a", "#5a8f9c"];
+
+  if (window.Chart) {
+    Chart.defaults.font.family = "'DM Sans', system-ui, sans-serif";
+    Chart.defaults.color = PAL.inkMid;
+    Chart.defaults.plugins.legend.labels.usePointStyle = true;
+    Chart.defaults.plugins.legend.labels.boxWidth = 8;
+  }
+
+  async function loadData() {
+    document.getElementById("loader").style.display = "flex";
+    const { data, error } = await supabase.from("report_card_view").select("*");
+    document.getElementById("loader").style.display = "none";
+
+    if (error) {
+      console.error(error);
+      document.getElementById("error").textContent = "⚠️ Unable to load mission data.";
+      return;
+    }
+
+    reportData = (data || []).filter(s => (s.department || "").trim().toUpperCase() !== "FRIENDS & FAMILY").map(s => {
+      const quests = parseItems(s.quest_list);
+      const vocabQuests = quests.filter(q =>
+          (q.type.toLowerCase() === 'quest' || q.type.toLowerCase() === 'velocity') &&
+          q.number >= 1000 && q.number <= 9999
+      );
+      const vocabThemes = quests.filter(q => q.label.includes("VocabTheme_"));
+      const oldVocabCount = parseVocabDates(s.vocab_list).length;
+      s.vocab_completed = oldVocabCount + vocabQuests.length + (vocabThemes.length * 10);
+
+      const bookQuests = quests.filter(q => BOOK_MAP[q.number]);
+      s.book_list = bookQuests.map(q => BOOK_MAP[q.number]);
+      s.books_completed = s.book_list.length;
+
+      const quoteQuests = quests.filter(q => q.label.includes("quotes-quest"));
+      s.quotes_completed = quoteQuests.length;
+      const videoQuests = quests.filter(q => q.label.includes("Quest Video "));
+      s.videos_completed = parseItems(s.video_list).length + videoQuests.length;
+      const storyQuests = quests.filter(q => q.label.includes("Quest Story "));
+      s.stories_completed = parseItems(s.story_list).length + storyQuests.length;
+
+      s._quests = quests;
+      s._videos = parseItems(s.video_list);
+      s._stories = parseItems(s.story_list);
+      s._crypts = parseItems(s.cryptic_list);
+      s._vocabDates = parseVocabDates(s.vocab_list);
+      return s;
+    });
+
+    filteredData = [...reportData];
+    populateDepartmentDropdown(reportData);
+
+    if (reportData.length > 0) {
+      const sorted = [...reportData].sort((a, b) => new Date(b.last_test_taken) - new Date(a.last_test_taken));
+      document.getElementById("last-test-info").textContent = `Last logged: ${sorted[0].name} · ${formatDate(sorted[0].last_test_taken)}`;
+    } else {
+      document.getElementById("last-test-info").textContent = "Awaiting first mission log…";
+    }
+
+    if (reportData.length === 0) {
+      document.getElementById("error").textContent = "No mission data yet.";
+      return;
+    }
+    document.getElementById("dash").style.display = "block";
+    renderAll(filteredData);
+  }
+
+  function populateDepartmentDropdown(data) {
+    const select = document.getElementById("departmentSelect");
+    select.innerHTML = `<option value="ALL">All Departments</option>`;
+    const departments = [...new Set(data.map(s => (s.department || "").trim().toUpperCase()).filter(Boolean))].sort();
+    departments.forEach(dept => {
+      const opt = document.createElement("option");
+      opt.value = dept; opt.textContent = dept;
+      select.appendChild(opt);
+    });
+  }
+
+  window.applyDepartmentFilter = function (dept) {
+    filteredData = dept === "ALL" ? [...reportData] : reportData.filter(s => (s.department || "").trim().toUpperCase() === dept.trim().toUpperCase());
+    renderAll(filteredData);
+  };
+
+  function destroyChart(key) { if (charts[key]) { charts[key].destroy(); delete charts[key]; } }
+
+  function activeDaysFor(s) {
+    const map = {};
+    const add = (date) => { if (!date || isNaN(date.getTime())) return; map[date.toDateString()] = true; };
+    s._quests.forEach(q => add(mapToDate(q.number)));
+    s._videos.forEach(v => add(mapToDate(v.number)));
+    s._stories.forEach(v => add(mapToDate(v.number)));
+    s._crypts.forEach(v => add(mapToDate(v.number)));
+    s._vocabDates.forEach(d => add(d));
+    return Object.keys(map).length;
+  }
+
+  // ── MASTER RENDER ──────────────────────────────────────────────
+  function renderAll(data) {
+    if (data.length === 0) {
+      document.getElementById("dash").innerHTML = `<div class="empty-state">No students match this filter.</div>`;
+      return;
+    }
+    document.getElementById("students-count-label").textContent = `${data.length} student${data.length === 1 ? "" : "s"} in view`;
+
+    renderKPIs(data);
+    renderScoreDist(data);
+    renderAccuracyDist(data);
+    renderDeptPerf(data);
+    renderDeptRadar(data);
+    renderActivityMix(data);
+    renderTimeline(data);
+    renderHeatmap(data);
+    renderTop10(data);
+    renderBooks(data);
+    renderScatterAcc(data);
+    renderScatterTime(data);
+    renderStandingsTable(data);
+  }
+
+  function sum(data, key) { return data.reduce((a, s) => a + (Number(s[key]) || 0), 0); }
+
+  function renderKPIs(data) {
+    const n = data.length;
+    const avgScore = Math.round(sum(data, "total_score") / n);
+    const avgAccuracy = Math.round((data.reduce((a, s) => a + (s.accuracy || 0), 0) / n) * 100);
+    const totalTime = sum(data, "total_time");
+    const totalAttempts = sum(data, "total_attempts");
+    const now = new Date();
+    const activeLast7 = data.filter(s => s.last_test_taken && (now - new Date(s.last_test_taken)) / 86400000 <= 7).length;
+    const totalCompletions = sum(data, "quests_completed") + sum(data, "videos_completed") + sum(data, "stories_completed") +
+      sum(data, "cryptic_completed") + sum(data, "wordle_completed") + sum(data, "vocab_completed") + sum(data, "books_completed") + sum(data, "quotes_completed");
+    const avgActiveDays = Math.round((data.reduce((a, s) => a + activeDaysFor(s), 0) / n) * 10) / 10;
+
+    const kpis = [
+      { label: "Total Students", val: n, sub: "in this view", icon: "👤" },
+      { label: "Avg Score", val: avgScore, sub: "mission points", icon: "🎯" },
+      { label: "Avg Accuracy", val: `${avgAccuracy}%`, sub: "hit rate", icon: "📊" },
+      { label: "Total Time Logged", val: formatTimeCompact(totalTime), sub: "cumulative, all students", icon: "⏱️" },
+      { label: "Total Attempts", val: totalAttempts, sub: "shots fired", icon: "🎮" },
+      { label: "Active (7d)", val: activeLast7, sub: `of ${n} students`, icon: "🟢" },
+      { label: "Total Completions", val: totalCompletions, sub: "all activity types", icon: "✅" },
+      { label: "Avg Active Days", val: avgActiveDays, sub: "per student", icon: "📅" },
+    ];
+    document.getElementById("kpi-grid").innerHTML = kpis.map(k => `
+      <div class="kpi-card">
+        <div class="kpi-icon">${k.icon}</div>
+        <div class="kpi-val">${k.val}</div>
+        <div class="kpi-label">${k.label}</div>
+        <div class="kpi-sub">${k.sub}</div>
+      </div>`).join("");
+  }
+
+  function renderScoreDist(data) {
+    const scores = data.map(s => s.total_score || 0);
+    const max = Math.max(...scores, 1);
+    const bucketCount = 8;
+    const step = Math.max(1, Math.ceil((max + 1) / bucketCount));
+    const labels = [], counts = [];
+    for (let i = 0; i < bucketCount; i++) {
+      const lo = i * step, hi = lo + step - 1;
+      labels.push(`${lo}–${hi}`);
+      counts.push(scores.filter(v => v >= lo && v <= hi).length);
+    }
+    destroyChart("scoreDist");
+    charts.scoreDist = new Chart(document.getElementById("chartScoreDist"), {
+      type: "bar",
+      data: { labels, datasets: [{ label: "Students", data: counts, backgroundColor: PAL.gold, borderRadius: 6, maxBarThickness: 40 }] },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { display: false }, ticks: { font: { size: 10.5 } } },
+          y: { beginAtZero: true, grid: { color: PAL.gridLine }, ticks: { precision: 0 } }
+        }
+      }
+    });
+  }
+
+  function renderAccuracyDist(data) {
+    const buckets = [
+      { label: "0–50%", min: 0, max: 0.5 }, { label: "50–70%", min: 0.5, max: 0.7 },
+      { label: "70–85%", min: 0.7, max: 0.85 }, { label: "85–100%", min: 0.85, max: 1.01 },
+    ];
+    const counts = buckets.map(b => data.filter(s => (s.accuracy || 0) >= b.min && (s.accuracy || 0) < b.max).length);
+    destroyChart("accDist");
+    charts.accDist = new Chart(document.getElementById("chartAccuracyDist"), {
+      type: "doughnut",
+      data: {
+        labels: buckets.map(b => b.label),
+        datasets: [{ data: counts, backgroundColor: [PAL.rose, PAL.goldDeep, PAL.gold, PAL.teal], borderColor: "#fff", borderWidth: 2 }]
+      },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "bottom" } }, cutout: "62%" }
+    });
+  }
+
+  function deptGroups(data) {
+    const groups = {};
+    data.forEach(s => {
+      const d = (s.department || "Unassigned").trim() || "Unassigned";
+      if (!groups[d]) groups[d] = [];
+      groups[d].push(s);
+    });
+    return groups;
+  }
+
+  function renderDeptPerf(data) {
+    const groups = deptGroups(data);
+    const depts = Object.keys(groups).sort((a, b) => groups[b].length - groups[a].length);
+    const avgScores = depts.map(d => Math.round(sum(groups[d], "total_score") / groups[d].length));
+    const avgAcc = depts.map(d => Math.round((groups[d].reduce((a, s) => a + (s.accuracy || 0), 0) / groups[d].length) * 100));
+    destroyChart("deptPerf");
+    charts.deptPerf = new Chart(document.getElementById("chartDeptPerf"), {
+      data: {
+        labels: depts,
+        datasets: [
+          { type: "bar", label: "Avg Score", data: avgScores, backgroundColor: PAL.gold, borderRadius: 6, yAxisID: "y", order: 2 },
+          { type: "line", label: "Avg Accuracy %", data: avgAcc, borderColor: PAL.blue, backgroundColor: PAL.blue, yAxisID: "y1", tension: 0.35, pointRadius: 4, pointBackgroundColor: PAL.blue, order: 1 }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        interaction: { mode: "index", intersect: false },
+        plugins: { legend: { position: "top" } },
+        scales: {
+          x: { grid: { display: false }, ticks: { font: { size: 10.5 } } },
+          y: { position: "left", beginAtZero: true, grid: { color: PAL.gridLine }, title: { display: true, text: "Avg Score" } },
+          y1: { position: "right", beginAtZero: true, max: 100, grid: { display: false }, title: { display: true, text: "Avg Accuracy %" } }
+        }
+      }
+    });
+  }
+
+  function renderDeptRadar(data) {
+    const groups = deptGroups(data);
+    const depts = Object.keys(groups).sort((a, b) => groups[b].length - groups[a].length).slice(0, 5);
+    const axes = ["quests_completed", "videos_completed", "stories_completed", "vocab_completed", "books_completed", "quotes_completed"];
+    const axisLabels = ["Quests", "Videos", "Stories", "Vocab", "Books", "Quotes"];
+    const datasets = depts.map((d, i) => {
+      const g = groups[d];
+      return {
+        label: d,
+        data: axes.map(k => Math.round((sum(g, k) / g.length) * 10) / 10),
+        borderColor: SERIES_COLORS[i % SERIES_COLORS.length],
+        backgroundColor: SERIES_COLORS[i % SERIES_COLORS.length] + "22",
+        pointBackgroundColor: SERIES_COLORS[i % SERIES_COLORS.length],
+        borderWidth: 2,
+      };
+    });
+    destroyChart("deptRadar");
+    charts.deptRadar = new Chart(document.getElementById("chartDeptRadar"), {
+      type: "radar",
+      data: { labels: axisLabels, datasets },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: "bottom", labels: { font: { size: 10.5 } } } },
+        scales: { r: { beginAtZero: true, grid: { color: PAL.gridLine }, angleLines: { color: PAL.gridLine }, pointLabels: { font: { size: 11 } } } }
+      }
+    });
+  }
+
+  function renderActivityMix(data) {
+    const mix = [
+      { label: "Quests", key: "quests_completed" }, { label: "Videos", key: "videos_completed" },
+      { label: "Stories", key: "stories_completed" }, { label: "Cryptic", key: "cryptic_completed" },
+      { label: "Wordle", key: "wordle_completed" }, { label: "Vocab", key: "vocab_completed" },
+      { label: "Books", key: "books_completed" }, { label: "Quotes", key: "quotes_completed" },
+    ].map(m => ({ ...m, val: sum(data, m.key) })).filter(m => m.val > 0).sort((a, b) => b.val - a.val);
+    destroyChart("activityMix");
+    charts.activityMix = new Chart(document.getElementById("chartActivityMix"), {
+      type: "doughnut",
+      data: { labels: mix.map(m => m.label), datasets: [{ data: mix.map(m => m.val), backgroundColor: SERIES_COLORS, borderColor: "#fff", borderWidth: 2 }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "bottom", labels: { font: { size: 10.5 } } } }, cutout: "55%" }
+    });
+  }
+
+  function collectDailyStats(data) {
+    const perDay = {}; // dateStr -> {count, students:Set}
+    const add = (date, sid) => {
+      if (!date || isNaN(date.getTime())) return;
+      const key = date.toISOString().slice(0, 10);
+      if (!perDay[key]) perDay[key] = { count: 0, students: new Set() };
+      perDay[key].count++;
+      perDay[key].students.add(sid);
+    };
+    data.forEach((s, idx) => {
+      const sid = s.name + "|" + idx;
+      s._quests.forEach(q => add(mapToDate(q.number), sid));
+      s._videos.forEach(q => add(mapToDate(q.number), sid));
+      s._stories.forEach(q => add(mapToDate(q.number), sid));
+      s._crypts.forEach(q => add(mapToDate(q.number), sid));
+      s._vocabDates.forEach(d => add(d, sid));
+    });
+    return perDay;
+  }
+
+  function renderTimeline(data) {
+    const perDay = collectDailyStats(data);
+    const keys = Object.keys(perDay).sort();
+    if (keys.length === 0) {
+      destroyChart("timeline");
+      document.getElementById("chartTimeline").parentElement.innerHTML = `<div class="empty-state">No dated activity yet.</div>`;
+      return;
+    }
+    const start = new Date(keys[0]), end = new Date(keys[keys.length - 1]);
+    const labels = [], counts = [], activeStudents = [];
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      const key = d.toISOString().slice(0, 10);
+      labels.push(new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }));
+      counts.push(perDay[key] ? perDay[key].count : 0);
+      activeStudents.push(perDay[key] ? perDay[key].students.size : 0);
+    }
+    destroyChart("timeline");
+    charts.timeline = new Chart(document.getElementById("chartTimeline"), {
+      data: {
+        labels,
+        datasets: [
+          { type: "bar", label: "Completions Logged", data: counts, backgroundColor: PAL.goldLight, borderRadius: 4, yAxisID: "y", order: 2 },
+          { type: "line", label: "Active Students", data: activeStudents, borderColor: PAL.rose, backgroundColor: PAL.rose, yAxisID: "y1", tension: 0.3, pointRadius: 2, order: 1 }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        interaction: { mode: "index", intersect: false },
+        plugins: { legend: { position: "top" } },
+        scales: {
+          x: { grid: { display: false }, ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 14, font: { size: 10 } } },
+          y: { position: "left", beginAtZero: true, grid: { color: PAL.gridLine }, title: { display: true, text: "Completions" } },
+          y1: { position: "right", beginAtZero: true, grid: { display: false }, title: { display: true, text: "Active Students" } }
+        }
+      }
+    });
+  }
+
+  function renderHeatmap(data) {
+    const perDay = collectDailyStats(data);
+    const keys = Object.keys(perDay).sort();
+    const gridEl = document.getElementById("heatmapGrid");
+    const monthEl = document.getElementById("heatMonthLabels");
+    gridEl.innerHTML = ""; monthEl.innerHTML = "";
+    if (keys.length === 0) { gridEl.innerHTML = `<div class="empty-state">No dated activity yet.</div>`; return; }
+
+    const start = new Date(keys[0]);
+    const end = new Date(keys[keys.length - 1]);
+    // align start to Sunday
+    const gridStart = new Date(start);
+    gridStart.setDate(gridStart.getDate() - gridStart.getDay());
+
+    const maxCount = Math.max(...Object.values(perDay).map(v => v.count), 1);
+    const levelOf = c => c === 0 ? 0 : c <= maxCount * 0.25 ? 1 : c <= maxCount * 0.5 ? 2 : c <= maxCount * 0.75 ? 3 : 4;
+    const levelColors = ["#ede5d5", "#ecd9a0", "#e0be6c", "#c9a84c", "#a07a28"];
+
+    let lastMonth = -1;
+    let col = 0;
+    for (let d = new Date(gridStart); d <= end; d.setDate(d.getDate() + 1)) {
+      const key = d.toISOString().slice(0, 10);
+      const inRange = d >= start;
+      const count = inRange && perDay[key] ? perDay[key].count : (inRange ? 0 : -1);
+      const cell = document.createElement("div");
+      cell.className = "heat-cell";
+      if (count >= 0) {
+        cell.style.background = levelColors[levelOf(count)];
+        cell.title = `${d.toDateString()}: ${count} completions`;
+      } else {
+        cell.style.background = "transparent";
+      }
+      gridEl.appendChild(cell);
+      if (d.getDay() === 0) {
+        if (d.getMonth() !== lastMonth) {
+          const lab = document.createElement("div");
+          lab.style.width = "14px"; lab.style.marginRight = "3px";
+          lab.textContent = d.toLocaleDateString('en-IN', { month: 'short' });
+          monthEl.appendChild(lab);
+          lastMonth = d.getMonth();
+        } else {
+          const lab = document.createElement("div");
+          lab.style.width = "14px"; lab.style.marginRight = "3px";
+          monthEl.appendChild(lab);
+        }
+      }
+      col++;
+    }
+  }
+
+  function renderTop10(data) {
+    const top = [...data].sort((a, b) => (b.total_score || 0) - (a.total_score || 0)).slice(0, 10);
+    destroyChart("top10");
+    charts.top10 = new Chart(document.getElementById("chartTop10"), {
+      type: "bar",
+      data: {
+        labels: top.map(s => s.name),
+        datasets: [{ label: "Score", data: top.map(s => s.total_score || 0), backgroundColor: PAL.gold, borderRadius: 6 }]
+      },
+      options: {
+        indexAxis: "y", responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { beginAtZero: true, grid: { color: PAL.gridLine } },
+          y: { grid: { display: false }, ticks: { font: { size: 11 } } }
+        }
+      }
+    });
+  }
+
+  function renderBooks(data) {
+    const counts = {};
+    data.forEach(s => (s.book_list || []).forEach(b => { counts[b] = (counts[b] || 0) + 1; }));
+    const entries = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 10);
+    destroyChart("books");
+    if (entries.length === 0) {
+      document.getElementById("chartBooks").parentElement.innerHTML = `<div class="empty-state">No books logged yet.</div>`;
+      return;
+    }
+    charts.books = new Chart(document.getElementById("chartBooks"), {
+      type: "bar",
+      data: {
+        labels: entries.map(e => e[0]),
+        datasets: [{ label: "Students", data: entries.map(e => e[1]), backgroundColor: PAL.teal, borderRadius: 6 }]
+      },
+      options: {
+        indexAxis: "y", responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { beginAtZero: true, grid: { color: PAL.gridLine }, ticks: { precision: 0 } },
+          y: { grid: { display: false }, ticks: { font: { size: 10.5 } } }
+        }
+      }
+    });
+  }
+
+  function renderScatterAcc(data) {
+    destroyChart("scatterAcc");
+    charts.scatterAcc = new Chart(document.getElementById("chartScatterAcc"), {
+      type: "scatter",
+      data: {
+        datasets: [{
+          label: "Students",
+          data: data.map(s => ({ x: s.total_attempts || 0, y: Math.round((s.accuracy || 0) * 100) })),
+          backgroundColor: PAL.violet + "aa",
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { title: { display: true, text: "Total Attempts" }, grid: { color: PAL.gridLine } },
+          y: { title: { display: true, text: "Accuracy %" }, min: 0, max: 100, grid: { color: PAL.gridLine } }
+        }
+      }
+    });
+  }
+
+  function renderScatterTime(data) {
+    destroyChart("scatterTime");
+    charts.scatterTime = new Chart(document.getElementById("chartScatterTime"), {
+      type: "scatter",
+      data: {
+        datasets: [{
+          label: "Students",
+          data: data.map(s => ({ x: Math.round((s.total_time || 0) / 60), y: s.total_score || 0 })),
+          backgroundColor: PAL.blue + "aa",
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { title: { display: true, text: "Time Invested (minutes)" }, grid: { color: PAL.gridLine } },
+          y: { title: { display: true, text: "Total Score" }, grid: { color: PAL.gridLine } }
+        }
+      }
+    });
+  }
+
+  function renderStandingsTable(data) {
+    const groups = deptGroups(data);
+    const rows = Object.keys(groups).map(d => {
+      const g = groups[d];
+      const avgScore = Math.round(sum(g, "total_score") / g.length);
+      const avgAcc = Math.round((g.reduce((a, s) => a + (s.accuracy || 0), 0) / g.length) * 100);
+      const avgDays = Math.round((g.reduce((a, s) => a + activeDaysFor(s), 0) / g.length) * 10) / 10;
+      return { dept: d, n: g.length, avgScore, avgAcc, avgDays };
+    }).sort((a, b) => b.avgScore - a.avgScore);
+    const maxScore = Math.max(...rows.map(r => r.avgScore), 1);
+    document.getElementById("std-table-body").innerHTML = rows.map(r => `
+      <tr>
+        <td class="std-name">${esc(r.dept)}</td>
+        <td>${r.n}</td>
+        <td>${r.avgScore}</td>
+        <td>${r.avgAcc}%</td>
+        <td>${r.avgDays}</td>
+        <td><div class="std-bar-track"><div class="std-bar-fill" style="width:${(r.avgScore / maxScore) * 100}%"></div></div></td>
+      </tr>`).join("");
+  }
+
+  window.onload = loadData;
+</script>
+</body>
+</html>

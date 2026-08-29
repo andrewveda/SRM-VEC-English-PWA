@@ -108,7 +108,32 @@ const videoQuests = quests.filter(q => q.label.includes("Quest Video "));
 s.stories_completed = parseItems(s.story_list).length + storyQuests.length;
       return s;
     });
-    
+    // MERGE NAME VARIATIONS
+const merged = {};
+reportData.forEach(s => {
+  const key = (s.name || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+
+  if (!merged[key]) {
+    merged[key] = { ...s };
+  } else {
+    [
+      "total_score",
+      "quests_completed",
+      "videos_completed",
+      "stories_completed",
+      "cryptic_completed",
+      "wordle_completed",
+      "vocab_completed",
+      "books_completed",
+      "quotes_completed",
+      "total_time"
+    ].forEach(k => {
+      merged[key][k] = Number(merged[key][k] || 0) + Number(s[k] || 0);
+    });
+  }
+});
+
+reportData = Object.values(merged);
     filteredData = [...reportData];
     populateDepartmentDropdown(reportData);
     renderAnalytics(reportData);

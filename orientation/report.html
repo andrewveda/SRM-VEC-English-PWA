@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=DM+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <style>
   :root {
     --cream: #faf7f2; --cream-dark: #f2ece0; --cream-mid: #ede5d5;
@@ -245,11 +245,32 @@
 </div>
 
 <script type="module">
-  import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-  const supabase = createClient(
-    "https://yellow-lab-4999.andrewveda.workers.dev",
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoZXpzc29jenZwYmt0ZWZmY2d6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI4NTk1ODUsImV4cCI6MjA3ODQzNTU4NX0.2ZlqXnZxv0opkhynAT7OlK4S-xPygcc7ETUyTXRfGHE"
-  );
+  function showFatalError(msg) {
+    const err = document.getElementById("error");
+    const loader = document.getElementById("loader");
+    if (loader) loader.style.display = "none";
+    if (err) err.textContent = "⚠️ " + msg;
+    console.error(msg);
+  }
+
+  window.addEventListener("error", (e) => {
+    showFatalError("A script error occurred: " + (e.message || e.error || "unknown error") +
+      (e.filename ? ` (${e.filename}:${e.lineno})` : ""));
+  });
+  window.addEventListener("unhandledrejection", (e) => {
+    showFatalError("A script error occurred: " + (e.reason && e.reason.message ? e.reason.message : e.reason));
+  });
+
+  let supabase;
+  try {
+    const mod = await import("https://esm.sh/@supabase/supabase-js@2");
+    supabase = mod.createClient(
+      "https://yellow-lab-4999.andrewveda.workers.dev",
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoZXpzc29jenZwYmt0ZWZmY2d6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI4NTk1ODUsImV4cCI6MjA3ODQzNTU4NX0.2ZlqXnZxv0opkhynAT7OlK4S-xPygcc7ETUyTXRfGHE"
+    );
+  } catch (e) {
+    showFatalError("Could not load the data connector (" + e.message + "). If you opened this file by double-clicking it, try opening it through a local web server instead — some browsers block this kind of script when a page is opened directly from disk.");
+  }
 
   let reportData = [];
   let filteredData = [];
@@ -334,13 +355,21 @@
   }
 
   async function loadData() {
+    if (!supabase) return; // showFatalError already displayed a message
     document.getElementById("loader").style.display = "flex";
-    const { data, error } = await supabase.from("report_card_view").select("*");
+    let data, error;
+    try {
+      ({ data, error } = await supabase.from("report_card_view").select("*"));
+    } catch (e) {
+      document.getElementById("loader").style.display = "none";
+      showFatalError("Network request failed (" + e.message + "). Check your internet connection and that this file isn't blocked from making requests.");
+      return;
+    }
     document.getElementById("loader").style.display = "none";
 
     if (error) {
       console.error(error);
-      document.getElementById("error").textContent = "⚠️ Unable to load mission data.";
+      document.getElementById("error").textContent = "⚠️ Unable to load data: " + (error.message || JSON.stringify(error));
       return;
     }
 
@@ -409,6 +438,29 @@
 
   function destroyChart(key) { if (charts[key]) { charts[key].destroy(); delete charts[key]; } }
 
+  // Shows a message in place of a chart without deleting the canvas node,
+  // so the chart can be re-rendered normally later (e.g. after changing the department filter).
+  function showEmptyState(canvasId, message) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    canvas.style.display = "none";
+    let note = canvas.parentElement.querySelector(".chart-empty-note");
+    if (!note) {
+      note = document.createElement("div");
+      note.className = "empty-state chart-empty-note";
+      canvas.parentElement.appendChild(note);
+    }
+    note.textContent = message;
+    note.style.display = "block";
+  }
+  function hideEmptyState(canvasId) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    canvas.style.display = "";
+    const note = canvas.parentElement.querySelector(".chart-empty-note");
+    if (note) note.style.display = "none";
+  }
+
   function activeDaysFor(s) {
     const map = {};
     const add = (date) => { if (!date || isNaN(date.getTime())) return; map[date.toDateString()] = true; };
@@ -428,19 +480,14 @@
     }
     document.getElementById("students-count-label").textContent = `${data.length} student${data.length === 1 ? "" : "s"} in view`;
 
-    renderKPIs(data);
-    renderScoreDist(data);
-    renderAccuracyDist(data);
-    renderDeptPerf(data);
-    renderDeptRadar(data);
-    renderActivityMix(data);
-    renderTimeline(data);
-    renderHeatmap(data);
-    renderTop10(data);
-    renderBooks(data);
-    renderScatterAcc(data);
-    renderScatterTime(data);
-    renderStandingsTable(data);
+    const steps = [
+      renderKPIs, renderScoreDist, renderAccuracyDist, renderDeptPerf, renderDeptRadar,
+      renderActivityMix, renderTimeline, renderHeatmap, renderTop10, renderBooks,
+      renderScatterAcc, renderScatterTime, renderStandingsTable,
+    ];
+    for (const step of steps) {
+      try { step(data); } catch (e) { console.error(`${step.name} failed:`, e); }
+    }
   }
 
   function sum(data, key) { return data.reduce((a, s) => a + (Number(s[key]) || 0), 0); }
@@ -624,9 +671,10 @@
     const keys = Object.keys(perDay).sort();
     if (keys.length === 0) {
       destroyChart("timeline");
-      document.getElementById("chartTimeline").parentElement.innerHTML = `<div class="empty-state">No dated activity yet.</div>`;
+      showEmptyState("chartTimeline", "No dated activity yet.");
       return;
     }
+    hideEmptyState("chartTimeline");
     const start = new Date(keys[0]), end = new Date(keys[keys.length - 1]);
     const labels = [], counts = [], activeStudents = [];
     for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
@@ -733,9 +781,10 @@
     const entries = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 10);
     destroyChart("books");
     if (entries.length === 0) {
-      document.getElementById("chartBooks").parentElement.innerHTML = `<div class="empty-state">No books logged yet.</div>`;
+      showEmptyState("chartBooks", "No books logged yet.");
       return;
     }
+    hideEmptyState("chartBooks");
     charts.books = new Chart(document.getElementById("chartBooks"), {
       type: "bar",
       data: {

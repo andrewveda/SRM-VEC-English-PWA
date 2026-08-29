@@ -64,7 +64,19 @@
       return;
     }
 
-    reportData = (data || []).filter(s => (s.department || "").trim().toUpperCase() !== "FRIENDS & FAMILY").map(s => {
+    reportData = Object.values((data || [])
+  .filter(s => (s.department || "").trim().toUpperCase() !== "FRIENDS & FAMILY")
+  .reduce((acc, s) => {
+    const key = (s.name || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+    if (!acc[key]) acc[key] = { ...s };
+    else {
+      Object.keys(s).forEach(k => {
+        if (typeof s[k] === "number") acc[key][k] = (acc[key][k] || 0) + s[k];
+      });
+    }
+    return acc;
+  }, {}))
+  .map(s => {
       const quests = parseItems(s.quest_list);
       
   

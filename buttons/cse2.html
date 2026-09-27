@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>CSE-2 Roster · Username Mapper</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --cream:#faf7f2; --surface:#fff; --gold:#c9a84c; --gold-light:#e8c97a; --gold-deep:#a07a28;
+    --gold-dim:rgba(201,168,76,0.12); --gold-border:rgba(201,168,76,0.35);
+    --text:#1a1714; --text-2:#7a6a52; --text-dim:#b0a090;
+    --border:rgba(0,0,0,0.08); --ok:#15803D; --bad:#B91C1C;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --cream:#171310; --surface:#221c15; --text:#f2ece0; --text-2:#c9bba0; --text-dim:#8a7c64;
+      --border:rgba(255,255,255,0.1); --gold-dim:rgba(201,168,76,0.16);
+    }
+  }
+  :root[data-theme="dark"]{
+    --cream:#171310; --surface:#221c15; --text:#f2ece0; --text-2:#c9bba0; --text-dim:#8a7c64;
+    --border:rgba(255,255,255,0.1); --gold-dim:rgba(201,168,76,0.16);
+  }
+  *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+  html{scroll-padding-top:env(safe-area-inset-top,0px);}
+  body{
+    font-family:'DM Sans',system-ui,sans-serif; background:var(--cream); color:var(--text);
+    padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+    -webkit-tap-highlight-color:transparent;
+  }
+  .wrap{max-width:520px;margin:0 auto;min-height:100%;}
+  header{position:sticky;top:0;z-index:5;padding:calc(14px + env(safe-area-inset-top,0px)) 16px 12px;
+    background:var(--surface);border-bottom:1px solid var(--border);}
+  .eyebrow{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--text-dim);font-weight:700;}
+  h1{font-size:19px;font-weight:800;margin-top:2px;color:var(--gold-deep);}
+  .stat-row{display:flex;gap:8px;margin-top:10px;}
+  .stat{flex:1;background:var(--gold-dim);border:1px solid var(--gold-border);border-radius:10px;padding:8px 10px;}
+  .stat b{display:block;font-size:17px;font-weight:800;color:var(--gold-deep);}
+  .stat span{font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-2);}
+  .search-bar{margin-top:10px;}
+  .search-bar input{width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--border);
+    background:var(--cream);color:var(--text);font-family:inherit;font-size:14px;}
+  .search-bar input:focus{outline:none;border-color:var(--gold);}
+  #status{font-size:11px;color:var(--text-dim);padding:6px 16px;}
+  #list{padding:8px 12px 40px;display:flex;flex-direction:column;gap:8px;}
+  .row{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:11px 12px;
+    display:flex;align-items:center;gap:10px;cursor:pointer;}
+  .row:active{background:var(--gold-dim);}
+  .row-main{flex:1;min-width:0;}
+  .row-name{font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .row-sub{font-size:11px;color:var(--text-dim);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .badge{flex-shrink:0;font-size:10px;font-weight:800;padding:4px 9px;border-radius:999px;white-space:nowrap;}
+  .badge.linked{background:rgba(21,128,61,0.14);color:var(--ok);border:1px solid rgba(21,128,61,0.3);}
+  .badge.none{background:rgba(185,28,28,0.10);color:var(--bad);border:1px solid rgba(185,28,28,0.25);}
+  .chev{color:var(--text-dim);font-size:16px;flex-shrink:0;}
+
+  #sheet{position:fixed;inset:0;background:rgba(0,0,0,0.45);display:none;z-index:20;align-items:flex-end;}
+  #sheet.open{display:flex;}
+  .sheet-panel{background:var(--surface);width:100%;max-height:85vh;border-radius:18px 18px 0 0;
+    display:flex;flex-direction:column;padding-bottom:env(safe-area-inset-bottom,0px);}
+  .sheet-head{padding:14px 16px 10px;border-bottom:1px solid var(--border);}
+  .sheet-head .name{font-size:16px;font-weight:800;}
+  .sheet-head .hint{font-size:11px;color:var(--text-dim);margin-top:2px;}
+  .sheet-search{padding:10px 16px;}
+  .sheet-search input{width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--border);
+    background:var(--cream);color:var(--text);font-family:inherit;font-size:14px;}
+  .sheet-list{overflow-y:auto;padding:4px 12px 12px;flex:1;}
+  .opt{display:flex;align-items:center;gap:10px;padding:10px 8px;border-radius:10px;cursor:pointer;}
+  .opt:active{background:var(--gold-dim);}
+  .opt input{width:18px;height:18px;flex-shrink:0;accent-color:var(--gold-deep);}
+  .opt .lbl{flex:1;min-width:0;}
+  .opt .lbl b{font-size:13.5px;font-weight:700;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .opt .lbl small{font-size:11px;color:var(--text-dim);}
+  .empty{padding:20px;text-align:center;color:var(--text-dim);font-size:13px;}
+  .sheet-actions{display:flex;gap:8px;padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--border);}
+  .btn{flex:1;padding:12px;border-radius:10px;border:none;font-family:inherit;font-weight:700;font-size:13px;cursor:pointer;}
+  .btn.cancel{background:var(--cream);color:var(--text-2);border:1px solid var(--border);}
+  .btn.save{background:var(--gold);color:#fff;}
+  .btn.save:active{background:var(--gold-deep);}
+  .saving-toast{position:fixed;bottom:calc(16px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);
+    background:var(--text);color:var(--cream);font-size:12px;font-weight:700;padding:9px 16px;border-radius:999px;
+    z-index:30;opacity:0;pointer-events:none;transition:opacity .2s ease;}
+  .saving-toast.show{opacity:0.92;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">CSE-2 · Mission: Veni, Vidi, Vici!</div>
+    <h1>Username Mapper</h1>
+    <div class="stat-row">
+      <div class="stat"><b id="stat-linked">0</b><span>Linked</span></div>
+      <div class="stat"><b id="stat-unlinked">0</b><span>Unlinked</span></div>
+      <div class="stat"><b id="stat-aliases">0</b><span>Aliases Used</span></div>
+    </div>
+    <div class="search-bar"><input id="rosterSearch" placeholder="Search roster..." /></div>
+  </header>
+  <div id="status">Loading leaderboard entries...</div>
+  <div id="list"></div>
+</div>
+
+<div id="sheet">
+  <div class="sheet-panel">
+    <div class="sheet-head">
+      <div class="name" id="sheet-name"></div>
+      <div class="hint">Tap all leaderboard entries (GitHub / chess.com / name) that belong to this student</div>
+    </div>
+    <div class="sheet-search"><input id="optSearch" placeholder="Filter leaderboard entries..." /></div>
+    <div class="sheet-list" id="optList"></div>
+    <div class="sheet-actions">
+      <button class="btn cancel" id="btnCancel">Cancel</button>
+      <button class="btn save" id="btnSave">Save Links</button>
+    </div>
+  </div>
+</div>
+<div class="saving-toast" id="toast">Saved</div>
+
+<script id="mappings-data" type="application/json">{}</script>
+<script>
+  const ROSTER = [
+    "KALEELUR RAHMAN S","KAMESHH V","KANISHKA M","KARTHIKEYAN S (14-03-2008)","KARTHIKEYAN S (04-03-2009)",
+    "KASI VISWANATHAN","KATHIKSHA V","KAVINILA M","KAVITHA S","KAVITHASHREE B","K KAVIYA SRI","KEERTHIKA M",
+    "KHAJA MOHIDEEN P","B KIRTHIKA SRI","B KIRUTHIKA","KISHOR S S","KISHORE KUMAR D E","KISHORE V","A KOHULAN",
+    "KOWSHIK KAMAL L","KRISHNAVARSHINI S V","T LAKSHITHA DEVI","LAVANYA G","LAVANYA R","LOHENDRA TG",
+    "LOKESHWER V K","MADHAAVAN D","P MADHUKRISHNA","MADHUMATHI S","MANISH M","MEGARSHITH PACHA",
+    "MOHAMMED MAGTHUM P","MOHANA KRISHNA MURTHY S","MUGUNTHA PRIYAN S","A MUHAMMAD NAWFAL RIYAZ","MUKILAN S",
+    "NANDHINI M","R NANDITA","NARENDRAN K","NAVEENA M S","NETHRA S","NITHYAPRIYA S","NIVETHA T","NIVETHA V",
+    "NIWIN KUMAR S","OVIYA P","PAVITHRA S","PHILIP P","POORNASHRI S","PRABAKAR A","PRASANNA KUMAR P",
+    "PRASANTH R","PRAVEEN KUMAR M","PRAWIN KUMAR K","PREETHI SRI.A","PRINCY J","RAGAV KRISHNA V","RAGAVI E",
+    "RAGUL R"
+  ];
+
+  let mappings = JSON.parse(document.getElementById('mappings-data').textContent || "{}");
+  let leaderboardEntries = []; // {name, department}
+  let currentStudent = null;
+  let artifactApi = null;
+
+  async function initCapability(){
+    try{
+      if(window.claude){ artifactApi = await window.claude.use("artifact"); }
+    }catch(e){ artifactApi = null; }
+  }
+
+  async function loadLeaderboard(){
+    const statusEl = document.getElementById('status');
+    try{
+      const res = await fetch("https://yellow-lab-4999.andrewveda.workers.dev/rest/v1/report_card_view?select=name,department", {
+        headers: {
+          "apikey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoZXpzc29jenZwYmt0ZWZmY2d6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI4NTk1ODUsImV4cCI6MjA3ODQzNTU4NX0.2ZlqXnZxv0opkhynAT7OlK4S-xPygcc7ETUyTXRfGHE",
+          "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoZXpzc29jenZwYmt0ZWZmY2d6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI4NTk1ODUsImV4cCI6MjA3ODQzNTU4NX0.2ZlqXnZxv0opkhynAT7OlK4S-xPygcc7ETUyTXRfGHE"
+        }
+      });
+      if(!res.ok) throw new Error("HTTP " + res.status);
+      const data = await res.json();
+      const seen = new Set();
+      leaderboardEntries = (data || []).filter(r => {
+        const key = (r.name||"") + "|" + (r.department||"");
+        if(seen.has(key) || !r.name) return false;
+        seen.add(key); return true;
+      });
+      statusEl.textContent = leaderboardEntries.length + " leaderboard entries loaded.";
+    }catch(e){
+      console.error(e);
+      statusEl.textContent = "⚠️ Could not load leaderboard entries. You can still browse the roster.";
+    }
+  }
+
+  function esc(s){ return String(s??"").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+  function renderStats(){
+    const linked = ROSTER.filter(n => (mappings[n]||[]).length > 0).length;
+    const aliases = Object.values(mappings).reduce((a,arr)=>a+(arr?arr.length:0),0);
+    document.getElementById('stat-linked').textContent = linked;
+    document.getElementById('stat-unlinked').textContent = ROSTER.length - linked;
+    document.getElementById('stat-aliases').textContent = aliases;
+  }
+
+  function renderList(){
+    const q = document.getElementById('rosterSearch').value.trim().toLowerCase();
+    const list = document.getElementById('list');
+    list.innerHTML = "";
+    ROSTER.filter(n => n.toLowerCase().includes(q)).forEach(name => {
+      const linked = mappings[name] || [];
+      const row = document.createElement('div');
+      row.className = 'row';
+      row.innerHTML = `
+        <div class="row-main">
+          <div class="row-name">${esc(name)}</div>
+          <div class="row-sub">${linked.length ? linked.map(esc).join(' · ') : 'No usernames linked yet'}</div>
+        </div>
+        <div class="badge ${linked.length ? 'linked':'none'}">${linked.length ? linked.length + ' linked' : 'Unlinked'}</div>
+        <div class="chev">›</div>`;
+      row.onclick = () => openSheet(name);
+      list.appendChild(row);
+    });
+    renderStats();
+  }
+
+  function openSheet(name){
+    currentStudent = name;
+    document.getElementById('sheet-name').textContent = name;
+    document.getElementById('optSearch').value = "";
+    renderOptions();
+    document.getElementById('sheet').classList.add('open');
+  }
+  function closeSheet(){
+    document.getElementById('sheet').classList.remove('open');
+    currentStudent = null;
+  }
+
+  function renderOptions(){
+    const q = document.getElementById('optSearch').value.trim().toLowerCase();
+    const optList = document.getElementById('optList');
+    const current = new Set(mappings[currentStudent] || []);
+    const filtered = leaderboardEntries.filter(e => e.name.toLowerCase().includes(q));
+    optList.innerHTML = "";
+    if(filtered.length === 0){
+      optList.innerHTML = `<div class="empty">No matching leaderboard entries.</div>`;
+      return;
+    }
+    filtered.forEach(e => {
+      const id = 'opt_' + btoa(unescape(encodeURIComponent(e.name+'|'+e.department))).replace(/[^a-zA-Z0-9]/g,'');
+      const opt = document.createElement('label');
+      opt.className = 'opt';
+      opt.innerHTML = `
+        <input type="checkbox" id="${id}" ${current.has(e.name)?'checked':''} data-name="${esc(e.name)}"/>
+        <div class="lbl"><b>${esc(e.name)}</b><small>${esc(e.department||'')}</small></div>`;
+      optList.appendChild(opt);
+    });
+  }
+
+  async function saveCurrent(){
+    const checked = [...document.querySelectorAll('#optList input:checked')].map(i => i.dataset.name);
+    if(checked.length) mappings[currentStudent] = checked;
+    else delete mappings[currentStudent];
+    renderList();
+    closeSheet();
+    await persist();
+  }
+
+  async function persist(){
+    document.getElementById('mappings-data').textContent = JSON.stringify(mappings);
+    if(!artifactApi) return;
+    try{
+      const clone = document.documentElement.cloneNode(true);
+      clone.querySelector('#mappings-data').textContent = JSON.stringify(mappings);
+      const html = "<!DOCTYPE html>" + clone.outerHTML;
+      await artifactApi.publish(html);
+      showToast("Saved");
+    }catch(e){
+      console.error(e);
+      showToast("Save failed (kept locally)");
+    }
+  }
+
+  function showToast(msg){
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(()=>t.classList.remove('show'), 1600);
+  }
+
+  document.getElementById('rosterSearch').addEventListener('input', renderList);
+  document.getElementById('optSearch').addEventListener('input', renderOptions);
+  document.getElementById('btnCancel').addEventListener('click', closeSheet);
+  document.getElementById('btnSave').addEventListener('click', saveCurrent);
+  document.getElementById('sheet').addEventListener('click', (e) => { if(e.target.id === 'sheet') closeSheet(); });
+
+  (async function start(){
+    await initCapability();
+    renderList();
+    await loadLeaderboard();
+    renderList();
+  })();
+</script>
+</body>
+</html>

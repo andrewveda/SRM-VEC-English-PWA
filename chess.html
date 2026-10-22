@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SRM VEC Chess Club Dashboard</title>
+    
+    <!-- Google Fonts for Aristocratic Theme -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    
+    <!-- PapaParse for parsing the live CSV -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
+    <style>
+        :root {
+            --bg-color: #121212;
+            --card-bg: #1e1e1e;
+            --gold: #D4AF37;
+            --gold-hover: #F3E5AB;
+            --text-main: #E0E0E0;
+            --text-muted: #A0A0A0;
+            --font-heading: 'Cinzel', serif;
+            --font-body: 'Playfair Display', serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: var(--font-body);
+            line-height: 1.6;
+            padding: 20px;
+            /* Subtle chessboard pattern overlay */
+            background-image: linear-gradient(45deg, #181818 25%, transparent 25%, transparent 75%, #181818 75%, #181818), 
+                              linear-gradient(45deg, #181818 25%, transparent 25%, transparent 75%, #181818 75%, #181818);
+            background-size: 60px 60px;
+            background-position: 0 0, 30px 30px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px 0;
+            border-bottom: 2px solid var(--gold);
+        }
+
+        h1 {
+            font-family: var(--font-heading);
+            color: var(--gold);
+            font-size: 2rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .links-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 20px;
+            align-items: center;
+        }
+
+        .action-btn {
+            display: inline-block;
+            width: 100%;
+            max-width: 350px;
+            padding: 12px 20px;
+            background: linear-gradient(135deg, #2a2a2a, #1a1a1a);
+            color: var(--gold);
+            text-decoration: none;
+            font-family: var(--font-heading);
+            font-size: 1.1rem;
+            border: 1px solid var(--gold);
+            border-radius: 8px;
+            text-transform: uppercase;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            transition: all 0.3s ease;
+        }
+
+        .action-btn:active {
+            transform: scale(0.98);
+            background: var(--gold);
+            color: var(--bg-color);
+        }
+
+        .dashboard-controls {
+            text-align: center;
+            margin-bottom: 20px;
+            font-family: var(--font-heading);
+            font-size: 1.2rem;
+            color: var(--gold);
+        }
+
+        #loading {
+            text-align: center;
+            font-style: italic;
+            color: var(--gold);
+            font-size: 1.2rem;
+            margin: 40px 0;
+        }
+
+        /* Department Cards */
+        .dept-card {
+            background-color: var(--card-bg);
+            border: 1px solid #333;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            overflow: hidden;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        }
+
+        .dept-header {
+            padding: 18px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            background: linear-gradient(90deg, #1e1e1e, #2a2a2a);
+            font-family: var(--font-heading);
+            font-size: 1.1rem;
+            border-bottom: 1px solid transparent;
+            user-select: none;
+        }
+
+        .dept-header:active {
+            background: #252525;
+        }
+
+        .badge {
+            background-color: var(--gold);
+            color: var(--bg-color);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-weight: 800;
+            font-family: sans-serif;
+            font-size: 0.9rem;
+        }
+
+        /* Student List */
+        .student-list {
+            display: none; /* Hidden by default */
+            padding: 0;
+            margin: 0;
+            list-style-type: none;
+            counter-reset: student-counter;
+        }
+
+        .student-list.active {
+            display: block;
+            border-top: 1px solid #333;
+        }
+
+        .student-item {
+            padding: 15px 20px;
+            border-bottom: 1px solid #2a2a2a;
+            cursor: pointer;
+            position: relative;
+            counter-increment: student-counter;
+        }
+
+        .student-item::before {
+            content: counter(student-counter) ". ";
+            color: var(--gold);
+            font-family: var(--font-heading);
+            margin-right: 8px;
+            font-weight: bold;
+        }
+
+        .student-item:last-child {
+            border-bottom: none;
+        }
+
+        .student-name {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        /* Chess.com Username reveal */
+        .username-reveal {
+            display: none;
+            margin-top: 8px;
+            padding: 8px 12px;
+            background-color: rgba(212, 175, 55, 0.1);
+            border-left: 3px solid var(--gold);
+            color: var(--gold-hover);
+            font-family: sans-serif;
+            font-size: 0.95rem;
+            border-radius: 4px;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        .username-reveal.active {
+            display: block;
+        }
+
+        .chess-icon {
+            font-size: 1.2rem;
+            vertical-align: middle;
+            margin-right: 5px;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Small devices setup */
+        @media (min-width: 768px) {
+            body { max-width: 800px; margin: 0 auto; }
+            h1 { font-size: 2.5rem; }
+            .action-btn:hover { background: var(--gold); color: var(--bg-color); cursor: pointer; }
+            .dept-header:hover { background: #252525; }
+            .student-item:hover { background-color: #222; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>♚ SRM VEC Chess Club ♛</h1>
+        <div class="links-container">
+            <a href="https://www.chess.com/club/srm-vec-chess-club" target="_blank" class="action-btn">⚔️ Tournament Link</a>
+            <a href="https://discord.gg/NhSEnyHMR" target="_blank" class="action-btn">💬 Join Discord</a>
+            <a href="https://www.instagram.com/srm_vec_chess_club/" target="_blank" class="action-btn">📸 Instagram</a>
+        </div>
+    </header>
+
+    <main>
+        <div class="dashboard-controls">
+            Live Registration Stats
+        </div>
+        
+        <div id="loading">Gathering Scrolls... (Loading Data)</div>
+        <div id="dashboard-container"></div>
+    </main>
+
+    <script>
+        // The published CSV link
+        const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS92CW8PrDmV5uUJgTnY2dVLAzB7jr68RypCa2biQGmzdT-mW-cn_7WetadozDNngatz7IJA87S3Wh7/pub?output=csv';
+
+        // Fetch and parse the CSV
+        Papa.parse(csvUrl, {
+            download: true,
+            header: true,
+            skipEmptyLines: true,
+            complete: function(results) {
+                document.getElementById('loading').style.display = 'none';
+                processData(results.data);
+            },
+            error: function(err) {
+                document.getElementById('loading').innerText = "Failed to load data. Please check the sheet link.";
+                console.error("PapaParse Error:", err);
+            }
+        });
+
+        function processData(data) {
+            const departments = {};
+            
+            // Dynamic column name detection to prevent exact match errors
+            let nameCol, deptCol, chessCol;
+            
+            if(data.length > 0) {
+                const keys = Object.keys(data[0]);
+                keys.forEach(k => {
+                    const lowerK = k.toLowerCase();
+                    if (lowerK.includes('full name')) nameCol = k;
+                    if (lowerK.includes('department')) deptCol = k;
+                    if (lowerK.includes('chess.com')) chessCol = k;
+                });
+            }
+
+            // Group by department
+            data.forEach(row => {
+                const name = row[nameCol] ? row[nameCol].trim() : '';
+                const dept = row[deptCol] ? row[deptCol].trim() : 'Unknown Department';
+                const username = row[chessCol] ? row[chessCol].trim() : '';
+
+                if (!name && !username) return; // Skip entirely blank rows
+
+                if (!departments[dept]) {
+                    departments[dept] = [];
+                }
+                departments[dept].push({ name, username });
+            });
+
+            renderDashboard(departments);
+        }
+
+        function renderDashboard(departments) {
+            const container = document.getElementById('dashboard-container');
+            container.innerHTML = '';
+
+            // Sort departments alphabetically
+            const sortedDepts = Object.keys(departments).sort();
+
+            if(sortedDepts.length === 0) {
+                container.innerHTML = '<p style="text-align:center; color: var(--gold);">No registrations found yet.</p>';
+                return;
+            }
+
+            sortedDepts.forEach(dept => {
+                const students = departments[dept];
+                
+                // Create Department Card
+                const card = document.createElement('div');
+                card.className = 'dept-card';
+
+                // Department Header (Tappable)
+                const header = document.createElement('div');
+                header.className = 'dept-header';
+                header.innerHTML = `
+                    <span>🏛️ ${dept}</span>
+                    <span class="badge">${students.length}</span>
+                `;
+
+                // Student List container
+                const list = document.createElement('ol');
+                list.className = 'student-list';
+
+                // Add students
+                students.forEach(student => {
+                    const li = document.createElement('li');
+                    li.className = 'student-item';
+                    
+                    const nameSpan = document.createElement('span');
+                    nameSpan.className = 'student-name';
+                    nameSpan.innerText = student.name || "Unnamed";
+                    
+                    const usernameDiv = document.createElement('div');
+                    usernameDiv.className = 'username-reveal';
+                    usernameDiv.innerHTML = `<span class="chess-icon">♘</span> <strong>${student.username || 'No username provided'}</strong>`;
+
+                    li.appendChild(nameSpan);
+                    li.appendChild(usernameDiv);
+
+                    // Toggle Username visibility on click
+                    li.addEventListener('click', (e) => {
+                        e.stopPropagation(); // Prevent closing the department accordion
+                        usernameDiv.classList.toggle('active');
+                    });
+
+                    list.appendChild(li);
+                });
+
+                // Toggle Student List visibility on Header click
+                header.addEventListener('click', () => {
+                    list.classList.toggle('active');
+                    // Optional: Close others when one opens
+                    /* document.querySelectorAll('.student-list').forEach(el => {
+                        if(el !== list) el.classList.remove('active');
+                    }); */
+                });
+
+                card.appendChild(header);
+                card.appendChild(list);
+                container.appendChild(card);
+            });
+        }
+    </script>
+</body>
+</html>

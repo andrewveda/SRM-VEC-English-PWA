@@ -12,6 +12,9 @@
     
     <!-- PapaParse for parsing the live CSV -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    
+    <!-- Chart.js for the Pie Chart -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
         :root {
@@ -37,7 +40,6 @@
             font-family: var(--font-body);
             line-height: 1.6;
             padding: 20px;
-            /* Subtle chessboard pattern overlay */
             background-image: linear-gradient(45deg, #181818 25%, transparent 25%, transparent 75%, #181818 75%, #181818), 
                               linear-gradient(45deg, #181818 25%, transparent 25%, transparent 75%, #181818 75%, #181818);
             background-size: 60px 60px;
@@ -46,7 +48,7 @@
 
         header {
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
             padding: 20px 0;
             border-bottom: 2px solid var(--gold);
         }
@@ -80,6 +82,7 @@
             border: 1px solid var(--gold);
             border-radius: 8px;
             text-transform: uppercase;
+            text-align: center;
             box-shadow: 0 4px 6px rgba(0,0,0,0.3);
             transition: all 0.3s ease;
         }
@@ -90,12 +93,40 @@
             color: var(--bg-color);
         }
 
-        .dashboard-controls {
+        .dashboard-header {
             text-align: center;
-            margin-bottom: 20px;
+            margin-bottom: 25px;
+        }
+
+        .total-participants {
             font-family: var(--font-heading);
-            font-size: 1.2rem;
+            font-size: 1.8rem;
             color: var(--gold);
+            background-color: rgba(30, 30, 30, 0.8);
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid var(--gold);
+            display: inline-block;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        }
+
+        .chart-container {
+            background-color: var(--card-bg);
+            border: 1px solid #333;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 0 auto 30px auto;
+            max-width: 400px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        }
+
+        .chart-title {
+            text-align: center;
+            font-family: var(--font-heading);
+            color: var(--gold);
+            margin-bottom: 15px;
+            font-size: 1.2rem;
         }
 
         #loading {
@@ -129,10 +160,6 @@
             user-select: none;
         }
 
-        .dept-header:active {
-            background: #252525;
-        }
-
         .badge {
             background-color: var(--gold);
             color: var(--bg-color);
@@ -145,7 +172,7 @@
 
         /* Student List */
         .student-list {
-            display: none; /* Hidden by default */
+            display: none;
             padding: 0;
             margin: 0;
             list-style-type: none;
@@ -161,7 +188,6 @@
             padding: 15px 20px;
             border-bottom: 1px solid #2a2a2a;
             cursor: pointer;
-            position: relative;
             counter-increment: student-counter;
         }
 
@@ -211,7 +237,6 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        /* Small devices setup */
         @media (min-width: 768px) {
             body { max-width: 800px; margin: 0 auto; }
             h1 { font-size: 2.5rem; }
@@ -233,8 +258,15 @@
     </header>
 
     <main>
-        <div class="dashboard-controls">
-            Live Registration Stats
+        <div class="dashboard-header" id="stats-header" style="display: none;">
+            <div class="total-participants">
+                Total Warriors: <span id="total-count">0</span>
+            </div>
+            
+            <div class="chart-container">
+                <div class="chart-title">Preferred Time Format</div>
+                <canvas id="timeFormatChart"></canvas>
+            </div>
         </div>
         
         <div id="loading">Gathering Scrolls... (Loading Data)</div>
@@ -242,29 +274,29 @@
     </main>
 
     <script>
-        // The published CSV link
         const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS92CW8PrDmV5uUJgTnY2dVLAzB7jr68RypCa2biQGmzdT-mW-cn_7WetadozDNngatz7IJA87S3Wh7/pub?output=csv';
 
-        // Fetch and parse the CSV
         Papa.parse(csvUrl, {
             download: true,
             header: true,
             skipEmptyLines: true,
             complete: function(results) {
                 document.getElementById('loading').style.display = 'none';
+                document.getElementById('stats-header').style.display = 'block';
                 processData(results.data);
             },
             error: function(err) {
                 document.getElementById('loading').innerText = "Failed to load data. Please check the sheet link.";
-                console.error("PapaParse Error:", err);
             }
         });
 
         function processData(data) {
             const departments = {};
+            const timeFormats = {};
+            let totalParticipants = 0;
             
-            // Dynamic column name detection to prevent exact match errors
-            let nameCol, deptCol, chessCol;
+            // Dynamic column name detection
+            let nameCol, deptCol, chessCol, timeCol;
             
             if(data.length > 0) {
                 const keys = Object.keys(data[0]);
@@ -273,46 +305,112 @@
                     if (lowerK.includes('full name')) nameCol = k;
                     if (lowerK.includes('department')) deptCol = k;
                     if (lowerK.includes('chess.com')) chessCol = k;
+                    if (lowerK.includes('time') || lowerK.includes('format')) timeCol = k;
                 });
             }
 
-            // Group by department
             data.forEach(row => {
                 const name = row[nameCol] ? row[nameCol].trim() : '';
                 const dept = row[deptCol] ? row[deptCol].trim() : 'Unknown Department';
                 const username = row[chessCol] ? row[chessCol].trim() : '';
+                const timePref = (timeCol && row[timeCol]) ? row[timeCol].trim() : 'Not Specified';
 
-                if (!name && !username) return; // Skip entirely blank rows
+                if (!name && !username) return; // Skip blank rows
 
+                totalParticipants++;
+
+                // Process Departments
                 if (!departments[dept]) {
                     departments[dept] = [];
                 }
                 departments[dept].push({ name, username });
+
+                // Process Time Formats
+                if (!timeFormats[timePref]) {
+                    timeFormats[timePref] = 0;
+                }
+                timeFormats[timePref]++;
             });
 
+            // Update Total Count
+            document.getElementById('total-count').innerText = totalParticipants;
+
+            renderChart(timeFormats, totalParticipants);
             renderDashboard(departments);
+        }
+
+        function renderChart(timeFormats, total) {
+            const ctx = document.getElementById('timeFormatChart').getContext('2d');
+            
+            const labels = [];
+            const dataCounts = [];
+            
+            // Themed colors for the pie chart
+            const backgroundColors = [
+                '#D4AF37', // Gold
+                '#C0C0C0', // Silver
+                '#CD7F32', // Bronze
+                '#8B0000', // Dark Red
+                '#2F4F4F', // Dark Slate Gray
+                '#4B0082'  // Indigo
+            ];
+
+            // Calculate percentages and setup labels
+            Object.keys(timeFormats).forEach(format => {
+                const count = timeFormats[format];
+                const percentage = ((count / total) * 100).toFixed(1);
+                labels.push(`${format} (${percentage}%)`);
+                dataCounts.push(count);
+            });
+
+            new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: dataCounts,
+                        backgroundColor: backgroundColors,
+                        borderColor: '#1e1e1e',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                color: '#E0E0E0',
+                                font: {
+                                    family: "'Playfair Display', serif",
+                                    size: 14
+                                }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return ` ${context.label}: ${context.raw} players`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
         }
 
         function renderDashboard(departments) {
             const container = document.getElementById('dashboard-container');
             container.innerHTML = '';
 
-            // Sort departments alphabetically
             const sortedDepts = Object.keys(departments).sort();
-
-            if(sortedDepts.length === 0) {
-                container.innerHTML = '<p style="text-align:center; color: var(--gold);">No registrations found yet.</p>';
-                return;
-            }
 
             sortedDepts.forEach(dept => {
                 const students = departments[dept];
                 
-                // Create Department Card
                 const card = document.createElement('div');
                 card.className = 'dept-card';
 
-                // Department Header (Tappable)
                 const header = document.createElement('div');
                 header.className = 'dept-header';
                 header.innerHTML = `
@@ -320,11 +418,9 @@
                     <span class="badge">${students.length}</span>
                 `;
 
-                // Student List container
                 const list = document.createElement('ol');
                 list.className = 'student-list';
 
-                // Add students
                 students.forEach(student => {
                     const li = document.createElement('li');
                     li.className = 'student-item';
@@ -340,22 +436,16 @@
                     li.appendChild(nameSpan);
                     li.appendChild(usernameDiv);
 
-                    // Toggle Username visibility on click
                     li.addEventListener('click', (e) => {
-                        e.stopPropagation(); // Prevent closing the department accordion
+                        e.stopPropagation(); 
                         usernameDiv.classList.toggle('active');
                     });
 
                     list.appendChild(li);
                 });
 
-                // Toggle Student List visibility on Header click
                 header.addEventListener('click', () => {
                     list.classList.toggle('active');
-                    // Optional: Close others when one opens
-                    /* document.querySelectorAll('.student-list').forEach(el => {
-                        if(el !== list) el.classList.remove('active');
-                    }); */
                 });
 
                 card.appendChild(header);

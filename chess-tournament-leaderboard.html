@@ -1,0 +1,1292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Chess Wrapped 2026 • Hall of Fame</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <!-- Google Fonts: Space Grotesk & Outfit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;900&family=Space+Grotesk:wght@500;700;900&display=swap" rel="stylesheet" />
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Outfit', 'sans-serif'],
+            display: ['Space Grotesk', 'sans-serif'],
+          },
+          colors: {
+            boardDark: '#0b0f19',
+            boardSurface: '#121927',
+            gold: '#facc15',
+            neonViolet: '#a855f7',
+            neonCyan: '#06b6d4',
+            neonAmber: '#f59e0b',
+            neonEmerald: '#10b981',
+            neonRose: '#f43f5e',
+          }
+        }
+      }
+    };
+  </script>
+
+  <style>
+    /* Kinetic Animation Keyframes */
+    @keyframes floatParticle {
+      0% { transform: translateY(0px) rotate(0deg); opacity: 0.15; }
+      50% { transform: translateY(-30px) rotate(15deg); opacity: 0.35; }
+      100% { transform: translateY(0px) rotate(0deg); opacity: 0.15; }
+    }
+
+    @keyframes popIn {
+      0% { transform: scale(0.85) translateY(24px); opacity: 0; filter: blur(4px); }
+      70% { transform: scale(1.02) translateY(-2px); opacity: 1; filter: blur(0px); }
+      100% { transform: scale(1) translateY(0); opacity: 1; }
+    }
+
+    @keyframes pulseGlow {
+      0%, 100% { box-shadow: 0 0 25px rgba(250, 204, 21, 0.25); }
+      50% { box-shadow: 0 0 45px rgba(250, 204, 21, 0.55); }
+    }
+
+    @keyframes slideTitle {
+      0% { transform: translateY(-20px); opacity: 0; letter-spacing: -2px; }
+      100% { transform: translateY(0); opacity: 1; letter-spacing: normal; }
+    }
+
+    .animate-pop {
+      animation: popIn 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .animate-title {
+      animation: slideTitle 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .gold-glow {
+      animation: pulseGlow 2.5s infinite ease-in-out;
+    }
+
+    .glass-card {
+      background: rgba(18, 25, 39, 0.72);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    /* Custom scrollbar for drawer */
+    ::-webkit-scrollbar {
+      width: 5px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.3);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 9999px;
+    }
+
+    /* Disable default touch callouts & selection for app-like feeling */
+    * {
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+  </style>
+</head>
+
+<body class="bg-slate-950 text-white min-h-screen flex items-center justify-center font-sans overflow-x-hidden selection:bg-neonCyan/30">
+
+  <!-- Desktop Backdrop Stage -->
+  <div class="fixed inset-0 pointer-events-none opacity-20 overflow-hidden flex items-center justify-center">
+    <div class="w-[850px] h-[850px] rounded-full bg-gradient-to-tr from-purple-700 via-cyan-500 to-amber-500 blur-[130px] animate-pulse"></div>
+  </div>
+
+  <!-- Main Vertical Container (Mobile 9:16 Aspect Fit) -->
+  <main class="relative w-full max-w-[440px] h-screen sm:h-[880px] sm:max-h-[94vh] sm:rounded-3xl overflow-hidden bg-boardDark border sm:border-slate-800 shadow-2xl flex flex-col justify-between">
+    
+    <!-- Background Animated Chess Watermark Pattern -->
+    <div class="absolute inset-0 pointer-events-none opacity-5 z-0 flex flex-wrap content-between justify-between p-6 overflow-hidden">
+      <i class="fa-solid fa-chess-king text-7xl transform -rotate-12"></i>
+      <i class="fa-solid fa-chess-queen text-8xl transform rotate-12"></i>
+      <i class="fa-solid fa-chess-knight text-7xl"></i>
+      <i class="fa-solid fa-chess-rook text-8xl transform -rotate-45"></i>
+      <i class="fa-solid fa-chess-bishop text-7xl"></i>
+      <i class="fa-solid fa-chess-pawn text-8xl transform rotate-45"></i>
+    </div>
+
+    <!-- Floating Ambient Orbs inside Reel -->
+    <div id="ambientOrb" class="absolute -top-16 -right-16 w-60 h-60 rounded-full blur-[70px] pointer-events-none opacity-30 transition-all duration-700 bg-amber-500"></div>
+    <div id="ambientOrbBottom" class="absolute -bottom-20 -left-20 w-60 h-60 rounded-full blur-[80px] pointer-events-none opacity-25 transition-all duration-700 bg-cyan-500"></div>
+
+    <!-- Top Reel Header: Stories Progress Bar & Header Controls -->
+    <header class="relative z-30 pt-3 px-4 pb-2 bg-gradient-to-b from-slate-950/90 to-transparent">
+      <!-- Stories Progress Bar -->
+      <div id="progressBarWrapper" class="flex items-center gap-1 w-full mb-3 cursor-pointer py-1">
+        <!-- Bars injected dynamically by JS -->
+      </div>
+
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <div class="w-7 h-7 rounded-lg bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-amber-400 text-xs shadow-inner">
+            <i class="fa-solid fa-chess-knight"></i>
+          </div>
+          <div>
+            <span class="text-[10px] font-bold tracking-widest uppercase text-amber-400 block -mb-0.5 font-display">CHESS RECAP</span>
+            <div class="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+              <span id="slideCounterText" class="text-white font-mono font-bold">1 / 23</span>
+              <span class="text-slate-600">•</span>
+              <span id="badgeCategory" class="text-[11px] text-cyan-400 bg-cyan-950/60 px-1.5 py-0.5 rounded border border-cyan-800/40">Leaderboard</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <!-- Audio Toggle -->
+          <button id="soundBtn" title="Toggle Sound FX" class="w-8 h-8 rounded-full bg-slate-800/80 hover:bg-slate-700 border border-slate-700 flex items-center justify-center text-slate-300 text-xs transition active:scale-90">
+            <i class="fa-solid fa-volume-xmark text-rose-400" id="soundIcon"></i>
+          </button>
+          
+          <!-- Speed Controller (0.75x, 1x, 1.5x) -->
+          <button id="speedBtn" title="Cycle Autoplay Speed" class="px-2 h-8 rounded-full bg-slate-800/80 hover:bg-slate-700 border border-slate-700 flex items-center justify-center text-slate-300 text-xs font-mono font-bold transition active:scale-90">
+            1.0x
+          </button>
+
+          <!-- Drawer Navigation Button -->
+          <button id="drawerToggleBtn" title="Open Categories Menu" class="w-8 h-8 rounded-full bg-slate-800/80 hover:bg-slate-700 border border-slate-700 flex items-center justify-center text-slate-300 text-xs transition active:scale-90">
+            <i class="fa-solid fa-list-ul"></i>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Tap Zones for Stories Navigation (Left = Prev, Right = Next) -->
+    <div id="tapLeft" class="absolute left-0 top-16 bottom-24 w-1/4 z-20 cursor-w-resize opacity-0"></div>
+    <div id="tapRight" class="absolute right-0 top-16 bottom-24 w-1/4 z-20 cursor-e-resize opacity-0"></div>
+
+    <!-- Main Dynamic Slide Display Zone -->
+    <section id="slideStage" class="relative z-10 flex-1 px-4 py-1 flex flex-col justify-center overflow-hidden">
+      <!-- Injected by JavaScript -->
+    </section>
+
+    <!-- Bottom Controls & Playback Dock -->
+    <footer class="relative z-30 p-3 pt-2 bg-gradient-to-t from-slate-950 via-slate-950/90 to-transparent flex flex-col gap-2">
+      <!-- Controls Bar -->
+      <div class="flex items-center justify-between glass-card px-3 py-2 rounded-2xl">
+        <button id="prevBtn" class="w-9 h-9 rounded-xl bg-slate-800/80 hover:bg-slate-700 border border-slate-700 flex items-center justify-center text-white text-sm transition active:scale-90">
+          <i class="fa-solid fa-backward-step"></i>
+        </button>
+
+        <button id="playPauseBtn" class="px-5 h-9 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 font-bold text-slate-950 text-xs tracking-wider flex items-center gap-2 shadow-lg shadow-amber-500/20 transition active:scale-95">
+          <i id="playPauseIcon" class="fa-solid fa-pause"></i>
+          <span id="playPauseText">PAUSE</span>
+        </button>
+
+        <button id="nextBtn" class="w-9 h-9 rounded-xl bg-slate-800/80 hover:bg-slate-700 border border-slate-700 flex items-center justify-center text-white text-sm transition active:scale-90">
+          <i class="fa-solid fa-forward-step"></i>
+        </button>
+
+        <!-- Share / Copy Slide Summary -->
+        <button id="shareSlideBtn" title="Copy Leaderboard to Clipboard" class="w-9 h-9 rounded-xl bg-slate-800/80 hover:bg-slate-700 border border-slate-700 flex items-center justify-center text-cyan-400 text-sm transition active:scale-90">
+          <i class="fa-solid fa-arrow-up-from-bracket"></i>
+        </button>
+      </div>
+
+      <!-- Quick Hint Ticker -->
+      <div class="flex items-center justify-between text-[11px] text-slate-400 px-2 font-mono">
+        <span>Tap sides to skip</span>
+        <span class="text-amber-400/90 font-semibold flex items-center gap-1">
+          <i class="fa-solid fa-bolt text-[10px]"></i> Swipe / Auto-play
+        </span>
+      </div>
+    </footer>
+
+    <!-- Slide Index Navigation Drawer / Modal -->
+    <aside id="drawer" class="absolute inset-0 z-50 bg-slate-950/95 backdrop-blur-xl transform translate-y-full transition-transform duration-300 ease-out flex flex-col p-4">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-chess text-amber-400"></i>
+          <h3 class="font-bold font-display text-white text-base">Select Leaderboard</h3>
+        </div>
+        <button id="closeDrawerBtn" class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-300 text-sm">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Search Filter -->
+      <div class="mt-3 relative">
+        <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-xs text-slate-500"></i>
+        <input type="text" id="searchInput" placeholder="Search boards, players, departments..." class="w-full bg-slate-900 border border-slate-800 rounded-xl pl-8 pr-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition" />
+      </div>
+
+      <!-- List of Leaderboards -->
+      <div id="drawerList" class="flex-1 overflow-y-auto mt-3 pr-1 space-y-1.5 pb-6">
+        <!-- Injected via JavaScript -->
+      </div>
+    </aside>
+
+    <!-- Toast Notification for Actions -->
+    <div id="toast" class="absolute top-20 left-1/2 -translate-x-1/2 z-50 bg-slate-900/90 border border-cyan-500/50 text-cyan-300 text-xs px-4 py-2 rounded-full shadow-2xl backdrop-blur-md opacity-0 pointer-events-none transition-all duration-300 flex items-center gap-2">
+      <i class="fa-solid fa-circle-check text-cyan-400"></i>
+      <span id="toastMsg">Action completed</span>
+    </div>
+
+  </main>
+
+  <!-- Application Logic -->
+  <script>
+    /**
+     * Complete Dataset for the 23 Chess Tournament Leaderboards
+     */
+    const LEADERBOARDS = [
+      {
+        id: 1,
+        title: "Most Games Played",
+        subtitle: "The Iron Knights of the Board",
+        icon: "fa-chess-rook",
+        badge: "Stamina",
+        theme: "amber",
+        type: "standard",
+        unit: "games",
+        items: [
+          { rank: 1, name: "Rajaraman B", dept: "EIE", score: "35", highlight: "Tournament Record" },
+          { rank: 2, name: "Naren E", dept: "ECE - 2", score: "29", highlight: "Iron Runner-up" },
+          { rank: 3, name: "Mahalakshmi N", dept: "EIE", score: "24", highlight: "Consistent Fighter" },
+          { rank: 4, name: "Mohana Krishna Murthy S", dept: "CSE - 2", score: "23", highlight: "Endless Grind" },
+          { rank: 5, name: "Yogesh Kumar M", dept: "EEE", score: "22", highlight: "Marathon Master" }
+        ]
+      },
+      {
+        id: 2,
+        title: "Most Wins",
+        subtitle: "Kings of the Arena",
+        icon: "fa-trophy",
+        badge: "Victories",
+        theme: "gold",
+        type: "standard",
+        unit: "wins",
+        items: [
+          { rank: 1, name: "Rajaraman B", dept: "EIE", score: "21", highlight: "Apex Predator" },
+          { rank: 2, name: "Naren E", dept: "ECE - 2", score: "19", highlight: "Lethal Tactician" },
+          { rank: 3, name: "Mohana Krishna Murthy S", dept: "CSE - 2", score: "18", highlight: "Deadly Striker" },
+          { rank: 4, name: "Thilak Eswaran S", dept: "ECE - 3", score: "18", highlight: "100% Conversion" },
+          { rank: 5, name: "Navein A", dept: "IT - 2", score: "13", highlight: "Top 5 Contender" }
+        ]
+      },
+      {
+        id: 3,
+        title: "Best Win Rate (8+ Games)",
+        subtitle: "Lethal Precision & Dominance",
+        icon: "fa-bullseye",
+        badge: "Accuracy",
+        theme: "emerald",
+        type: "standard",
+        unit: "%",
+        items: [
+          { rank: 1, name: "Thilak Eswaran S", dept: "ECE - 3", score: "100%", highlight: "Flawless Performance" },
+          { rank: 2, name: "C Karnesh Raja", dept: "AI and DS - 1", score: "80%", highlight: "AI Calculation" },
+          { rank: 3, name: "Mohana Krishna Murthy S", dept: "CSE - 2", score: "78%", highlight: "High Conversion" },
+          { rank: 4, name: "R. Bharani", dept: "AI and DS - 1", score: "73%", highlight: "Clinical Sharpness" },
+          { rank: 5, name: "Yogesh. S", dept: "CSE - 3", score: "73%", highlight: "Clutch Specialist" }
+        ]
+      },
+      {
+        id: 4,
+        title: "Undefeated",
+        subtitle: "5+ Games with Zero Defeats",
+        icon: "fa-shield-halved",
+        badge: "Legendary",
+        theme: "violet",
+        type: "featured",
+        unit: "Score",
+        items: [
+          { rank: 1, name: "Thilak Eswaran S", dept: "ECE - 3", score: "18W 0D 0L", highlight: "Untouchable God Mode" }
+        ],
+        extraInfo: "Zero defeats across bullet, blitz, and rapid arena stages. Perfect record holder!"
+      },
+      {
+        id: 5,
+        title: "Most Draws",
+        subtitle: "The Master Negotiators",
+        icon: "fa-handshake",
+        badge: "Truce Masters",
+        theme: "cyan",
+        type: "standard",
+        unit: "draws",
+        items: [
+          { rank: 1, name: "Kavitha. S", dept: "CSE - 2", score: "4", highlight: "Defensive Fortress" },
+          { rank: 2, name: "Santhosh. B", dept: "IT - 2", score: "3", highlight: "Stalemate Architect" },
+          { rank: 3, name: "Jai Ganesh S", dept: "ECE - 1", score: "3", highlight: "Hard to Break" },
+          { rank: 4, name: "Ishan A", dept: "IT - 1", score: "3", highlight: "Balanced Resiliency" },
+          { rank: 5, name: "A Kohulan", dept: "CSE - 2", score: "3", highlight: "Tough Endgames" }
+        ]
+      },
+      {
+        id: 6,
+        title: "Most Losses, Still Showing Up",
+        subtitle: "Pure Grit, Heart & Never Giving Up",
+        icon: "fa-heart-pulse",
+        badge: "Ultimate Grit",
+        theme: "rose",
+        type: "standard",
+        unit: "games fought",
+        items: [
+          { rank: 1, name: "Mahalakshmi N", dept: "EIE", score: "17", highlight: "Unbreakable Warrior" },
+          { rank: 2, name: "Ragavi. E", dept: "CSE - 2", score: "13", highlight: "Relentless Spirit" },
+          { rank: 3, name: "Ishan A", dept: "IT - 1", score: "13", highlight: "Never Backs Down" },
+          { rank: 4, name: "Devendran R", dept: "Medical Electronics", score: "12", highlight: "Fighter Mindset" },
+          { rank: 5, name: "Lavanya. R", dept: "CSE - 2", score: "12", highlight: "True Sportsmanship" }
+        ]
+      },
+      {
+        id: 7,
+        title: "Played the Most Events",
+        subtitle: "Dedicated Tournament Faithfuls",
+        icon: "fa-calendar-check",
+        badge: "Loyalty",
+        theme: "amber",
+        type: "standard",
+        unit: "events",
+        items: [
+          { rank: 1, name: "Naren E", dept: "ECE - 2", score: "4 of 4", highlight: "100% Attendance" },
+          { rank: 2, name: "Kevin PV", dept: "ECE - 2", score: "3 of 4", highlight: "All-Round Contender" },
+          { rank: 3, name: "Rajapriyan R", dept: "IT - 2", score: "3 of 4", highlight: "Arena Loyal" },
+          { rank: 4, name: "Ragavi. E", dept: "CSE - 2", score: "3 of 4", highlight: "Always Present" },
+          { rank: 5, name: "Ishan A", dept: "IT - 1", score: "3 of 4", highlight: "Multi-Tournament" }
+        ]
+      },
+      {
+        id: 8,
+        title: "Most Time at the Board (≈)",
+        subtitle: "Clock Burners & Deep Thinkers",
+        icon: "fa-stopwatch",
+        badge: "Focus",
+        theme: "cyan",
+        type: "standard",
+        unit: "duration",
+        items: [
+          { rank: 1, name: "Yogesh Kumar M", dept: "EEE", score: "71m 41s", highlight: "Board Kingpin" },
+          { rank: 2, name: "Mahalakshmi N", dept: "EIE", score: "69m 51s", highlight: "Epic Endurance" },
+          { rank: 3, name: "Rajaraman B", dept: "EIE", score: "59m 24s", highlight: "Tactical Depth" },
+          { rank: 4, name: "Naren E", dept: "ECE - 2", score: "54m 05s", highlight: "Steady Pressure" },
+          { rank: 5, name: "A Kohulan", dept: "CSE - 2", score: "50m 32s", highlight: "Calculated Steps" }
+        ]
+      },
+      {
+        id: 9,
+        title: "Most Checkmates Delivered",
+        subtitle: "The Decisive Executioners",
+        icon: "fa-skull-crossbones",
+        badge: "Finishers",
+        theme: "gold",
+        type: "standard",
+        unit: "mates",
+        items: [
+          { rank: 1, name: "Thilak Eswaran S", dept: "ECE - 3", score: "15", highlight: "Chief Executioner" },
+          { rank: 2, name: "Naren E", dept: "ECE - 2", score: "14", highlight: "Mating Net Hunter" },
+          { rank: 3, name: "Rajaraman B", dept: "EIE", score: "13", highlight: "Relentless Finisher" },
+          { rank: 4, name: "Mohana Krishna Murthy S", dept: "CSE - 2", score: "13", highlight: "Direct Assault" },
+          { rank: 5, name: "Navein A", dept: "IT - 2", score: "11", highlight: "Closing Specialist" }
+        ]
+      },
+      {
+        id: 10,
+        title: "Lost on Time Most Often",
+        subtitle: "Victims of the Ticking Clock",
+        icon: "fa-hourglass-end",
+        badge: "Flag Fall",
+        theme: "rose",
+        type: "standard",
+        unit: "timeouts",
+        items: [
+          { rank: 1, name: "Prawin Kumar K", dept: "CSE - 2", score: "7", highlight: "Flag Drop Leader" },
+          { rank: 2, name: "Ragavi. E", dept: "CSE - 2", score: "5", highlight: "Lost in Thought" },
+          { rank: 3, name: "Ishan A", dept: "IT - 1", score: "5", highlight: "Clock Trouble" },
+          { rank: 4, name: "Mahalakshmi N", dept: "EIE", score: "4", highlight: "Seconds Away" },
+          { rank: 5, name: "Lohendra TG", dept: "CSE - 2", score: "4", highlight: "Pressure Dilemma" }
+        ]
+      },
+      {
+        id: 11,
+        title: "Resigned Most Often",
+        subtitle: "Knowing When the King Must Fall",
+        icon: "fa-flag",
+        badge: "Honorable Surrender",
+        theme: "slate",
+        type: "standard",
+        unit: "resigns",
+        items: [
+          { rank: 1, name: "Gokul G", dept: "IT - 1", score: "4", highlight: "Gentleman Resignation" },
+          { rank: 2, name: "Mukilan S", dept: "CSE - 2", score: "3", highlight: "Early Realist" },
+          { rank: 3, name: "Naren E", dept: "ECE - 2", score: "2", highlight: "Tactical Reset" },
+          { rank: 4, name: "A Kohulan", dept: "CSE - 2", score: "2", highlight: "Preserving Energy" },
+          { rank: 5, name: "Kameshh V", dept: "CSE - 2", score: "2", highlight: "Tip of the Hat" }
+        ]
+      },
+      {
+        id: 12,
+        title: "Vanished Mid-Game Most",
+        subtitle: "Lost by Sudden Abandonment",
+        icon: "fa-ghost",
+        badge: "Phantom Loss",
+        theme: "violet",
+        type: "standard",
+        unit: "vanished",
+        items: [
+          { rank: 1, name: "Mahalakshmi N", dept: "EIE", score: "3", highlight: "Wifi or Houdini?" },
+          { rank: 2, name: "Rajapriyan R", dept: "IT - 2", score: "2", highlight: "Signal Drop" },
+          { rank: 3, name: "Princy J", dept: "CSE - 2", score: "2", highlight: "Ghost Exit" },
+          { rank: 4, name: "Yogesh. S", dept: "CSE - 3", score: "2", highlight: "Disconnection" },
+          { rank: 5, name: "N. Dhivakaran", dept: "CSE - 1", score: "1", highlight: "The Vanishing King" }
+        ]
+      },
+      {
+        id: 13,
+        title: "Giant Slayers",
+        subtitle: "Defeating Players Rated 100+ Higher",
+        icon: "fa-hand-fist",
+        badge: "Underdogs",
+        theme: "emerald",
+        type: "standard",
+        unit: "slays",
+        items: [
+          { rank: 1, name: "Taresh Infant S", dept: "ECE - 3", score: "3", highlight: "Grandmaster Slayer" },
+          { rank: 2, name: "Naren E", dept: "ECE - 2", score: "2", highlight: "Fearless Striker" },
+          { rank: 3, name: "Dharshinipriya V", dept: "EIE", score: "2", highlight: "Giant Takedown" },
+          { rank: 4, name: "Vinish V", dept: "ECE - 3", score: "2", highlight: "Clutch Destroyer" },
+          { rank: 5, name: "R. Bharani", dept: "AI and DS - 1", score: "2", highlight: "David vs Goliath" }
+        ]
+      },
+      {
+        id: 14,
+        title: "Toughest Opposition",
+        subtitle: "Highest Avg Opponent Rating (5+ Games)",
+        icon: "fa-fire",
+        badge: "Gauntlet",
+        theme: "rose",
+        type: "standard",
+        unit: "avg rating",
+        items: [
+          { rank: 1, name: "C Karnesh Raja", dept: "AI and DS - 1", score: "651", highlight: "Trial by Fire" },
+          { rank: 2, name: "Karthikraja R", dept: "AI and DS - 1", score: "647", highlight: "Heavyweight Road" },
+          { rank: 3, name: "Gokul G", dept: "IT - 1", score: "644", highlight: "Elite Matchups" },
+          { rank: 4, name: "Taresh Infant S", dept: "ECE - 3", score: "630", highlight: "Shark Tank Survivor" },
+          { rank: 5, name: "Vinish V", dept: "ECE - 3", score: "602", highlight: "Top Bracket Battles" }
+        ]
+      },
+      {
+        id: 15,
+        title: "Highest Rating on the Day",
+        subtitle: "The Peak Elo Heavyweights",
+        icon: "fa-chess-king",
+        badge: "Apex Rating",
+        theme: "gold",
+        type: "standard",
+        unit: "Elo",
+        items: [
+          { rank: 1, name: "Gokul G", dept: "IT - 1", score: "1205", highlight: "Peak 1200+ Master" },
+          { rank: 2, name: "C Karnesh Raja", dept: "AI and DS - 1", score: "1127", highlight: "Grand Caliber" },
+          { rank: 3, name: "Kevin PV", dept: "ECE - 2", score: "961", highlight: "Elite Tier" },
+          { rank: 4, name: "Gokulakannan S", dept: "CSE - 1", score: "902", highlight: "Club Centurion" },
+          { rank: 5, name: "Thilak Eswaran S", dept: "ECE - 3", score: "876", highlight: "Unbeaten Elo" }
+        ]
+      },
+      {
+        id: 16,
+        title: "Fastest Checkmates",
+        subtitle: "Blink and It's Over! (Shortest by Moves)",
+        icon: "fa-bolt-lightning",
+        badge: "Speed Kills",
+        theme: "cyan",
+        type: "matchup",
+        items: [
+          { rank: 1, p1: "Ragavi. E (CSE - 2) (100)", p2: "Thilak Eswaran S (ECE - 3) (820)", res: "0-1", stat: "3 moves", event: "Bullet Chess Tournament" },
+          { rank: 2, p1: "Kevin PV (ECE - 2) (961)", p2: "Shaswathi K (CSE - 3) (356)", res: "1-0", stat: "4 moves", event: "Swiss Chess Tournament" },
+          { rank: 3, p1: "Gokulakannan S (CSE - 1) (887)", p2: "Ragavi. E (CSE - 2) (245)", res: "1-0", stat: "4 moves", event: "Swiss Chess Tournament" },
+          { rank: 4, p1: "Lokesh D (ECE - 2) (256)", p2: "Ishan A (IT - 1) (100)", res: "1-0", stat: "4 moves", event: "Swiss Chess Tournament" },
+          { rank: 5, p1: "Lokesh D (ECE - 2) (274)", p2: "Dhanush Kumar J (Cyber Sec) (270)", res: "1-0", stat: "4 moves", event: "Swiss Chess Tournament" }
+        ]
+      },
+      {
+        id: 17,
+        title: "Shortest Games by Time (≈)",
+        subtitle: "Single-Digit Bullet Flash Kills",
+        icon: "fa-gauge-high",
+        badge: "Lightning",
+        theme: "amber",
+        type: "matchup",
+        items: [
+          { rank: 1, p1: "Rajaraman B (EIE) (271)", p2: "Ishan A (IT - 1) (179)", res: "1-0", stat: "6s", event: "Bullet Chess Tournament" },
+          { rank: 2, p1: "A. Praveen Raj (IT - 2) (474)", p2: "Praveen Kumar M (CSE - 2) (483)", res: "1-0", stat: "6s", event: "Bullet Chess Tournament" },
+          { rank: 3, p1: "Rajaraman B (EIE) (389)", p2: "S K Raghavi (ECE - 2) (100)", res: "1-0", stat: "7s", event: "Rapid Arena" },
+          { rank: 4, p1: "Ragavi. E (CSE - 2) (100)", p2: "Thilak Eswaran S (ECE - 3) (820)", res: "0-1", stat: "8s", event: "Bullet Chess Tournament" },
+          { rank: 5, p1: "Rajaraman B (EIE) (390)", p2: "Lavanya. R (CSE - 2) (100)", res: "1-0", stat: "9s", event: "Rapid Arena" }
+        ]
+      },
+      {
+        id: 18,
+        title: "Longest Games by Moves",
+        subtitle: "Epic Endgames & Grinding Marathons",
+        icon: "fa-chess-board",
+        badge: "Deep Waters",
+        theme: "violet",
+        type: "matchup",
+        items: [
+          { rank: 1, p1: "S, R, Kapilesh Vendhan (AI & DS - 1) (139)", p2: "A Kohulan (CSE - 2) (225)", res: "1/2-1/2", stat: "92 moves", event: "Rapid Arena" },
+          { rank: 2, p1: "Bhuvan. R (AI & DS - 1) (223)", p2: "Naveena M S (CSE - 2) (433)", res: "1/2-1/2", stat: "89 moves", event: "Swiss Chess Tournament" },
+          { rank: 3, p1: "T Lakshitha Devi (CSE - 2) (172)", p2: "B Kiruthika (CSE - 2) (108)", res: "1-0", stat: "80 moves", event: "Swiss Chess Tournament" },
+          { rank: 4, p1: "Ishan A (IT - 1) (102)", p2: "Kavitha. S (CSE - 2) (119)", res: "1/2-1/2", stat: "73 moves", event: "Swiss Chess Tournament" },
+          { rank: 5, p1: "T Lakshitha Devi (CSE - 2) (216)", p2: "Jai Ganesh S (ECE - 1) (354)", res: "1/2-1/2", stat: "73 moves", event: "Swiss Chess Tournament" }
+        ]
+      },
+      {
+        id: 19,
+        title: "Longest Games by Time (≈)",
+        subtitle: "Deep Clock Grinds to the Bare Wire",
+        icon: "fa-hourglass-half",
+        badge: "Clock Sink",
+        theme: "emerald",
+        type: "matchup",
+        items: [
+          { rank: 1, p1: "Vinish V (ECE - 3) (311)", p2: "T Vetriselvan (AI & DS - 2) (597)", res: "1/2-1/2", stat: "19m 15s", event: "Swiss Chess Tournament" },
+          { rank: 2, p1: "B Kiruthika (CSE - 2) (325)", p2: "Kavitha. S (CSE - 2) (241)", res: "1/2-1/2", stat: "18m 45s", event: "Swiss Chess Tournament" },
+          { rank: 3, p1: "Vinish V (ECE - 3) (348)", p2: "Rajapriyan R (IT - 2) (521)", res: "1-0", stat: "18m 08s", event: "Swiss Chess Tournament" },
+          { rank: 4, p1: "Kasi Viswanathan S S (CSE - 2) (384)", p2: "Kishore. V (CSE - 2) (320)", res: "1-0", stat: "16m 59s", event: "Swiss Chess Tournament" },
+          { rank: 5, p1: "N. Dhivakaran (CSE - 1) (859)", p2: "Gokul G (IT - 1) (1176)", res: "1-0", stat: "16m 36s", event: "Swiss Chess Tournament" }
+        ]
+      },
+      {
+        id: 20,
+        title: "Bloodiest Games",
+        subtitle: "Total Carnage: Most Captures on Board",
+        icon: "fa-burst",
+        badge: "Carnage",
+        theme: "rose",
+        type: "matchup",
+        items: [
+          { rank: 1, p1: "Ragavi. E (CSE - 2) (252)", p2: "Acholu Pranay Kumar (AI & DS) (329)", res: "1/2-1/2", stat: "30 captures", event: "Swiss Chess Tournament" },
+          { rank: 2, p1: "Megarshith Pacha (CSE - 2) (229)", p2: "Rajaraman B (EIE) (381)", res: "0-1", stat: "29 captures", event: "Blitz Tournament" },
+          { rank: 3, p1: "Rajaraman B (EIE) (368)", p2: "Navein A (IT - 2) (364)", res: "1/2-1/2", stat: "29 captures", event: "Blitz Tournament" },
+          { rank: 4, p1: "T Lakshitha Devi (CSE - 2) (216)", p2: "Jai Ganesh S (ECE - 1) (354)", res: "1/2-1/2", stat: "29 captures", event: "Swiss Chess Tournament" },
+          { rank: 5, p1: "Bhuvan. R (AI & DS - 1) (223)", p2: "Naveena M S (CSE - 2) (433)", res: "1/2-1/2", stat: "29 captures", event: "Swiss Chess Tournament" }
+        ]
+      },
+      {
+        id: 21,
+        title: "Biggest Upsets",
+        subtitle: "When the Underdog Shattered Elo",
+        icon: "fa-meteor",
+        badge: "Shockwaves",
+        theme: "gold",
+        type: "matchup",
+        items: [
+          { rank: 1, p1: "N. Dhivakaran (CSE - 1) (842)", p2: "T Lakshitha Devi (CSE - 2) (212)", res: "0-1", stat: "+630 gap", event: "Swiss Chess Tournament" },
+          { rank: 2, p1: "C Karnesh Raja (AI & DS) (1096)", p2: "R. Bharani (AI & DS) (480)", res: "0-1", stat: "+616 gap", event: "Rapid Arena" },
+          { rank: 3, p1: "Gokul G (IT - 1) (1158)", p2: "Dharshinipriya V (EIE) (680)", res: "0-1", stat: "+478 gap", event: "Swiss Chess Tournament" },
+          { rank: 4, p1: "Taresh Infant S (ECE - 3) (448)", p2: "Gokulakannan S (CSE - 1) (840)", res: "1-0", stat: "+392 gap", event: "Swiss Chess Tournament" },
+          { rank: 5, p1: "Jaswant G S (ECE - 1) (654)", p2: "Vinish V (ECE - 3) (336)", res: "0-1", stat: "+318 gap", event: "Swiss Chess Tournament" }
+        ]
+      },
+      {
+        id: 22,
+        title: "Longest Win Streaks",
+        subtitle: "Unstoppable Arena Rampages",
+        icon: "fa-fire-flame-curved",
+        badge: "On Fire",
+        theme: "amber",
+        type: "streak",
+        items: [
+          { rank: 1, name: "Thilak Eswaran S", dept: "ECE - 3", score: "18 in a row", tourney: "Bullet Chess Tournament" },
+          { rank: 2, name: "Mohana Krishna Murthy S", dept: "CSE - 2", score: "8 in a row", tourney: "Bullet Chess Tournament" },
+          { rank: 3, name: "Yogesh. S", dept: "CSE - 3", score: "7 in a row", tourney: "Bullet Chess Tournament" },
+          { rank: 4, name: "Navein A", dept: "IT - 2", score: "6 in a row", tourney: "Rapid Arena" },
+          { rank: 5, name: "Mohana Krishna Murthy S", dept: "CSE - 2", score: "6 in a row", tourney: "Blitz Chess Tournament" }
+        ]
+      },
+      {
+        id: 23,
+        title: "Favourite Rivalries",
+        subtitle: "Clashing Time and Time Again",
+        icon: "fa-swords",
+        badge: "Arch Rivals",
+        theme: "rose",
+        type: "rivalry",
+        items: [
+          { rank: 1, p1: "Mahalakshmi N", d1: "EIE", p2: "Rajaraman B", d2: "EIE", score: "3 games" },
+          { rank: 2, p1: "Naren E", d1: "ECE - 2", p2: "Mohana Krishna Murthy S", d2: "CSE - 2", score: "3 games" },
+          { rank: 3, p1: "Lohendra TG", d1: "CSE - 2", p2: "Praveen Kumar M", d2: "CSE - 2", score: "3 games" },
+          { rank: 4, p1: "Yogesh. S", d1: "CSE - 3", p2: "Naren E", d2: "ECE - 2", score: "3 games" },
+          { rank: 5, p1: "Ragavi. E", d1: "CSE - 2", p2: "Thilak Eswaran S", d2: "ECE - 3", score: "3 games" }
+        ]
+      }
+    ];
+
+    /**
+     * Web Audio API Synthesizer (No external asset files)
+     */
+    class SoundEngine {
+      constructor() {
+        this.ctx = null;
+        this.enabled = false;
+      }
+      init() {
+        if (!this.ctx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          if (AudioContext) {
+            this.ctx = new AudioContext();
+          }
+        }
+      }
+      playSlide() {
+        if (!this.enabled || !this.ctx) return;
+        try {
+          const now = this.ctx.currentTime;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(320, now);
+          osc.frequency.exponentialRampToValueAtTime(740, now + 0.12);
+          gain.gain.setValueAtTime(0.08, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.12);
+        } catch (e) {
+          console.warn(e);
+        }
+      }
+      playTrophy() {
+        if (!this.enabled || !this.ctx) return;
+        try {
+          const now = this.ctx.currentTime;
+          const chords = [523.25, 659.25, 783.99, 1046.50]; // C Major
+          chords.forEach((freq, idx) => {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(freq, now + idx * 0.05);
+            gain.gain.setValueAtTime(0.05, now + idx * 0.05);
+            gain.gain.exponentialRampToValueAtTime(0.0001, now + idx * 0.05 + 0.35);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(now + idx * 0.05);
+            osc.stop(now + idx * 0.05 + 0.35);
+          });
+        } catch (e) {
+          console.warn(e);
+        }
+      }
+    }
+
+    const sound = new SoundEngine();
+
+    /**
+     * App State Controller
+     */
+    let currentIndex = 0;
+    let isPlaying = true;
+    let currentSpeed = 1.0;
+    const baseDuration = 6000; // 6 seconds per reel slide at 1.0x
+    let progressTimer = null;
+    let startTime = null;
+    let elapsedBeforePause = 0;
+
+    // DOM Elements
+    const progressBarWrapper = document.getElementById('progressBarWrapper');
+    const slideStage = document.getElementById('slideStage');
+    const slideCounterText = document.getElementById('slideCounterText');
+    const badgeCategory = document.getElementById('badgeCategory');
+    const playPauseBtn = document.getElementById('playPauseBtn');
+    const playPauseIcon = document.getElementById('playPauseIcon');
+    const playPauseText = document.getElementById('playPauseText');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const speedBtn = document.getElementById('speedBtn');
+    const soundBtn = document.getElementById('soundBtn');
+    const soundIcon = document.getElementById('soundIcon');
+    const drawerToggleBtn = document.getElementById('drawerToggleBtn');
+    const closeDrawerBtn = document.getElementById('closeDrawerBtn');
+    const drawer = document.getElementById('drawer');
+    const drawerList = document.getElementById('drawerList');
+    const searchInput = document.getElementById('searchInput');
+    const shareSlideBtn = document.getElementById('shareSlideBtn');
+    const toast = document.getElementById('toast');
+    const toastMsg = document.getElementById('toastMsg');
+    const ambientOrb = document.getElementById('ambientOrb');
+    const ambientOrbBottom = document.getElementById('ambientOrbBottom');
+
+    // Color theme mapping for ambient backlights
+    const themeColorMap = {
+      amber: { top: 'bg-amber-500', bot: 'bg-orange-500', text: 'text-amber-400', border: 'border-amber-400/40', badge: 'bg-amber-400/10 text-amber-300' },
+      gold: { top: 'bg-yellow-400', bot: 'bg-amber-600', text: 'text-yellow-400', border: 'border-yellow-400/40', badge: 'bg-yellow-400/10 text-yellow-300' },
+      emerald: { top: 'bg-emerald-500', bot: 'bg-teal-600', text: 'text-emerald-400', border: 'border-emerald-400/40', badge: 'bg-emerald-400/10 text-emerald-300' },
+      cyan: { top: 'bg-cyan-500', bot: 'bg-blue-600', text: 'text-cyan-400', border: 'border-cyan-400/40', badge: 'bg-cyan-400/10 text-cyan-300' },
+      violet: { top: 'bg-purple-500', bot: 'bg-indigo-600', text: 'text-purple-400', border: 'border-purple-400/40', badge: 'bg-purple-400/10 text-purple-300' },
+      rose: { top: 'bg-rose-500', bot: 'bg-pink-600', text: 'text-rose-400', border: 'border-rose-400/40', badge: 'bg-rose-400/10 text-rose-300' },
+      slate: { top: 'bg-slate-400', bot: 'bg-slate-700', text: 'text-slate-300', border: 'border-slate-400/40', badge: 'bg-slate-400/10 text-slate-300' }
+    };
+
+    /**
+     * Initialize Story Progress Bar segments
+     */
+    function initProgressBars() {
+      progressBarWrapper.innerHTML = '';
+      LEADERBOARDS.forEach((item, idx) => {
+        const seg = document.createElement('div');
+        seg.className = 'flex-1 h-1.5 bg-slate-800/80 rounded-full overflow-hidden transition-all';
+        seg.dataset.index = idx;
+        seg.innerHTML = `<div id="bar-fill-${idx}" class="h-full bg-gradient-to-r from-amber-400 to-amber-500 w-0 transition-none"></div>`;
+        seg.onclick = (e) => {
+          e.stopPropagation();
+          jumpToSlide(idx);
+        };
+        progressBarWrapper.appendChild(seg);
+      });
+    }
+
+    /**
+     * Render Slide Content
+     */
+    function renderSlide(index) {
+      const data = LEADERBOARDS[index];
+      const theme = themeColorMap[data.theme] || themeColorMap.amber;
+
+      // Update ambient orbs
+      ambientOrb.className = `absolute -top-16 -right-16 w-60 h-60 rounded-full blur-[70px] pointer-events-none opacity-30 transition-all duration-700 ${theme.top}`;
+      ambientOrbBottom.className = `absolute -bottom-20 -left-20 w-60 h-60 rounded-full blur-[80px] pointer-events-none opacity-25 transition-all duration-700 ${theme.bot}`;
+
+      // Update Header info
+      slideCounterText.textContent = `${index + 1} / ${LEADERBOARDS.length}`;
+      badgeCategory.textContent = data.badge;
+
+      // Build slide markup depending on type
+      let contentHtml = '';
+
+      if (data.type === 'featured') {
+        // Spotlight style for Undefeated
+        const champ = data.items[0];
+        contentHtml = `
+          <div class="flex flex-col items-center justify-center text-center py-4 space-y-4">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold font-display uppercase tracking-wider ${theme.badge} border ${theme.border} animate-pop">
+              <i class="fa-solid ${data.icon}"></i> ${data.subtitle}
+            </div>
+
+            <div class="relative my-2">
+              <div class="w-32 h-32 rounded-3xl bg-gradient-to-br from-amber-400/20 via-purple-500/30 to-amber-600/10 border-2 border-amber-400/50 flex flex-col items-center justify-center gold-glow animate-pop" style="animation-delay: 0.1s;">
+                <i class="fa-solid fa-crown text-4xl text-amber-400 mb-1 drop-shadow-[0_0_15px_rgba(250,204,21,0.6)]"></i>
+                <span class="text-xs font-mono font-bold text-amber-300">#1 SEED</span>
+              </div>
+            </div>
+
+            <div class="animate-pop" style="animation-delay: 0.2s;">
+              <h2 class="text-2xl font-black font-display text-white tracking-tight leading-snug">${champ.name}</h2>
+              <div class="mt-1 flex items-center justify-center gap-2">
+                <span class="text-xs font-semibold px-2.5 py-0.5 rounded-md bg-purple-500/20 text-purple-300 border border-purple-500/40">${champ.dept}</span>
+                <span class="text-xs font-bold text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-800/40">100% Win Ratio</span>
+              </div>
+            </div>
+
+            <div class="w-full glass-card p-4 rounded-2xl border border-amber-500/30 text-center animate-pop" style="animation-delay: 0.3s;">
+              <div class="text-xs text-slate-400 uppercase tracking-widest font-mono">Tournament Scorecard</div>
+              <div class="text-3xl font-black text-amber-400 font-display my-1 tracking-wider">${champ.score}</div>
+              <p class="text-xs text-slate-300 mt-2 font-medium leading-relaxed">${data.extraInfo}</p>
+            </div>
+          </div>
+        `;
+      } else if (data.type === 'matchup') {
+        // Game duel style
+        contentHtml = `
+          <div class="space-y-2">
+            ${data.items.map((item, i) => `
+              <div class="glass-card p-2.5 rounded-xl border border-white/5 flex items-center justify-between gap-2 transform transition hover:border-slate-600 animate-pop" style="animation-delay: ${0.08 * (i + 1)}s">
+                <div class="flex items-center gap-2.5 flex-1 min-w-0">
+                  <div class="w-6 h-6 rounded-lg flex items-center justify-center font-display font-black text-xs shrink-0 ${i === 0 ? 'bg-amber-400 text-slate-950 shadow-md shadow-amber-400/30' : 'bg-slate-800 text-slate-300'}">
+                    ${item.rank}
+                  </div>
+                  <div class="truncate text-left">
+                    <div class="text-[12px] font-bold text-slate-100 truncate">${item.p1}</div>
+                    <div class="text-[11px] font-medium text-slate-400 flex items-center gap-1.5 truncate">
+                      <span class="text-rose-400 font-mono font-bold">${item.res}</span>
+                      <span class="truncate">${item.p2}</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="text-right shrink-0">
+                  <div class="text-xs font-black font-mono text-cyan-400">${item.stat}</div>
+                  <div class="text-[9px] text-slate-400 max-w-[100px] truncate">${item.event.replace('Tournament', '')}</div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        `;
+      } else if (data.type === 'streak') {
+        // Longest Streak
+        contentHtml = `
+          <div class="space-y-2.5">
+            ${data.items.map((item, i) => `
+              <div class="glass-card p-3 rounded-xl border border-white/5 flex items-center justify-between animate-pop" style="animation-delay: ${0.08 * (i + 1)}s">
+                <div class="flex items-center gap-3">
+                  <div class="w-7 h-7 rounded-lg flex items-center justify-center font-display font-black text-xs ${i === 0 ? 'bg-gradient-to-tr from-amber-400 to-amber-500 text-slate-950 shadow-lg shadow-amber-400/40' : 'bg-slate-800 text-slate-300'}">
+                    ${item.rank}
+                  </div>
+                  <div>
+                    <div class="text-xs font-bold text-slate-100 flex items-center gap-1.5">
+                      ${item.name}
+                      ${i === 0 ? '<i class="fa-solid fa-crown text-[10px] text-amber-400"></i>' : ''}
+                    </div>
+                    <div class="text-[10px] text-slate-400 flex items-center gap-1.5 mt-0.5">
+                      <span class="px-1.5 py-0.2 rounded bg-slate-800 text-slate-300">${item.dept}</span>
+                      <span>• ${item.tourney}</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="text-right">
+                  <span class="inline-flex items-center gap-1 text-xs font-black font-mono text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-400/30">
+                    <i class="fa-solid fa-fire text-amber-500 text-[10px]"></i>
+                    ${item.score}
+                  </span>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        `;
+      } else if (data.type === 'rivalry') {
+        // Favourite Rivalries
+        contentHtml = `
+          <div class="space-y-2.5">
+            ${data.items.map((item, i) => `
+              <div class="glass-card p-3 rounded-xl border border-white/5 flex items-center justify-between animate-pop" style="animation-delay: ${0.08 * (i + 1)}s">
+                <div class="flex items-center gap-3 flex-1 min-w-0 pr-2">
+                  <div class="w-7 h-7 rounded-lg flex items-center justify-center font-display font-black text-xs shrink-0 ${i === 0 ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/30' : 'bg-slate-800 text-slate-300'}">
+                    ${item.rank}
+                  </div>
+                  <div class="truncate text-left text-xs">
+                    <div class="font-bold text-white flex items-center gap-1.5">
+                      <span class="truncate">${item.p1}</span>
+                      <span class="text-[10px] font-normal text-slate-400">(${item.d1})</span>
+                    </div>
+                    <div class="font-medium text-slate-300 flex items-center gap-1.5">
+                      <span class="text-rose-400 font-bold text-[10px]">VS</span>
+                      <span class="truncate">${item.p2}</span>
+                      <span class="text-[10px] font-normal text-slate-400">(${item.d2})</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="shrink-0 text-right">
+                  <span class="text-xs font-black font-mono text-cyan-300 bg-cyan-950/60 px-2 py-1 rounded-md border border-cyan-800/40">
+                    ${item.score}
+                  </span>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        `;
+      } else {
+        // Standard Ranked Top 5 Leaderboard
+        contentHtml = `
+          <div class="space-y-2">
+            ${data.items.map((item, i) => `
+              <div class="glass-card px-3 py-2.5 rounded-xl border border-white/5 flex items-center justify-between transition-all hover:border-slate-600 animate-pop" style="animation-delay: ${0.07 * (i + 1)}s">
+                <div class="flex items-center gap-3 min-w-0 flex-1">
+                  <div class="w-7 h-7 rounded-lg flex items-center justify-center font-display font-black text-xs shrink-0 ${
+                    i === 0 ? 'bg-amber-400 text-slate-950 shadow-lg shadow-amber-400/40 ring-2 ring-amber-400/30' : 
+                    i === 1 ? 'bg-slate-300 text-slate-900' :
+                    i === 2 ? 'bg-amber-700/80 text-amber-100' : 'bg-slate-800 text-slate-400'
+                  }">
+                    ${item.rank}
+                  </div>
+
+                  <div class="truncate text-left">
+                    <div class="text-xs font-bold text-slate-100 flex items-center gap-1.5 truncate">
+                      <span class="truncate">${item.name}</span>
+                      ${i === 0 ? '<i class="fa-solid fa-crown text-[10px] text-amber-400"></i>' : ''}
+                    </div>
+                    <div class="flex items-center gap-2 mt-0.5">
+                      <span class="text-[10px] font-semibold text-slate-400 bg-slate-800/90 px-1.5 py-0.2 rounded border border-slate-700/50">${item.dept}</span>
+                      <span class="text-[10px] text-slate-500 font-medium truncate">${item.highlight}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="shrink-0 text-right ml-2">
+                  <div class="text-sm font-black font-display text-white tracking-wide">
+                    ${item.score}
+                  </div>
+                  <div class="text-[9px] font-mono uppercase tracking-wider text-slate-400">
+                    ${data.unit}
+                  </div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        `;
+      }
+
+      // Title & container wrapper
+      slideStage.innerHTML = `
+        <div class="w-full my-auto flex flex-col justify-center">
+          <!-- Slide Heading Banner -->
+          <div class="mb-3 text-center animate-title">
+            <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold uppercase tracking-widest ${theme.badge} border ${theme.border} mb-1.5 shadow-sm">
+              <i class="fa-solid ${data.icon}"></i>
+              <span>${data.subtitle}</span>
+            </div>
+            <h1 class="text-xl sm:text-2xl font-black font-display tracking-tight text-white drop-shadow-md">
+              ${data.title}
+            </h1>
+          </div>
+
+          <!-- Slide Core Body -->
+          <div class="w-full">
+            ${contentHtml}
+          </div>
+        </div>
+      `;
+
+      // Update drawer active highlight
+      updateDrawerSelection();
+
+      // Trigger sound effect
+      if (index === 0 || data.type === 'featured') {
+        sound.playTrophy();
+      } else {
+        sound.playSlide();
+      }
+    }
+
+    /**
+     * Animation Loop & Progress Timing
+     */
+    function updateProgress(timestamp) {
+      if (!startTime) startTime = timestamp - elapsedBeforePause;
+      const effectiveDuration = baseDuration / currentSpeed;
+      const elapsed = timestamp - startTime;
+      const progressRatio = Math.min(elapsed / effectiveDuration, 1);
+
+      // Fill current bar
+      const currentFill = document.getElementById(`bar-fill-${currentIndex}`);
+      if (currentFill) {
+        currentFill.style.width = `${progressRatio * 100}%`;
+      }
+
+      // Fill preceding bars to 100%, and reset succeeding bars to 0%
+      for (let i = 0; i < LEADERBOARDS.length; i++) {
+        const fill = document.getElementById(`bar-fill-${i}`);
+        if (!fill) continue;
+        if (i < currentIndex) {
+          fill.style.width = '100%';
+        } else if (i > currentIndex) {
+          fill.style.width = '0%';
+        }
+      }
+
+      if (progressRatio >= 1) {
+        // Move to next slide
+        elapsedBeforePause = 0;
+        startTime = null;
+        if (currentIndex < LEADERBOARDS.length - 1) {
+          currentIndex++;
+          renderSlide(currentIndex);
+          progressTimer = requestAnimationFrame(updateProgress);
+        } else {
+          // Loop back to start
+          currentIndex = 0;
+          renderSlide(currentIndex);
+          progressTimer = requestAnimationFrame(updateProgress);
+        }
+      } else {
+        if (isPlaying) {
+          progressTimer = requestAnimationFrame(updateProgress);
+        }
+      }
+    }
+
+    function startAutoPlay() {
+      isPlaying = true;
+      playPauseIcon.className = 'fa-solid fa-pause';
+      playPauseText.textContent = 'PAUSE';
+      startTime = null;
+      cancelAnimationFrame(progressTimer);
+      progressTimer = requestAnimationFrame(updateProgress);
+    }
+
+    function pauseAutoPlay() {
+      isPlaying = false;
+      playPauseIcon.className = 'fa-solid fa-play';
+      playPauseText.textContent = 'RESUME';
+      cancelAnimationFrame(progressTimer);
+      // capture elapsed time to resume cleanly
+      if (startTime) {
+        const effectiveDuration = baseDuration / currentSpeed;
+        const currentFill = document.getElementById(`bar-fill-${currentIndex}`);
+        const currentWidthPct = currentFill ? parseFloat(currentFill.style.width || 0) : 0;
+        elapsedBeforePause = (currentWidthPct / 100) * effectiveDuration;
+      }
+    }
+
+    function togglePlayPause() {
+      if (isPlaying) {
+        pauseAutoPlay();
+      } else {
+        startAutoPlay();
+      }
+    }
+
+    function nextSlide() {
+      if (currentIndex < LEADERBOARDS.length - 1) {
+        jumpToSlide(currentIndex + 1);
+      } else {
+        jumpToSlide(0);
+      }
+    }
+
+    function prevSlide() {
+      if (currentIndex > 0) {
+        jumpToSlide(currentIndex - 1);
+      } else {
+        jumpToSlide(LEADERBOARDS.length - 1);
+      }
+    }
+
+    function jumpToSlide(index) {
+      currentIndex = index;
+      elapsedBeforePause = 0;
+      startTime = null;
+      renderSlide(currentIndex);
+      if (isPlaying) {
+        cancelAnimationFrame(progressTimer);
+        progressTimer = requestAnimationFrame(updateProgress);
+      } else {
+        // visually update bars
+        for (let i = 0; i < LEADERBOARDS.length; i++) {
+          const fill = document.getElementById(`bar-fill-${i}`);
+          if (fill) fill.style.width = i < currentIndex ? '100%' : '0%';
+        }
+      }
+    }
+
+    /**
+     * Speed Control Cycle
+     */
+    function cycleSpeed() {
+      const speeds = [1.0, 1.5, 0.75];
+      const curIdx = speeds.indexOf(currentSpeed);
+      currentSpeed = speeds[(curIdx + 1) % speeds.length];
+      speedBtn.textContent = `${currentSpeed}x`;
+      showToast(`Speed set to ${currentSpeed}x`);
+
+      if (isPlaying) {
+        cancelAnimationFrame(progressTimer);
+        startTime = null;
+        elapsedBeforePause = 0;
+        progressTimer = requestAnimationFrame(updateProgress);
+      }
+    }
+
+    /**
+     * Drawer Navigation & Search Filter
+     */
+    function buildDrawerList() {
+      drawerList.innerHTML = '';
+      LEADERBOARDS.forEach((item, idx) => {
+        const row = document.createElement('div');
+        row.className = `p-2.5 rounded-xl border transition flex items-center justify-between cursor-pointer ${idx === currentIndex ? 'bg-amber-500/20 border-amber-400 text-white' : 'bg-slate-900/60 border-slate-800 text-slate-300 hover:bg-slate-800/80'}`;
+        row.dataset.index = idx;
+        row.innerHTML = `
+          <div class="flex items-center gap-2.5 min-w-0">
+            <span class="w-6 h-6 rounded-md bg-slate-800 flex items-center justify-center text-xs font-mono font-bold text-amber-400">${idx + 1}</span>
+            <div class="truncate">
+              <div class="text-xs font-bold truncate">${item.title}</div>
+              <div class="text-[10px] text-slate-400 truncate">${item.subtitle}</div>
+            </div>
+          </div>
+          <span class="text-[10px] font-semibold text-slate-400 shrink-0 ml-2">${item.badge}</span>
+        `;
+        row.onclick = () => {
+          jumpToSlide(idx);
+          closeDrawer();
+        };
+        drawerList.appendChild(row);
+      });
+    }
+
+    function updateDrawerSelection() {
+      Array.from(drawerList.children).forEach((child, idx) => {
+        if (idx === currentIndex) {
+          child.className = 'p-2.5 rounded-xl border transition flex items-center justify-between cursor-pointer bg-amber-500/20 border-amber-400 text-white';
+        } else {
+          child.className = 'p-2.5 rounded-xl border transition flex items-center justify-between cursor-pointer bg-slate-900/60 border-slate-800 text-slate-300 hover:bg-slate-800/80';
+        }
+      });
+    }
+
+    function openDrawer() {
+      drawer.classList.remove('translate-y-full');
+      searchInput.value = '';
+      filterDrawer('');
+    }
+
+    function closeDrawer() {
+      drawer.classList.add('translate-y-full');
+    }
+
+    function filterDrawer(query) {
+      const q = query.toLowerCase().trim();
+      Array.from(drawerList.children).forEach((child) => {
+        const idx = parseInt(child.dataset.index, 10);
+        const data = LEADERBOARDS[idx];
+        const matchTitle = data.title.toLowerCase().includes(q);
+        const matchSub = data.subtitle.toLowerCase().includes(q);
+        const matchBadge = data.badge.toLowerCase().includes(q);
+        const matchItems = JSON.stringify(data.items).toLowerCase().includes(q);
+        if (matchTitle || matchSub || matchBadge || matchItems) {
+          child.style.display = 'flex';
+        } else {
+          child.style.display = 'none';
+        }
+      });
+    }
+
+    /**
+     * Toast Notifications
+     */
+    let toastTimeout = null;
+    function showToast(message) {
+      toastMsg.textContent = message;
+      toast.classList.remove('opacity-0', 'pointer-events-none');
+      clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        toast.classList.add('opacity-0', 'pointer-events-none');
+      }, 2000);
+    }
+
+    /**
+     * Copy / Share Current Leaderboard
+     */
+    function copyLeaderboardSummary() {
+      const data = LEADERBOARDS[currentIndex];
+      let summaryText = `♟️ Chess Tournament Leaderboard: ${data.title}\n${data.subtitle}\n\n`;
+
+      if (data.type === 'featured') {
+        const c = data.items[0];
+        summaryText += `👑 #1 ${c.name} (${c.dept}) — ${c.score}\n${data.extraInfo}\n`;
+      } else if (data.type === 'matchup') {
+        data.items.forEach(it => {
+          summaryText += `${it.rank}. ${it.p1} vs ${it.p2} (${it.res}) [${it.stat}]\n`;
+        });
+      } else if (data.type === 'rivalry') {
+        data.items.forEach(it => {
+          summaryText += `${it.rank}. ${it.p1} (${it.d1}) vs ${it.p2} (${it.d2}) - ${it.score}\n`;
+        });
+      } else {
+        data.items.forEach(it => {
+          summaryText += `${it.rank}. ${it.name} (${it.dept}) — ${it.score} ${data.unit}\n`;
+        });
+      }
+
+      summaryText += `\nCheck out the Vertical Chess Reel Hall of Fame!`;
+
+      // Fallback copy execCommand for iframe compatibility
+      const dummy = document.createElement("textarea");
+      document.body.appendChild(dummy);
+      dummy.value = summaryText;
+      dummy.select();
+      document.execCommand("copy");
+      document.body.removeChild(dummy);
+
+      showToast("Leaderboard copied to clipboard!");
+    }
+
+    /**
+     * Setup Event Listeners
+     */
+    function initListeners() {
+      // Tap navigation zones
+      document.getElementById('tapLeft').onclick = () => {
+        prevSlide();
+      };
+      document.getElementById('tapRight').onclick = () => {
+        nextSlide();
+      };
+
+      // Playback dock
+      playPauseBtn.onclick = togglePlayPause;
+      prevBtn.onclick = prevSlide;
+      nextBtn.onclick = nextSlide;
+      speedBtn.onclick = cycleSpeed;
+      shareSlideBtn.onclick = copyLeaderboardSummary;
+
+      // Drawer
+      drawerToggleBtn.onclick = openDrawer;
+      closeDrawerBtn.onclick = closeDrawer;
+      searchInput.oninput = (e) => filterDrawer(e.target.value);
+
+      // Sound FX
+      soundBtn.onclick = () => {
+        sound.init();
+        sound.enabled = !sound.enabled;
+        if (sound.enabled) {
+          soundIcon.className = 'fa-solid fa-volume-high text-cyan-400';
+          showToast('Sound effects enabled');
+          sound.playTrophy();
+        } else {
+          soundIcon.className = 'fa-solid fa-volume-xmark text-rose-400';
+          showToast('Muted');
+        }
+      };
+
+      // Keyboard Controls
+      window.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowRight' || e.key === 'Space') {
+          e.preventDefault();
+          if (e.key === 'Space') togglePlayPause();
+          else nextSlide();
+        } else if (e.key === 'ArrowLeft') {
+          e.preventDefault();
+          prevSlide();
+        } else if (e.key === 'Escape') {
+          closeDrawer();
+        }
+      });
+
+      // Touch Swipe Gesture Support
+      let touchStartX = 0;
+      let touchStartY = 0;
+      slideStage.addEventListener('touchstart', (e) => {
+        touchStartX = e.changedTouches[0].screenX;
+        touchStartY = e.changedTouches[0].screenY;
+      }, { passive: true });
+
+      slideStage.addEventListener('touchend', (e) => {
+        const touchEndX = e.changedTouches[0].screenX;
+        const touchEndY = e.changedTouches[0].screenY;
+        const diffX = touchEndX - touchStartX;
+        const diffY = touchEndY - touchStartY;
+
+        // Ensure horizontal swipe is dominant
+        if (Math.abs(diffX) > 40 && Math.abs(diffX) > Math.abs(diffY)) {
+          if (diffX < 0) {
+            nextSlide(); // swipe left -> next
+          } else {
+            prevSlide(); // swipe right -> prev
+          }
+        }
+      }, { passive: true });
+    }
+
+    // Initialize application on window load
+    window.onload = function () {
+      initProgressBars();
+      buildDrawerList();
+      initListeners();
+      renderSlide(0);
+      startAutoPlay();
+    };
+  </script>
+</body>
+</html>
